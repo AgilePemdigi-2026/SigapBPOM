@@ -167,6 +167,26 @@ Keputusan lengkap ada di [ADR 0001](docs/decisions/0001-stack.md).
 | STT dan TTS | **ElevenLabs API** | Mendukung streaming dua arah untuk mengejar target jawaban ≤ 3 detik. Belum ada data uji yang menunjukkan penyedia lain lebih akurat untuk bahasa Indonesia. |
 | Deployment | **VPS Linux di Indonesia (Docker + Nginx)** | Menjalankan Astro, Voice Gateway, dan Hermes Agent. Nginx menjadi reverse proxy HTTPS dan WSS. |
 
+### Mengapa Astro, bukan framework JavaScript lain?
+
+SIGAP punya dua wajah dengan kebutuhan yang berbeda. Halaman publik HaloBPOM dibuka masyarakat umum, sering lewat ponsel dan koneksi seadanya. Dashboard petugas dipakai setiap hari kerja dan butuh komponen interaktif. Astro dipilih karena bisa melayani keduanya dari satu proyek tanpa membebani salah satunya.
+
+1. **JavaScript hanya dikirim ke bagian yang butuh.** Dengan arsitektur *islands*, halaman Astro dikirim sebagai HTML statis. Hanya komponen interaktif seperti panel panggilan suara, tabel live, dan formulir yang membawa JavaScript ke browser. Framework SPA seperti React + Vite, Vue, atau Angular mengirim seluruh runtime dan kode aplikasi walaupun sebagian besar halaman hanya menampilkan teks. Untuk halaman publik, ini berarti waktu muat lebih cepat di ponsel, sesuai target dashboard ≤ 3 detik pada 10 Mbps (NFR-3).
+2. **Backend sudah ditangani Supabase.** Next.js, Nuxt, dan SvelteKit kuat karena fitur full-stack: API route, server actions, dan middleware data. Di SIGAP, autentikasi, database, realtime, penyimpanan berkas, dan aturan bisnis sudah ada di Supabase (Auth, Postgres + RLS, Realtime, Storage, Edge Functions). Memakai framework full-stack berarti membawa lapisan backend kedua yang tumpang tindih. Astro cukup menjadi lapisan tampilan, sesuai peran *Boundary* di pola BCE.
+3. **Render di server untuk pemeriksaan sesi.** Astro mendukung server-side rendering, sehingga setiap halaman dashboard bisa memeriksa sesi petugas di server sebelum halaman dikirim. Ini sesuai aturan keamanan proyek bahwa otorisasi dilakukan di server, bukan dengan menyembunyikan menu (PROJECT_RULES bagian 5). SPA murni hanya bisa memeriksa sesi setelah JavaScript termuat di browser.
+4. **Tidak mengunci tim ke satu library UI.** Island Astro bisa ditulis dengan komponen `.astro` biasa, atau dengan React, Svelte, maupun Vue bila suatu komponen butuh state yang rumit, misalnya panel suara atau graf pengetahuan. Anggota tim bisa memakai library yang paling mereka kuasai tanpa mengganti framework.
+5. **Kurva belajar landai untuk tim menengah.** Komponen `.astro` pada dasarnya HTML + CSS dengan bagian skrip di atasnya. Konsepnya lebih sedikit dibanding App Router Next.js (server/client component, caching bertingkat, server actions), jadi tim bisa fokus ke fitur dalam tiga sprint yang tersedia.
+6. **TypeScript bawaan.** Astro mendukung TypeScript tanpa konfigurasi tambahan, sehingga satu bahasa dipakai dari halaman sampai Edge Functions.
+
+| Framework | Kenapa tidak dipilih untuk SIGAP |
+|---|---|
+| Next.js (React) | Fitur full-stack-nya tumpang tindih dengan Supabase. Mengirim runtime React ke setiap halaman, dan model server/client component menambah kompleksitas yang tidak dibutuhkan. |
+| React + Vite (SPA) | Semua halaman dirender di browser, sehingga halaman publik lebih berat dan pemeriksaan sesi baru terjadi setelah JavaScript termuat. |
+| Nuxt (Vue) / SvelteKit | Sama-sama framework full-stack yang bagus, tetapi lapisan server-nya juga tumpang tindih dengan Supabase. Keunggulan islands Astro untuk halaman publik yang ringan tidak didapat secara bawaan. |
+| Angular | Terlalu berat untuk ukuran proyek dan durasi tiga sprint. Kurva belajarnya paling curam. |
+
+Kelemahan Astro yang disadari: bagian yang sangat interaktif tetap butuh komponen island, dan pembaruan live dari Supabase Realtime harus ditangani di dalam island tersebut. Untuk ukuran SIGAP, hal ini masih sepadan dengan keuntungan halaman yang ringan.
+
 **Alternatif yang dipertimbangkan:**
 
 - *Backend kustom (Laravel, sesuai SRS yang menyebut Behat).* Ditolak karena autentikasi, realtime, dan penyimpanan berkas harus dibangun sendiri, padahal Supabase sudah menyediakannya.
