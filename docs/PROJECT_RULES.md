@@ -4,9 +4,9 @@ Dokumen ini mengikat semua kontributor: anggota tim maupun asisten AI (Claude Co
 
 ## 1. Sumber Kebenaran
 
-1. `docs/PRD.md` adalah acuan kebutuhan untuk pengembang. SRS v1.0 (`docs/source/SRS-SIGAP-v1.0.docx`) adalah dokumen resmi di atasnya. Rencana sprint ada di `docs/source/Sprint-Planning-Sprint-1.docx`.
+1. `docs/prd/` (PRD.md, features.json, specs, tasks.json, format skill prd-generator) adalah acuan kebutuhan untuk pengembang. Rincian REQ, NFR, BR, kamus pesan, dan label ada di `docs/reference/PRD-rinci.md`. SRS v1.0 (`docs/source/SRS-SIGAP-v1.0.docx`) adalah dokumen resmi di atasnya. Rencana sprint ada di `docs/source/Sprint-Planning-Sprint-1.docx`.
 2. Perubahan kebutuhan diubah dulu di PRD lewat PR terpisah, baru kode menyusul. Kode tidak boleh "mendahului" PRD.
-3. Teks UI, label tombol, nama field, dan pesan sistem harus persis seperti PRD Lampiran A dan B. Jangan parafrase, jangan ubah tanda baca.
+3. Teks UI, label tombol, nama field, dan pesan sistem harus persis seperti Lampiran A dan B di `docs/reference/PRD-rinci.md`. Jangan parafrase, jangan ubah tanda baca.
 4. Setiap perubahan kode harus bisa ditelusuri ke kode kebutuhan (REQ-x.y, NFR-x, BR-x). Sebutkan di deskripsi PR dan di nama test.
 
 ## 2. Git: Identitas dan Atribusi (WAJIB)
@@ -205,9 +205,10 @@ Sebuah fitur selesai jika semua poin berikut terpenuhi:
 ## 7. Dokumentasi
 
 - `README.md`: tujuan proyek, prasyarat, cara setup, variabel env, cara menjalankan, cara menguji.
-- `docs/PRD.md`: kebutuhan produk, selalu mutakhir.
+- `docs/prd/`: kebutuhan produk, fitur, spec, dan task, selalu mutakhir. Validasi dengan `node <dir-skill>/scripts/prd-tasks.mjs validate` setelah diubah.
+- `docs/reference/PRD-rinci.md`: rincian kebutuhan dan kamus pesan, selalu mutakhir.
 - `docs/decisions/NNNN-judul.md`: catatan keputusan arsitektur (ADR) singkat untuk setiap keputusan yang sulit dibatalkan: pilihan stack, penyedia LLM/STT/TTS, skema ID dan tiket, kerangka uji penerimaan. Format: konteks, keputusan, alternatif, konsekuensi.
-- Setiap butir di PRD Bagian 15 (belum ditetapkan) diselesaikan lewat ADR, lalu PRD diperbarui.
+- Setiap butir di `docs/reference/PRD-rinci.md` Bagian 15 (belum ditetapkan) diselesaikan lewat ADR, lalu PRD diperbarui.
 
 ## 8. Ditetapkan Setelah Stack Dipilih
 

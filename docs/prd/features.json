@@ -1,0 +1,125 @@
+{
+  "idea": "AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM.",
+  "language": "id",
+  "experience": "menengah",
+  "techStack": {
+    "frontend": "Astro + TypeScript",
+    "backend": "Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS",
+    "database": "Supabase Postgres + pgvector + RLS",
+    "deployment": "VPS Linux Indonesia (Docker, Nginx) untuk Astro, Voice Gateway, Hermes Agent; Supabase Cloud"
+  },
+  "phases": [
+    { "number": 1, "title": "Sprint 1 — Layanan informasi suara", "goal": "Penelepon bisa menanyakan legalitas dan edukasi produk lewat suara, dan petugas bisa login serta mengelola basis pengetahuan." },
+    { "number": 2, "title": "Sprint 2 — Pengaduan dan pemantauan", "goal": "Penelepon bisa menyampaikan pengaduan bertiket dan petugas bisa memantau layanan serta AI Agent secara live." },
+    { "number": 3, "title": "Sprint 3 — Penanganan dan laporan", "goal": "Petugas bisa menangani pengaduan sampai tiket ditutup, membaca transkrip, dan mengunduh laporan." }
+  ],
+  "features": [
+    {
+      "id": "F1",
+      "name": "Tanya Info Produk",
+      "summary": "Penelepon mendapat jawaban legalitas dan edukasi produk dari sumber resmi tanpa menunggu petugas.",
+      "icon": "chat",
+      "priority": "high",
+      "phase": 1,
+      "subFeatures": [
+        { "id": "F1.1", "name": "Panel Panggilan Suara", "summary": "Penelepon membuka panggilan dari halaman publik, mendengar menu, dan membaca transkrip langsung.", "icon": "chat", "priority": "high" },
+        { "id": "F1.2", "name": "Cek Legalitas Produk", "summary": "Penelepon mendengar nomor izin edar dan status produk dari data registrasi BPOM.", "icon": "search", "priority": "high" },
+        { "id": "F1.3", "name": "Jawab Edukasi Bersumber", "summary": "Penelepon mendapat jawaban edukasi beserta sumber rujukan dari basis pengetahuan.", "icon": "file", "priority": "high" },
+        { "id": "F1.4", "name": "Eskalasi ke Petugas", "summary": "Pertanyaan yang butuh penilaian manusia diteruskan ke petugas dengan nomor tiket eskalasi.", "icon": "bell", "priority": "high" }
+      ]
+    },
+    {
+      "id": "F2",
+      "name": "Kelola Pengetahuan",
+      "summary": "Petugas menjaga materi sumber jawaban AI tetap akurat dan mutakhir.",
+      "icon": "file",
+      "priority": "high",
+      "phase": 1,
+      "subFeatures": [
+        { "id": "F2.1", "name": "Daftar Materi", "summary": "Petugas melihat, mencari, dan menyaring seluruh materi edukasi.", "icon": "search", "priority": "high" },
+        { "id": "F2.2", "name": "Tambah Materi", "summary": "Petugas menambah materi bersumber yang langsung siap dipakai sistem.", "icon": "file", "priority": "high" },
+        { "id": "F2.3", "name": "Nonaktifkan Materi", "summary": "Petugas menonaktifkan materi usang tanpa kehilangan jejak sumber jawaban lama.", "icon": "settings", "priority": "medium" },
+        { "id": "F2.4", "name": "Telusuri Graf Pengetahuan", "summary": "Petugas melihat keterkaitan antarmateri dan bagian dokumen yang terindeks.", "icon": "chart", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "F3",
+      "name": "Masuk Dashboard",
+      "summary": "Hanya petugas terautentikasi yang bisa mengakses dashboard, dengan akun terlindungi dari tebakan password.",
+      "icon": "lock",
+      "priority": "high",
+      "phase": 1,
+      "subFeatures": [
+        { "id": "F3.1", "name": "Login Petugas", "summary": "Petugas masuk dengan email dan password lalu diarahkan ke Ringkasan Layanan.", "icon": "lock", "priority": "high" },
+        { "id": "F3.2", "name": "Kunci Akses Akun", "summary": "Akun dikunci sementara setelah tiga kali gagal login berturut-turut.", "icon": "shield", "priority": "high" },
+        { "id": "F3.3", "name": "Navigasi dan Sesi", "summary": "Petugas berpindah halaman lewat kerangka dashboard dan sesi berakhir setelah 30 menit idle.", "icon": "dashboard", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "F4",
+      "name": "Sampaikan Pengaduan",
+      "summary": "Penelepon melaporkan produk bermasalah dan langsung mendapat nomor tiket.",
+      "icon": "file",
+      "priority": "high",
+      "phase": 2,
+      "subFeatures": [
+        { "id": "F4.1", "name": "Kumpulkan Data Pengaduan", "summary": "Agen menanyakan empat data wajib dan menanyakan ulang yang belum disebut.", "icon": "chat", "priority": "high" },
+        { "id": "F4.2", "name": "Terbitkan Tiket Pengaduan", "summary": "Pengaduan lengkap dicatat, diberi nomor tiket, dan masuk antrean petugas.", "icon": "file", "priority": "high" },
+        { "id": "F4.3", "name": "Simpan Pengaduan Terputus", "summary": "Panggilan yang berakhir sebelum data lengkap tetap tersimpan tanpa tiket.", "icon": "box", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "F5",
+      "name": "Pantau Layanan",
+      "summary": "Petugas mengetahui kondisi layanan dan AI Agent saat ini serta kasus yang perlu segera ditangani.",
+      "icon": "dashboard",
+      "priority": "medium",
+      "phase": 2,
+      "subFeatures": [
+        { "id": "F5.1", "name": "Ringkasan Layanan", "summary": "Petugas melihat statistik hari ini dan kasus perlu tindak lanjut.", "icon": "dashboard", "priority": "medium" },
+        { "id": "F5.2", "name": "Pantau Panggilan Berjalan", "summary": "Petugas melihat panggilan aktif beserta durasi dan tahap pemrosesan AI secara live.", "icon": "chart", "priority": "medium" },
+        { "id": "F5.3", "name": "Antrean Tiket Eskalasi", "summary": "Petugas melihat antrean tiket dengan tautan transkrip dan membuka kasus.", "icon": "bell", "priority": "medium" },
+        { "id": "F5.4", "name": "Pantau AI Agent", "summary": "Petugas melihat kesehatan komponen, latensi, dan log tool AI Agent.", "icon": "settings", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "F6",
+      "name": "Tangani Pengaduan",
+      "summary": "Petugas menuntaskan pengaduan dari telaah sampai tiket ditutup dan pelapor menerima SMS.",
+      "icon": "shield",
+      "priority": "high",
+      "phase": 3,
+      "subFeatures": [
+        { "id": "F6.1", "name": "Telaah Pengaduan", "summary": "Petugas memilih tindak lanjut dan menyimpan catatan telaah.", "icon": "search", "priority": "high" },
+        { "id": "F6.2", "name": "Jadwalkan Pemeriksaan", "summary": "Petugas menetapkan tanggal dan unit pelaksana pemeriksaan lapangan.", "icon": "calendar", "priority": "medium" },
+        { "id": "F6.3", "name": "Susun Tanggapan", "summary": "Petugas menyimpan tanggapan resmi atas pengaduan.", "icon": "file", "priority": "high" },
+        { "id": "F6.4", "name": "Tutup Tiket", "summary": "Petugas menutup tiket yang sudah ditanggapi dan SMS tindak lanjut terkirim.", "icon": "bell", "priority": "high" }
+      ]
+    },
+    {
+      "id": "F7",
+      "name": "Baca Transkrip",
+      "summary": "Petugas memeriksa interaksi penelepon dengan AI tanpa melihat data pribadi mentah.",
+      "icon": "chat",
+      "priority": "medium",
+      "phase": 3,
+      "subFeatures": [
+        { "id": "F7.1", "name": "Riwayat Percakapan", "summary": "Petugas menelusuri percakapan per periode, jenis, dan status.", "icon": "search", "priority": "medium" },
+        { "id": "F7.2", "name": "Detail Transkrip Tersamar", "summary": "Petugas membaca transkrip, ringkasan AI, dan status dengan data pribadi disamarkan.", "icon": "shield", "priority": "medium" },
+        { "id": "F7.3", "name": "Catatan Pemeriksaan", "summary": "Petugas menyimpan catatan pemeriksaan pada percakapan.", "icon": "file", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "F8",
+      "name": "Unduh Laporan",
+      "summary": "Petugas berhak ekspor merekap layanan per periode untuk evaluasi dan pelaporan.",
+      "icon": "export",
+      "priority": "medium",
+      "phase": 3,
+      "subFeatures": [
+        { "id": "F8.1", "name": "Rekap Periode", "summary": "Petugas melihat jumlah panggilan, eskalasi, dan pengaduan selesai per periode.", "icon": "chart", "priority": "medium" },
+        { "id": "F8.2", "name": "Unduh Berkas Laporan", "summary": "Petugas berhak ekspor mengunduh laporan PDF atau CSV.", "icon": "export", "priority": "medium" }
+      ]
+    }
+  ]
+}
