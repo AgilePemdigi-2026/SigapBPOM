@@ -36,4 +36,5 @@ LLM, STT, dan TTS tetap diakses lewat adapter dengan implementasi mock (PROJECT_
 - Model GPT lewat langganan, bukan API berbayar per pemakaian. Tim wajib memastikan syarat layanan langganan mengizinkan pemakaian untuk layanan publik dan memantau batas kuota. Bila tidak, beralih ke OpenAI API cukup dengan mengganti adapter LLM.
 - Uji akurasi STT/TTS bahasa Indonesia dengan sampel nama produk BPOM (PRD Bagian 14) tetap dijalankan di Sprint 1, kini terhadap ElevenLabs.
 - Kerangka uji penerimaan Gherkin (PRD Bagian 15 butir 9) belum ditetapkan, tetapi Behat (PHP) tidak lagi cocok dengan stack ini.
+- SRS 2.4 dan 3.2.2 mensyaratkan penyimpanan data di wilayah Indonesia (UU PDP). Supabase belum menyediakan region Indonesia (terdekat Singapura), jadi syarat ini harus dikonfirmasi ke dosen atau BPOM, atau Supabase di-self-host di server Indonesia.
 - Kunci ElevenLabs, OpenAI, dan Supabase hanya lewat environment variable dan dicatat di `.env.example`.

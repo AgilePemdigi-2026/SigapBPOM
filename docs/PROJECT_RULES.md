@@ -4,7 +4,7 @@ Dokumen ini mengikat semua kontributor: anggota tim maupun asisten AI (Claude Co
 
 ## 1. Sumber Kebenaran
 
-1. `docs/PRD.md` adalah acuan kebutuhan untuk pengembang. SRS v1.0 (dokumen praktikum) adalah dokumen resmi di atasnya.
+1. `docs/PRD.md` adalah acuan kebutuhan untuk pengembang. SRS v1.0 (`docs/source/SRS-SIGAP-v1.0.docx`) adalah dokumen resmi di atasnya. Rencana sprint ada di `docs/source/Sprint-Planning-Sprint-1.docx`.
 2. Perubahan kebutuhan diubah dulu di PRD lewat PR terpisah, baru kode menyusul. Kode tidak boleh "mendahului" PRD.
 3. Teks UI, label tombol, nama field, dan pesan sistem harus persis seperti PRD Lampiran A dan B. Jangan parafrase, jangan ubah tanda baca.
 4. Setiap perubahan kode harus bisa ditelusuri ke kode kebutuhan (REQ-x.y, NFR-x, BR-x). Sebutkan di deskripsi PR dan di nama test.
