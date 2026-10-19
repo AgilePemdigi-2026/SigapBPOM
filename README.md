@@ -288,7 +288,9 @@ Batasan keselamatan: agen tidak memberi nasihat medis (NFR-6), tidak menyebut st
 
 ## Rencana Rilis
 
-Total 24 poin dalam tiga sprint.
+Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 1 (mulai Minggu 10).**
+
+> **Kerjakan hanya backlog sprint aktif.** Fitur sprint berikutnya tidak boleh dikerjakan lebih awal, termasuk halaman, tabel database, maupun data tiruannya. Menu untuk UC yang belum masuk sprint cukup berupa halaman placeholder. Aturan lengkap ada di [PROJECT_RULES bagian 9](docs/PROJECT_RULES.md#9-batas-lingkup-sprint-wajib).
 
 | Sprint | Fitur | Fokus teknis |
 |---|---|---|
@@ -301,6 +303,7 @@ Total 24 poin dalam tiga sprint.
 ```
 .
 ├── .githooks/            # hook commit-msg dan pre-push bersama tim
+├── .github/            # template pull request (wajib isi Sprint dan Task)
 ├── docs/
 │   ├── decisions/        # Architecture Decision Records (ADR)
 │   ├── prd/              # PRD, features.json, tasks.json, spec per fitur (F1, F2, F3, ...)
@@ -345,6 +348,7 @@ Baca [docs/PROJECT_RULES.md](docs/PROJECT_RULES.md) sebelum berkontribusi. Ringk
 - **Commit** memakai Conventional Commits dalam bahasa Inggris, misalnya `feat(uc-03): lock account after three failed login attempts`.
 - **Setiap perubahan** harus bisa ditelusuri ke kode kebutuhan (REQ, NFR, BR) di deskripsi PR dan nama test.
 - **Tanpa rahasia di repo.** Semua kredensial lewat environment variable.
+- **Ikuti sprint.** Setiap PR menyebut `Sprint:` dan `Task:` dari `docs/prd/tasks.json`, sesuai template PR. PR yang menyentuh UC di luar sprint aktif ditolak, dan ide di luar task dicatat sebagai isu.
 
 ## Dokumen Terkait
 
