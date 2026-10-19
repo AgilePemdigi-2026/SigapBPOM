@@ -33,23 +33,6 @@ export const TIKET: Tiket[] = [
 
 export const BELUM_DITELAAH = TIKET.filter((t) => t.status === 'Belum Ditelaah');
 
-// Linimasa panggilan: detik sejak 00:00 WIB. Jendela 10:14–10:54, kolom per 2 menit.
-export const TL_START = 36840;
-export const TL_SPAN = 2400;
-export const TL_NOW = 38520;
-
-export type TlKind = 'green' | 'purple' | 'amber' | 'live';
-export type TlRow = { no: string; jenis: 'Informasi Produk' | 'Pengaduan'; s: number; e: number | null; k: TlKind; label: string; chip: string; tilt?: boolean };
-
-export const TIMELINE: TlRow[] = [
-  { no: '0813****2210', jenis: 'Informasi Produk', s: 36860, e: 37400, k: 'green', label: 'Susu Formula Sehat', chip: 'Selesai oleh AI' },
-  { no: '0819****4471', jenis: 'Pengaduan', s: 37000, e: 37720, k: 'purple', label: 'Masker wajah "Bening Ayu"', chip: 'ADU-0457' },
-  { no: '0812****7890', jenis: 'Informasi Produk', s: 37480, e: 38020, k: 'amber', label: 'Dosis obat anak', chip: 'ESK-0124' },
-  { no: '0878****5521', jenis: 'Informasi Produk', s: 37980, e: null, k: 'live', label: 'Mencari data registrasi', chip: 'LIVE', tilt: true },
-  { no: '0821****0043', jenis: 'Pengaduan', s: 38220, e: null, k: 'live', label: 'Mengumpulkan data', chip: 'LIVE' },
-  { no: '0896****3377', jenis: 'Informasi Produk', s: 38430, e: null, k: 'live', label: 'Menu layanan', chip: 'LIVE' },
-];
-
 export const STATISTIK = [
   { label: 'Panggilan Hari Ini', value: '128', sub: '+12% dibanding kemarin', subFg: '#15803d', icon: 'icon-phone-incoming', bg: '#e3ecff', fg: '#2f6bf5' },
   { label: 'Dijawab Otomatis AI', value: '119', sub: '93% dari total panggilan', subFg: '#15803d', icon: 'icon-bot', bg: '#dcf5e6', fg: '#16a34a' },

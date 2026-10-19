@@ -2,74 +2,77 @@
 // Boundary UC-04 Memantau Layanan, halaman Ringkasan Layanan (REQ-4.1).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Orb from '../components/Orb.astro';
-import { TIMELINE, TL_START, TL_SPAN, TL_NOW, STATISTIK, KASUS_URUTAN, TIKET, KATEGORI, KB_TOTAL, type TlKind } from '../lib/data';
+import { STATISTIK, KASUS_URUTAN, TIKET, KATEGORI, KB_TOTAL } from '../lib/data';
+import { beban, type Periode } from '../lib/beban';
 
-const pct = (s: number) => Math.max(0, Math.min(100, ((s - TL_START) / TL_SPAN) * 100));
-const pad = (n: number) => String(n).padStart(2, '0');
-
-const cols = Array.from({ length: 20 }, (_, i) => {
-  const cs = TL_START + i * 120;
-  const now = TL_NOW >= cs && TL_NOW < cs + 120;
-  return { h: pad(Math.floor(cs / 3600)), m: pad(Math.floor(cs / 60) % 60), now, future: cs > TL_NOW && !now };
-});
-
-const KIND: Record<TlKind, { bg: string; fg: string; shadow: string; border: string; chipFg: string; icon: string }> = {
-  green: { bg: 'linear-gradient(90deg,#3ad07f,#1fbe62)', fg: '#fff', shadow: '0 8px 18px rgba(31,190,98,.3)', border: '0', chipFg: '#15803d', icon: 'icon-circle-check' },
-  purple: { bg: 'linear-gradient(90deg,#a77bff,#7b4dff)', fg: '#fff', shadow: '0 8px 18px rgba(123,77,255,.3)', border: '0', chipFg: '#5b3fc4', icon: 'icon-clipboard-list' },
-  amber: { bg: 'linear-gradient(90deg,#ffdc6e,#f9c623)', fg: '#3a2a00', shadow: '0 8px 18px rgba(240,190,30,.3)', border: '0', chipFg: '#8a5300', icon: 'icon-user-round-check' },
-  live: { bg: 'linear-gradient(180deg,rgba(214,228,255,.94),rgba(166,196,255,.9))', fg: '#1d3f9a', shadow: '0 14px 30px rgba(47,107,245,.28)', border: '1px solid rgba(255,255,255,.95)', chipFg: '#2152c9', icon: 'icon-audio-lines' },
-};
-
-const rows = TIMELINE.map((r) => {
-  const l = pct(r.s);
-  const w = pct(r.e ?? TL_NOW) - l;
-  const pengaduan = r.jenis === 'Pengaduan';
-  return { ...r, l, w, kind: KIND[r.k], icon: pengaduan ? 'icon-clipboard-list' : 'icon-phone', iconBg: pengaduan ? '#ece7fe' : '#e3ecff', iconFg: pengaduan ? '#6d4aff' : '#2f6bf5' };
-});
+const PERIODE: [Periode, string][] = [['harian', 'Harian'], ['mingguan', 'Mingguan'], ['bulanan', 'Bulanan']];
+const AWAL: Periode = 'mingguan';
+const muatan = PERIODE.map(([p, label]) => ({ p, label, d: beban(p) }));
 
 const urgent = KASUS_URUTAN.map((no) => TIKET.find((t) => t.no === no)!).filter((t) => t.status === 'Belum Ditelaah').slice(0, 3);
 const fmt = (n: number) => n.toLocaleString('id-ID');
 ---
 <DashboardLayout title="Ringkasan Layanan">
   <div class="page">
-    <section class="panel timeline" aria-labelledby="tl-title">
-      <div class="tl-head">
-        <div class="tl-title"><h1 id="tl-title">Linimasa Panggilan</h1><span>10:14–10:54 WIB · per 2 menit</span></div>
-        <span class="pill pill-flat"><span class="dot-live"></span>3 panggilan sedang berjalan</span>
-        <span class="pill"><i class="icon-calendar"></i>Rabu, 8 Oktober 2026<i class="icon-chevron-down" style="color:#8a919e"></i></span>
-        <span class="pill"><i class="icon-sliders-horizontal"></i>Filter</span>
-        <a href="/panggilan-berjalan" class="pill"><i class="icon-arrow-up-right"></i>Lihat panggilan berjalan</a>
-      </div>
-      <div class="tl-body">
-        <div class="tl-names">
-          <div class="tl-label">Penelepon</div>
-          {rows.map((r) => (
-            <div class="tile tl-name">
-              <span class="tl-icon" style={`background:${r.iconBg};color:${r.iconFg}`}><i class={r.icon}></i></span>
-              <span class="tl-name-text"><span class="mono">{r.no}</span><span>{r.jenis}</span></span>
+    <div class="top-row">
+      {muatan.map(({ p, d }) => (
+        <section class="panel load" data-name="BebanPanggilan" data-periode={p} hidden={p !== AWAL} aria-labelledby={`load-${p}`}>
+          <div class="load-head">
+            <div class="load-title">
+              <h1 class="eyebrow" id={`load-${p}`}>BEBAN PANGGILAN</h1>
+              <div class="load-total"><span class="big">{d.total}</span><span class="unit">panggilan</span><span class="delta">{d.delta}</span></div>
+              <span class="muted">{d.sub}</span>
             </div>
-          ))}
-        </div>
-        <div class="tl-grid">
-          <div class="tl-cols">
-            {cols.map((c) => (
-              <span class:list={['tl-col', { now: c.now, future: c.future }]}><span>{c.h}</span><span>{c.m}</span></span>
-            ))}
+            <div class="seg" role="group" aria-label="Periode beban panggilan">
+              {PERIODE.map(([k, label]) => <button data-load={k} aria-pressed={k === p ? 'true' : 'false'}>{label}</button>)}
+            </div>
           </div>
-          {rows.map((r) => (
-            <div class="tl-row">
-              <div class="tl-cells">{cols.map((c) => <span class:list={['tl-cell', { future: c.future }]}></span>)}</div>
-              <div class="tl-bar" style={`left:${r.l}%;width:max(56px, calc(${r.w}% - 8px));background:${r.kind.bg};color:${r.kind.fg};box-shadow:${r.kind.shadow};border:${r.kind.border};transform:${r.tilt ? 'rotate(-1.2deg) translateY(-2px)' : 'none'}`}>
-                <span class="tl-bar-icon"><i class={r.kind.icon}></i></span>
-                {r.w > 7 && <span class:list={['tl-bar-label', { wide: r.w > 14.5 }]}>{r.label}</span>}
-                {r.w > 14.5 && <span class="tl-chip" style={`color:${r.kind.chipFg}`}><span style={`background:${r.kind.chipFg}`}></span>{r.chip}</span>}
-              </div>
+          <div class="chart">
+            <div class="axis" aria-hidden="true">
+              {d.axis.map((x) => <div class="axis-line" style={`bottom:${x.bottom}`}><span class="mono">{x.v}</span><span></span></div>)}
             </div>
-          ))}
-          <div class="tl-now" style={`left:${pct(TL_NOW)}%`}></div>
-        </div>
-      </div>
-    </section>
+            <div class="groups">
+              {d.groups.map((g) => (
+                <div class="group" style={`flex-grow:${g.n}`}>
+                  <div class="cols">
+                    {g.cols.map((c) => <div class="col" title={c.tip}>{c.dots.map((t) => <span style={`background:${t.bg};box-shadow:${t.sh}`}></span>)}</div>)}
+                  </div>
+                  <span class="group-label">{g.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div class="legend">
+            <span class="leg"><span class="dot" style="width:8px;height:8px;background:#22c55e"></span>Puncak panggilan: {d.peak}</span>
+            <span class="grow"></span>
+            <span class="leg"><span class="dot" style="background:#3b74f6"></span>Dijawab AI</span>
+            <span class="leg"><span class="dot" style="background:#f5b70f"></span>Dieskalasi</span>
+            <span class="mono unit-note">1 titik = {d.unit} panggilan</span>
+          </div>
+        </section>
+      ))}
+
+      {muatan.map(({ p, d }) => (
+        <section class="panel kinerja" data-name="KinerjaAI" data-periode={p} hidden={p !== AWAL}>
+          <div class="kin-head">
+            <div class="kin-title"><span class="eyebrow">KINERJA AI</span><h2>Tingkat Penyelesaian</h2></div>
+            <a href="/riwayat-percakapan" class="link">Lihat detail<i class="icon-chevron-right"></i></a>
+          </div>
+          <div class="donut-row">
+            <div class="donut" style={`background:conic-gradient(#3b74f6 ${d.deg}, #e4e7ec 0)`} role="img" aria-label={`${d.pct} persen dijawab AI`}>
+              <div><span>{d.pct}</span><span>%</span></div>
+            </div>
+            <div class="donut-text"><span>AI dapat menjawab</span><span>Sebagian besar pertanyaan dijawab langsung berdasarkan sumber resmi BPOM.</span></div>
+          </div>
+          <div class="bars">
+            <div class="bar"><div class="bar-row"><span>Jawaban AI</span><span class="mono">{d.ai}</span></div><div class="track"><div style={`width:${d.aiW};background:linear-gradient(90deg,#5b8dff,#2a62f0)`}></div></div></div>
+            <div class="bar"><div class="bar-row"><span>Eskalasi petugas</span><span class="mono">{d.esk}</span></div><div class="track"><div style={`width:${d.eskW};background:linear-gradient(90deg,#ffdc6e,#f5b70f)`}></div></div></div>
+          </div>
+          <span class="grow"></span>
+          <a href="/panggilan-berjalan" class="tile live-link"><span class="dot-live"></span><span class="live-text">3 panggilan berjalan</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
+        </section>
+      ))}
+    </div>
 
     <div class="cards">
       <section class="panel card">
@@ -133,6 +136,12 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
 </DashboardLayout>
 
 <script>
+  // Tab periode beban panggilan: ketiga varian sudah dirender, tinggal ditampilkan.
+  document.querySelectorAll<HTMLElement>('[data-load]').forEach((b) => b.addEventListener('click', () => {
+    const p = b.dataset.load!;
+    document.querySelectorAll<HTMLElement>('[data-periode]').forEach((el) => (el.hidden = el.dataset.periode !== p));
+  }));
+
   try {
     const s = JSON.parse(sessionStorage.getItem('sigap-sesi') || 'null');
     if (s?.nama) document.getElementById('nama-depan')!.textContent = s.nama.split(' ')[0];
@@ -144,38 +153,60 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
   .grow { flex: 1; }
   h1, h2 { margin: 0; font-weight: 400; }
 
-  .timeline { height: 500px; flex: none; padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; }
-  .tl-head { display: flex; align-items: center; gap: 10px; }
-  .tl-title { flex: 1; display: flex; align-items: baseline; gap: 18px; min-width: 0; }
-  .tl-title h1 { font-size: 40px; letter-spacing: -.02em; white-space: nowrap; }
-  .tl-title span { font-size: 15px; color: var(--muted); white-space: nowrap; }
-  .tl-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 12px; }
-  .tl-names { display: flex; flex-direction: column; gap: 7px; }
-  .tl-label { height: 50px; display: flex; align-items: flex-end; padding: 0 4px 6px; font-size: 16px; color: var(--ink-3); }
-  .tl-name { height: 50px; border-radius: 16px; display: flex; align-items: center; gap: 12px; padding: 0 10px; }
-  .tl-icon { width: 32px; height: 32px; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex: none; }
-  .tl-name-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .tl-name-text .mono { font-size: 14.5px; font-weight: 500; }
-  .tl-name-text span:last-child { font-size: 13.5px; color: var(--muted); }
-  .tl-grid { position: relative; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-  .tl-cols, .tl-cells { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 8px; }
-  .tl-cols { height: 50px; }
-  .tl-col { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: #4b5260; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; line-height: 1.2; }
-  .tl-col.future { background: #dfe2e7; border: 0; color: var(--muted); }
-  .tl-col.now { background: var(--grad-blue); border: 0; color: #fff; box-shadow: 0 6px 14px rgba(47, 107, 245, .35); }
-  .tl-col.now span:first-child { opacity: .85; }
-  .tl-col.now span:last-child { font-weight: 600; }
-  .tl-row { height: 50px; position: relative; flex: none; }
-  .tl-cells { position: absolute; inset: 0; }
-  .tl-cell { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
-  .tl-cell.future { border: 0; background: repeating-linear-gradient(135deg, #e4e7ec 0 5px, #d8dce2 5px 10px); }
-  .tl-bar { position: absolute; top: 0; bottom: 0; border-radius: 16px; backdrop-filter: blur(6px); display: flex; align-items: center; gap: 10px; padding: 0 8px; overflow: hidden; z-index: 2; }
-  .tl-bar-icon { width: 34px; height: 34px; flex: none; border-radius: 99px; background: rgba(255, 255, 255, .26); border: 1px solid rgba(255, 255, 255, .55); display: flex; align-items: center; justify-content: center; font-size: 17px; }
-  .tl-bar-label { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tl-bar-label.wide { font-size: 15.5px; }
-  .tl-chip { flex: none; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 7px; background: rgba(255, 255, 255, .88); font-size: 12px; font-weight: 600; }
-  .tl-chip span { width: 5px; height: 5px; border-radius: 5px; }
-  .tl-now { position: absolute; top: 46px; bottom: -6px; width: 0; border-left: 2px dashed var(--blue); z-index: 3; pointer-events: none; }
+  .eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+  .muted { font-size: 15px; color: var(--muted); }
+  [hidden] { display: none !important; }
+
+  .top-row { height: 500px; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 20px; }
+  .load { padding: 24px 28px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .load-head { display: flex; align-items: flex-start; gap: 16px; }
+  .load-title { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .load-total { display: flex; align-items: baseline; gap: 12px; }
+  .big { font-size: 52px; font-weight: 500; letter-spacing: -.03em; line-height: 1.05; }
+  .unit { font-size: 20px; color: var(--ink-3); }
+  .delta { padding: 4px 10px; border-radius: 999px; background: #dcf5e6; color: #15803d; font-size: 14px; font-weight: 600; }
+  .seg { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: #e9ebef; box-shadow: inset 0 1px 3px rgba(16, 24, 40, .08); }
+  .seg button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent; background: transparent; font-size: 15px; color: #4b5260; }
+  .seg button[aria-pressed='true'] { border-color: #fff; background: var(--surface); box-shadow: 0 2px 8px rgba(16, 24, 40, .1); font-weight: 500; color: var(--ink); }
+  .chart { flex: 1; min-height: 0; position: relative; }
+  .axis { position: absolute; left: 0; right: 0; top: 0; bottom: 34px; pointer-events: none; }
+  .axis-line { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 10px; transform: translateY(50%); }
+  .axis-line .mono { width: 40px; text-align: right; font-size: 12.5px; color: var(--muted-2); }
+  .axis-line span:last-child { flex: 1; border-top: 1px dashed #dde0e5; }
+  .groups { position: absolute; left: 56px; right: 0; top: 0; bottom: 0; display: flex; gap: 14px; }
+  .group { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .cols { flex: 1; display: flex; justify-content: space-around; align-items: flex-end; }
+  .col { display: flex; flex-direction: column-reverse; align-items: center; gap: 7px; padding: 0 1px; }
+  .col span { width: 12px; height: 12px; border-radius: 99px; }
+  .group-label { height: 24px; text-align: center; font-size: 15px; color: var(--ink-3); white-space: nowrap; }
+  .legend { display: flex; align-items: center; gap: 20px; font-size: 14.5px; color: #4b5260; }
+  .leg { display: flex; align-items: center; gap: 7px; }
+  .dot { width: 10px; height: 10px; border-radius: 9px; }
+  .unit-note { font-size: 13px; color: var(--muted); }
+
+  .kinerja { padding: 24px 26px; display: flex; flex-direction: column; gap: 20px; }
+  .kin-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .kin-title { display: flex; flex-direction: column; gap: 4px; }
+  .kin-title h2 { font-size: 30px; letter-spacing: -.01em; }
+  .link { display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 500; color: #2152c9; padding: 6px 0; }
+  .donut-row { display: flex; align-items: center; gap: 24px; }
+  .donut { width: 136px; height: 136px; flex: none; border-radius: 999px; box-shadow: 0 10px 24px rgba(47, 107, 245, .18); display: flex; align-items: center; justify-content: center; }
+  .donut > div { width: 108px; height: 108px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .08); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .donut > div span:first-child { font-size: 32px; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
+  .donut > div span:last-child { font-size: 13px; font-weight: 600; color: #15803d; }
+  .donut-text { display: flex; flex-direction: column; gap: 6px; }
+  .donut-text span:first-child { font-size: 20px; font-weight: 500; }
+  .donut-text span:last-child { font-size: 15.5px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+  .bars { display: flex; flex-direction: column; gap: 16px; }
+  .bar { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: flex; justify-content: space-between; font-size: 15px; }
+  .bar-row .mono { font-weight: 600; }
+  .track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
+  .track div { height: 100%; border-radius: 99px; }
+  .live-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; color: var(--ink); }
+  .live-link .dot-live { width: 10px; height: 10px; }
+  .live-text { flex: 1; font-size: 15.5px; font-weight: 500; }
+  .live-go { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: #2152c9; }
 
   .cards { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
   .card { padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
