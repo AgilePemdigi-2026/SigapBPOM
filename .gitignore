@@ -33,3 +33,6 @@ __pycache__/
 *.pyc
 .cache/
 *.log
+
+# Astro
+.astro/

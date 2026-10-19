@@ -1,0 +1,57 @@
+---
+import '../styles/global.css';
+
+interface Props { title: string }
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · SIGAP HaloBPOM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/lucide-static@0.469.0/font/lucide.css" />
+  </head>
+  <body>
+    <div class="stage"><div class="frame"><slot /></div></div>
+    <div id="toast-root" role="status" aria-live="polite"></div>
+    <script>
+      // Kanvas desain 1920×1080 diskalakan agar seluruh tampilan muat di layar tanpa scroll,
+      // sama seperti prototipe Claude Design.
+      const fit = () => document.documentElement.style.setProperty('--s', String(Math.min(innerWidth / 1920, innerHeight / 1080)));
+      fit();
+      addEventListener('resize', fit);
+    </script>
+    <script>
+      // Toast global. Pesan bisa dititipkan lewat sessionStorage agar muncul setelah pindah halaman.
+      const TOAST_KEY = 'sigap-toast';
+      let timer: number | undefined;
+
+      function show(msg: string, kind: 'ok' | 'err' = 'ok') {
+        const root = document.getElementById('toast-root')!;
+        root.innerHTML = '';
+        const el = document.createElement('div');
+        el.className = 'toast';
+        const icon = document.createElement('span');
+        icon.className = 'toast-icon';
+        icon.style.background = kind === 'err' ? '#dc2626' : '#16a34a';
+        icon.innerHTML = `<i class="${kind === 'err' ? 'icon-x' : 'icon-check'}"></i>`;
+        el.append(icon, msg);
+        root.append(el);
+        clearTimeout(timer);
+        timer = window.setTimeout(() => el.remove(), 2800);
+      }
+
+      (window as any).sigapToast = show;
+      try {
+        const pending = sessionStorage.getItem(TOAST_KEY);
+        if (pending) {
+          sessionStorage.removeItem(TOAST_KEY);
+          show(pending);
+        }
+      } catch {}
+    </script>
+  </body>
+</html>

@@ -1,0 +1,258 @@
+---
+// Boundary UC-04 Memantau Layanan, halaman Ringkasan Layanan (REQ-4.1).
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import Orb from '../components/Orb.astro';
+import { STATISTIK, KASUS_URUTAN, TIKET, KATEGORI, KB_TOTAL } from '../lib/data';
+import { beban, type Periode } from '../lib/beban';
+
+const PERIODE: [Periode, string][] = [['harian', 'Harian'], ['mingguan', 'Mingguan'], ['bulanan', 'Bulanan']];
+const AWAL: Periode = 'mingguan';
+const muatan = PERIODE.map(([p, label]) => ({ p, label, d: beban(p) }));
+
+const urgent = KASUS_URUTAN.map((no) => TIKET.find((t) => t.no === no)!).filter((t) => t.status === 'Belum Ditelaah').slice(0, 3);
+const fmt = (n: number) => n.toLocaleString('id-ID');
+---
+<DashboardLayout title="Ringkasan Layanan">
+  <div class="page">
+    <div class="top-row">
+      {muatan.map(({ p, d }) => (
+        <section class="panel load" data-name="BebanPanggilan" data-periode={p} hidden={p !== AWAL} aria-labelledby={`load-${p}`}>
+          <div class="load-head">
+            <div class="load-title">
+              <h1 class="eyebrow" id={`load-${p}`}>BEBAN PANGGILAN</h1>
+              <div class="load-total"><span class="big">{d.total}</span><span class="unit">panggilan</span><span class="delta">{d.delta}</span></div>
+              <span class="muted">{d.sub}</span>
+            </div>
+            <div class="seg" role="group" aria-label="Periode beban panggilan">
+              {PERIODE.map(([k, label]) => <button data-load={k} aria-pressed={k === p ? 'true' : 'false'}>{label}</button>)}
+            </div>
+          </div>
+          <div class="chart">
+            <div class="axis" aria-hidden="true">
+              {d.axis.map((x) => <div class="axis-line" style={`bottom:${x.bottom}`}><span class="mono">{x.v}</span><span></span></div>)}
+            </div>
+            <div class="groups">
+              {d.groups.map((g) => (
+                <div class="group" style={`flex-grow:${g.n}`}>
+                  <div class="cols">
+                    {g.cols.map((c) => <div class="col" title={c.tip}>{c.dots.map((t) => <span style={`background:${t.bg};box-shadow:${t.sh}`}></span>)}</div>)}
+                  </div>
+                  <span class="group-label">{g.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div class="legend">
+            <span class="leg"><span class="dot" style="width:8px;height:8px;background:#22c55e"></span>Puncak panggilan: {d.peak}</span>
+            <span class="grow"></span>
+            <span class="leg"><span class="dot" style="background:#3b74f6"></span>Dijawab AI</span>
+            <span class="leg"><span class="dot" style="background:#f5b70f"></span>Dieskalasi</span>
+            <span class="mono unit-note">1 titik = {d.unit} panggilan</span>
+          </div>
+        </section>
+      ))}
+
+      {muatan.map(({ p, d }) => (
+        <section class="panel kinerja" data-name="KinerjaAI" data-periode={p} hidden={p !== AWAL}>
+          <div class="kin-head">
+            <div class="kin-title"><span class="eyebrow">KINERJA AI</span><h2>Tingkat Penyelesaian</h2></div>
+            <a href="/riwayat-percakapan" class="link">Lihat detail<i class="icon-chevron-right"></i></a>
+          </div>
+          <div class="donut-row">
+            <div class="donut" style={`background:conic-gradient(#3b74f6 ${d.deg}, #e4e7ec 0)`} role="img" aria-label={`${d.pct} persen dijawab AI`}>
+              <div><span>{d.pct}</span><span>%</span></div>
+            </div>
+            <div class="donut-text"><span>AI dapat menjawab</span><span>Sebagian besar pertanyaan dijawab langsung berdasarkan sumber resmi BPOM.</span></div>
+          </div>
+          <div class="bars">
+            <div class="bar"><div class="bar-row"><span>Jawaban AI</span><span class="mono">{d.ai}</span></div><div class="track"><div style={`width:${d.aiW};background:linear-gradient(90deg,#5b8dff,#2a62f0)`}></div></div></div>
+            <div class="bar"><div class="bar-row"><span>Eskalasi petugas</span><span class="mono">{d.esk}</span></div><div class="track"><div style={`width:${d.eskW};background:linear-gradient(90deg,#ffdc6e,#f5b70f)`}></div></div></div>
+          </div>
+          <span class="grow"></span>
+          <a href="/panggilan-berjalan" class="tile live-link"><span class="dot-live"></span><span class="live-text">3 panggilan berjalan</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
+        </section>
+      ))}
+    </div>
+
+    <div class="cards">
+      <section class="panel card">
+        <h2 class="card-title">Statistik Hari Ini</h2>
+        <div class="stats">
+          {STATISTIK.map((s) => (
+            <div class="tile stat">
+              <div class="stat-head"><span>{s.label}</span><span class="stat-icon" style={`background:${s.bg};color:${s.fg}`}><i class={s.icon}></i></span></div>
+              <span class="stat-value">{s.value}</span>
+              <span class="stat-sub" style={`color:${s.subFg}`}>{s.sub}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="panel card urgent">
+        <div class="urgent-head"><h2 class="card-title sm">Kasus Perlu Tindak Lanjut</h2><a href="/tiket-eskalasi" class="pill round" aria-label="Lihat semua tiket eskalasi"><i class="icon-arrow-up-right"></i></a></div>
+        {urgent.map((u, i) => i === 0 ? (
+          <div class="case-first">
+            <div class="case-row"><span class="mono case-no">{u.no}</span><span class="grow"></span><span class="case-wait"><span></span>{u.wait}</span></div>
+            <span class="case-ring">{u.ring}</span>
+            <div class="case-row"><span class="case-meta"><i class="icon-clock"></i>{u.waktu}</span><span class="case-meta"><i class="icon-tag"></i>{u.jenis}</span><span class="grow"></span><a href="/pengaduan/detail" class="case-open">Buka Kasus</a></div>
+          </div>
+        ) : (
+          <div class="tile case-rest">
+            <span class="case-rest-text"><span class="mono">{u.no} · {u.waktu}</span><span>{u.ring}</span></span>
+            <a href="/pengaduan/detail" class="case-open alt">Buka Kasus</a>
+          </div>
+        ))}
+        <div class="fade"></div>
+      </section>
+
+      <section class="panel card">
+        <div class="kat-head"><h2 class="card-title">Pertanyaan per Kategori</h2><span>7 hari terakhir · 812 pertanyaan</span></div>
+        <div class="kat-list">
+          {KATEGORI.map(([label, p, bg]) => (
+            <div class="kat">
+              <div class="kat-row"><span>{label}</span><span class="kat-pct">{p}%</span></div>
+              <div class="kat-track" role="progressbar" aria-valuenow={p} aria-valuemin="0" aria-valuemax="100" aria-label={label}><div style={`width:${(p / 38) * 100}%;background:${bg}`}></div></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="panel card greet">
+        <Orb size={104} />
+        <span class="greet-text">Selamat pagi, <span id="nama-depan">Dewi</span><br />3 panggilan sedang dilayani</span>
+        <div class="greet-actions">
+          <a href="/tiket-eskalasi" class="pill sm"><i class="icon-ticket"></i>Antrean tiket</a>
+          <a href="/basis-pengetahuan?tambah=1" class="pill sm"><i class="icon-plus"></i>Tambah Materi</a>
+          <a href="/rekap-laporan" class="pill sm"><i class="icon-download"></i>Laporan</a>
+        </div>
+        <span class="grow"></span>
+        <div class="tile agent">
+          <span class="dot-live"></span>
+          <span class="agent-text"><span>AI Voice Agent aktif</span><span>KB diperbarui 07 Okt 2026 · {fmt(KB_TOTAL.total)} materi</span></span>
+        </div>
+      </section>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // Tab periode beban panggilan: ketiga varian sudah dirender, tinggal ditampilkan.
+  document.querySelectorAll<HTMLElement>('[data-load]').forEach((b) => b.addEventListener('click', () => {
+    const p = b.dataset.load!;
+    document.querySelectorAll<HTMLElement>('[data-periode]').forEach((el) => (el.hidden = el.dataset.periode !== p));
+  }));
+
+  try {
+    const s = JSON.parse(sessionStorage.getItem('sigap-sesi') || 'null');
+    if (s?.nama) document.getElementById('nama-depan')!.textContent = s.nama.split(' ')[0];
+  } catch {}
+</script>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .grow { flex: 1; }
+  h1, h2 { margin: 0; font-weight: 400; }
+
+  .eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+  .muted { font-size: 15px; color: var(--muted); }
+  [hidden] { display: none !important; }
+
+  .top-row { height: 500px; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 20px; }
+  .load { padding: 24px 28px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .load-head { display: flex; align-items: flex-start; gap: 16px; }
+  .load-title { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .load-total { display: flex; align-items: baseline; gap: 12px; }
+  .big { font-size: 52px; font-weight: 500; letter-spacing: -.03em; line-height: 1.05; }
+  .unit { font-size: 20px; color: var(--ink-3); }
+  .delta { padding: 4px 10px; border-radius: 999px; background: #dcf5e6; color: #15803d; font-size: 14px; font-weight: 600; }
+  .seg { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: #e9ebef; box-shadow: inset 0 1px 3px rgba(16, 24, 40, .08); }
+  .seg button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent; background: transparent; font-size: 15px; color: #4b5260; }
+  .seg button[aria-pressed='true'] { border-color: #fff; background: var(--surface); box-shadow: 0 2px 8px rgba(16, 24, 40, .1); font-weight: 500; color: var(--ink); }
+  .chart { flex: 1; min-height: 0; position: relative; }
+  .axis { position: absolute; left: 0; right: 0; top: 0; bottom: 34px; pointer-events: none; }
+  .axis-line { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 10px; transform: translateY(50%); }
+  .axis-line .mono { width: 40px; text-align: right; font-size: 12.5px; color: var(--muted-2); }
+  .axis-line span:last-child { flex: 1; border-top: 1px dashed #dde0e5; }
+  .groups { position: absolute; left: 56px; right: 0; top: 0; bottom: 0; display: flex; gap: 14px; }
+  .group { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .cols { flex: 1; display: flex; justify-content: space-around; align-items: flex-end; }
+  .col { display: flex; flex-direction: column-reverse; align-items: center; gap: 7px; padding: 0 1px; }
+  .col span { width: 12px; height: 12px; border-radius: 99px; }
+  .group-label { height: 24px; text-align: center; font-size: 15px; color: var(--ink-3); white-space: nowrap; }
+  .legend { display: flex; align-items: center; gap: 20px; font-size: 14.5px; color: #4b5260; }
+  .leg { display: flex; align-items: center; gap: 7px; }
+  .dot { width: 10px; height: 10px; border-radius: 9px; }
+  .unit-note { font-size: 13px; color: var(--muted); }
+
+  .kinerja { padding: 24px 26px; display: flex; flex-direction: column; gap: 20px; }
+  .kin-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .kin-title { display: flex; flex-direction: column; gap: 4px; }
+  .kin-title h2 { font-size: 30px; letter-spacing: -.01em; }
+  .link { display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 500; color: #2152c9; padding: 6px 0; }
+  .donut-row { display: flex; align-items: center; gap: 24px; }
+  .donut { width: 136px; height: 136px; flex: none; border-radius: 999px; box-shadow: 0 10px 24px rgba(47, 107, 245, .18); display: flex; align-items: center; justify-content: center; }
+  .donut > div { width: 108px; height: 108px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .08); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .donut > div span:first-child { font-size: 32px; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
+  .donut > div span:last-child { font-size: 13px; font-weight: 600; color: #15803d; }
+  .donut-text { display: flex; flex-direction: column; gap: 6px; }
+  .donut-text span:first-child { font-size: 20px; font-weight: 500; }
+  .donut-text span:last-child { font-size: 15.5px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+  .bars { display: flex; flex-direction: column; gap: 16px; }
+  .bar { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: flex; justify-content: space-between; font-size: 15px; }
+  .bar-row .mono { font-weight: 600; }
+  .track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
+  .track div { height: 100%; border-radius: 99px; }
+  .live-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; color: var(--ink); }
+  .live-link .dot-live { width: 10px; height: 10px; }
+  .live-text { flex: 1; font-size: 15.5px; font-weight: 500; }
+  .live-go { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: #2152c9; }
+
+  .cards { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  .card { padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .card-title { font-size: 28px; letter-spacing: -.01em; }
+  .card-title.sm { font-size: 24px; white-space: nowrap; }
+  .stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; }
+  .stat { border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13.5px; color: #4b5260; line-height: 1.25; }
+  .stat-icon { width: 32px; height: 32px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .stat-value { font-size: 34px; font-weight: 500; letter-spacing: -.02em; margin-top: auto; }
+  .stat-sub { font-size: 13px; }
+
+  .urgent { overflow: hidden; position: relative; }
+  .urgent-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pill.round { width: 44px; height: 44px; padding: 0; justify-content: center; flex: none; }
+  .case-first { flex: none; border-radius: 22px; background: linear-gradient(180deg, #ffe37e, #fcd03f); box-shadow: 0 10px 24px rgba(240, 190, 30, .3); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; color: #3a2a00; }
+  .case-row { display: flex; align-items: center; gap: 8px; }
+  .case-no { font-size: 14px; font-weight: 600; }
+  .case-wait { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 7px; background: rgba(255, 255, 255, .75); font-size: 12.5px; font-weight: 600; }
+  .case-wait span { width: 5px; height: 5px; border-radius: 5px; background: #b26b00; }
+  .case-ring { font-size: 17px; font-weight: 500; line-height: 1.35; }
+  .case-meta { height: 36px; padding: 0 12px; border-radius: 12px; background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .6); display: flex; align-items: center; gap: 7px; font-size: 13.5px; white-space: nowrap; }
+  .case-open { height: 38px; padding: 0 16px; border-radius: 999px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 500; box-shadow: 0 2px 6px rgba(120, 90, 0, .15); display: inline-flex; align-items: center; white-space: nowrap; flex: none; }
+  .case-open.alt { background: var(--line); border: 1px solid #fff; box-shadow: none; }
+  .case-rest { flex: none; border-radius: 22px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+  .case-rest-text { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+  .case-rest-text .mono { font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
+  .case-rest-text span:last-child { font-size: 16px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(180deg, rgba(243, 244, 246, 0), var(--panel)); pointer-events: none; }
+
+  .kat-head { display: flex; flex-direction: column; gap: 2px; }
+  .kat-head span { font-size: 14.5px; color: var(--muted); }
+  .kat-list { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+  .kat { display: flex; flex-direction: column; gap: 7px; }
+  .kat-row { display: flex; justify-content: space-between; font-size: 15px; }
+  .kat-pct { font-weight: 600; }
+  .kat-track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
+  .kat-track div { height: 100%; border-radius: 99px; }
+
+  .greet { padding: 22px 24px 24px; align-items: center; gap: 10px; text-align: center; }
+  .greet-text { font-size: 24px; font-weight: 500; line-height: 1.25; letter-spacing: -.01em; }
+  .greet-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .pill.sm { height: 40px; padding: 0 14px; gap: 7px; font-size: 14px; }
+  .agent { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; text-align: left; }
+  .agent .dot-live { width: 10px; height: 10px; }
+  .agent-text { display: flex; flex-direction: column; gap: 1px; }
+  .agent-text span:first-child { font-size: 15px; font-weight: 500; }
+  .agent-text span:last-child { font-size: 13px; color: var(--muted); }
+</style>

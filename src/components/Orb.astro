@@ -1,0 +1,6 @@
+---
+interface Props { size: number }
+const { size } = Astro.props;
+const shadow = `0 ${size * 0.18}px ${size * 0.4}px rgba(47,107,245,.32), inset ${-size * 0.06}px ${-size * 0.09}px ${size * 0.2}px rgba(20,60,180,.32), inset ${size * 0.06}px ${size * 0.06}px ${size * 0.16}px rgba(255,255,255,.55)`;
+---
+<div class="orb" aria-hidden="true" style={`width:${size}px;height:${size}px;box-shadow:${shadow}`}></div>

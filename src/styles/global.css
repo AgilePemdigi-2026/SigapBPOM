@@ -1,0 +1,55 @@
+/* Token dan kelas bersama, diturunkan dari prototipe Claude Design "SIGAP Prototype". */
+:root {
+  --bg: #e8eaee;
+  --panel: #f3f4f6;
+  --surface: #fbfbfc;
+  --surface-2: #f8f9fb;
+  --line: #eef0f3;
+  --line-2: #e6e9ee;
+  --ink: #1d222c;
+  --ink-2: #2a2f3a;
+  --ink-3: #3b414d;
+  --muted: #5b6270;
+  --muted-2: #8a919e;
+  --blue: #2f6bf5;
+  --blue-ink: #1d3f9a;
+  --danger: #b42318;
+  --grad-blue: linear-gradient(180deg, #5b8dff, #2a62f0);
+  --shadow-panel: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 30px rgba(16, 24, 40, .05);
+  --shadow-btn: 0 2px 8px rgba(16, 24, 40, .06);
+  --shadow-row: 0 1px 2px rgba(16, 24, 40, .05);
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+.stage { position: fixed; inset: 0; overflow: hidden; }
+.frame { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--s, 1)); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: Outfit, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: #2152c9; text-decoration: none; }
+input, textarea, select, button { font-family: inherit; color: inherit; }
+input::placeholder, textarea::placeholder { color: #9aa1ad; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@keyframes sgPulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .5); } 100% { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); } }
+@keyframes sgFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes sgToast { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+
+.panel { background: var(--panel); border: 1px solid rgba(255, 255, 255, .95); border-radius: 32px; box-shadow: var(--shadow-panel); }
+.tile { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); }
+.pill { height: 50px; padding: 0 18px; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); display: inline-flex; align-items: center; gap: 9px; font-size: 15px; color: var(--ink-2); white-space: nowrap; }
+.pill-flat { background: var(--surface); border: 1px solid var(--line); box-shadow: none; color: var(--ink); }
+.btn-primary { border: 0; border-radius: 999px; background: var(--grad-blue); color: #fff; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 16px rgba(47, 107, 245, .3); }
+.tab { height: 44px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); font-size: 15px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 8px; }
+.tab[aria-pressed='true'] { background: linear-gradient(180deg, #e9eefa, #dde5f6); box-shadow: inset 0 2px 5px rgba(47, 80, 160, .14); font-weight: 500; color: var(--blue-ink); }
+.chip { padding: 5px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+.mono { font-family: var(--mono); }
+.dot-live { width: 9px; height: 9px; flex: none; border-radius: 9px; background: #22c55e; animation: sgPulse 1.6s ease-out infinite; }
+.orb { border-radius: 50%; flex: none; background: radial-gradient(circle at 34% 28%, #ffffff 0%, #d7e5ff 14%, #8db7ff 42%, #4581f8 72%, #2b5fe0 100%); animation: sgFloat 5s ease-in-out infinite; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+
+.toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 24px 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid #fff; box-shadow: 0 18px 40px rgba(20, 30, 60, .22); font-size: 17px; font-weight: 500; animation: sgToast .25s ease-out; white-space: nowrap; }
+.toast-icon { width: 34px; height: 34px; border-radius: 99px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; }
