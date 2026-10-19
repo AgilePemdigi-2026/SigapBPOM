@@ -1,5 +1,7 @@
 # PRD SIGAP: Sistem Informasi dan Gerbang Aduan Publik
 
+> PRD utama kini ada di `docs/prd/` (format prd-generator). Dokumen ini adalah rujukan rinci: kode REQ, NFR, BR, kamus pesan sistem (Lampiran A), dan label UI (Lampiran B). Bila berbeda, SRS v1.0 tetap dokumen resmi tertinggi.
+
 | Item | Keterangan |
 |---|---|
 | Produk | SIGAP v1.0, AI Voice Agent untuk layanan HaloBPOM |
