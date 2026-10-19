@@ -1,0 +1,35 @@
+# Konfigurasi asisten AI. Tidak pernah di-commit.
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.cursorrules
+.aider*
+.github/copilot-instructions.md
+
+# Rahasia dan konfigurasi lokal
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Sistem operasi dan editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependensi, build, dan cache. Sesuaikan setelah stack ditetapkan.
+node_modules/
+vendor/
+dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+.cache/
+*.log

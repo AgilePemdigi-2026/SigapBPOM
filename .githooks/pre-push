@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Hook pre-push SIGAP.
+# Menolak push jika ada commit beratribusi AI, file konfigurasi AI, atau berkas .env di tree.
+# Lihat docs/PROJECT_RULES.md bagian 2.
+set -euo pipefail
+
+remote_name="$1"
+
+ATTR_PATTERN='(co-authored-by:.*(claude|anthropic|copilot|cursor|aider)|claude-session:|generated (with|by).*(claude|copilot|cursor|aider)|anthropic\.com)'
+AI_FILES_PATTERN='(^|/)(\.claude/|CLAUDE\.md$|CLAUDE\.local\.md$|\.cursor/|\.cursorrules$|\.aider|copilot-instructions\.md$)'
+ENV_FILES_PATTERN='(^|/)\.env(\.[^/]+)?$'
+
+zero_sha="$(printf '%040d' 0)"
+failed=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Penghapusan branch: tidak ada yang perlu diperiksa.
+  [ "$local_sha" = "$zero_sha" ] && continue
+
+  if [ "$remote_sha" = "$zero_sha" ]; then
+    # Branch baru: periksa commit yang belum ada di remote mana pun.
+    commits="$(git rev-list "$local_sha" --not --remotes="$remote_name" 2>/dev/null || git rev-list "$local_sha")"
+  else
+    commits="$(git rev-list "$remote_sha..$local_sha")"
+  fi
+
+  for c in $commits; do
+    meta="$(git log -1 --format='%an <%ae>%n%cn <%ce>%n%B' "$c")"
+    if printf '%s' "$meta" | grep -qiE "$ATTR_PATTERN"; then
+      echo "pre-push: commit ${c:0:10} mengandung atribusi AI:" >&2
+      printf '%s\n' "$meta" | grep -iE "$ATTR_PATTERN" | sed 's/^/  - /' >&2
+      failed=1
+    fi
+  done
+
+  tree_files="$(git ls-tree -r --name-only "$local_sha")"
+
+  if printf '%s\n' "$tree_files" | grep -qE "$AI_FILES_PATTERN"; then
+    echo "pre-push: $local_ref membawa file konfigurasi asisten AI:" >&2
+    printf '%s\n' "$tree_files" | grep -E "$AI_FILES_PATTERN" | sed 's/^/  - /' >&2
+    echo "  Hapus dari index: git rm -r --cached <path>" >&2
+    failed=1
+  fi
+
+  if printf '%s\n' "$tree_files" | grep -E "$ENV_FILES_PATTERN" | grep -vqE '\.example$'; then
+    echo "pre-push: $local_ref membawa berkas .env:" >&2
+    printf '%s\n' "$tree_files" | grep -E "$ENV_FILES_PATTERN" | grep -vE '\.example$' | sed 's/^/  - /' >&2
+    failed=1
+  fi
+done
+
+if [ "$failed" -ne 0 ]; then
+  echo "pre-push: push dibatalkan. Lihat docs/PROJECT_RULES.md bagian 2.2 untuk cara memperbaiki." >&2
+  exit 1
+fi
+
+exit 0

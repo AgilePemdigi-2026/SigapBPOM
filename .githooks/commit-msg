@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Hook commit-msg SIGAP.
+# 1. Menghapus baris trailer atribusi AI dari pesan commit.
+# 2. Menolak commit jika masih ada jejak AI, atau jika author/committer beremail anthropic.com.
+# Lihat docs/PROJECT_RULES.md bagian 2.
+set -euo pipefail
+
+MSG_FILE="$1"
+
+TRAILER_PATTERN='^[[:space:]]*(co-authored-by:.*(claude|anthropic|copilot|cursor|aider)|claude-session:|.*generated (with|by).*(claude|copilot|cursor|aider)|🤖)'
+RESIDUAL_PATTERN='(anthropic\.com|claude code|claude-session|co-authored-by:.*(claude|anthropic|copilot|cursor|aider))'
+
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+
+# Hapus baris trailer atribusi, pertahankan sisanya.
+grep -viE "$TRAILER_PATTERN" "$MSG_FILE" > "$tmp" || true
+
+if ! cmp -s "$tmp" "$MSG_FILE"; then
+  echo "commit-msg: baris atribusi AI dihapus dari pesan commit:" >&2
+  grep -iE "$TRAILER_PATTERN" "$MSG_FILE" | sed 's/^/  - /' >&2 || true
+  cat "$tmp" > "$MSG_FILE"
+fi
+
+# Tolak jika masih ada jejak di badan pesan (abaikan baris komentar git).
+if grep -v '^#' "$MSG_FILE" | grep -qiE "$RESIDUAL_PATTERN"; then
+  echo "commit-msg: pesan commit masih mengandung atribusi AI. Perbaiki lalu commit ulang." >&2
+  grep -v '^#' "$MSG_FILE" | grep -niE "$RESIDUAL_PATTERN" | sed 's/^/  /' >&2
+  exit 1
+fi
+
+# Tolak identitas author/committer milik AI.
+for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
+  if printf '%s' "$ident" | grep -qiE '(anthropic\.com|noreply@github\.com.*copilot|(^|[^a-z])claude([^a-z]|$))'; then
+    echo "commit-msg: identitas author/committer bukan anggota tim: $ident" >&2
+    echo "  Perbaiki dengan: git config user.name \"Nama Anda\" && git config user.email \"email@anda\"" >&2
+    exit 1
+  fi
+done
+
+exit 0
