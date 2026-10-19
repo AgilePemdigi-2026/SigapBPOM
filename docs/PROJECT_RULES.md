@@ -213,7 +213,8 @@ Sebuah fitur selesai jika semua poin berikut terpenuhi:
 
 Bagian ini diisi lewat ADR pertama Sprint 1.
 
-- Bahasa dan framework backend, framework frontend.
+Sudah ditetapkan (ADR 0001): frontend Astro, backend Supabase, bahasa TypeScript, AI Agent Hermes Agent dengan model GPT langganan, STT dan TTS ElevenLabs. Sisanya:
+
 - Struktur folder yang memetakan BCE ke konvensi framework.
 - Linter, formatter, dan konfigurasinya.
 - Perintah standar: install, run, test, lint, migrate.

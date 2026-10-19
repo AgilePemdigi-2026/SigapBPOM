@@ -279,13 +279,15 @@ Enumerasi:
 | Layanan | Fungsi | Protokol | Status |
 |---|---|---|---|
 | cekbpom.pom.go.id | Sumber nomor izin edar dan status izin, dipanggil lewat tool calling | REST/HTTPS | Akses resmi belum dipastikan |
-| Penyedia LLM | Pengenalan maksud dan penyusunan jawaban RAG | REST/HTTPS | Belum dipilih |
-| Speech-to-Text | Ucapan Indonesia ke teks | Streaming | Belum dipilih |
-| Text-to-Speech | Teks jawaban ke suara Indonesia | Streaming | Belum dipilih |
+| Penyedia LLM | Pengenalan maksud dan penyusunan jawaban RAG | REST/HTTPS | Hermes Agent dengan model GPT (langganan), ADR 0001 |
+| Speech-to-Text | Ucapan Indonesia ke teks | Streaming | ElevenLabs API premium, ADR 0001 |
+| Text-to-Speech | Teks jawaban ke suara Indonesia | Streaming | ElevenLabs API premium, ADR 0001 |
 | SMS Gateway | Kirim nomor tiket, jawaban petugas, notifikasi tindak lanjut | REST/HTTPS | Menunggu pengadaan |
 | Portal KataBPOM | Sumber materi edukasi untuk basis pengetahuan | Impor manual oleh petugas | Tersedia publik |
 
 Arsitektur: layered. Browser (halaman publik plus panel suara, dashboard) → Voice Gateway (WebRTC/WSS, codec Opus) → AI Voice Agent (STT, LLM+RAG, TTS) → Backend SIGAP (REST API + controller) → Basis Data SIGAP dan Indeks Basis Pengetahuan. Dashboard berbicara ke backend yang sama lewat HTTPS/JSON.
+
+Stack (ADR 0001, `docs/decisions/0001-stack.md`): frontend Astro, backend Supabase (Postgres, Auth, Realtime, Storage, Edge Functions, pgvector), AI Agent Hermes Agent dengan model GPT langganan, STT dan TTS ElevenLabs API premium.
 
 Format respons API standar:
 
@@ -365,21 +367,21 @@ Sprint 1 membawa risiko terbesar karena F-01 adalah fitur XXL yang bergantung pa
 | LLM memberi nasihat medis | Melanggar NFR-6 | Klasifikasi maksud sebelum menjawab. Daftar kata kunci medis sebagai pemicu eskalasi. Uji dengan skenario Gherkin. |
 | Kebocoran data pribadi pelapor | Pelanggaran UU PDP | Masking di server, bukan di klien. Log tidak menyimpan PII mentah. Enkripsi transport. |
 | SMS Gateway belum ada | F-02 dan F-06 tidak bisa kirim notifikasi | Antarmuka notifikasi dengan implementasi "log only" sampai pengadaan selesai. |
-| Stack belum ditetapkan | Sprint 1 tertunda | Putuskan di hari pertama Sprint 1 lewat ADR. |
+| Kuota atau syarat layanan model GPT langganan membatasi pemakaian publik | Agen berhenti menjawab saat beban tinggi | Pastikan syarat layanan di Sprint 1. Adapter LLM memungkinkan pindah ke OpenAI API tanpa mengubah use case. |
 
 ## 15. Keputusan yang Belum Ditetapkan
 
 | No | Hal | Status | Pemilik usulan |
 |---|---|---|---|
-| 1 | Penyedia LLM, STT, TTS | Menunggu uji akurasi bahasa Indonesia | Tim |
+| 1 | Penyedia LLM, STT, TTS | Ditetapkan di ADR 0001: GPT via Hermes Agent, ElevenLabs. Uji akurasi bahasa Indonesia tetap di Sprint 1 | Tim |
 | 2 | Penyedia SMS Gateway | Menunggu pengadaan | Tim / BPOM |
 | 3 | Format nomor tiket | "ADU-0456" dan "ESK-0123" hanya ilustrasi | Tim |
 | 4 | Masa retensi transkrip dan pengaduan | Mengikuti kebijakan arsip BPOM | BPOM |
 | 5 | Format unduhan di riwayat percakapan | CSV dan PDF masih dievaluasi | Tim |
 | 6 | Nilai final target kinerja | Setelah uji beban | Tim |
-| 7 | Framework backend dan bahasa pemrograman | Ditetapkan pada implementasi | Tim |
+| 7 | Framework backend dan bahasa pemrograman | Ditetapkan di ADR 0001: Astro, Supabase, TypeScript | Tim |
 | 8 | Manajemen akun dan buka kunci akun oleh administrator | Tidak ada di SRS, dibutuhkan oleh REQ-3.5 | Tim |
-| 9 | Kerangka uji penerimaan jika stack bukan PHP | SRS menyebut Behat (PHP) | Tim |
+| 9 | Kerangka uji penerimaan Gherkin untuk stack TypeScript | SRS menyebut Behat (PHP), tidak cocok dengan ADR 0001 | Tim |
 
 ## Lampiran A. Kamus Pesan Sistem
 
