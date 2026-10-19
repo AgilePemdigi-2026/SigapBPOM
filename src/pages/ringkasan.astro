@@ -1,0 +1,227 @@
+---
+// Boundary UC-04 Memantau Layanan, halaman Ringkasan Layanan (REQ-4.1).
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import Orb from '../components/Orb.astro';
+import { TIMELINE, TL_START, TL_SPAN, TL_NOW, STATISTIK, KASUS_URUTAN, TIKET, KATEGORI, KB_TOTAL, type TlKind } from '../lib/data';
+
+const pct = (s: number) => Math.max(0, Math.min(100, ((s - TL_START) / TL_SPAN) * 100));
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const cols = Array.from({ length: 20 }, (_, i) => {
+  const cs = TL_START + i * 120;
+  const now = TL_NOW >= cs && TL_NOW < cs + 120;
+  return { h: pad(Math.floor(cs / 3600)), m: pad(Math.floor(cs / 60) % 60), now, future: cs > TL_NOW && !now };
+});
+
+const KIND: Record<TlKind, { bg: string; fg: string; shadow: string; border: string; chipFg: string; icon: string }> = {
+  green: { bg: 'linear-gradient(90deg,#3ad07f,#1fbe62)', fg: '#fff', shadow: '0 8px 18px rgba(31,190,98,.3)', border: '0', chipFg: '#15803d', icon: 'icon-circle-check' },
+  purple: { bg: 'linear-gradient(90deg,#a77bff,#7b4dff)', fg: '#fff', shadow: '0 8px 18px rgba(123,77,255,.3)', border: '0', chipFg: '#5b3fc4', icon: 'icon-clipboard-list' },
+  amber: { bg: 'linear-gradient(90deg,#ffdc6e,#f9c623)', fg: '#3a2a00', shadow: '0 8px 18px rgba(240,190,30,.3)', border: '0', chipFg: '#8a5300', icon: 'icon-user-round-check' },
+  live: { bg: 'linear-gradient(180deg,rgba(214,228,255,.94),rgba(166,196,255,.9))', fg: '#1d3f9a', shadow: '0 14px 30px rgba(47,107,245,.28)', border: '1px solid rgba(255,255,255,.95)', chipFg: '#2152c9', icon: 'icon-audio-lines' },
+};
+
+const rows = TIMELINE.map((r) => {
+  const l = pct(r.s);
+  const w = pct(r.e ?? TL_NOW) - l;
+  const pengaduan = r.jenis === 'Pengaduan';
+  return { ...r, l, w, kind: KIND[r.k], icon: pengaduan ? 'icon-clipboard-list' : 'icon-phone', iconBg: pengaduan ? '#ece7fe' : '#e3ecff', iconFg: pengaduan ? '#6d4aff' : '#2f6bf5' };
+});
+
+const urgent = KASUS_URUTAN.map((no) => TIKET.find((t) => t.no === no)!).filter((t) => t.status === 'Belum Ditelaah').slice(0, 3);
+const fmt = (n: number) => n.toLocaleString('id-ID');
+---
+<DashboardLayout title="Ringkasan Layanan">
+  <div class="page">
+    <section class="panel timeline" aria-labelledby="tl-title">
+      <div class="tl-head">
+        <div class="tl-title"><h1 id="tl-title">Linimasa Panggilan</h1><span>10:14–10:54 WIB · per 2 menit</span></div>
+        <span class="pill pill-flat"><span class="dot-live"></span>3 panggilan sedang berjalan</span>
+        <span class="pill"><i class="icon-calendar"></i>Rabu, 8 Oktober 2026<i class="icon-chevron-down" style="color:#8a919e"></i></span>
+        <span class="pill"><i class="icon-sliders-horizontal"></i>Filter</span>
+        <a href="/panggilan-berjalan" class="pill"><i class="icon-arrow-up-right"></i>Lihat panggilan berjalan</a>
+      </div>
+      <div class="tl-body">
+        <div class="tl-names">
+          <div class="tl-label">Penelepon</div>
+          {rows.map((r) => (
+            <div class="tile tl-name">
+              <span class="tl-icon" style={`background:${r.iconBg};color:${r.iconFg}`}><i class={r.icon}></i></span>
+              <span class="tl-name-text"><span class="mono">{r.no}</span><span>{r.jenis}</span></span>
+            </div>
+          ))}
+        </div>
+        <div class="tl-grid">
+          <div class="tl-cols">
+            {cols.map((c) => (
+              <span class:list={['tl-col', { now: c.now, future: c.future }]}><span>{c.h}</span><span>{c.m}</span></span>
+            ))}
+          </div>
+          {rows.map((r) => (
+            <div class="tl-row">
+              <div class="tl-cells">{cols.map((c) => <span class:list={['tl-cell', { future: c.future }]}></span>)}</div>
+              <div class="tl-bar" style={`left:${r.l}%;width:max(56px, calc(${r.w}% - 8px));background:${r.kind.bg};color:${r.kind.fg};box-shadow:${r.kind.shadow};border:${r.kind.border};transform:${r.tilt ? 'rotate(-1.2deg) translateY(-2px)' : 'none'}`}>
+                <span class="tl-bar-icon"><i class={r.kind.icon}></i></span>
+                {r.w > 7 && <span class:list={['tl-bar-label', { wide: r.w > 14.5 }]}>{r.label}</span>}
+                {r.w > 14.5 && <span class="tl-chip" style={`color:${r.kind.chipFg}`}><span style={`background:${r.kind.chipFg}`}></span>{r.chip}</span>}
+              </div>
+            </div>
+          ))}
+          <div class="tl-now" style={`left:${pct(TL_NOW)}%`}></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cards">
+      <section class="panel card">
+        <h2 class="card-title">Statistik Hari Ini</h2>
+        <div class="stats">
+          {STATISTIK.map((s) => (
+            <div class="tile stat">
+              <div class="stat-head"><span>{s.label}</span><span class="stat-icon" style={`background:${s.bg};color:${s.fg}`}><i class={s.icon}></i></span></div>
+              <span class="stat-value">{s.value}</span>
+              <span class="stat-sub" style={`color:${s.subFg}`}>{s.sub}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="panel card urgent">
+        <div class="urgent-head"><h2 class="card-title sm">Kasus Perlu Tindak Lanjut</h2><a href="/tiket-eskalasi" class="pill round" aria-label="Lihat semua tiket eskalasi"><i class="icon-arrow-up-right"></i></a></div>
+        {urgent.map((u, i) => i === 0 ? (
+          <div class="case-first">
+            <div class="case-row"><span class="mono case-no">{u.no}</span><span class="grow"></span><span class="case-wait"><span></span>{u.wait}</span></div>
+            <span class="case-ring">{u.ring}</span>
+            <div class="case-row"><span class="case-meta"><i class="icon-clock"></i>{u.waktu}</span><span class="case-meta"><i class="icon-tag"></i>{u.jenis}</span><span class="grow"></span><a href="/pengaduan/detail" class="case-open">Buka Kasus</a></div>
+          </div>
+        ) : (
+          <div class="tile case-rest">
+            <span class="case-rest-text"><span class="mono">{u.no} · {u.waktu}</span><span>{u.ring}</span></span>
+            <a href="/pengaduan/detail" class="case-open alt">Buka Kasus</a>
+          </div>
+        ))}
+        <div class="fade"></div>
+      </section>
+
+      <section class="panel card">
+        <div class="kat-head"><h2 class="card-title">Pertanyaan per Kategori</h2><span>7 hari terakhir · 812 pertanyaan</span></div>
+        <div class="kat-list">
+          {KATEGORI.map(([label, p, bg]) => (
+            <div class="kat">
+              <div class="kat-row"><span>{label}</span><span class="kat-pct">{p}%</span></div>
+              <div class="kat-track" role="progressbar" aria-valuenow={p} aria-valuemin="0" aria-valuemax="100" aria-label={label}><div style={`width:${(p / 38) * 100}%;background:${bg}`}></div></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="panel card greet">
+        <Orb size={104} />
+        <span class="greet-text">Selamat pagi, <span id="nama-depan">Dewi</span><br />3 panggilan sedang dilayani</span>
+        <div class="greet-actions">
+          <a href="/tiket-eskalasi" class="pill sm"><i class="icon-ticket"></i>Antrean tiket</a>
+          <a href="/basis-pengetahuan?tambah=1" class="pill sm"><i class="icon-plus"></i>Tambah Materi</a>
+          <a href="/rekap-laporan" class="pill sm"><i class="icon-download"></i>Laporan</a>
+        </div>
+        <span class="grow"></span>
+        <div class="tile agent">
+          <span class="dot-live"></span>
+          <span class="agent-text"><span>AI Voice Agent aktif</span><span>KB diperbarui 07 Okt 2026 · {fmt(KB_TOTAL.total)} materi</span></span>
+        </div>
+      </section>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  try {
+    const s = JSON.parse(sessionStorage.getItem('sigap-sesi') || 'null');
+    if (s?.nama) document.getElementById('nama-depan')!.textContent = s.nama.split(' ')[0];
+  } catch {}
+</script>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .grow { flex: 1; }
+  h1, h2 { margin: 0; font-weight: 400; }
+
+  .timeline { height: 500px; flex: none; padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .tl-head { display: flex; align-items: center; gap: 10px; }
+  .tl-title { flex: 1; display: flex; align-items: baseline; gap: 18px; min-width: 0; }
+  .tl-title h1 { font-size: 40px; letter-spacing: -.02em; white-space: nowrap; }
+  .tl-title span { font-size: 15px; color: var(--muted); white-space: nowrap; }
+  .tl-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 12px; }
+  .tl-names { display: flex; flex-direction: column; gap: 7px; }
+  .tl-label { height: 50px; display: flex; align-items: flex-end; padding: 0 4px 6px; font-size: 16px; color: var(--ink-3); }
+  .tl-name { height: 50px; border-radius: 16px; display: flex; align-items: center; gap: 12px; padding: 0 10px; }
+  .tl-icon { width: 32px; height: 32px; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex: none; }
+  .tl-name-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .tl-name-text .mono { font-size: 14.5px; font-weight: 500; }
+  .tl-name-text span:last-child { font-size: 13.5px; color: var(--muted); }
+  .tl-grid { position: relative; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .tl-cols, .tl-cells { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 8px; }
+  .tl-cols { height: 50px; }
+  .tl-col { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: #4b5260; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; line-height: 1.2; }
+  .tl-col.future { background: #dfe2e7; border: 0; color: var(--muted); }
+  .tl-col.now { background: var(--grad-blue); border: 0; color: #fff; box-shadow: 0 6px 14px rgba(47, 107, 245, .35); }
+  .tl-col.now span:first-child { opacity: .85; }
+  .tl-col.now span:last-child { font-weight: 600; }
+  .tl-row { height: 50px; position: relative; flex: none; }
+  .tl-cells { position: absolute; inset: 0; }
+  .tl-cell { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+  .tl-cell.future { border: 0; background: repeating-linear-gradient(135deg, #e4e7ec 0 5px, #d8dce2 5px 10px); }
+  .tl-bar { position: absolute; top: 0; bottom: 0; border-radius: 16px; backdrop-filter: blur(6px); display: flex; align-items: center; gap: 10px; padding: 0 8px; overflow: hidden; z-index: 2; }
+  .tl-bar-icon { width: 34px; height: 34px; flex: none; border-radius: 99px; background: rgba(255, 255, 255, .26); border: 1px solid rgba(255, 255, 255, .55); display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .tl-bar-label { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-bar-label.wide { font-size: 15.5px; }
+  .tl-chip { flex: none; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 7px; background: rgba(255, 255, 255, .88); font-size: 12px; font-weight: 600; }
+  .tl-chip span { width: 5px; height: 5px; border-radius: 5px; }
+  .tl-now { position: absolute; top: 46px; bottom: -6px; width: 0; border-left: 2px dashed var(--blue); z-index: 3; pointer-events: none; }
+
+  .cards { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  .card { padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .card-title { font-size: 28px; letter-spacing: -.01em; }
+  .card-title.sm { font-size: 24px; white-space: nowrap; }
+  .stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; }
+  .stat { border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13.5px; color: #4b5260; line-height: 1.25; }
+  .stat-icon { width: 32px; height: 32px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .stat-value { font-size: 34px; font-weight: 500; letter-spacing: -.02em; margin-top: auto; }
+  .stat-sub { font-size: 13px; }
+
+  .urgent { overflow: hidden; position: relative; }
+  .urgent-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pill.round { width: 44px; height: 44px; padding: 0; justify-content: center; flex: none; }
+  .case-first { flex: none; border-radius: 22px; background: linear-gradient(180deg, #ffe37e, #fcd03f); box-shadow: 0 10px 24px rgba(240, 190, 30, .3); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; color: #3a2a00; }
+  .case-row { display: flex; align-items: center; gap: 8px; }
+  .case-no { font-size: 14px; font-weight: 600; }
+  .case-wait { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 7px; background: rgba(255, 255, 255, .75); font-size: 12.5px; font-weight: 600; }
+  .case-wait span { width: 5px; height: 5px; border-radius: 5px; background: #b26b00; }
+  .case-ring { font-size: 17px; font-weight: 500; line-height: 1.35; }
+  .case-meta { height: 36px; padding: 0 12px; border-radius: 12px; background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .6); display: flex; align-items: center; gap: 7px; font-size: 13.5px; white-space: nowrap; }
+  .case-open { height: 38px; padding: 0 16px; border-radius: 999px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 500; box-shadow: 0 2px 6px rgba(120, 90, 0, .15); display: inline-flex; align-items: center; white-space: nowrap; flex: none; }
+  .case-open.alt { background: var(--line); border: 1px solid #fff; box-shadow: none; }
+  .case-rest { flex: none; border-radius: 22px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+  .case-rest-text { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+  .case-rest-text .mono { font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
+  .case-rest-text span:last-child { font-size: 16px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(180deg, rgba(243, 244, 246, 0), var(--panel)); pointer-events: none; }
+
+  .kat-head { display: flex; flex-direction: column; gap: 2px; }
+  .kat-head span { font-size: 14.5px; color: var(--muted); }
+  .kat-list { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+  .kat { display: flex; flex-direction: column; gap: 7px; }
+  .kat-row { display: flex; justify-content: space-between; font-size: 15px; }
+  .kat-pct { font-weight: 600; }
+  .kat-track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
+  .kat-track div { height: 100%; border-radius: 99px; }
+
+  .greet { padding: 22px 24px 24px; align-items: center; gap: 10px; text-align: center; }
+  .greet-text { font-size: 24px; font-weight: 500; line-height: 1.25; letter-spacing: -.01em; }
+  .greet-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .pill.sm { height: 40px; padding: 0 14px; gap: 7px; font-size: 14px; }
+  .agent { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; text-align: left; }
+  .agent .dot-live { width: 10px; height: 10px; }
+  .agent-text { display: flex; flex-direction: column; gap: 1px; }
+  .agent-text span:first-child { font-size: 15px; font-weight: 500; }
+  .agent-text span:last-child { font-size: 13px; color: var(--muted); }
+</style>

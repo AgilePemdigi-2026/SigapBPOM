@@ -1,0 +1,34 @@
+---
+// Placeholder menu dashboard yang belum dibangun (F3.3). Diganti halaman aslinya di Sprint 2 dan 3.
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+
+const HALAMAN: Record<string, [string, string]> = {
+  'panggilan-berjalan': ['Panggilan Berjalan', 'Sprint 2'],
+  'tiket-eskalasi': ['Tiket Eskalasi', 'Sprint 2'],
+  'riwayat-percakapan': ['Riwayat Percakapan', 'Sprint 3'],
+  pengaduan: ['Daftar Pengaduan', 'Sprint 3'],
+  'pengaduan/detail': ['Detail Pengaduan', 'Sprint 3'],
+  'rekap-laporan': ['Rekap & Laporan', 'Sprint 3'],
+};
+
+export function getStaticPaths() {
+  return ['panggilan-berjalan', 'tiket-eskalasi', 'riwayat-percakapan', 'pengaduan', 'pengaduan/detail', 'rekap-laporan'].map((halaman) => ({ params: { halaman } }));
+}
+
+const [judul, sprint] = HALAMAN[Astro.params.halaman!];
+---
+<DashboardLayout title={judul}>
+  <section class="panel ph">
+    <i class="icon-hammer"></i>
+    <h1>{judul}</h1>
+    <p>Halaman ini dijadwalkan pada {sprint}.</p>
+    <a href="/ringkasan" class="pill"><i class="icon-arrow-left"></i>Kembali ke Ringkasan Layanan</a>
+  </section>
+</DashboardLayout>
+
+<style>
+  .ph { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); }
+  .ph i { font-size: 36px; color: var(--blue); }
+  .ph h1 { margin: 0; font-size: 40px; font-weight: 400; color: var(--ink); letter-spacing: -.02em; }
+  .ph p { margin: 0 0 8px; font-size: 17px; }
+</style>

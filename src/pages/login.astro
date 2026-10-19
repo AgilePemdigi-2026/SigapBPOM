@@ -1,0 +1,146 @@
+---
+// Boundary UC-03 Melakukan Login Dashboard (REQ-3.1 sampai REQ-3.5).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Orb from '../components/Orb.astro';
+---
+<BaseLayout title="Login Petugas">
+  <main class="login">
+    <section class="hero">
+      <div class="brand">
+        <span class="brand-mark"><i class="icon-shield-check"></i></span>
+        <span class="brand-text"><span class="brand-name">SIGAP</span><span class="brand-sub">HaloBPOM · Dashboard Petugas</span></span>
+      </div>
+      <div class="hero-orb"><Orb size={300} /></div>
+      <h1 class="hero-title">Dashboard petugas untuk layanan HaloBPOM berbasis AI Voice Agent.</h1>
+      <ul class="hero-list">
+        <li><span><i class="icon-phone-call"></i></span>Pantau panggilan berjalan secara langsung</li>
+        <li><span><i class="icon-clipboard-check"></i></span>Tangani pengaduan sampai tiket ditutup</li>
+        <li><span><i class="icon-book-open"></i></span>Kelola basis pengetahuan dan unduh laporan</li>
+      </ul>
+    </section>
+
+    <section class="panel form-side">
+      <a href="/homepage" class="pill back"><i class="icon-arrow-left"></i>Halaman Publik</a>
+      <form id="login-form" class="form" novalidate>
+        <div class="heading">
+          <h2>Masuk Dashboard Petugas</h2>
+          <p>Gunakan akun petugas HaloBPOM yang terdaftar.</p>
+        </div>
+        <label class="field">
+          <span class="field-label">Email</span>
+          <span class="input-wrap"><i class="icon-mail"></i><input id="email" name="email" type="email" autocomplete="username" placeholder="nama@pom.go.id" value="dewi.lestari@pom.go.id" /></span>
+        </label>
+        <label class="field">
+          <span class="field-label">Password</span>
+          <span class="input-wrap pw" id="pw-wrap"><i class="icon-lock"></i><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" /><button type="button" id="toggle-pw" class="eye" aria-label="Tampilkan password"><i class="icon-eye"></i></button></span>
+        </label>
+        <div id="login-err" class="err" role="alert" hidden>
+          <i class="icon-circle-alert"></i>
+          <span><span id="err-msg"></span><span id="err-hint" class="err-hint" hidden></span></span>
+        </div>
+        <button type="submit" id="login-btn" class="btn-primary submit">Login<i class="icon-arrow-right"></i></button>
+        <span class="help">Lupa password atau akun terkunci? Hubungi administrator.</span>
+        <span class="demo mono"><i class="icon-info"></i>demo · dewi.lestari@pom.go.id / sigap2026</span>
+      </form>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  // ponytail: autentikasi tiruan di browser sampai T-F3.1-03 dan T-F3.2-02 memasang Supabase Auth
+  // dan Edge Function penguncian. Penghitung gagal di sini bisa direset pengguna, jadi bukan pengaman.
+  const DEMO = { email: 'dewi.lestari@pom.go.id', password: 'sigap2026', nama: 'Dewi Lestari' };
+  const MAX_GAGAL = 3; // REQ-3.5, NFR-11
+  const FAIL_KEY = 'sigap-gagal-login';
+  const MSG = {
+    kosong: 'Login gagal. Semua field harus diisi!',
+    salah: 'Login gagal. Email atau password Anda salah.',
+    kunci: 'Akses dikunci sementara. Hubungi administrator.',
+  };
+
+  const form = document.getElementById('login-form') as HTMLFormElement;
+  const email = document.getElementById('email') as HTMLInputElement;
+  const pw = document.getElementById('password') as HTMLInputElement;
+  const pwWrap = document.getElementById('pw-wrap')!;
+  const errBox = document.getElementById('login-err')!;
+  const errMsg = document.getElementById('err-msg')!;
+  const errHint = document.getElementById('err-hint')!;
+  const btn = document.getElementById('login-btn') as HTMLButtonElement;
+  const toggle = document.getElementById('toggle-pw') as HTMLButtonElement;
+
+  const gagal = () => Number(sessionStorage.getItem(FAIL_KEY) || 0);
+
+  function showErr(msg: string) {
+    const n = gagal();
+    errMsg.textContent = msg;
+    errHint.hidden = !(n > 0 && n < MAX_GAGAL);
+    errHint.textContent = `Percobaan gagal ${n} dari ${MAX_GAGAL}. Akun dikunci sementara setelah ${MAX_GAGAL} kali gagal.`;
+    errBox.hidden = false;
+    pwWrap.classList.add('invalid');
+    btn.classList.toggle('locked', n >= MAX_GAGAL);
+  }
+
+  toggle.addEventListener('click', () => {
+    const show = pw.type === 'password';
+    pw.type = show ? 'text' : 'password';
+    toggle.innerHTML = `<i class="${show ? 'icon-eye-off' : 'icon-eye'}"></i>`;
+    toggle.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (gagal() >= MAX_GAGAL) return showErr(MSG.kunci);
+    if (!email.value.trim() || !pw.value) return showErr(MSG.kosong);
+    if (email.value.trim().toLowerCase() !== DEMO.email || pw.value !== DEMO.password) {
+      const n = gagal() + 1;
+      sessionStorage.setItem(FAIL_KEY, String(n));
+      return showErr(n >= MAX_GAGAL ? MSG.kunci : MSG.salah);
+    }
+    sessionStorage.removeItem(FAIL_KEY);
+    sessionStorage.setItem('sigap-sesi', JSON.stringify({ nama: DEMO.nama, email: DEMO.email, aktif: Date.now() }));
+    sessionStorage.setItem('sigap-toast', 'Login berhasil!');
+    location.href = '/ringkasan';
+  });
+
+  if (gagal() >= MAX_GAGAL) btn.classList.add('locked');
+</script>
+
+<style>
+  .login { height: 100%; padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  .hero { border-radius: 32px; background: linear-gradient(160deg, #6d9bff 0%, #3b70f3 42%, #2350d6 100%); padding: 52px 60px; display: flex; flex-direction: column; color: #fff; overflow: hidden; box-shadow: 0 20px 50px rgba(47, 107, 245, .25); }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark { width: 56px; height: 56px; border-radius: 999px; background: rgba(255, 255, 255, .95); color: #2a62f0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .brand-text { display: flex; flex-direction: column; gap: 1px; }
+  .brand-name { font-size: 24px; font-weight: 600; }
+  .brand-sub { font-size: 14.5px; color: #e4ecff; }
+  .hero-orb { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 340px; }
+  .hero-title { margin: 0; font-size: 48px; line-height: 1.12; font-weight: 500; letter-spacing: -.02em; max-width: 760px; text-wrap: balance; }
+  .hero-list { list-style: none; padding: 0; margin: 30px 0 0; display: flex; flex-direction: column; gap: 12px; }
+  .hero-list li { display: flex; align-items: center; gap: 12px; font-size: 18px; }
+  .hero-list li span { width: 36px; height: 36px; border-radius: 99px; background: rgba(255, 255, 255, .18); display: flex; align-items: center; justify-content: center; }
+
+  .form-side { display: flex; align-items: center; justify-content: center; position: relative; padding: 100px 28px 40px; }
+  .back { position: absolute; top: 28px; left: 28px; height: 48px; padding: 0 20px; font-weight: 500; }
+  .form { width: min(540px, 100%); display: flex; flex-direction: column; gap: 22px; }
+  .heading { display: flex; flex-direction: column; gap: 8px; }
+  .heading h2 { margin: 0; font-size: 42px; font-weight: 400; letter-spacing: -.02em; }
+  .heading p { margin: 0; font-size: 17px; color: var(--muted); }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field-label { font-size: 15px; font-weight: 500; color: var(--ink-3); }
+  .input-wrap { display: flex; align-items: center; gap: 12px; height: 62px; padding: 0 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: inset 0 1px 2px rgba(16, 24, 40, .04); }
+  .input-wrap.pw { padding: 0 10px 0 20px; }
+  .input-wrap.invalid { border-color: #f3b4b4; }
+  .input-wrap > i { color: var(--muted-2); font-size: 19px; }
+  .input-wrap input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 17px; color: var(--ink); }
+  .input-wrap:focus-within { border-color: var(--blue); }
+  .eye { width: 44px; height: 44px; border-radius: 99px; border: 0; background: transparent; color: var(--muted); font-size: 19px; }
+  .err { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; border-radius: 18px; background: #fdeaea; border: 1px solid #f8d0d0; color: #a61b1b; font-size: 16px; line-height: 1.4; }
+  .err[hidden] { display: none; }
+  .err > i { font-size: 19px; margin-top: 1px; }
+  .err > span { flex: 1; }
+  .err-hint { display: block; font-size: 14px; color: #b54646; margin-top: 2px; }
+  .submit { height: 62px; font-size: 18px; gap: 10px; box-shadow: 0 8px 20px rgba(47, 107, 245, .28), inset 0 1px 0 rgba(255, 255, 255, .3); }
+  .submit.locked { background: linear-gradient(180deg, #a9b4c8, #8f9bb2); }
+  .help { font-size: 15px; color: var(--muted); text-align: center; }
+  .demo { align-self: center; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: #e9ebef; font-size: 13px; color: #4b5260; }
+</style>

@@ -1,0 +1,302 @@
+---
+// Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { MATERI, KB_TOTAL, KATEGORI_MATERI, SIMPUL, SISI, chip } from '../lib/data';
+
+const awal = SIMPUL[0];
+const byId = Object.fromEntries(SIMPUL.map((n) => [n.id, n]));
+const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip('Aktif'), chipNonaktif: chip('Tidak Aktif') };
+---
+<DashboardLayout title="Basis Pengetahuan">
+  <div class="page">
+    <section class="panel head">
+      <div class="head-title"><h1>Basis Pengetahuan</h1><span><span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi · diperbarui terakhir 07 Okt 2026</span></div>
+      <span class="search"><i class="icon-search"></i><input id="kb-q" placeholder="Cari judul materi atau rujukan sumber…" aria-label="Cari judul materi atau rujukan sumber" /></span>
+      <button class="tab big" data-view="list" aria-pressed="true"><i class="icon-list"></i>Daftar Materi</button>
+      <button class="tab big" data-view="graph" aria-pressed="false"><i class="icon-waypoints"></i>Graf Pengetahuan</button>
+      <button class="btn-primary add" id="open-add"><i class="icon-plus"></i>Tambah Materi</button>
+    </section>
+
+    <div class="view-list" id="view-list">
+      <section class="panel list">
+        <div class="filters" role="group" aria-label="Filter status">
+          <button class="tab" data-tab="Semua" aria-pressed="true">Semua</button>
+          <button class="tab" data-tab="Aktif" aria-pressed="false">Aktif</button>
+          <button class="tab" data-tab="Tidak Aktif" aria-pressed="false">Tidak Aktif</button>
+        </div>
+        <div class="row-grid cols-head" aria-hidden="true"><span>JUDUL MATERI</span><span>RUJUKAN SUMBER</span><span>PEMUTAKHIRAN</span><span>STATUS</span><span>AKSI</span></div>
+        <div class="rows" id="kb-rows"></div>
+        <div class="empty" id="kb-empty" hidden><i class="icon-book-open"></i><span>Belum ada materi yang cocok.</span><button class="pill" id="empty-add"><i class="icon-plus"></i>Tambah Materi</button></div>
+        <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
+      </section>
+
+      <aside class="side-col">
+        <section class="panel index">
+          <h2>Indeks Pengetahuan</h2>
+          <span class="index-total"><span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span><span>materi</span></span>
+          <div class="index-split">
+            <div class="tile-flat"><span>Aktif</span><span class="v ok" id="kb-aktif">{KB_TOTAL.aktif.toLocaleString('id-ID')}</span></div>
+            <div class="tile-flat"><span>Tidak aktif</span><span class="v" id="kb-nonaktif">{KB_TOTAL.nonaktif.toLocaleString('id-ID')}</span></div>
+          </div>
+          <div class="sync"><i class="icon-refresh-cw"></i>Indeks RAG sinkron · 07 Okt 2026 22:10</div>
+        </section>
+        <section class="panel rules">
+          <h2>Aturan materi</h2>
+          <span><i class="icon-link"></i>Setiap materi wajib punya rujukan sumber.</span>
+          <span><i class="icon-archive"></i>Materi usang dinonaktifkan, tidak dihapus permanen, dan tidak lagi dipakai sebagai sumber jawaban.</span>
+        </section>
+      </aside>
+    </div>
+
+    <div class="view-graph" id="view-graph" hidden>
+      <section class="panel graph" data-name="GrafPengetahuan">
+        <div class="graph-head"><h2>Graf Pengetahuan</h2><span>Pilih simpul untuk melihat rujukan dan bagian dokumen terindeks</span></div>
+        <div class="canvas">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            {SISI.map(([a, b]) => (
+              <line x1={byId[a].x} y1={byId[a].y} x2={byId[b].x} y2={byId[b].y} data-a={a} data-b={b} vector-effect="non-scaling-stroke" />
+            ))}
+          </svg>
+          {SIMPUL.map((n) => (
+            <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
+          ))}
+        </div>
+      </section>
+      <section class="panel detail" data-name="BagianDokumenTerindeks" aria-live="polite">
+        <span class="eyebrow">SIMPUL TERPILIH</span>
+        <span class="detail-title" id="node-label">{awal.label}</span>
+        <div class="tile-flat ruj"><span>Rujukan Sumber</span><span class="ruj-v"><i class="icon-link"></i><span id="node-rujukan">{awal.rujukan}</span></span></div>
+        <span class="bagian-title">Bagian dokumen terindeks</span>
+        <div id="node-bagian" class="bagian">{awal.bagian.map((b) => <div class="tile-flat"><i class="icon-file-text"></i>{b}</div>)}</div>
+        <span class="grow"></span>
+        <span class="links"><i class="icon-waypoints"></i>Terhubung ke <span id="node-links">{awal.links}</span> materi lain</span>
+      </section>
+    </div>
+  </div>
+
+  <dialog id="add-dialog" class="modal" aria-labelledby="add-title">
+    <form id="add-form" method="dialog" novalidate>
+      <div class="modal-head"><h2 id="add-title">Tambah Materi</h2><button type="button" class="x" data-close aria-label="Tutup"><i class="icon-x"></i></button></div>
+      <label class="f"><span>Judul Materi</span><input name="judul" placeholder="mis. Cara membaca tanggal kedaluwarsa" /></label>
+      <label class="f"><span>Kategori</span><select name="kategori">{KATEGORI_MATERI.map((k) => <option>{k}</option>)}</select></label>
+      <label class="f"><span>Isi Materi</span><textarea name="isi" placeholder="Tempel atau tulis isi materi edukasi…"></textarea></label>
+      <label class="f"><span>Rujukan Sumber</span><input name="rujukan" placeholder="mis. KataBPOM, Peraturan BPOM, Public Warning" aria-describedby="add-err" /></label>
+      <span class="ferr" id="add-err" role="alert" hidden><i class="icon-circle-alert"></i>Rujukan sumber wajib diisi.</span>
+      <div class="modal-actions">
+        <button type="button" class="pill" data-close>Batal</button>
+        <button type="submit" class="btn-primary save" id="save-btn" aria-disabled="true">Simpan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="application/json" id="kb-data" set:html={JSON.stringify(data)} />
+</DashboardLayout>
+
+<script>
+  // ponytail: perubahan materi hanya di memori browser sampai T-F2.2-02 / T-F2.3-02 menyimpan ke Supabase.
+  type Materi = { id: number; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
+  type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
+  const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
+  const materi: Materi[] = D.materi;
+  const toast = (msg: string) => (window as any).sigapToast?.(msg);
+  const fmt = (n: number) => n.toLocaleString('id-ID');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const st = { tab: 'Semua', q: '', added: 0, deact: 0 };
+
+  const rowsEl = document.getElementById('kb-rows')!;
+  function render() {
+    const q = st.q.trim().toLowerCase();
+    const list = materi.filter((m) => (st.tab === 'Semua' || (st.tab === 'Aktif') === m.aktif) && (!q || `${m.judul} ${m.rujukan}`.toLowerCase().includes(q)));
+    rowsEl.innerHTML = list.map((m) => {
+      const c = m.aktif ? D.chipAktif : D.chipNonaktif;
+      return `<div class="row row-grid${m.aktif ? '' : ' off'}">
+        <span class="judul"><span>${esc(m.judul)}</span><span>${esc(m.kategori)}</span></span>
+        <span class="ruj-cell"><i class="icon-link"></i><span>${esc(m.rujukan)}</span></span>
+        <span class="tgl">${esc(m.tgl)}</span>
+        <span class="chip" style="background:${c.bg};color:${c.fg}">${m.aktif ? 'Aktif' : 'Tidak Aktif'}</span>
+        ${m.aktif ? `<button class="hapus" data-id="${m.id}" aria-label="Hapus ${esc(m.judul)}">Hapus</button>` : '<span class="arsip">Diarsipkan</span>'}
+      </div>`;
+    }).join('');
+    document.getElementById('kb-shown')!.textContent = String(list.length);
+    document.getElementById('kb-empty')!.hidden = list.length > 0;
+    document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(D.total.total + st.added)));
+    document.getElementById('kb-aktif')!.textContent = fmt(D.total.aktif + st.added - st.deact);
+    document.getElementById('kb-nonaktif')!.textContent = fmt(D.total.nonaktif + st.deact);
+  }
+
+  function pressGroup(attr: string, value: string) {
+    document.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-tab]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.tab!; pressGroup('data-tab', st.tab); render(); }));
+  (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; showView('list'); render(); });
+
+  // REQ-7.3, BR-5: nonaktifkan, tidak menghapus permanen.
+  rowsEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.hapus');
+    if (!btn) return;
+    const m = materi.find((x) => x.id === Number(btn.dataset.id))!;
+    if (!confirm(`Tandai "${m.judul}" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban.`)) return;
+    m.aktif = false;
+    st.deact++;
+    render();
+    toast('Materi ditandai tidak aktif.');
+  });
+
+  function showView(v: 'list' | 'graph') {
+    document.getElementById('view-list')!.hidden = v !== 'list';
+    document.getElementById('view-graph')!.hidden = v !== 'graph';
+    pressGroup('data-view', v);
+  }
+  document.querySelectorAll<HTMLElement>('[data-view]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view as 'list' | 'graph')));
+
+  // REQ-7.4: graf pengetahuan.
+  const simpul: Record<string, Simpul> = Object.fromEntries(D.simpul.map((n: Simpul) => [n.id, n]));
+  function pilih(id: string) {
+    const n = simpul[id];
+    pressGroup('data-node', id);
+    document.querySelectorAll<SVGLineElement>('.canvas line').forEach((l) => l.classList.toggle('hot', l.dataset.a === id || l.dataset.b === id));
+    document.getElementById('node-label')!.textContent = n.label;
+    document.getElementById('node-rujukan')!.textContent = n.rujukan;
+    document.getElementById('node-links')!.textContent = String(n.links);
+    document.getElementById('node-bagian')!.innerHTML = n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('');
+  }
+  document.querySelectorAll<HTMLElement>('[data-node]').forEach((b) => b.addEventListener('click', () => pilih(b.dataset.node!)));
+  pilih(D.simpul[0].id);
+
+  // REQ-7.1, REQ-7.2, BR-4: tambah materi.
+  const dialog = document.getElementById('add-dialog') as HTMLDialogElement;
+  const form = document.getElementById('add-form') as HTMLFormElement;
+  const err = document.getElementById('add-err')!;
+  const saveBtn = document.getElementById('save-btn')!;
+  const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
+
+  function bukaTambah() { form.reset(); err.hidden = true; field('rujukan').classList.remove('invalid'); saveBtn.setAttribute('aria-disabled', 'true'); dialog.showModal(); field('judul').focus(); }
+  document.getElementById('open-add')!.addEventListener('click', bukaTambah);
+  document.getElementById('empty-add')!.addEventListener('click', bukaTambah);
+  dialog.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => dialog.close()));
+  dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  field('judul').addEventListener('input', () => saveBtn.setAttribute('aria-disabled', String(!field('judul').value.trim())));
+  field('rujukan').addEventListener('input', () => { err.hidden = true; field('rujukan').classList.remove('invalid'); });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const judul = field('judul').value.trim();
+    const rujukan = field('rujukan').value.trim();
+    if (!judul) return field('judul').focus();
+    if (!rujukan) { err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
+    const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
+    materi.unshift({ id: Date.now(), judul, kategori: field('kategori').value, rujukan, tgl, aktif: true });
+    st.added++;
+    st.tab = 'Semua'; st.q = '';
+    (document.getElementById('kb-q') as HTMLInputElement).value = '';
+    pressGroup('data-tab', 'Semua');
+    showView('list');
+    render();
+    dialog.close();
+    toast('Materi siap digunakan sistem.');
+  });
+
+  render();
+  if (new URLSearchParams(location.search).has('tambah')) bukaTambah();
+</script>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .grow { flex: 1; }
+  h1, h2 { margin: 0; font-weight: 400; }
+  [hidden] { display: none !important; }
+
+  .head { flex: none; padding: 20px 22px 20px 28px; display: flex; align-items: center; gap: 10px; }
+  .head-title { display: flex; flex-direction: column; gap: 3px; margin-right: 16px; }
+  .head-title h1 { font-size: 40px; letter-spacing: -.02em; white-space: nowrap; }
+  .head-title > span { font-size: 15px; color: var(--muted); white-space: nowrap; }
+  .search { flex: 1; min-width: 160px; display: flex; align-items: center; gap: 12px; height: 54px; padding: 0 20px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: inset 0 1px 2px rgba(16, 24, 40, .04); }
+  .search i { color: var(--muted-2); font-size: 18px; }
+  .search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 16px; }
+  .tab.big { height: 54px; padding: 0 18px; white-space: nowrap; }
+  .add { height: 54px; padding: 0 22px; font-size: 15.5px; white-space: nowrap; }
+
+  .view-list { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; }
+  .list { padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .filters { display: flex; gap: 8px; }
+  .list :global(.row-grid) { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 150px 130px 110px; gap: 16px; align-items: center; padding: 0 20px; }
+  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
+  .rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+  .shown { font-size: 15px; color: var(--muted); }
+  .empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px; color: var(--muted); font-size: 16px; }
+  .empty i { font-size: 28px; }
+  .rows :global(.row) { flex: none; height: 68px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); font-size: 15.5px; }
+  .rows :global(.row.off) { opacity: .7; }
+  .rows :global(.judul) { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .rows :global(.judul span:first-child) { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rows :global(.judul span:last-child) { font-size: 13.5px; color: var(--muted); }
+  .rows :global(.ruj-cell) { display: flex; align-items: center; gap: 8px; color: var(--ink-3); min-width: 0; }
+  .rows :global(.ruj-cell i) { color: var(--muted-2); flex: none; }
+  .rows :global(.ruj-cell span) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rows :global(.tgl) { color: #4b5260; }
+  .rows :global(.chip) { justify-self: start; }
+  .rows :global(.hapus) { justify-self: start; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #fff; background: var(--line); color: var(--danger); font-size: 14.5px; font-weight: 500; }
+  .rows :global(.arsip) { font-size: 14px; color: var(--muted); }
+
+  .side-col { display: flex; flex-direction: column; gap: 20px; }
+  .index { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+  .index h2 { font-size: 24px; }
+  .index-total { font-size: 56px; font-weight: 500; letter-spacing: -.03em; line-height: 1; }
+  .index-total span:last-child { font-size: 18px; color: var(--muted); font-weight: 400; letter-spacing: 0; margin-left: 8px; }
+  .index-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .page :global(.tile-flat) { padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  .index-split span:first-child { font-size: 13px; color: var(--muted); }
+  .v { font-size: 22px; font-weight: 500; color: #475060; }
+  .v.ok { color: #15803d; }
+  .sync { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #dcf5e6; color: #15803d; font-size: 14.5px; }
+  .rules { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .rules h2 { font-size: 20px; font-weight: 500; }
+  .rules span { display: flex; gap: 10px; font-size: 15px; line-height: 1.5; color: var(--ink-3); }
+  .rules i { color: var(--blue); margin-top: 3px; }
+
+  .view-graph { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 480px; gap: 20px; }
+  .graph { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .graph-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .graph-head h2 { font-size: 26px; }
+  .graph-head span { font-size: 14.5px; color: var(--muted); }
+  .canvas { flex: 1; position: relative; border-radius: 24px; background: radial-gradient(circle at 50% 48%, #f7f9ff 0%, #eceef2 70%); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); overflow: hidden; min-height: 420px; }
+  .canvas svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .canvas line { stroke: #c3c9d3; stroke-width: 1.4; stroke-dasharray: 4 4; }
+  .canvas line.hot { stroke: var(--blue); stroke-width: 2; stroke-dasharray: none; }
+  .node { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; border: 1px solid #fff; background: var(--surface); color: var(--ink); box-shadow: 0 6px 16px rgba(16, 24, 40, .1); display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; font-size: 14px; font-weight: 500; line-height: 1.2; }
+  .node.hub { background: radial-gradient(circle at 35% 30%, #ffffff, #dfe8fd); font-size: 16px; }
+  .node[aria-pressed='true'] { background: radial-gradient(circle at 35% 30%, #8fb6ff, #2f6bf5 70%); color: #fff; border: 2px solid #fff; box-shadow: 0 12px 28px rgba(47, 107, 245, .4); }
+  .detail { padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
+  .detail-title { font-size: 32px; letter-spacing: -.02em; }
+  .ruj { padding: 14px 16px; border-radius: 18px; gap: 4px; }
+  .ruj > span:first-child { font-size: 13.5px; color: var(--muted); }
+  .ruj-v { font-size: 16.5px; font-weight: 500; display: flex; gap: 8px; align-items: center; }
+  .ruj-v i { color: var(--blue); }
+  .bagian-title { font-size: 15px; font-weight: 500; color: var(--ink-3); margin-top: 6px; }
+  .bagian { display: flex; flex-direction: column; gap: 14px; }
+  .bagian :global(.tile-flat) { padding: 12px 16px; font-size: 15.5px; flex-direction: row; gap: 10px; align-items: center; }
+  .bagian :global(i) { color: var(--muted-2); }
+  .links { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: #e3ecff; color: var(--blue-ink); font-size: 15px; }
+
+  /* Dialog berada di top layer, di luar kanvas, jadi diskalakan sendiri. */
+  .modal { width: 720px; transform: scale(var(--s, 1)); padding: 32px; border-radius: 36px; background: #f4f5f7; border: 1px solid #fff; box-shadow: 0 40px 90px rgba(20, 30, 60, .3); color: var(--ink); }
+  .modal::backdrop { background: rgba(40, 46, 60, .3); backdrop-filter: blur(3px); }
+  .modal form { display: flex; flex-direction: column; gap: 18px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; }
+  .modal-head h2 { font-size: 34px; letter-spacing: -.02em; }
+  .x { width: 46px; height: 46px; border-radius: 999px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 2px 8px rgba(16, 24, 40, .07); font-size: 19px; color: var(--ink-3); }
+  .f { display: flex; flex-direction: column; gap: 8px; }
+  .f > span { font-size: 15px; font-weight: 500; color: var(--ink-3); }
+  .f input, .f select, .f textarea { height: 58px; padding: 0 18px; border-radius: 18px; background: #fff; border: 1px solid var(--line-2); outline: none; font-size: 16px; }
+  .f select { padding: 0 14px; }
+  .f textarea { height: 130px; resize: none; padding: 14px 18px; line-height: 1.5; }
+  .f input:focus, .f select:focus, .f textarea:focus { border-color: var(--blue); }
+  .f input:global(.invalid) { border-color: #f3b4b4; }
+  .ferr { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--danger); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .modal-actions .pill { height: 54px; padding: 0 24px; font-size: 16px; }
+  .save { height: 54px; padding: 0 28px; font-size: 16px; box-shadow: 0 6px 16px rgba(47, 107, 245, .28); }
+  .save[aria-disabled='true'] { background: #a9b4c8; }
+</style>

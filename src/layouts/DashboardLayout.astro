@@ -1,0 +1,182 @@
+---
+// Kerangka dashboard petugas (F3.3): sidebar, topbar, pencarian, notifikasi, sesi.
+import BaseLayout from './BaseLayout.astro';
+import { NAV, TIKET, chip } from '../lib/data';
+
+interface Props { title: string }
+const { title } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '');
+const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
+---
+<BaseLayout title={title}>
+  <div class="app" hidden id="app">
+    <nav class="panel side" aria-label="Menu dashboard">
+      <div class="logo" title="SIGAP · HaloBPOM Dashboard Petugas"><i class="icon-shield-check"></i></div>
+      <span class="grow"></span>
+      {NAV.map((n) => {
+        const active = path === n.href;
+        return (
+          <a href={n.href} class:list={['nav-btn', { active }]} title={n.label} aria-label={n.label} aria-current={active ? 'page' : undefined}>
+            <i class={n.icon}></i>
+            {n.badge && <span class="badge">{n.badge}</span>}
+          </a>
+        );
+      })}
+      <span class="grow"></span>
+      <div class="avatar" id="avatar" title="Petugas HaloBPOM">DL</div>
+      <button class="nav-btn" id="logout" title="Keluar" aria-label="Keluar"><i class="icon-log-out"></i></button>
+    </nav>
+
+    <div class="main">
+      <header class="panel top">
+        <button class="search-btn" id="search-btn" aria-haspopup="dialog" aria-expanded="false"><i class="icon-search"></i>Cari tiket, nomor telepon, produk…</button>
+        <span class="grow"></span>
+        <span class="pill pill-flat top-pill"><span class="dot-live"></span>3 panggilan berjalan</span>
+        <span class="pill top-pill clock"><i class="icon-calendar"></i><span id="clock"></span></span>
+        <button class="icon-btn" id="notif-btn" aria-label="Notifikasi" aria-haspopup="dialog" aria-expanded="false"><i class="icon-bell"></i><span class="notif-dot"></span></button>
+
+        <div class="pop search-pop" id="search-pop" hidden>
+          <span class="search-input"><i class="icon-search"></i><input id="q" placeholder="Cari tiket, nomor telepon, produk…" aria-label="Cari tiket, nomor telepon, produk" /></span>
+          <div id="search-results">
+            {cari.map((s) => (
+              <a href="/tiket-eskalasi" class="result" data-hay={`${s.no} ${s.ring}`.toLowerCase()}>
+                <span class="mono result-no">{s.no}</span>
+                <span class="result-text">{s.ring}</span>
+                <span class="chip" style={`background:${s.bg};color:${s.fg}`}>{s.status}</span>
+              </a>
+            ))}
+          </div>
+          <span class="no-result" id="no-result" hidden>Tidak ada hasil untuk pencarian ini.</span>
+        </div>
+
+        <div class="pop notif-pop" id="notif-pop" hidden>
+          <span class="pop-title">NOTIFIKASI</span>
+          <a href="/tiket-eskalasi" class="notif"><i class="icon-ticket" style="color:#b26b00"></i><span><span>ESK-0123 masuk antrean eskalasi</span><span class="notif-sub">54 menit lalu · belum ditelaah</span></span></a>
+          <a href="/pengaduan" class="notif"><i class="icon-clipboard-list" style="color:#6d4aff"></i><span><span>Tiket pengaduan ADU-0456 terbit</span><span class="notif-sub">08 Okt · 09:12</span></span></a>
+          <a href="/basis-pengetahuan" class="notif"><i class="icon-book-open" style="color:#16a34a"></i><span><span>Basis pengetahuan diperbarui</span><span class="notif-sub">07 Okt 2026 · 1.284 materi</span></span></a>
+        </div>
+      </header>
+
+      <slot />
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // ponytail: sesi tiruan di sessionStorage sampai T-F3.1-03 / T-F3.3-02 memakai sesi Supabase di server.
+  const SESI_KEY = 'sigap-sesi';
+  const IDLE_MS = 30 * 60 * 1000; // NFR-12
+
+  type Sesi = { nama: string; email: string; aktif: number };
+  function bacaSesi(): Sesi | null {
+    try { return JSON.parse(sessionStorage.getItem(SESI_KEY) || 'null'); } catch { return null; }
+  }
+  function keluar() {
+    sessionStorage.removeItem(SESI_KEY);
+    location.replace('/login');
+  }
+
+  const sesi = bacaSesi();
+  if (!sesi || Date.now() - sesi.aktif > IDLE_MS) {
+    keluar();
+  } else {
+    document.getElementById('app')!.hidden = false;
+    const avatar = document.getElementById('avatar')!;
+    avatar.title = `${sesi.nama} · Petugas HaloBPOM`;
+    avatar.textContent = sesi.nama.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+    let last = Date.now();
+    const sentuh = () => {
+      if (Date.now() - last < 5000) return;
+      last = Date.now();
+      sessionStorage.setItem(SESI_KEY, JSON.stringify({ ...sesi, aktif: last }));
+    };
+    ['click', 'keydown', 'mousemove'].forEach((ev) => addEventListener(ev, sentuh, { passive: true }));
+    setInterval(() => { if (Date.now() - last > IDLE_MS) keluar(); }, 60_000);
+  }
+
+  document.getElementById('logout')!.addEventListener('click', keluar);
+
+  const clock = document.getElementById('clock')!;
+  const fmt = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const tick = () => { clock.textContent = fmt.format(new Date()).replace(/\./g, ':').replace(/,/g, ' ·') + ' WIB'; };
+  tick();
+  setInterval(tick, 15_000);
+
+  function popup(btnId: string, popId: string, onOpen?: () => void) {
+    const btn = document.getElementById(btnId)!;
+    const pop = document.getElementById(popId)!;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = pop.hidden;
+      document.querySelectorAll<HTMLElement>('.pop').forEach((p) => (p.hidden = true));
+      pop.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (open) onOpen?.();
+    });
+    pop.addEventListener('click', (e) => e.stopPropagation());
+  }
+  popup('search-btn', 'search-pop', () => (document.getElementById('q') as HTMLInputElement).focus());
+  popup('notif-btn', 'notif-pop');
+  const tutup = () => document.querySelectorAll<HTMLElement>('.pop').forEach((p) => (p.hidden = true));
+  document.addEventListener('click', tutup);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') tutup(); });
+
+  const q = document.getElementById('q') as HTMLInputElement;
+  q.addEventListener('input', () => {
+    const term = q.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll<HTMLElement>('#search-results .result').forEach((r) => {
+      const hit = !term || r.dataset.hay!.includes(term);
+      r.hidden = !hit || shown >= 5;
+      if (!r.hidden) shown++;
+    });
+    document.getElementById('no-result')!.hidden = shown > 0;
+  });
+  q.dispatchEvent(new Event('input'));
+</script>
+
+<style>
+  .app { height: 100%; padding: 20px; display: flex; gap: 20px; }
+  .app[hidden] { display: none; }
+  .grow { flex: 1; }
+
+  .side { width: 104px; flex: none; display: flex; flex-direction: column; align-items: center; padding: 22px 0; gap: 14px; }
+  .logo { width: 62px; height: 62px; flex: none; border-radius: 999px; background: var(--surface); border: 1px solid #fff; box-shadow: 0 3px 10px rgba(16, 24, 40, .08); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--blue); }
+  .nav-btn { width: 60px; height: 60px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; position: relative; background: var(--surface-2); border: 1px solid #fff; box-shadow: 0 2px 8px rgba(16, 24, 40, .07); font-size: 22px; color: var(--ink-3); }
+  .nav-btn:hover { background: #fff; color: var(--blue); }
+  .nav-btn.active { background: linear-gradient(180deg, #ffffff, #eef2fa); box-shadow: 0 6px 16px rgba(47, 80, 160, .18), inset 0 1px 0 #fff; color: var(--blue); }
+  .badge { position: absolute; top: 2px; right: 0; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: #e3ecff; border: 2px solid var(--panel); color: #2152c9; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .active .badge { background: var(--blue); color: #fff; }
+  .avatar { width: 60px; height: 60px; flex: none; border-radius: 999px; background: linear-gradient(180deg, #e3ecff, #cfdcfb); border: 2px solid #fff; box-shadow: 0 3px 10px rgba(16, 24, 40, .1); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; color: var(--blue-ink); }
+  #logout { font-size: 21px; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; position: relative; }
+  .top { height: 92px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 18px; position: relative; z-index: 10; }
+  .search-btn { width: min(560px, 45%); height: 56px; padding: 0 20px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: inset 0 1px 2px rgba(16, 24, 40, .04); display: flex; align-items: center; gap: 12px; font-size: 16px; color: var(--muted-2); cursor: text; text-align: left; white-space: nowrap; overflow: hidden; }
+  .search-btn i { font-size: 19px; }
+  .top-pill { height: 54px; }
+  .clock { color: var(--blue-ink); padding: 0 16px; gap: 8px; }
+  .icon-btn { width: 54px; height: 54px; flex: none; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); display: flex; align-items: center; justify-content: center; font-size: 19px; color: var(--ink-3); position: relative; }
+  .notif-dot { position: absolute; top: 13px; right: 14px; width: 9px; height: 9px; border-radius: 9px; background: #ef4444; border: 2px solid var(--surface-2); }
+
+  .pop { position: absolute; top: 100px; border-radius: 28px; background: #f6f7f9; border: 1px solid #fff; box-shadow: 0 24px 60px rgba(20, 30, 60, .2); display: flex; flex-direction: column; gap: 10px; }
+  .pop[hidden] { display: none; }
+  .search-pop { left: 0; width: 640px; padding: 16px; }
+  .search-input { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 18px; border-radius: 999px; background: #fff; border: 1px solid var(--line-2); }
+  .search-input i { color: var(--muted-2); font-size: 19px; }
+  .search-input input { flex: 1; border: 0; outline: none; background: transparent; font-size: 17px; }
+  #search-results { display: flex; flex-direction: column; gap: 10px; }
+  .result { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+  .result[hidden] { display: none; }
+  .result-no { font-size: 14px; font-weight: 600; min-width: 84px; }
+  .result-text { flex: 1; font-size: 15px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result .chip { padding: 4px 10px; font-size: 12.5px; }
+  .no-result { padding: 10px 14px; font-size: 15px; color: var(--muted); }
+  .notif-pop { right: 18px; width: 420px; padding: 14px; gap: 8px; }
+  .pop-title { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--muted); padding: 4px 8px; }
+  .notif { display: flex; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-size: 15px; }
+  .notif > i { font-size: 18px; margin-top: 2px; }
+  .notif > span { display: flex; flex-direction: column; gap: 2px; }
+  .notif-sub { font-size: 13px; color: #6b7280; }
+</style>
