@@ -10,7 +10,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
 <DashboardLayout title="Basis Pengetahuan">
   <div class="page">
     <section class="panel head">
-      <div class="head-title"><h1>Basis Pengetahuan</h1><span><span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi · diperbarui terakhir 07 Okt 2026</span></div>
+      <div class="head-title"><h1>Basis Pengetahuan</h1><span><span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi · {KB_TOTAL.total ? 'diperbarui dari basis data' : 'belum ada pembaruan'}</span></div>
       <span class="search"><i class="icon-search"></i><input id="kb-q" placeholder="Cari judul materi atau rujukan sumber…" aria-label="Cari judul materi atau rujukan sumber" /></span>
       <button class="tab big" data-view="list" aria-pressed="true"><i class="icon-list"></i>Daftar Materi</button>
       <button class="tab big" data-view="graph" aria-pressed="false"><i class="icon-waypoints"></i>Graf Pengetahuan</button>
@@ -26,7 +26,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
         </div>
         <div class="row-grid cols-head" aria-hidden="true"><span>JUDUL MATERI</span><span>RUJUKAN SUMBER</span><span>PEMUTAKHIRAN</span><span>STATUS</span><span>AKSI</span></div>
         <div class="rows" id="kb-rows"></div>
-        <div class="empty" id="kb-empty" hidden><i class="icon-book-open"></i><span>Belum ada materi yang cocok.</span><button class="pill" id="empty-add"><i class="icon-plus"></i>Tambah Materi</button></div>
+        <div class="empty" id="kb-empty" hidden><i class="icon-book-open"></i><span id="kb-empty-text">Belum ada materi yang cocok.</span><button class="pill" id="empty-add"><i class="icon-plus"></i>Tambah Materi</button></div>
         <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
       </section>
 
@@ -38,7 +38,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
             <div class="tile-flat"><span>Aktif</span><span class="v ok" id="kb-aktif">{KB_TOTAL.aktif.toLocaleString('id-ID')}</span></div>
             <div class="tile-flat"><span>Tidak aktif</span><span class="v" id="kb-nonaktif">{KB_TOTAL.nonaktif.toLocaleString('id-ID')}</span></div>
           </div>
-          <div class="sync"><i class="icon-refresh-cw"></i>Indeks RAG sinkron · 07 Okt 2026 22:10</div>
+          <div class="sync idle"><i class="icon-refresh-cw"></i>Indeks RAG belum berisi materi</div>
         </section>
         <section class="panel rules">
           <h2>Aturan materi</h2>
@@ -58,11 +58,12 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
             ))}
           </svg>
           {SIMPUL.map((n) => (
-            <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
+            <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal?.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
           ))}
         </div>
       </section>
-      <section class="panel detail" data-name="BagianDokumenTerindeks" aria-live="polite">
+      {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>Graf terbentuk setelah ada materi di basis pengetahuan.</span></div>}
+      {awal && <section class="panel detail" data-name="BagianDokumenTerindeks" aria-live="polite">
         <span class="eyebrow">SIMPUL TERPILIH</span>
         <span class="detail-title" id="node-label">{awal.label}</span>
         <div class="tile-flat ruj"><span>Rujukan Sumber</span><span class="ruj-v"><i class="icon-link"></i><span id="node-rujukan">{awal.rujukan}</span></span></div>
@@ -70,7 +71,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
         <div id="node-bagian" class="bagian">{awal.bagian.map((b) => <div class="tile-flat"><i class="icon-file-text"></i>{b}</div>)}</div>
         <span class="grow"></span>
         <span class="links"><i class="icon-waypoints"></i>Terhubung ke <span id="node-links">{awal.links}</span> materi lain</span>
-      </section>
+      </section>}
     </div>
   </div>
 
@@ -119,6 +120,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
     }).join('');
     document.getElementById('kb-shown')!.textContent = String(list.length);
     document.getElementById('kb-empty')!.hidden = list.length > 0;
+    document.getElementById('kb-empty-text')!.textContent = materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.';
     document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(D.total.total + st.added)));
     document.getElementById('kb-aktif')!.textContent = fmt(D.total.aktif + st.added - st.deact);
     document.getElementById('kb-nonaktif')!.textContent = fmt(D.total.nonaktif + st.deact);
@@ -162,7 +164,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
     document.getElementById('node-bagian')!.innerHTML = n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('');
   }
   document.querySelectorAll<HTMLElement>('[data-node]').forEach((b) => b.addEventListener('click', () => pilih(b.dataset.node!)));
-  pilih(D.simpul[0].id);
+  if (D.simpul.length) pilih(D.simpul[0].id);
 
   // REQ-7.1, REQ-7.2, BR-4: tambah materi.
   const dialog = document.getElementById('add-dialog') as HTMLDialogElement;
@@ -249,6 +251,9 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
   .index-split span:first-child { font-size: 13px; color: var(--muted); }
   .v { font-size: 22px; font-weight: 500; color: #475060; }
   .v.ok { color: #15803d; }
+  .sync.idle { background: #e9ebef; color: #475060; }
+  .graph-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 32px; background: var(--panel); border: 1px dashed #dde0e5; color: var(--ink-3); font-size: 16px; text-align: center; padding: 24px; }
+  .graph-empty i { font-size: 28px; color: var(--muted-2); }
   .sync { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #dcf5e6; color: #15803d; font-size: 14.5px; }
   .rules { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
   .rules h2 { font-size: 20px; font-weight: 500; }

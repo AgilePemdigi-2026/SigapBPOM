@@ -31,9 +31,9 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
       <header class="panel top">
         <button class="search-btn" id="search-btn" aria-haspopup="dialog" aria-expanded="false"><i class="icon-search"></i>Cari tiket, nomor telepon, produk…</button>
         <span class="grow"></span>
-        <span class="pill pill-flat top-pill"><span class="dot-live"></span>3 panggilan berjalan</span>
+        <span class="pill pill-flat top-pill"><span class="dot-idle"></span>Tidak ada panggilan berjalan</span>
         <span class="pill top-pill clock"><i class="icon-calendar"></i><span id="clock"></span></span>
-        <button class="icon-btn" id="notif-btn" aria-label="Notifikasi" aria-haspopup="dialog" aria-expanded="false"><i class="icon-bell"></i><span class="notif-dot"></span></button>
+        <button class="icon-btn" id="notif-btn" aria-label="Notifikasi" aria-haspopup="dialog" aria-expanded="false"><i class="icon-bell"></i></button>
 
         <div class="pop search-pop" id="search-pop" hidden>
           <span class="search-input"><i class="icon-search"></i><input id="q" placeholder="Cari tiket, nomor telepon, produk…" aria-label="Cari tiket, nomor telepon, produk" /></span>
@@ -51,9 +51,7 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
 
         <div class="pop notif-pop" id="notif-pop" hidden>
           <span class="pop-title">NOTIFIKASI</span>
-          <a href="/tiket-eskalasi" class="notif"><i class="icon-ticket" style="color:#b26b00"></i><span><span>ESK-0123 masuk antrean eskalasi</span><span class="notif-sub">54 menit lalu · belum ditelaah</span></span></a>
-          <a href="/pengaduan" class="notif"><i class="icon-clipboard-list" style="color:#6d4aff"></i><span><span>Tiket pengaduan ADU-0456 terbit</span><span class="notif-sub">08 Okt · 09:12</span></span></a>
-          <a href="/basis-pengetahuan" class="notif"><i class="icon-book-open" style="color:#16a34a"></i><span><span>Basis pengetahuan diperbarui</span><span class="notif-sub">07 Okt 2026 · 1.284 materi</span></span></a>
+          <span class="no-result">Belum ada notifikasi.</span>
         </div>
       </header>
 
@@ -158,6 +156,7 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
   .top-pill { height: 54px; }
   .clock { color: var(--blue-ink); padding: 0 16px; gap: 8px; }
   .icon-btn { width: 54px; height: 54px; flex: none; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); display: flex; align-items: center; justify-content: center; font-size: 19px; color: var(--ink-3); position: relative; }
+  .dot-idle { width: 9px; height: 9px; flex: none; border-radius: 9px; background: #9aa1ad; }
   .notif-dot { position: absolute; top: 13px; right: 14px; width: 9px; height: 9px; border-radius: 9px; background: #ef4444; border: 2px solid var(--surface-2); }
 
   .pop { position: absolute; top: 100px; border-radius: 28px; background: #f6f7f9; border: 1px solid #fff; box-shadow: 0 24px 60px rgba(20, 30, 60, .2); display: flex; flex-direction: column; gap: 10px; }
