@@ -36,9 +36,6 @@ SIGAP adalah AI Voice Agent untuk kanal layanan HaloBPOM milik Badan Pengawas Ob
 
 Petugas HaloBPOM memakai dashboard web untuk memantau layanan secara live, membaca transkrip, menangani pengaduan sampai tiket ditutup, mengelola basis pengetahuan, dan mengunduh laporan.
 
-> [!NOTE]
-> Proyek ini dikerjakan untuk mata kuliah Pengembangan Perangkat Lunak (PPL) Praktikum kelas I4, S1 Sistem Informasi, FST Universitas Airlangga, oleh Kelompok 2: Hariz Fauzil Adhim, Adrian Faishal Hilmy, Thoriq Rafi Al Bani, dan Kevin Brawijaya.
-
 ## Daftar Isi
 
 - [Latar Belakang](#latar-belakang)
