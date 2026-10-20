@@ -221,3 +221,42 @@ Sudah ditetapkan (ADR 0001): frontend Astro, backend Supabase, bahasa TypeScript
 - Perintah standar: install, run, test, lint, migrate.
 - Pipeline CI: lint, test, pemindaian dependensi, pemeriksaan atribusi AI pada pesan commit PR.
 - Kerangka uji penerimaan Gherkin.
+
+## 9. Batas Lingkup Sprint (WAJIB)
+
+Pengerjaan mengikuti jadwal sprint di `docs/source/Sprint-Planning-Sprint-1.docx` dan PRD rinci Bagian 13. Tujuannya mencegah *over-development*: mengerjakan fitur sprint berikutnya, atau menambah hal di luar PRD, sebelum pekerjaan sprint aktif selesai. Aturan ini berlaku untuk anggota tim maupun asisten AI yang mereka pakai.
+
+### 9.1 Sprint aktif dan backlog
+
+**Sprint aktif: Sprint 1 (mulai Minggu 10).** Baris ini diperbarui di awal setiap sprint lewat PR `docs`.
+
+| Sprint | Use case | Fitur di `docs/prd/` | Effort |
+|---|---|---|---|
+| 1 | UC-01 Menanyakan Informasi Produk (XXL), UC-03 Melakukan Login Dashboard (M), UC-07 Mengelola Basis Pengetahuan (L) | F1, F3, F2 | 10 |
+| 2 | UC-02 Menyampaikan Pengaduan Produk (XL), UC-04 Memantau Layanan (L) | belum dibuat | 7 |
+| 3 | UC-05 Membaca Transkrip Percakapan (M), UC-06 Menangani Pengaduan (L), UC-08 Merekap dan Mengunduh Laporan Layanan (M) | belum dibuat | 7 |
+
+Nomor fitur di `docs/prd/` (F1, F2, F3) tidak sama dengan nomor UC. Selalu pakai kode UC untuk menentukan sprint.
+
+### 9.2 Aturan
+
+1. **Hanya backlog sprint aktif yang boleh dikerjakan.** Setiap branch, commit, dan PR kode harus berasal dari task sprint aktif di `docs/prd/tasks.json`. Branch dan scope commit memakai kode UC sprint aktif, misalnya `feat/uc-03-login-dashboard`.
+2. **Kerjakan task berurutan.** Ikuti urutan `ref` di `tasks.json` dalam satu sub-fitur. Satu PR untuk satu task atau satu sub-fitur, tidak lebih. Jangan mengerjakan task berikutnya sebelum task yang sedang dikerjakan memenuhi Definition of Done (bagian 6.2).
+3. **Halaman UC sprint berikutnya hanya placeholder.** Menu dashboard untuk UC yang belum masuk sprint aktif mengarah ke halaman placeholder (F3.3). Tidak boleh ada tabel, grafik, formulir, data tiruan, atau logika untuk UC tersebut.
+4. **Skema database ikut sprint.** Migrasi hanya membuat tabel, kolom, enum, dan kebijakan RLS yang dipakai task sprint aktif. Tabel untuk UC sprint berikutnya, seperti `hasil_telaah`, `jadwal_pemeriksaan`, `tanggapan`, dan `notifikasi`, dibuat di sprint-nya sendiri.
+5. **Tidak ada fitur di luar PRD.** Ide, perbaikan tampilan di luar task, dan "sekalian" dicatat sebagai isu GitHub dengan label sprint tujuan (`sprint-2`, `sprint-3`, atau `backlog`), bukan dikerjakan di PR berjalan.
+6. **Infrastruktur bersama boleh, asal dibutuhkan sprint aktif.** Kode umum seperti layout, adapter, atau helper boleh dibuat bila dipakai langsung oleh task sprint aktif. Deskripsi PR wajib menyebut task yang memakainya. Tidak boleh membuat abstraksi "untuk persiapan sprint depan".
+7. **Menarik pekerjaan dari sprint berikutnya** hanya boleh bila semua task sprint aktif sudah selesai dan disetujui seluruh anggota tim di pertemuan sprint. Keputusan itu dicatat di dokumen Sprint Planning dan tabel 9.1 diperbarui dulu lewat PR, baru kode menyusul.
+8. **Task sprint berikutnya dibuat saat sprint planning.** Spec dan task untuk UC sprint 2 dan 3 ditambahkan ke `docs/prd/` di awal sprint tersebut, bukan lebih awal.
+
+### 9.3 Penegakan
+
+- Deskripsi PR wajib memuat baris `Sprint: <nomor>` dan `Task: <ref>` (misalnya `Task: T-F3.2-02`). Template PR di `.github/pull_request_template.md` sudah menyediakannya.
+- Reviewer wajib menolak PR yang menyentuh UC di luar sprint aktif, membuat tabel atau halaman untuk sprint berikutnya, atau menambah hal yang tidak ada di task. Bagian yang di luar lingkup diminta dipisah menjadi isu.
+- Pekerjaan sprint berikutnya yang terlanjur dibuat tidak di-merge ke `main`. Simpan di branch terpisah sampai sprint-nya tiba, atau hapus.
+
+### 9.4 Akhir sprint
+
+- Perbarui *Actual Effort* di burndown chart dokumen Sprint Planning.
+- Task yang belum selesai dipindah ke sprint berikutnya secara tertulis, tidak dikerjakan diam-diam.
+- Perbarui baris "Sprint aktif" di bagian 9.1 dan di README.
