@@ -1,77 +1,67 @@
 ---
 // Boundary UC-04 Memantau Layanan, halaman Ringkasan Layanan (REQ-4.1).
+// Semua angka kosong sampai agregasi tabel percakapan di Supabase tersedia (F5.1).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Orb from '../components/Orb.astro';
-import { STATISTIK, KASUS_URUTAN, TIKET, KATEGORI, KB_TOTAL } from '../lib/data';
-import { beban, type Periode } from '../lib/beban';
+import { STATISTIK, TIKET, KATEGORI, KB_TOTAL } from '../lib/data';
 
-const PERIODE: [Periode, string][] = [['harian', 'Harian'], ['mingguan', 'Mingguan'], ['bulanan', 'Bulanan']];
-const AWAL: Periode = 'mingguan';
-const muatan = PERIODE.map(([p, label]) => ({ p, label, d: beban(p) }));
+const PERIODE = [
+  ['harian', 'Harian', 'Panggilan masuk hari ini per jam'],
+  ['mingguan', 'Mingguan', 'Panggilan masuk yang ditangani AI dan petugas · 7 hari terakhir'],
+  ['bulanan', 'Bulanan', 'Panggilan masuk per hari · bulan ini'],
+] as const;
+const AWAL = 'mingguan';
 
-const urgent = KASUS_URUTAN.map((no) => TIKET.find((t) => t.no === no)!).filter((t) => t.status === 'Belum Ditelaah').slice(0, 3);
+const urgent = TIKET.filter((t) => t.status === 'Belum Ditelaah').slice(0, 3);
+const totalKategori = KATEGORI.reduce((n, [, p]) => n + p, 0);
+const maxKategori = Math.max(1, ...KATEGORI.map(([, p]) => p));
 const fmt = (n: number) => n.toLocaleString('id-ID');
 ---
 <DashboardLayout title="Ringkasan Layanan">
   <div class="page">
     <div class="top-row">
-      {muatan.map(({ p, d }) => (
-        <section class="panel load" data-name="BebanPanggilan" data-periode={p} hidden={p !== AWAL} aria-labelledby={`load-${p}`}>
-          <div class="load-head">
-            <div class="load-title">
-              <h1 class="eyebrow" id={`load-${p}`}>BEBAN PANGGILAN</h1>
-              <div class="load-total"><span class="big">{d.total}</span><span class="unit">panggilan</span><span class="delta">{d.delta}</span></div>
-              <span class="muted">{d.sub}</span>
-            </div>
-            <div class="seg" role="group" aria-label="Periode beban panggilan">
-              {PERIODE.map(([k, label]) => <button data-load={k} aria-pressed={k === p ? 'true' : 'false'}>{label}</button>)}
-            </div>
+      <section class="panel load" data-name="BebanPanggilan" aria-labelledby="load-title">
+        <div class="load-head">
+          <div class="load-title">
+            <h1 class="eyebrow" id="load-title">BEBAN PANGGILAN</h1>
+            <div class="load-total"><span class="big">0</span><span class="unit">panggilan</span></div>
+            {PERIODE.map(([k, , sub]) => <span class="muted" data-periode={k} hidden={k !== AWAL}>{sub}</span>)}
           </div>
-          <div class="chart">
-            <div class="axis" aria-hidden="true">
-              {d.axis.map((x) => <div class="axis-line" style={`bottom:${x.bottom}`}><span class="mono">{x.v}</span><span></span></div>)}
-            </div>
-            <div class="groups">
-              {d.groups.map((g) => (
-                <div class="group" style={`flex-grow:${g.n}`}>
-                  <div class="cols">
-                    {g.cols.map((c) => <div class="col" title={c.tip}>{c.dots.map((t) => <span style={`background:${t.bg};box-shadow:${t.sh}`}></span>)}</div>)}
-                  </div>
-                  <span class="group-label">{g.label}</span>
-                </div>
-              ))}
-            </div>
+          <div class="seg" role="group" aria-label="Periode beban panggilan">
+            {PERIODE.map(([k, label]) => <button data-load={k} aria-pressed={k === AWAL ? 'true' : 'false'}>{label}</button>)}
           </div>
-          <div class="legend">
-            <span class="leg"><span class="dot" style="width:8px;height:8px;background:#22c55e"></span>Puncak panggilan: {d.peak}</span>
-            <span class="grow"></span>
-            <span class="leg"><span class="dot" style="background:#3b74f6"></span>Dijawab AI</span>
-            <span class="leg"><span class="dot" style="background:#f5b70f"></span>Dieskalasi</span>
-            <span class="mono unit-note">1 titik = {d.unit} panggilan</span>
-          </div>
-        </section>
-      ))}
-
-      {muatan.map(({ p, d }) => (
-        <section class="panel kinerja" data-name="KinerjaAI" data-periode={p} hidden={p !== AWAL}>
-          <div class="kin-head">
-            <div class="kin-title"><span class="eyebrow">KINERJA AI</span><h2>Tingkat Penyelesaian</h2></div>
-            <a href="/riwayat-percakapan" class="link">Lihat detail<i class="icon-chevron-right"></i></a>
-          </div>
-          <div class="donut-row">
-            <div class="donut" style={`background:conic-gradient(#3b74f6 ${d.deg}, #e4e7ec 0)`} role="img" aria-label={`${d.pct} persen dijawab AI`}>
-              <div><span>{d.pct}</span><span>%</span></div>
-            </div>
-            <div class="donut-text"><span>AI dapat menjawab</span><span>Sebagian besar pertanyaan dijawab langsung berdasarkan sumber resmi BPOM.</span></div>
-          </div>
-          <div class="bars">
-            <div class="bar"><div class="bar-row"><span>Jawaban AI</span><span class="mono">{d.ai}</span></div><div class="track"><div style={`width:${d.aiW};background:linear-gradient(90deg,#5b8dff,#2a62f0)`}></div></div></div>
-            <div class="bar"><div class="bar-row"><span>Eskalasi petugas</span><span class="mono">{d.esk}</span></div><div class="track"><div style={`width:${d.eskW};background:linear-gradient(90deg,#ffdc6e,#f5b70f)`}></div></div></div>
-          </div>
+        </div>
+        <div class="chart empty">
+          <i class="icon-phone-incoming"></i>
+          <span>Belum ada panggilan pada periode ini.</span>
+          <span class="muted">Grafik terisi otomatis begitu penelepon menghubungi CS AI.</span>
+        </div>
+        <div class="legend">
+          <span class="leg"><span class="dot" style="width:8px;height:8px;background:#22c55e"></span>Puncak panggilan: —</span>
           <span class="grow"></span>
-          <a href="/panggilan-berjalan" class="tile live-link"><span class="dot-live"></span><span class="live-text">3 panggilan berjalan</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
-        </section>
-      ))}
+          <span class="leg"><span class="dot" style="background:#3b74f6"></span>Dijawab AI</span>
+          <span class="leg"><span class="dot" style="background:#f5b70f"></span>Dieskalasi</span>
+        </div>
+      </section>
+
+      <section class="panel kinerja" data-name="KinerjaAI">
+        <div class="kin-head">
+          <div class="kin-title"><span class="eyebrow">KINERJA AI</span><h2>Tingkat Penyelesaian</h2></div>
+          <a href="/riwayat-percakapan" class="link">Lihat detail<i class="icon-chevron-right"></i></a>
+        </div>
+        <div class="donut-row">
+          <div class="donut" style="background:#e4e7ec" role="img" aria-label="Belum ada data penyelesaian">
+            <div><span>—</span><span>%</span></div>
+          </div>
+          <div class="donut-text"><span>Belum ada data</span><span>Persentase pertanyaan yang dijawab AI tampil setelah ada panggilan.</span></div>
+        </div>
+        <div class="bars">
+          <div class="bar"><div class="bar-row"><span>Jawaban AI</span><span class="mono">0</span></div><div class="track"></div></div>
+          <div class="bar"><div class="bar-row"><span>Eskalasi petugas</span><span class="mono">0</span></div><div class="track"></div></div>
+        </div>
+        <span class="grow"></span>
+        <a href="/panggilan-berjalan" class="tile live-link"><span class="dot-idle"></span><span class="live-text">Tidak ada panggilan berjalan</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
+      </section>
     </div>
 
     <div class="cards">
@@ -90,6 +80,7 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
 
       <section class="panel card urgent">
         <div class="urgent-head"><h2 class="card-title sm">Kasus Perlu Tindak Lanjut</h2><a href="/tiket-eskalasi" class="pill round" aria-label="Lihat semua tiket eskalasi"><i class="icon-arrow-up-right"></i></a></div>
+        {urgent.length === 0 && <div class="empty-card"><i class="icon-circle-check"></i><span>Tidak ada kasus yang perlu ditindaklanjuti.</span></div>}
         {urgent.map((u, i) => i === 0 ? (
           <div class="case-first">
             <div class="case-row"><span class="mono case-no">{u.no}</span><span class="grow"></span><span class="case-wait"><span></span>{u.wait}</span></div>
@@ -106,12 +97,13 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
       </section>
 
       <section class="panel card">
-        <div class="kat-head"><h2 class="card-title">Pertanyaan per Kategori</h2><span>7 hari terakhir · 812 pertanyaan</span></div>
+        <div class="kat-head"><h2 class="card-title">Pertanyaan per Kategori</h2><span>7 hari terakhir · {fmt(totalKategori)} pertanyaan</span></div>
+        {KATEGORI.length === 0 && <div class="empty-card"><i class="icon-chart-column"></i><span>Belum ada pertanyaan dalam 7 hari terakhir.</span></div>}
         <div class="kat-list">
           {KATEGORI.map(([label, p, bg]) => (
             <div class="kat">
               <div class="kat-row"><span>{label}</span><span class="kat-pct">{p}%</span></div>
-              <div class="kat-track" role="progressbar" aria-valuenow={p} aria-valuemin="0" aria-valuemax="100" aria-label={label}><div style={`width:${(p / 38) * 100}%;background:${bg}`}></div></div>
+              <div class="kat-track" role="progressbar" aria-valuenow={p} aria-valuemin="0" aria-valuemax="100" aria-label={label}><div style={`width:${(p / maxKategori) * 100}%;background:${bg}`}></div></div>
             </div>
           ))}
         </div>
@@ -119,7 +111,7 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
 
       <section class="panel card greet">
         <Orb size={104} />
-        <span class="greet-text">Selamat pagi, <span id="nama-depan">Dewi</span><br />3 panggilan sedang dilayani</span>
+        <span class="greet-text">Selamat pagi, <span id="nama-depan">Dewi</span><br />Belum ada panggilan berjalan</span>
         <div class="greet-actions">
           <a href="/tiket-eskalasi" class="pill sm"><i class="icon-ticket"></i>Antrean tiket</a>
           <a href="/basis-pengetahuan?tambah=1" class="pill sm"><i class="icon-plus"></i>Tambah Materi</a>
@@ -127,8 +119,8 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
         </div>
         <span class="grow"></span>
         <div class="tile agent">
-          <span class="dot-live"></span>
-          <span class="agent-text"><span>AI Voice Agent aktif</span><span>KB diperbarui 07 Okt 2026 · {fmt(KB_TOTAL.total)} materi</span></span>
+          <span class="dot-idle"></span>
+          <span class="agent-text"><span>AI Voice Agent belum tersambung</span><span>Basis pengetahuan · {fmt(KB_TOTAL.total)} materi</span></span>
         </div>
       </section>
     </div>
@@ -136,9 +128,10 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
 </DashboardLayout>
 
 <script>
-  // Tab periode beban panggilan: ketiga varian sudah dirender, tinggal ditampilkan.
+  // Tab periode beban panggilan.
   document.querySelectorAll<HTMLElement>('[data-load]').forEach((b) => b.addEventListener('click', () => {
     const p = b.dataset.load!;
+    document.querySelectorAll<HTMLElement>('[data-load]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     document.querySelectorAll<HTMLElement>('[data-periode]').forEach((el) => (el.hidden = el.dataset.periode !== p));
   }));
 
@@ -169,20 +162,13 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
   .seg button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent; background: transparent; font-size: 15px; color: #4b5260; }
   .seg button[aria-pressed='true'] { border-color: #fff; background: var(--surface); box-shadow: 0 2px 8px rgba(16, 24, 40, .1); font-weight: 500; color: var(--ink); }
   .chart { flex: 1; min-height: 0; position: relative; }
-  .axis { position: absolute; left: 0; right: 0; top: 0; bottom: 34px; pointer-events: none; }
-  .axis-line { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 10px; transform: translateY(50%); }
-  .axis-line .mono { width: 40px; text-align: right; font-size: 12.5px; color: var(--muted-2); }
-  .axis-line span:last-child { flex: 1; border-top: 1px dashed #dde0e5; }
-  .groups { position: absolute; left: 56px; right: 0; top: 0; bottom: 0; display: flex; gap: 14px; }
-  .group { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-  .cols { flex: 1; display: flex; justify-content: space-around; align-items: flex-end; }
-  .col { display: flex; flex-direction: column-reverse; align-items: center; gap: 7px; padding: 0 1px; }
-  .col span { width: 12px; height: 12px; border-radius: 99px; }
-  .group-label { height: 24px; text-align: center; font-size: 15px; color: var(--ink-3); white-space: nowrap; }
+  .chart.empty, .empty-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: 16px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; }
+  .chart.empty i, .empty-card i { font-size: 26px; color: var(--muted-2); }
+  .empty-card { flex: 1; padding: 20px; }
+  .dot-idle { width: 10px; height: 10px; flex: none; border-radius: 9px; background: #9aa1ad; }
   .legend { display: flex; align-items: center; gap: 20px; font-size: 14.5px; color: #4b5260; }
   .leg { display: flex; align-items: center; gap: 7px; }
   .dot { width: 10px; height: 10px; border-radius: 9px; }
-  .unit-note { font-size: 13px; color: var(--muted); }
 
   .kinerja { padding: 24px 26px; display: flex; flex-direction: column; gap: 20px; }
   .kin-head { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -204,7 +190,6 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
   .track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
   .track div { height: 100%; border-radius: 99px; }
   .live-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; color: var(--ink); }
-  .live-link .dot-live { width: 10px; height: 10px; }
   .live-text { flex: 1; font-size: 15.5px; font-weight: 500; }
   .live-go { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: #2152c9; }
 
@@ -251,7 +236,6 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
   .greet-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   .pill.sm { height: 40px; padding: 0 14px; gap: 7px; font-size: 14px; }
   .agent { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; text-align: left; }
-  .agent .dot-live { width: 10px; height: 10px; }
   .agent-text { display: flex; flex-direction: column; gap: 1px; }
   .agent-text span:first-child { font-size: 15px; font-weight: 500; }
   .agent-text span:last-child { font-size: 13px; color: var(--muted); }
