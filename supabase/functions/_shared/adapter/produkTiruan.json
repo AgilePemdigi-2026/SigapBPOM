@@ -1,0 +1,9 @@
+[
+  { "nama": "Susu Formula Sehat", "nomorIzinEdar": "BPOM RI MD 865009001234", "status": "Berlaku", "pendaftar": "PT Nutrisi Sehat Indonesia", "sumber": "Data tiruan cekbpom" },
+  { "nama": "Paracetamol 500 mg Tablet", "nomorIzinEdar": "DBL1234567810A1", "status": "Berlaku", "pendaftar": "PT Farma Nusantara", "sumber": "Data tiruan cekbpom" },
+  { "nama": "Paracetamol Sirup Anak", "nomorIzinEdar": "DBL1234567837A1", "status": "Berlaku", "pendaftar": "PT Farma Nusantara", "sumber": "Data tiruan cekbpom" },
+  { "nama": "Paracetamol Kaplet Forte", "nomorIzinEdar": "DBL1234567904A1", "status": "Tidak Berlaku", "pendaftar": "PT Medika Prima", "sumber": "Data tiruan cekbpom" },
+  { "nama": "Paracetamol Drops", "nomorIzinEdar": "DBL1234567937A1", "status": "Berlaku", "pendaftar": "PT Medika Prima", "sumber": "Data tiruan cekbpom" },
+  { "nama": "Krim Wajah Glowing", "nomorIzinEdar": "NA18201234567", "status": "Dibatalkan", "pendaftar": "CV Cantik Alami", "sumber": "Data tiruan cekbpom" },
+  { "nama": "Jamu Pegal Linu Sehat", "nomorIzinEdar": "POM TR 123456789", "status": "Berlaku", "pendaftar": "PT Jamu Tradisional Jaya", "sumber": "Data tiruan cekbpom" }
+]
