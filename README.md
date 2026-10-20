@@ -1,4 +1,31 @@
-# SIGAP: Sistem Informasi dan Gerbang Aduan Publik
+<div align="center">
+
+<img src="docs/assets/sigap-logo.png" alt="SIGAP — Sistem Informasi dan Gerbang Aduan Publik Berbasis AI Voice Agent untuk Layanan HaloBPOM" width="560">
+
+<p><strong>AI Voice Agent untuk layanan HaloBPOM</strong><br>
+Jawaban instan bersumber resmi untuk masyarakat, antrean yang hanya berisi kasus yang benar-benar butuh petugas.</p>
+
+<p>
+  <img alt="Sprint" src="https://img.shields.io/badge/sprint-1%20aktif-0B5CAD">
+  <img alt="Versi" src="https://img.shields.io/badge/versi-0.1.0-0B2A5B">
+  <img alt="Astro" src="https://img.shields.io/badge/Astro-7-BC52EE?logo=astro&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white">
+  <img alt="ElevenLabs" src="https://img.shields.io/badge/STT%2FTTS-ElevenLabs-111111">
+</p>
+
+<p>
+  <a href="#fitur">Fitur</a> ·
+  <a href="#arsitektur">Arsitektur</a> ·
+  <a href="#tech-stack-dan-alasannya">Tech Stack</a> ·
+  <a href="#skema-database">Database</a> ·
+  <a href="#memulai">Memulai</a> ·
+  <a href="#aturan-kontribusi">Kontribusi</a>
+</p>
+
+</div>
+
+---
 
 SIGAP adalah AI Voice Agent untuk kanal layanan HaloBPOM milik Badan Pengawas Obat dan Makanan (BPOM). Masyarakat menekan tombol **"Telepon CS AI"** di situs HaloBPOM, lalu berbicara langsung dengan agen suara yang:
 
@@ -8,8 +35,6 @@ SIGAP adalah AI Voice Agent untuk kanal layanan HaloBPOM milik Badan Pengawas Ob
 - **meneruskan ke petugas** pertanyaan yang butuh penilaian manusia, misalnya nasihat medis, dengan tiket eskalasi.
 
 Petugas HaloBPOM memakai dashboard web untuk memantau layanan secara live, membaca transkrip, menangani pengaduan sampai tiket ditutup, mengelola basis pengetahuan, dan mengunduh laporan.
-
-Proyek ini dikerjakan untuk mata kuliah Pengembangan Perangkat Lunak (PPL) Praktikum kelas I4, S1 Sistem Informasi, FST Universitas Airlangga, oleh Kelompok 2: Hariz Fauzil Adhim, Adrian Faishal Hilmy, Thoriq Rafi Al Bani, dan Kevin Brawijaya.
 
 ## Daftar Isi
 
@@ -303,22 +328,29 @@ Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 1 (mulai Minggu 10).**
 ```
 .
 ├── .githooks/            # hook commit-msg dan pre-push bersama tim
-├── .github/            # template pull request (wajib isi Sprint dan Task)
+├── .github/              # template pull request (wajib isi Sprint dan Task)
 ├── docs/
 │   ├── decisions/        # Architecture Decision Records (ADR)
 │   ├── prd/              # PRD, features.json, tasks.json, spec per fitur (F1, F2, F3, ...)
 │   ├── reference/        # PRD rinci: REQ, NFR, BR, kamus pesan, label tombol dan field
 │   ├── source/           # SRS v1.0 dan Sprint Planning (docx)
+│   ├── assets/           # logo SIGAP
 │   └── PROJECT_RULES.md  # aturan proyek yang mengikat semua kontributor
-└── scripts/
-    └── setup-hooks.sh    # mengaktifkan .githooks
+├── scripts/
+│   └── setup-hooks.sh    # mengaktifkan .githooks
+└── src/
+    ├── components/       # komponen Astro
+    ├── layouts/          # layout dasar dan dashboard
+    ├── lib/              # data tiruan dan logika pendukung
+    ├── pages/            # halaman (homepage, login, ringkasan, basis pengetahuan)
+    └── styles/           # CSS global
 ```
 
-Kode aplikasi Astro untuk Sprint 1 (login, ringkasan, basis pengetahuan) sedang dikerjakan di branch `feat/sprint-1-dashboard-ui` dan belum masuk ke `main`.
+Kode aplikasi Astro untuk Sprint 1 (login, ringkasan, basis pengetahuan) ada di `src/`.
 
 ## Memulai
 
-Prasyarat: Git, Node.js 22 atau lebih baru, dan npm.
+Prasyarat: Git, Node.js 22.22 atau lebih baru (syarat Astro 7), dan npm.
 
 ```bash
 git clone https://github.com/AgilePemdigi-2026/SigapBPOM.git
@@ -331,10 +363,15 @@ bash scripts/setup-hooks.sh
 Untuk menjalankan prototipe dashboard yang ada sekarang:
 
 ```bash
-git switch feat/sprint-1-dashboard-ui
 npm install
 npm run dev
 ```
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | Server pengembangan di `http://localhost:4321` |
+| `npm run build` | Build produksi ke folder `dist/` |
+| `npm run preview` | Menjalankan hasil build secara lokal |
 
 Autentikasi dan data di prototipe tersebut masih tiruan sampai integrasi Supabase selesai. Variabel environment (Supabase, ElevenLabs, model GPT) akan dicatat di `.env.example` begitu dibutuhkan. Berkas `.env` tidak pernah di-commit.
 
@@ -357,3 +394,10 @@ Baca [docs/PROJECT_RULES.md](docs/PROJECT_RULES.md) sebelum berkontribusi. Ringk
 - [ADR 0001: Stack Teknologi](docs/decisions/0001-stack.md)
 - [Aturan Proyek](docs/PROJECT_RULES.md)
 - SRS v1.0 dan Sprint Planning di [docs/source/](docs/source/)
+
+---
+
+<div align="center">
+  <img src="docs/assets/sigap-mark.png" alt="SIGAP" width="48"><br>
+  <sub>SIGAP · Kelompok 2 PPL Praktikum I4 · S1 Sistem Informasi, FST Universitas Airlangga</sub>
+</div>
