@@ -1,17 +1,230 @@
 ---
-// Placeholder Halaman Publik HaloBPOM (UC-01, UC-02). Dibangun di task T-F1.1-01.
+// Boundary UC-01/UC-02: Halaman Publik HaloBPOM (/homepage), titik awal panggilan "Telepon CS AI".
+// Desktop memakai kanvas 1920×1080 yang diskalakan; di bawah 768px tampil tata letak ponsel.
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Orb from '../components/Orb.astro';
+import PanelSuara from '../components/PanelSuara.astro';
+
+const NAV = ['Beranda', 'Cek Produk', 'Pengaduan', 'Edukasi', 'Berita', 'Kontak'];
+const LAYANAN = [
+  { no: '1', judul: 'Informasi Produk', desk: 'Nomor izin edar, status izin, dan edukasi obat & makanan', mob: 'Izin edar dan edukasi obat & makanan', contoh: '“Susu Formula Sehat terdaftar tidak?”', purple: false },
+  { no: '2', judul: 'Pengaduan Produk', desk: 'Laporkan produk bermasalah, nomor tiket dikirim lewat SMS', mob: 'Nomor tiket dikirim lewat SMS', contoh: '“Krim wajah bikin kulit saya iritasi.”', purple: true },
+];
+const STAT = [['2,1 jt', 'produk terdaftar'], ['24/7', 'layanan suara AI'], ['< 1 mnt', 'rata-rata jawaban']];
+const FITUR = [
+  { icon: 'icon-search-check', bg: '#e3ecff', fg: '#2f6bf5', judul: 'Cek Legalitas Produk', isi: 'Pastikan produk memiliki nomor izin edar yang masih berlaku melalui data registrasi resmi Cek BPOM.' },
+  { icon: 'icon-clipboard-list', bg: '#dcf5e6', fg: '#16a34a', judul: 'Layanan Pengaduan', isi: 'Laporkan produk yang diduga bermasalah. Setiap laporan mendapat nomor tiket dan ditindaklanjuti petugas HaloBPOM.' },
+  { icon: 'icon-book-open', bg: '#fdf0d3', fg: '#b26b00', judul: 'Edukasi Obat & Makanan', isi: 'Pelajari ketentuan label, bahan berbahaya, dan cara membaca nomor izin edar dari sumber resmi.' },
+];
 ---
-<BaseLayout title="Halaman Publik HaloBPOM">
-  <main class="panel ph">
-    <h1>Halaman Publik HaloBPOM</h1>
-    <p>Beranda publik dan tombol "Telepon CS AI" sedang dibangun.</p>
-    <a href="/login" class="pill">Login Petugas<i class="icon-arrow-right"></i></a>
-  </main>
+<BaseLayout title="Halaman Publik HaloBPOM" responsive>
+  <div class="desk">
+    <header class="panel head">
+      <div class="logo"><i class="icon-shield-check"></i></div>
+      <div class="brand"><span>HaloBPOM</span><span>Layanan Informasi &amp; Pengaduan Publik</span></div>
+      <nav class="nav" aria-label="Menu situs">
+        {NAV.map((n, i) => <a href="/homepage" class:list={['nav-pill', { on: i === 0 }]} aria-current={i === 0 ? 'page' : undefined}>{n}</a>)}
+      </nav>
+      <span class="grow"></span>
+      <span class="hotline"><i class="icon-phone"></i>HaloBPOM 1500533</span>
+      <button class="round" aria-label="Cari"><i class="icon-search"></i></button>
+      <a href="/login" class="pill login"><i class="icon-lock"></i>Masuk Petugas</a>
+    </header>
+
+    <div class="hero-row">
+      <section class="panel hero">
+        <span class="tag"><span></span>LAYANAN INFORMASI PUBLIK · AKTIF 24 JAM</span>
+        <h1>Pastikan obat dan makanan yang Anda konsumsi aman dan terdaftar.</h1>
+        <p>Cek nomor izin edar, pelajari ketentuan keamanan produk, atau laporkan produk yang diduga bermasalah. Kini tersedia asisten suara CS AI yang menjawab langsung dari data resmi BPOM.</p>
+        <div class="services">
+          <span class="eyebrow">TELEPON CS AI, LALU PILIH LAYANAN</span>
+          <div class="svc-grid">
+            {LAYANAN.map((l) => (
+              <button class="svc" data-call>
+                <span class:list={['svc-no', { purple: l.purple }]}>{l.no}</span>
+                <span class="svc-text"><span class="t">{l.judul}</span><span class="d">{l.desk}</span><span class="e">{l.contoh}</span></span>
+                <i class="icon-phone-call svc-ic"></i>
+              </button>
+            ))}
+          </div>
+          <span class="note"><i class="icon-captions"></i>Transkrip tampil langsung di layar · tanpa login · dijawab dari data resmi BPOM</span>
+        </div>
+      </section>
+
+      <section class="panel csai">
+        <Orb size={170} />
+        <div class="csai-title"><span>CS AI HaloBPOM</span><span>Asisten suara berbasis data resmi BPOM</span></div>
+        <div class="stats">{STAT.map(([v, l]) => <div class="stat"><span>{v}</span><span>{l}</span></div>)}</div>
+        <span class="grow"></span>
+        <button class="call" data-call>
+          <span class="call-ic"><i class="icon-phone-call"></i></span>
+          <span class="call-text"><span>Telepon CS AI</span><span>Layanan suara · gratis · 24 jam</span></span>
+          <span class="grow"></span>
+          <i class="icon-arrow-right call-arrow"></i>
+        </button>
+      </section>
+    </div>
+
+    <div class="features">
+      {FITUR.map((f) => (
+        <article class="panel feature">
+          <span class="f-ic" style={`background:${f.bg};color:${f.fg}`}><i class={f.icon}></i></span>
+          <span class="f-text"><span class="t">{f.judul}</span><span class="d">{f.isi}</span><a href="/homepage" class="more">Selengkapnya<i class="icon-arrow-right"></i></a></span>
+        </article>
+      ))}
+    </div>
+
+    <footer class="foot">
+      <span>© 2026 Badan Pengawas Obat dan Makanan RI · Jl. Percetakan Negara No. 23, Jakarta Pusat</span>
+      <span>Kebijakan Privasi · Syarat Layanan · LAPOR BPOM</span>
+    </footer>
+
+    <PanelSuara mode="desktop" />
+  </div>
+
+  <div class="mob">
+    <header class="m-head">
+      <span class="m-logo"><i class="icon-shield-check"></i></span>
+      <span class="m-brand"><span>HaloBPOM</span><span>Layanan Informasi &amp; Pengaduan</span></span>
+      <button class="m-menu" aria-label="Menu"><i class="icon-menu"></i></button>
+    </header>
+    <section class="m-hero">
+      <span class="m-tag"><span></span>AKTIF 24 JAM</span>
+      <h1>Pastikan obat dan makanan yang Anda konsumsi aman dan terdaftar.</h1>
+      <p>Cek nomor izin edar, pelajari ketentuan keamanan produk, atau laporkan produk yang diduga bermasalah. Kini tersedia asisten suara CS AI yang menjawab langsung dari data resmi BPOM.</p>
+      <span class="m-eyebrow">TELEPON CS AI, LALU PILIH LAYANAN</span>
+      {LAYANAN.map((l) => (
+        <button class="m-svc" data-call>
+          <span class:list={['m-svc-no', { purple: l.purple }]}>{l.no}</span>
+          <span class="m-svc-text"><span>{l.judul}</span><span>{l.mob}</span></span>
+        </button>
+      ))}
+      <div class="m-stats">{STAT.map(([v, l]) => <div><span>{v}</span><span>{l}</span></div>)}</div>
+    </section>
+    <section class="m-features">
+      {FITUR.map((f) => (
+        <article class="m-feature">
+          <span class="m-f-ic" style={`background:${f.bg};color:${f.fg}`}><i class={f.icon}></i></span>
+          <span class="m-f-text"><span>{f.judul}</span><span>{f.isi}</span><a href="/homepage">Selengkapnya<i class="icon-arrow-right"></i></a></span>
+        </article>
+      ))}
+    </section>
+    <span class="m-foot">© 2026 Badan Pengawas Obat dan Makanan RI · HaloBPOM 1500533</span>
+    <button class="m-call" data-call aria-label="Telepon CS AI">
+      <span class="m-call-ic"><i class="icon-phone-call"></i></span>
+      <span class="m-call-text"><span>Telepon CS AI</span><span>gratis · 24 jam</span></span>
+    </button>
+    <PanelSuara mode="mobile" />
+  </div>
 </BaseLayout>
 
+<script>
+  document.querySelectorAll('[data-call]').forEach((b) => b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('sigap:buka-panggilan'))));
+</script>
+
 <style>
-  .ph { margin: 20px; height: calc(100% - 40px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); }
-  .ph h1 { margin: 0; font-size: 40px; font-weight: 400; color: var(--ink); }
-  .ph p { margin: 0 0 8px; font-size: 17px; }
+  .grow { flex: 1; }
+  h1, p { margin: 0; }
+
+  /* Desktop: kanvas 1920×1080 */
+  .desk { height: 100%; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: relative; }
+  .head { height: 96px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 20px; }
+  .logo { width: 56px; height: 56px; border-radius: 999px; background: var(--grad-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 6px 16px rgba(47, 107, 245, .3); }
+  .brand { display: flex; flex-direction: column; gap: 1px; margin-right: 24px; }
+  .brand span:first-child { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+  .brand span:last-child { font-size: 13.5px; color: #6b7280; }
+  .nav { display: flex; gap: 8px; }
+  .nav-pill { height: 52px; padding: 0 22px; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); display: flex; align-items: center; font-size: 16px; color: var(--ink-3); }
+  .nav-pill.on { background: linear-gradient(180deg, #e9eefa, #dfe6f6); box-shadow: inset 0 2px 4px rgba(47, 80, 160, .12); font-weight: 500; color: var(--blue-ink); }
+  .hotline { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-3); margin-right: 8px; }
+  .hotline i { color: var(--blue); }
+  .round { width: 52px; height: 52px; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); display: flex; align-items: center; justify-content: center; font-size: 19px; color: var(--ink-3); }
+  .login { height: 52px; padding: 0 22px; font-size: 16px; font-weight: 500; color: var(--ink); }
+
+  .hero-row { height: 610px; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 20px; }
+  .hero { padding: 40px 60px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  .tag { align-self: flex-start; display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--blue-ink); }
+  .tag span { width: 8px; height: 8px; border-radius: 9px; background: #22c55e; }
+  .hero h1 { font-size: 58px; line-height: 1.06; font-weight: 500; letter-spacing: -.03em; max-width: 980px; text-wrap: balance; }
+  .hero p { font-size: 20px; line-height: 1.55; color: var(--muted); max-width: 860px; text-wrap: pretty; }
+  .services { display: flex; flex-direction: column; gap: 12px; max-width: 960px; }
+  .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
+  .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .svc { text-align: left; display: flex; align-items: center; gap: 18px; padding: 20px 22px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 8px 20px rgba(16, 24, 40, .05); }
+  .svc:hover { background: #fff; box-shadow: 0 2px 4px rgba(16, 24, 40, .06), 0 12px 26px rgba(16, 24, 40, .08); }
+  .svc-no { width: 60px; height: 60px; flex: none; border-radius: 18px; background: var(--grad-blue); color: #fff; font-size: 28px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(47, 107, 245, .25); }
+  .svc-no.purple { background: linear-gradient(180deg, #a37bff, #7c4dff); }
+  .svc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .svc-text .t { font-size: 21px; font-weight: 500; }
+  .svc-text .d { font-size: 15.5px; line-height: 1.4; color: var(--muted); }
+  .svc-text .e { font-size: 14px; color: #2152c9; font-style: italic; margin-top: 2px; }
+  .svc-ic { font-size: 20px; color: var(--blue); flex: none; }
+  .note { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--muted); }
+  .note i { color: var(--blue); }
+
+  .csai { padding: 30px 36px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .csai-title { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+  .csai-title span:first-child { font-size: 30px; font-weight: 500; letter-spacing: -.02em; }
+  .csai-title span:last-child { font-size: 17px; color: var(--muted); }
+  .stats { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  .stat span:first-child { font-size: 26px; font-weight: 500; }
+  .stat span:last-child { font-size: 13.5px; color: #6b7280; }
+  .call { width: 100%; height: 84px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 14px; box-shadow: 0 12px 26px rgba(22, 163, 74, .32), inset 0 1px 0 rgba(255, 255, 255, .3); }
+  .call-ic { width: 58px; height: 58px; border-radius: 999px; background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .45); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .call-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .call-text span:first-child { font-size: 23px; font-weight: 600; }
+  .call-text span:last-child { font-size: 14.5px; color: #eafff2; }
+  .call-arrow { font-size: 24px; margin-right: 14px; }
+
+  .features { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .feature { padding: 24px 28px; display: flex; gap: 18px; min-height: 0; overflow: hidden; }
+  .f-ic { width: 52px; height: 52px; flex: none; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 23px; }
+  .f-text { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .f-text .t { font-size: 23px; font-weight: 500; }
+  .f-text .d { font-size: 16px; line-height: 1.5; color: var(--muted); }
+  .more { display: flex; align-items: center; gap: 6px; font-size: 15.5px; font-weight: 500; color: #2152c9; }
+  .foot { flex: none; display: flex; justify-content: space-between; padding: 0 12px; font-size: 14px; color: var(--muted); }
+
+  /* Ponsel */
+  .mob { display: none; }
+  @media (max-width: 767px) {
+    .desk { display: none; }
+    .mob { display: flex; flex-direction: column; gap: 12px; min-height: 100vh; padding: max(14px, env(safe-area-inset-top)) 14px 110px; background: var(--bg); }
+  }
+  .m-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 26px; background: var(--panel); border: 1px solid #fff; }
+  .m-logo { width: 44px; height: 44px; flex: none; border-radius: 999px; background: var(--grad-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 21px; box-shadow: 0 4px 12px rgba(47, 107, 245, .3); }
+  .m-brand { flex: 1; display: flex; flex-direction: column; }
+  .m-brand span:first-child { font-size: 18px; font-weight: 600; }
+  .m-brand span:last-child { font-size: 12px; color: var(--muted); }
+  .m-menu { width: 44px; height: 44px; flex: none; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: 0 2px 6px rgba(16, 24, 40, .07); display: flex; align-items: center; justify-content: center; font-size: 19px; color: var(--ink-3); }
+  .m-hero { display: flex; flex-direction: column; gap: 14px; padding: 22px 18px; border-radius: 28px; background: var(--panel); border: 1px solid #fff; }
+  .m-tag { align-self: flex-start; display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--blue-ink); }
+  .m-tag span { width: 7px; height: 7px; border-radius: 9px; background: #22c55e; }
+  .m-hero h1 { font-size: 31px; line-height: 1.1; font-weight: 500; letter-spacing: -.02em; text-wrap: balance; }
+  .m-hero p { font-size: 15.5px; line-height: 1.5; color: var(--muted); }
+  .m-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
+  .m-svc { text-align: left; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 6px 16px rgba(16, 24, 40, .05); }
+  .m-svc-no { width: 48px; height: 48px; flex: none; border-radius: 15px; background: var(--grad-blue); color: #fff; font-size: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .m-svc-no.purple { background: linear-gradient(180deg, #a37bff, #7c4dff); }
+  .m-svc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .m-svc-text span:first-child { font-size: 17px; font-weight: 500; }
+  .m-svc-text span:last-child { font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+  .m-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .m-stats div { padding: 10px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 1px; }
+  .m-stats span:first-child { font-size: 19px; font-weight: 500; }
+  .m-stats span:last-child { font-size: 11.5px; color: var(--muted); }
+  .m-features { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 28px; background: var(--panel); border: 1px solid #fff; }
+  .m-feature { display: flex; gap: 14px; padding: 16px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); }
+  .m-f-ic { width: 44px; height: 44px; flex: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .m-f-text { display: flex; flex-direction: column; gap: 4px; }
+  .m-f-text span:first-child { font-size: 17px; font-weight: 500; }
+  .m-f-text span:nth-child(2) { font-size: 14px; line-height: 1.45; color: var(--muted); }
+  .m-f-text a { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 500; color: #2152c9; }
+  .m-foot { font-size: 12px; line-height: 1.5; color: var(--muted); text-align: center; padding: 4px 10px; }
+  .m-call { position: fixed; right: 16px; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 5; height: 62px; padding: 0 20px 0 8px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 26px rgba(22, 163, 74, .38), inset 0 1px 0 rgba(255, 255, 255, .3); }
+  .m-call-ic { width: 46px; height: 46px; border-radius: 999px; background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .45); display: flex; align-items: center; justify-content: center; font-size: 20px; animation: sgPulse 1.8s ease-out infinite; }
+  .m-call-text { display: flex; flex-direction: column; align-items: flex-start; }
+  .m-call-text span:first-child { font-size: 16px; font-weight: 600; }
+  .m-call-text span:last-child { font-size: 11.5px; color: #eafff2; }
 </style>

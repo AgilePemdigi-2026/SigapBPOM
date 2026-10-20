@@ -1,11 +1,12 @@
 ---
 import '../styles/global.css';
 
-interface Props { title: string }
-const { title } = Astro.props;
+// responsive: di layar ponsel kanvas tidak diskalakan, halaman memakai tata letak ponselnya sendiri.
+interface Props { title: string; responsive?: boolean }
+const { title, responsive = false } = Astro.props;
 ---
 <!doctype html>
-<html lang="id">
+<html lang="id" data-responsive={responsive ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

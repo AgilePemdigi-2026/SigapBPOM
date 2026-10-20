@@ -1,0 +1,274 @@
+---
+// Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.4, REQ-2.5).
+// Dibuka lewat event `sigap:buka-panggilan`. Isi percakapan masih skenario tiruan dari prototipe
+// Claude Design sampai panel disambungkan ke Voice Gateway (T-F1.1-05).
+interface Props { mode: 'desktop' | 'mobile' }
+const { mode } = Astro.props;
+const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
+---
+<div class:list={['panel-wrap', mode]} data-panel={mode} hidden>
+  {mode === 'desktop' && <div class="dim" data-close></div>}
+  <section class="panel-suara" role="dialog" aria-modal="true" aria-label="Panel percakapan suara CS AI HaloBPOM">
+    <div class="ps-head">
+      <div class="ps-orb" aria-hidden="true"></div>
+      <div class="ps-id"><div class="ps-name">CS AI HaloBPOM</div><div class="ps-sub">Asisten suara resmi · SIGAP</div></div>
+      <button class="ps-min" data-close title="Perkecil" aria-label="Perkecil panel"><i class="icon-minus"></i></button>
+    </div>
+    <div class="ps-status">
+      <span class="ps-dot" data-dot></span>
+      <span class="ps-state" data-state>MENYAMBUNGKAN</span>
+      <span class="ps-wave" aria-hidden="true">{bars.map((h, i) => <span style={`height:${20 * h}px;animation-duration:${0.7 + (i % 4) * 0.15}s;animation-delay:${i * 0.06}s`}></span>)}</span>
+      <span class="grow"></span>
+      <span class="ps-dur-label">DURASI</span>
+      <span class="ps-dur mono" data-dur>00:00</span>
+    </div>
+    <div class="ps-service" data-service hidden>
+      <div class="ps-service-no" data-service-no>1</div>
+      <div class="ps-service-text"><span>LAYANAN DIPILIH</span><span data-service-name>Informasi Produk</span></div>
+      <button class="ps-ganti" data-ganti>Ganti</button>
+    </div>
+    <div class="ps-tr-head">
+      <span>TRANSKRIP LANGSUNG</span>
+      <span class="ps-saved"><i class="icon-check"></i>{mode === 'mobile' ? 'tersimpan' : 'tersimpan di register layanan'}</span>
+    </div>
+    <div class="ps-tr" data-tr role="log" aria-live="polite" aria-label="Transkrip langsung"></div>
+    <button class="ps-end" data-end><i class="icon-phone-off"></i>Akhiri Panggilan</button>
+    <div class="ps-after" data-after hidden>
+      <button class="ps-restart" data-restart><i class="icon-phone"></i>Telepon CS AI</button>
+      <button class="ps-close" data-close>Tutup</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'product' | 'ticket' | 'ended'; text?: string; time?: string };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  function render(m: Msg) {
+    switch (m.kind) {
+      case 'sys': return `<div class="m-sys"><span>CS AI · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
+      case 'user': return `<div class="m-user"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
+      case 'menu': return `<div class="m-menu">
+        <button data-pick="1"><span class="no">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
+        <button data-pick="2"><span class="no purple">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
+      case 'processing': return `<div class="m-proc"><i class="icon-loader-circle"></i>${esc(m.text!)}</div>`;
+      case 'product': return `<div class="m-product">
+        <div class="row"><span class="cap">HASIL DATA REGISTRASI</span><span class="ok"><span></span>Berlaku</span></div>
+        <div class="name">Susu Formula Sehat</div>
+        <div class="nie"><span>Nomor izin edar</span><span class="mono">ML 865009001234</span></div>
+        <span class="src">Sumber: cekbpom.pom.go.id · diambil langsung saat panggilan</span></div>`;
+      case 'ticket': return `<div class="m-ticket">
+        <div class="row"><i class="icon-circle-check"></i><span>Pengaduan Anda telah dicatat dengan nomor tiket ADU-0456. Tindak lanjut akan dikirim melalui SMS.</span></div>
+        <div class="no"><span>NOMOR TIKET PENGADUAN</span><span class="mono">ADU-0456</span></div>
+        <span class="src">Data pengaduan lengkap. Berkas kasus diteruskan ke antrean tindak lanjut petugas HaloBPOM.</span></div>`;
+      case 'ended': return `<div class="m-ended"><i class="icon-phone-off"></i><span>${esc(m.text!)}</span></div>`;
+    }
+  }
+
+  function setup(root: HTMLElement) {
+    const $ = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const tr = $('[data-tr]');
+    let phase: 'connecting' | 'menu' | 'flow' | 'ended' = 'connecting';
+    let service: 1 | 2 | null = null, complete = false, secs = 0, msgs: Msg[] = [];
+    let timers: number[] = [], typer: number | undefined, tick: number | undefined;
+
+    const stamp = () => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+    const clear = () => { timers.forEach(clearTimeout); timers = []; clearInterval(typer); };
+    const at = (ms: number, fn: () => void) => { timers.push(window.setTimeout(fn, ms)); };
+
+    function paint() {
+      const ended = phase === 'ended', live = !ended && phase !== 'connecting';
+      tr.innerHTML = msgs.map(render).join('');
+      tr.scrollTop = tr.scrollHeight;
+      $('[data-state]').textContent = ended ? 'BERAKHIR' : phase === 'connecting' ? 'MENYAMBUNGKAN' : 'TERSAMBUNG';
+      root.classList.toggle('live', live);
+      root.classList.toggle('ended', ended);
+      $('[data-dur]').textContent = stamp();
+      $('[data-service]').hidden = !service || ended;
+      if (service) {
+        $('[data-service-no]').textContent = String(service);
+        $('[data-service-name]').textContent = service === 1 ? 'Informasi Produk' : 'Pengaduan Produk';
+      }
+      $('[data-end]').hidden = ended;
+      $('[data-after]').hidden = !ended;
+    }
+    const push = (m: Msg) => { msgs = msgs.filter((x) => x.kind !== 'processing').concat({ ...m, time: stamp() }); paint(); };
+    const say = (text: string) => push({ kind: 'sys', text });
+    const menu = () => { say('Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'); push({ kind: 'menu' }); };
+
+    // ponytail: ucapan penelepon disimulasikan kata per kata; diganti hasil STT ElevenLabs di T-F1.1-04.
+    function hear(text: string, done: () => void) {
+      const words = text.split(' ');
+      let i = 0;
+      push({ kind: 'user', text: '' });
+      typer = window.setInterval(() => {
+        i++;
+        msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: words.slice(0, i).join(' ') };
+        paint();
+        if (i >= words.length) { clearInterval(typer); at(500, done); }
+      }, 110);
+    }
+
+    function start() {
+      clear();
+      phase = 'connecting'; service = null; complete = false; secs = 0; msgs = [];
+      paint();
+      clearInterval(tick);
+      tick = window.setInterval(() => { if (phase !== 'ended') { secs++; $('[data-dur]').textContent = stamp(); } }, 1000);
+      at(900, () => { phase = 'menu'; menu(); });
+    }
+
+    function pick(n: 1 | 2) {
+      if (phase === 'ended' || phase === 'connecting') return;
+      clear();
+      phase = 'flow'; service = n; complete = false;
+      msgs = msgs.filter((m) => m.kind !== 'menu');
+      if (n === 1) {
+        say('Silakan sebutkan nama produk atau pertanyaan Anda.');
+        at(1300, () => hear('Susu Formula Sehat, apakah sudah terdaftar di BPOM?', () => {
+          push({ kind: 'processing', text: 'Mencari di data registrasi BPOM' });
+          at(1700, () => { say('Susu Formula Sehat terdaftar dengan nomor izin edar ML 865009001234, status izin Berlaku.'); push({ kind: 'product' }); complete = true; });
+        }));
+      } else {
+        say('Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda.');
+        at(1400, () => hear('Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian. Nama saya Budi Santoso.', () => {
+          say('Mohon sebutkan nomor telepon Anda.');
+          at(1300, () => hear('081234567890', () => {
+            push({ kind: 'processing', text: 'Mencatat pengaduan dan menerbitkan tiket' });
+            at(1500, () => { push({ kind: 'ticket' }); complete = true; });
+          }));
+        }));
+      }
+    }
+
+    function end() {
+      clear();
+      // REQ-2.5: pengaduan yang belum lengkap tidak mendapat nomor tiket.
+      const text = service === 2 && !complete
+        ? 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.'
+        : 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
+      phase = 'ended';
+      msgs = msgs.filter((m) => m.kind !== 'processing' && m.kind !== 'menu');
+      push({ kind: 'ended', text });
+    }
+
+    function close() {
+      clear();
+      clearInterval(tick);
+      root.hidden = true;
+      document.documentElement.classList.remove('panel-open');
+    }
+
+    root.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const p = t.closest<HTMLElement>('[data-pick]');
+      if (p) return pick(Number(p.dataset.pick) as 1 | 2);
+      if (t.closest('[data-close]')) return close();
+      if (t.closest('[data-end]')) return end();
+      if (t.closest('[data-restart]')) return start();
+      if (t.closest('[data-ganti]')) { clear(); phase = 'menu'; service = null; msgs = msgs.filter((m) => m.kind !== 'processing'); menu(); }
+    });
+    root.addEventListener('keydown', (e) => { if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2); if (e.key === 'Escape') close(); });
+
+    return () => {
+      root.hidden = false;
+      document.documentElement.classList.add('panel-open');
+      start();
+      $('[data-end]').focus();
+    };
+  }
+
+  const openers = new Map<string, () => void>();
+  document.querySelectorAll<HTMLElement>('[data-panel]').forEach((el) => openers.set(el.dataset.panel!, setup(el)));
+
+  // REQ-1.1: tombol "Telepon CS AI" membuka panel dan memutar menu layanan.
+  window.addEventListener('sigap:buka-panggilan', () => {
+    const mobile = matchMedia('(max-width: 767px)').matches && openers.has('mobile');
+    openers.get(mobile ? 'mobile' : 'desktop')?.();
+  });
+</script>
+
+<style>
+  .panel-wrap[hidden] { display: none; }
+  .desktop .dim { position: absolute; inset: 0; background: rgba(40, 46, 60, .28); backdrop-filter: blur(3px); z-index: 20; }
+  .desktop .panel-suara { position: absolute; right: 20px; bottom: 20px; width: 460px; height: 820px; border-radius: 38px; border: 1px solid rgba(255, 255, 255, .9); box-shadow: 0 40px 80px rgba(20, 30, 60, .35); z-index: 21; padding: 22px; }
+  .mobile .ps-status { gap: 8px; padding: 12px 14px; }
+  .mobile .panel-suara { position: fixed; inset: 0; z-index: 50; padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); }
+
+  .panel-suara { display: flex; flex-direction: column; gap: 14px; overflow: hidden; background: #f4f5f7; color: var(--ink); }
+  .grow { flex: 1; }
+  .ps-head { display: flex; align-items: center; gap: 14px; }
+  .ps-orb { width: 52px; height: 52px; border-radius: 999px; flex: none; background: radial-gradient(circle at 34% 28%, #ffffff 0%, #d5e4ff 16%, #86b2ff 44%, #3f7cf7 74%, #2a5ee0 100%); box-shadow: 0 10px 22px rgba(47, 107, 245, .35), inset -4px -6px 12px rgba(20, 60, 180, .3); }
+  .ps-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .ps-name { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+  .ps-sub { font-size: 14px; color: #6b7280; }
+  .ps-min { width: 46px; height: 46px; border-radius: 999px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 2px 8px rgba(16, 24, 40, .08); display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: 20px; }
+
+  .ps-status { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); }
+  .ps-dot { width: 9px; height: 9px; border-radius: 99px; background: #22c55e; }
+  .live .ps-dot { animation: sgPulse 1.4s ease-out infinite; }
+  .ended .ps-dot { background: #9aa1ad; }
+  .ps-state { font-size: 14px; font-weight: 600; letter-spacing: .08em; color: #15803d; }
+  .ended .ps-state { color: #6b7280; }
+  .ps-wave { display: flex; align-items: center; gap: 3px; height: 20px; }
+  .ps-wave span { width: 3px; border-radius: 3px; background: #cfd4dc; transform-origin: center; }
+  .live .ps-wave span { background: #93b4f8; animation-name: sgWave; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  .ps-dur-label { font-size: 12px; letter-spacing: .1em; color: #6b7280; }
+  .ps-dur { font-size: 16px; font-weight: 600; }
+
+  .ps-service { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 18px; background: linear-gradient(180deg, #eef3ff, #e3ebfd); border: 1px solid #d9e3f8; }
+  .ps-service[hidden] { display: none; }
+  .ps-service-no { width: 42px; height: 42px; border-radius: 12px; background: var(--grad-blue); color: #fff; font-size: 20px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(47, 107, 245, .3); }
+  .ps-service-text { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+  .ps-service-text span:first-child { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: #2152c9; }
+  .ps-service-text span:last-child { font-size: 17px; font-weight: 600; color: #1a3a8f; }
+  .ps-ganti { border: 0; background: transparent; color: #2152c9; font-weight: 600; font-size: 15px; }
+
+  .ps-tr-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+  .ps-tr-head > span:first-child { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: #4b5260; }
+  .ps-saved { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #15803d; }
+  .ps-tr { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 24px; background: #eceef2; box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); }
+
+  .ps-tr :global(.m-sys), .ps-tr :global(.m-user) { display: flex; flex-direction: column; gap: 5px; max-width: 86%; }
+  .ps-tr :global(.m-sys) { align-items: flex-start; }
+  .ps-tr :global(.m-user) { align-items: flex-end; align-self: flex-end; }
+  .ps-tr :global(.m-sys > span), .ps-tr :global(.m-user > span) { font-size: 11.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted-2); }
+  .ps-tr :global(.m-user > span) { color: #2152c9; }
+  .ps-tr :global(.m-sys > div) { padding: 12px 15px; border-radius: 6px 18px 18px 18px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); font-size: 16px; line-height: 1.45; text-wrap: pretty; }
+  .ps-tr :global(.m-user > div) { padding: 12px 15px; border-radius: 18px 6px 18px 18px; background: linear-gradient(180deg, #e7efff, #dce7fe); border: 1px solid #d3dff9; font-size: 16px; line-height: 1.45; color: #16295e; text-wrap: pretty; min-height: 1.45em; }
+  .ps-tr :global(.m-menu) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); }
+  .ps-tr :global(.m-menu .no) { width: 38px; height: 38px; border-radius: 11px; background: var(--grad-blue); color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .ps-tr :global(.m-menu .no.purple) { background: linear-gradient(180deg, #a37bff, #7c4dff); }
+  .ps-tr :global(.m-menu .t) { font-size: 16px; font-weight: 600; }
+  .ps-tr :global(.m-menu .d) { font-size: 13px; color: #6b7280; line-height: 1.35; }
+  .ps-tr :global(.m-proc) { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 999px; background: #fff; align-self: flex-start; font-size: 14px; color: #4b5260; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
+  .ps-tr :global(.m-proc i) { color: var(--blue); }
+  .ps-tr :global(.m-product), .ps-tr :global(.m-ticket) { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 20px; background: #fff; }
+  .ps-tr :global(.m-product) { border: 1px solid #d9f2e3; box-shadow: 0 4px 14px rgba(16, 24, 40, .06); }
+  .ps-tr :global(.m-ticket) { border: 1.5px solid var(--blue); box-shadow: 0 6px 18px rgba(47, 107, 245, .12); }
+  .ps-tr :global(.m-product .row) { display: flex; align-items: center; justify-content: space-between; }
+  .ps-tr :global(.cap) { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #6b7280; }
+  .ps-tr :global(.ok) { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #dcf5e6; color: #15803d; font-size: 13px; font-weight: 600; }
+  .ps-tr :global(.ok span) { width: 6px; height: 6px; border-radius: 9px; background: #16a34a; }
+  .ps-tr :global(.m-product .name) { font-size: 18px; font-weight: 600; }
+  .ps-tr :global(.nie) { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: #f4f5f7; }
+  .ps-tr :global(.nie span:first-child) { font-size: 12px; color: #6b7280; }
+  .ps-tr :global(.nie .mono) { font-size: 17px; font-weight: 600; }
+  .ps-tr :global(.src) { font-size: 13px; color: #6b7280; line-height: 1.4; }
+  .ps-tr :global(.m-ticket .row) { display: flex; gap: 10px; align-items: flex-start; font-size: 16.5px; font-weight: 600; line-height: 1.4; }
+  .ps-tr :global(.m-ticket .row i) { color: #16a34a; font-size: 20px; margin-top: 2px; }
+  .ps-tr :global(.m-ticket .no) { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: #dcf5e6; }
+  .ps-tr :global(.m-ticket .no span:first-child) { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #15803d; }
+  .ps-tr :global(.m-ticket .no .mono) { font-size: 24px; font-weight: 600; color: #14532d; }
+  .ps-tr :global(.m-ended) { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px; border-radius: 20px; background: #fff; text-align: center; font-size: 16px; font-weight: 600; line-height: 1.4; }
+  .ps-tr :global(.m-ended i) { font-size: 24px; color: #6b7280; }
+
+  .ps-end { height: 60px; flex: none; border-radius: 999px; border: 0; background: linear-gradient(180deg, #ef4444, #d42020); color: #fff; font-weight: 600; font-size: 17px; letter-spacing: .06em; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(220, 38, 38, .3), inset 0 1px 0 rgba(255, 255, 255, .25); }
+  .ps-end[hidden] { display: none; }
+  .ps-end i { font-size: 20px; }
+  .ps-after { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: none; }
+  .ps-after[hidden] { display: none; }
+  .ps-restart { height: 56px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #34d17a, #16a34a); color: #fff; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 18px rgba(22, 163, 74, .28); }
+  .ps-close { height: 56px; border-radius: 999px; border: 1px solid #fff; background: var(--surface-2); font-weight: 500; font-size: 16px; box-shadow: 0 2px 8px rgba(16, 24, 40, .08); }
+</style>
