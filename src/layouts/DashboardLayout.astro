@@ -5,11 +5,14 @@ import { NAV, TIKET, chip } from '../lib/data';
 
 interface Props { title: string }
 const { title } = Astro.props;
+// Selalu ada: middleware sudah menolak route dashboard tanpa sesi.
+const petugas = Astro.locals.petugas!;
+const inisial = petugas.nama.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 const path = Astro.url.pathname.replace(/\/$/, '');
 const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
 ---
 <BaseLayout title={title}>
-  <div class="app" hidden id="app">
+  <div class="app">
     <nav class="panel side" aria-label="Menu dashboard">
       <div class="logo" title="SIGAP · HaloBPOM Dashboard Petugas"><i class="icon-shield-check"></i></div>
       <span class="grow"></span>
@@ -23,7 +26,7 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
         );
       })}
       <span class="grow"></span>
-      <div class="avatar" id="avatar" title="Petugas HaloBPOM">DL</div>
+      <div class="avatar" title={`${petugas.nama} · Petugas HaloBPOM`}>{inisial}</div>
       <button class="nav-btn" id="logout" title="Keluar" aria-label="Keluar"><i class="icon-log-out"></i></button>
     </nav>
 
@@ -61,33 +64,25 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
 </BaseLayout>
 
 <script>
-  // ponytail: sesi tiruan di sessionStorage sampai T-F3.1-03 / T-F3.3-02 memakai sesi Supabase di server.
-  const SESI_KEY = 'sigap-sesi';
+  // Sesi diperiksa middleware di server. ponytail: timeout idle masih dihitung di browser sampai
+  // T-F3.3-02 melacak aktivitas terakhir di middleware.
+  const AKTIF_KEY = 'sigap-aktif';
   const IDLE_MS = 30 * 60 * 1000; // NFR-12
 
-  type Sesi = { nama: string; email: string; aktif: number };
-  function bacaSesi(): Sesi | null {
-    try { return JSON.parse(sessionStorage.getItem(SESI_KEY) || 'null'); } catch { return null; }
-  }
+  // AKTIF_KEY tidak perlu dihapus: login berikutnya selalu menimpanya.
   function keluar() {
-    sessionStorage.removeItem(SESI_KEY);
-    location.replace('/login');
+    fetch('/api/keluar', { method: 'POST' }).finally(() => location.replace('/login'));
   }
 
-  const sesi = bacaSesi();
-  if (!sesi || Date.now() - sesi.aktif > IDLE_MS) {
+  let last = Number(sessionStorage.getItem(AKTIF_KEY)) || Date.now();
+  if (Date.now() - last > IDLE_MS) {
     keluar();
   } else {
-    document.getElementById('app')!.hidden = false;
-    const avatar = document.getElementById('avatar')!;
-    avatar.title = `${sesi.nama} · Petugas HaloBPOM`;
-    avatar.textContent = sesi.nama.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-
-    let last = Date.now();
+    sessionStorage.setItem(AKTIF_KEY, String(last));
     const sentuh = () => {
       if (Date.now() - last < 5000) return;
       last = Date.now();
-      sessionStorage.setItem(SESI_KEY, JSON.stringify({ ...sesi, aktif: last }));
+      sessionStorage.setItem(AKTIF_KEY, String(last));
     };
     ['click', 'keydown', 'mousemove'].forEach((ev) => addEventListener(ev, sentuh, { passive: true }));
     setInterval(() => { if (Date.now() - last > IDLE_MS) keluar(); }, 60_000);
@@ -136,7 +131,6 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
 
 <style>
   .app { height: 100%; padding: 20px; display: flex; gap: 20px; }
-  .app[hidden] { display: none; }
   .grow { flex: 1; }
 
   .side { width: 104px; flex: none; display: flex; flex-direction: column; align-items: center; padding: 22px 0; gap: 14px; }

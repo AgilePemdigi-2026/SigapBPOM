@@ -16,6 +16,7 @@ const urgent = TIKET.filter((t) => t.status === 'Belum Ditelaah').slice(0, 3);
 const totalKategori = KATEGORI.reduce((n, [, p]) => n + p, 0);
 const maxKategori = Math.max(1, ...KATEGORI.map(([, p]) => p));
 const fmt = (n: number) => n.toLocaleString('id-ID');
+const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 ---
 <DashboardLayout title="Ringkasan Layanan">
   <div class="page">
@@ -111,7 +112,7 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
 
       <section class="panel card greet">
         <Orb size={104} />
-        <span class="greet-text">Selamat pagi, <span id="nama-depan">Dewi</span><br />Belum ada panggilan berjalan</span>
+        <span class="greet-text">Selamat pagi, {namaDepan}<br />Belum ada panggilan berjalan</span>
         <div class="greet-actions">
           <a href="/tiket-eskalasi" class="pill sm"><i class="icon-ticket"></i>Antrean tiket</a>
           <a href="/basis-pengetahuan?tambah=1" class="pill sm"><i class="icon-plus"></i>Tambah Materi</a>
@@ -134,11 +135,6 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
     document.querySelectorAll<HTMLElement>('[data-load]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     document.querySelectorAll<HTMLElement>('[data-periode]').forEach((el) => (el.hidden = el.dataset.periode !== p));
   }));
-
-  try {
-    const s = JSON.parse(sessionStorage.getItem('sigap-sesi') || 'null');
-    if (s?.nama) document.getElementById('nama-depan')!.textContent = s.nama.split(' ')[0];
-  } catch {}
 </script>
 
 <style>

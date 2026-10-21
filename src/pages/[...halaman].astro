@@ -11,11 +11,9 @@ const HALAMAN: Record<string, [string, string]> = {
   'rekap-laporan': ['Rekap & Laporan', 'Sprint 3'],
 };
 
-export function getStaticPaths() {
-  return ['panggilan-berjalan', 'tiket-eskalasi', 'riwayat-percakapan', 'pengaduan', 'pengaduan/detail', 'rekap-laporan'].map((halaman) => ({ params: { halaman } }));
-}
-
-const [judul, sprint] = HALAMAN[Astro.params.halaman!];
+const halaman = Astro.params.halaman ?? '';
+if (!Object.hasOwn(HALAMAN, halaman)) return new Response(null, { status: 404 });
+const [judul, sprint] = HALAMAN[halaman];
 ---
 <DashboardLayout title={judul}>
   <section class="panel ph">

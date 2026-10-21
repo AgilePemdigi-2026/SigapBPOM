@@ -47,15 +47,15 @@ import Orb from '../components/Orb.astro';
 </BaseLayout>
 
 <script>
-  // ponytail: autentikasi tiruan di browser sampai T-F3.1-03 dan T-F3.2-02 memasang Supabase Auth
-  // dan Edge Function penguncian. Penghitung gagal di sini bisa direset pengguna, jadi bukan pengaman.
-  const DEMO = { email: 'dewi.lestari@pom.go.id', password: 'sigap2026', nama: 'Dewi Lestari' };
+  // Kredensial diperiksa di server (/api/login). ponytail: penghitung gagal masih di browser sampai
+  // T-F3.2-02 memasang Edge Function penguncian; pengguna bisa meresetnya, jadi bukan pengaman.
   const MAX_GAGAL = 3; // REQ-3.5, NFR-11
   const FAIL_KEY = 'sigap-gagal-login';
+  const AKTIF_KEY = 'sigap-aktif';
   const MSG = {
     kosong: 'Login gagal. Semua field harus diisi!',
-    salah: 'Login gagal. Email atau password Anda salah.',
     kunci: 'Akses dikunci sementara. Hubungi administrator.',
+    galat: 'Terjadi kesalahan pada sistem.',
   };
 
   const form = document.getElementById('login-form') as HTMLFormElement;
@@ -87,18 +87,25 @@ import Orb from '../components/Orb.astro';
     toggle.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (gagal() >= MAX_GAGAL) return showErr(MSG.kunci);
     if (!email.value.trim() || !pw.value) return showErr(MSG.kosong);
-    if (email.value.trim().toLowerCase() !== DEMO.email || pw.value !== DEMO.password) {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: email.value, password: pw.value }),
+    }).catch(() => null);
+    const hasil: { message?: string } | null = await res?.json().catch(() => null);
+    if (res?.status === 401) {
       const n = gagal() + 1;
       sessionStorage.setItem(FAIL_KEY, String(n));
-      return showErr(n >= MAX_GAGAL ? MSG.kunci : MSG.salah);
+      return showErr(n >= MAX_GAGAL ? MSG.kunci : hasil?.message ?? MSG.galat);
     }
+    if (!res?.ok) return showErr(hasil?.message ?? MSG.galat);
     sessionStorage.removeItem(FAIL_KEY);
-    sessionStorage.setItem('sigap-sesi', JSON.stringify({ nama: DEMO.nama, email: DEMO.email, aktif: Date.now() }));
-    sessionStorage.setItem('sigap-toast', 'Login berhasil!');
+    sessionStorage.setItem(AKTIF_KEY, String(Date.now()));
+    sessionStorage.setItem('sigap-toast', hasil?.message ?? '');
     location.href = '/ringkasan';
   });
 
