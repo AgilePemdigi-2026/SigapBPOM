@@ -194,14 +194,13 @@ Keputusan lengkap ada di [ADR 0001](docs/decisions/0001-stack.md).
 
 ### Mengapa Astro, bukan framework JavaScript lain?
 
-SIGAP punya dua wajah dengan kebutuhan yang berbeda. Halaman publik HaloBPOM dibuka masyarakat umum, sering lewat ponsel dan koneksi seadanya. Dashboard petugas dipakai setiap hari kerja dan butuh komponen interaktif. Astro dipilih karena bisa melayani keduanya dari satu proyek tanpa membebani salah satunya.
+Halaman publik HaloBPOM harus ringan di ponsel, sedangkan dashboard petugas butuh komponen interaktif. Astro melayani keduanya dari satu proyek.
 
-1. **JavaScript hanya dikirim ke bagian yang butuh.** Dengan arsitektur *islands*, halaman Astro dikirim sebagai HTML statis. Hanya komponen interaktif seperti panel panggilan suara, tabel live, dan formulir yang membawa JavaScript ke browser. Framework SPA seperti React + Vite, Vue, atau Angular mengirim seluruh runtime dan kode aplikasi walaupun sebagian besar halaman hanya menampilkan teks. Untuk halaman publik, ini berarti waktu muat lebih cepat di ponsel, sesuai target dashboard ≤ 3 detik pada 10 Mbps (NFR-3).
-2. **Backend sudah ditangani Supabase.** Next.js, Nuxt, dan SvelteKit kuat karena fitur full-stack: API route, server actions, dan middleware data. Di SIGAP, autentikasi, database, realtime, penyimpanan berkas, dan aturan bisnis sudah ada di Supabase (Auth, Postgres + RLS, Realtime, Storage, Edge Functions). Memakai framework full-stack berarti membawa lapisan backend kedua yang tumpang tindih. Astro cukup menjadi lapisan tampilan, sesuai peran *Boundary* di pola BCE.
-3. **Render di server untuk pemeriksaan sesi.** Astro mendukung server-side rendering, sehingga setiap halaman dashboard bisa memeriksa sesi petugas di server sebelum halaman dikirim. Ini sesuai aturan keamanan proyek bahwa otorisasi dilakukan di server, bukan dengan menyembunyikan menu (PROJECT_RULES bagian 5). SPA murni hanya bisa memeriksa sesi setelah JavaScript termuat di browser.
-4. **Tidak mengunci tim ke satu library UI.** Island Astro bisa ditulis dengan komponen `.astro` biasa, atau dengan React, Svelte, maupun Vue bila suatu komponen butuh state yang rumit, misalnya panel suara atau graf pengetahuan. Anggota tim bisa memakai library yang paling mereka kuasai tanpa mengganti framework.
-5. **Kurva belajar landai untuk tim menengah.** Komponen `.astro` pada dasarnya HTML + CSS dengan bagian skrip di atasnya. Konsepnya lebih sedikit dibanding App Router Next.js (server/client component, caching bertingkat, server actions), jadi tim bisa fokus ke fitur dalam tiga sprint yang tersedia.
-6. **TypeScript bawaan.** Astro mendukung TypeScript tanpa konfigurasi tambahan, sehingga satu bahasa dipakai dari halaman sampai Edge Functions.
+1. **JavaScript hanya untuk bagian interaktif.** Dengan *islands*, halaman dikirim sebagai HTML statis. Hanya panel suara, tabel live, dan formulir yang membawa JavaScript, jadi halaman cepat dimuat di ponsel (NFR-3).
+2. **Tidak tumpang tindih dengan Supabase.** Auth, database, realtime, storage, dan aturan bisnis sudah ada di Supabase. Astro cukup menjadi lapisan tampilan (*Boundary* di pola BCE).
+3. **Sesi diperiksa di server.** Dengan SSR, otorisasi dilakukan sebelum halaman dikirim, bukan dengan menyembunyikan menu (PROJECT_RULES bagian 5).
+4. **Bebas memilih library UI.** Island bisa ditulis dengan `.astro`, React, Svelte, atau Vue.
+5. **Mudah dipelajari, TypeScript bawaan.** Komponen `.astro` pada dasarnya HTML + CSS + skrip, dan satu bahasa dipakai dari halaman sampai Edge Functions.
 
 | Framework | Kenapa tidak dipilih untuk SIGAP |
 |---|---|
