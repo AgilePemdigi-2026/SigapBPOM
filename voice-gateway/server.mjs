@@ -3,9 +3,11 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
 import {
   PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban,
 } from './percakapan.mjs';
+import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -30,7 +32,17 @@ const BATAS_WAKTU_STT_MS = 20_000;
 const BATAS_WAKTU_HERMES_MS = 60_000;
 const BATAS_WAKTU_TTS_MS = 30_000;
 
+const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
+
 const riwayat = new RiwayatPanggilan();
+let korpus = null;
+try {
+  const mulai = Date.now();
+  korpus = Korpus.muat(DIREKTORI_KORPUS);
+  console.info(JSON.stringify({ ev: 'korpus', potongan: korpus.potongan.length, ms: Date.now() - mulai }));
+} catch (e) {
+  console.error(JSON.stringify({ ev: 'korpus_gagal', jenis: e instanceof Error ? e.code ?? e.message : 'unknown' }));
+}
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 const tokenSuara = new Map();
 let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
@@ -99,11 +111,11 @@ async function sttElevenLabs(audio, tipe) {
   return String(d.text ?? '').replace(/\s+/g, ' ').trim().slice(0, PANJANG_MAKS_UCAPAN);
 }
 
-async function tanyaHermes(id) {
+async function tanyaHermes(id, kutipan) {
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: HERMES_MODEL, messages: riwayat.untukModel(id) }),
+    body: JSON.stringify({ model: HERMES_MODEL, messages: riwayat.untukModel(id, kutipan) }),
     signal: AbortSignal.timeout(BATAS_WAKTU_HERMES_MS),
   });
   if (!r.ok) throw new Error(`hermes ${r.status}`);
@@ -151,11 +163,13 @@ async function giliran(req, res, url) {
   if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
   riwayat.tambah(id, 'user', transkrip);
-  const jawaban = await tanyaHermes(id) || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+  const kutipan = korpus ? korpus.cari(transkrip) : [];
+  const jawaban = await tanyaHermes(id, pesanKutipan(kutipan)) || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
   riwayat.tambah(id, 'assistant', jawaban);
   const tTotal = Date.now() - mulai;
-  console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length }));
-  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, suara: terbitkanTokenSuara(jawaban, ipKlien(req)) });
+  console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length }));
+  const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara: terbitkanTokenSuara(jawaban, ipKlien(req)) });
 }
 
 // Kuota dipotong saat audio benar-benar dibuat, bukan saat token diterbitkan.
@@ -187,7 +201,9 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://gateway');
   const path = url.pathname;
   try {
-    if (req.method === 'GET' && path === '/voice/kesehatan') return kirim(res, 200, 'success', 'OK', { siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) });
+    if (req.method === 'GET' && path === '/voice/kesehatan') {
+      return kirim(res, 200, 'success', 'OK', { siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0 });
+    }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
     if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(res, path.slice('/voice/statis/'.length));
     if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(res, path.slice('/voice/suara/'.length));

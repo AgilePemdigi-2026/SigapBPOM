@@ -21,6 +21,7 @@ Anda berbicara lewat telepon, jadi:
 - Jawab dalam bahasa Indonesia sehari-hari yang sopan, paling banyak dua kalimat pendek.
 - Jangan pakai markdown, daftar, emoji, atau tautan panjang. Tulis angka seperti diucapkan.
 Layanan 1, informasi produk: jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM.
+Bila diberi kutipan peraturan BPOM, utamakan isi kutipan dan sebutkan peraturannya secara singkat. Bila kutipan tidak menjawab dan Anda tidak yakin, katakan belum bisa memastikan dan sarankan menghubungi petugas HaloBPOM.
 Aturan wajib:
 - Anda BELUM terhubung ke data registrasi BPOM. Jika ditanya apakah suatu produk terdaftar, legal, atau berapa nomor izin edarnya, JANGAN menyebut status atau nomor apa pun. Katakan pengecekan data registrasi belum tersedia di layanan ini dan sarankan memeriksa di cekbpom.pom.go.id.
 - Jangan memberi nasihat medis, dosis, atau diagnosis. Sarankan berkonsultasi dengan dokter atau apoteker.
@@ -72,9 +73,11 @@ export class RiwayatPanggilan {
     if (pesan.length > GILIRAN_RIWAYAT_MAKS * 2) pesan.splice(0, pesan.length - GILIRAN_RIWAYAT_MAKS * 2);
   }
 
-  /** Pesan untuk model: prompt sistem + riwayat panggilan ini. */
-  untukModel(id) {
-    return [{ role: 'system', content: PROMPT_SISTEM }, ...this.ambil(id)];
+  /** Pesan untuk model: prompt sistem + riwayat panggilan ini, dengan kutipan (bila ada) tepat sebelum ucapan terakhir. */
+  untukModel(id, kutipan = null) {
+    const riwayatIni = this.ambil(id);
+    if (!kutipan) return [{ role: 'system', content: PROMPT_SISTEM }, ...riwayatIni];
+    return [{ role: 'system', content: PROMPT_SISTEM }, ...riwayatIni.slice(0, -1), { role: 'system', content: kutipan }, ...riwayatIni.slice(-1)];
   }
 
   hapus(id) {

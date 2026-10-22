@@ -1,0 +1,1110 @@
+{
+ "sumber": "https://github.com/harezadmm/CoretaxAgent (knowledge/regulations, commit 8cf9346), aslinya dari peraturan.bpk.go.id",
+ "jumlah": 138,
+ "dokumen": [
+  {
+   "file": "acuan-label-gizi-d3a04533.md",
+   "title": "Acuan Label Gizi",
+   "nomor": "9",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225525/perka-bpom-no-9-tahun-2016"
+  },
+  {
+   "file": "angka-konsumsi-pangan-aed0985d.md",
+   "title": "Angka Konsumsi Pangan",
+   "nomor": "30",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/219907/peraturan-bpom-no-30-tahun-2018"
+  },
+  {
+   "file": "bahan-baku-yang-dilarang-dalam-pangan-olahan-dan-bahan-yang-dilarang-d-a6689d99.md",
+   "title": "Bahan Baku yang Dilarang dalam Pangan Olahan dan Bahan yang Dilarang Digunakan sebagai Bahan Tambahan Pangan",
+   "nomor": "22",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284990/peraturan-bpom-no-22-tahun-2023"
+  },
+  {
+   "file": "bahan-tambahan-pangan-perisa-3b6d2d70.md",
+   "title": "Bahan Tambahan Pangan Perisa",
+   "nomor": "13",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181797/peraturan-bpom-no-13-tahun-2020"
+  },
+  {
+   "file": "batas-cemaran-dalam-kosmetik-92d0c5d8.md",
+   "title": "Batas Cemaran dalam Kosmetik",
+   "nomor": "16",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/303293/peraturan-bpom-no-16-tahun-2024"
+  },
+  {
+   "file": "batas-maksimum-cemaran-kimia-dalam-pangan-olahan-ec6d4b15.md",
+   "title": "Batas Maksimum Cemaran Kimia dalam Pangan Olahan",
+   "nomor": "8",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/183202/peraturan-bpom-no-8-tahun-2018"
+  },
+  {
+   "file": "bentuk-dan-jenis-sediaan-kosmetika-tertentu-yang-dapat-diproduksi-oleh-3b22a564.md",
+   "title": "Bentuk dan Jenis Sediaan Kosmetika Tertentu yang Dapat diproduksi oleh Industri Kosmetika yang Memiliki Sertifikat Kosmetika Golongan B",
+   "nomor": "8",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181748/peraturan-bpom-no-8-tahun-2021"
+  },
+  {
+   "file": "informasi-nilai-gizi-pada-label-pangan-olahan-07f0c9dc.md",
+   "title": "Informasi Nilai Gizi pada Label Pangan Olahan",
+   "nomor": "26",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223934/peraturan-bpom-no-26-tahun-2021"
+  },
+  {
+   "file": "integrasi-pelayanan-perizinan-berusaha-secara-elektronik-sektor-obat-d-c9f36dd8.md",
+   "title": "Integrasi Pelayanan Perizinan Berusaha Secara Elektronik Sektor Obat dan Makanan",
+   "nomor": "5",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181770/peraturan-bpom-no-5-tahun-2020"
+  },
+  {
+   "file": "kajian-risiko-penggunaan-bahan-baku-dalam-obat-bahan-alam-suplemen-kes-1eabb7c9.md",
+   "title": "Kajian Risiko Penggunaan Bahan Baku dalam Obat Bahan Alam, Suplemen Kesehatan, Obat Kuasi, dan Kosmetik Sediaan Tertentu",
+   "nomor": "26",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/333281/peraturan-bpom-no-26-tahun-2025"
+  },
+  {
+   "file": "kategori-pangan-1ec93320.md",
+   "title": "Kategori Pangan",
+   "nomor": "13",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/263247/peraturan-bpom-no-13-tahun-2023"
+  },
+  {
+   "file": "kriteria-dan-tata-cara-penarikan-dan-pemusnahan-kosmetika-a8768f89.md",
+   "title": "Kriteria dan Tata Cara Penarikan dan Pemusnahan Kosmetika",
+   "nomor": "11",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220305/perka-bpom-no-11-tahun-2017"
+  },
+  {
+   "file": "kriteria-dan-tata-laksana-registrasi-obat-e1142560.md",
+   "title": "Kriteria dan Tata Laksana Registrasi Obat",
+   "nomor": "24",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220387/perka-bpom-no-24-tahun-2017"
+  },
+  {
+   "file": "mekanisme-monitoring-efek-samping-obat-tradisional-dan-suplemen-keseha-2c5a0776.md",
+   "title": "Mekanisme Monitoring Efek Samping Obat Tradisional dan Suplemen Kesehatan",
+   "nomor": "4",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181744/peraturan-bpom-no-4-tahun-2021"
+  },
+  {
+   "file": "notifikasi-kosmetika-perlu-menetapkan-peraturan-badan-pengawas-obat-da-cd041e40.md",
+   "title": "Notifikasi Kosmetika, perlu menetapkan Peraturan Badan Pengawas Obat dan Makanan tentang Pedoman Dokumen Informasi Produk Kosmetik",
+   "nomor": "17",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284984/peraturan-bpom-no-17-tahun-2023"
+  },
+  {
+   "file": "obat-obat-tertentu-yang-sering-disalahgunakan-8202399e.md",
+   "title": "Obat-Obat Tertentu yang Sering Disalahgunakan",
+   "nomor": "12",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/320222/peraturan-bpom-no-12-tahun-2025"
+  },
+  {
+   "file": "pangan-iradiasi-e63f8f98.md",
+   "title": "Pangan Iradiasi",
+   "nomor": "3",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/182192/peraturan-bpom-no-3-tahun-2018"
+  },
+  {
+   "file": "pedoman-cara-produksi-pangan-olahan-yang-baik-untuk-makanan-pendamping-d9de34c2.md",
+   "title": "Pedoman Cara Produksi Pangan Olahan yang Baik untuk Makanan Pendamping Air Susu Ibu",
+   "nomor": "28",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181792/peraturan-bpom-no-28-tahun-2020"
+  },
+  {
+   "file": "pedoman-cara-produksi-yang-baik-untuk-pangan-steril-komersial-yang-dis-c634d606.md",
+   "title": "Pedoman Cara Produksi yang Baik untuk Pangan Steril Komersial yang Disterilisasi setelah Dikemas",
+   "nomor": "25",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181789/peraturan-bpom-no-25-tahun-2020"
+  },
+  {
+   "file": "pedoman-dokumen-informasi-produk-370c3bed.md",
+   "title": "Pedoman Dokumen Informasi Produk",
+   "nomor": "14",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220308/perka-bpom-no-14-tahun-2017"
+  },
+  {
+   "file": "pedoman-kajian-risiko-keamanan-dan-atau-mutu-obat-dan-bahan-obat-79e555e4.md",
+   "title": "Pedoman Kajian Risiko Keamanan dan/atau Mutu Obat dan Bahan Obat",
+   "nomor": "9",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/319866/peraturan-bpom-no-9-tahun-2025"
+  },
+  {
+   "file": "pedoman-klaim-khasiat-obat-bahan-alam-a6926b8f.md",
+   "title": "Pedoman Klaim Khasiat Obat Bahan Alam",
+   "nomor": "30",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/285069/peraturan-bpom-no-30-tahun-2023"
+  },
+  {
+   "file": "pedoman-klaim-suplemen-kesehatan-b8161fb5.md",
+   "title": "Pedoman Klaim Suplemen Kesehatan",
+   "nomor": "19",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223983/peraturan-bpom-no-19-tahun-2022"
+  },
+  {
+   "file": "pedoman-pelaksanaan-tindakan-pengamanan-setempat-dalam-pengawasan-pere-9a00e39e.md",
+   "title": "Pedoman Pelaksanaan Tindakan Pengamanan Setempat dalam Pengawasan Peredaran Obat dan Makanan di Sarana Produksi, Penyaluran, dan Pelayanan Obat dan Makanan",
+   "nomor": "3",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225519/perka-bpom-no-3-tahun-2016"
+  },
+  {
+   "file": "pedoman-penerbitan-sertifikat-pemenuhan-komitmen-produksi-pangan-olaha-d980026f.md",
+   "title": "Pedoman Penerbitan Sertifikat Pemenuhan Komitmen Produksi Pangan Olahan Industri Rumah Tangga",
+   "nomor": "4",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/282151/peraturan-bpom-no-4-tahun-2024"
+  },
+  {
+   "file": "pedoman-pengawasan-pangan-industri-rumah-tangga-23579189.md",
+   "title": "Pedoman Pengawasan Pangan Industri Rumah Tangga",
+   "nomor": "23",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/219839/peraturan-bpom-no-23-tahun-2018"
+  },
+  {
+   "file": "pedoman-pengawasan-periklanan-obat-281ac56d.md",
+   "title": "Pedoman Pengawasan Periklanan Obat",
+   "nomor": "2",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181742/peraturan-bpom-no-2-tahun-2021"
+  },
+  {
+   "file": "pedoman-pengawasan-periklanan-obat-282c0990.md",
+   "title": "Pedoman Pengawasan Periklanan Obat",
+   "nomor": "8",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220301/perka-bpom-no-8-tahun-2017"
+  },
+  {
+   "file": "pedoman-penilaian-mutu-produk-obat-inhalasi-dan-nasal-01612b36.md",
+   "title": "Pedoman Penilaian Mutu Produk Obat Inhalasi dan Nasal",
+   "nomor": "9",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/263130/peraturan-bpom-no-9-tahun-2023"
+  },
+  {
+   "file": "pedoman-penilaian-produk-suplemen-kesehatan-mengandung-probiotik-fcb21cc8.md",
+   "title": "Pedoman Penilaian Produk Suplemen Kesehatan Mengandung Probiotik",
+   "nomor": "17",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/326074/peraturan-bpom-no-17-tahun-2025"
+  },
+  {
+   "file": "pedoman-penilaian-produk-terapi-advanced-6f8ac5a2.md",
+   "title": "Pedoman Penilaian Produk Terapi Advanced",
+   "nomor": "8",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/316278/peraturan-bpom-no-8-tahun-2025"
+  },
+  {
+   "file": "pedoman-sertifikasi-pelulusan-batch-lot-vaksin-b451bd25.md",
+   "title": "Pedoman Sertifikasi Pelulusan Batch/Lot Vaksin",
+   "nomor": "2",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/313080/peraturan-bpom-no-2-tahun-2025"
+  },
+  {
+   "file": "pedoman-teknis-pengawasan-iklan-kosmetika-dc8b4d1b.md",
+   "title": "Pedoman Teknis Pengawasan Iklan Kosmetika",
+   "nomor": "1",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225517/perka-bpom-no-1-tahun-2016"
+  },
+  {
+   "file": "pedoman-teknis-pengawasan-periklanan-pangan-olahan-f78accaa.md",
+   "title": "Pedoman Teknis Pengawasan Periklanan Pangan Olahan",
+   "nomor": "2",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225518/perka-bpom-no-2-tahun-2016"
+  },
+  {
+   "file": "pedoman-tindak-lanjut-hasil-pengawasan-obat-tradisional-obat-kuasi-sup-1a46593f.md",
+   "title": "Pedoman Tindak Lanjut Hasil Pengawasan Obat Tradisional, Obat Kuasi, Suplemen Kesehatan, dan Kosmetika",
+   "nomor": "19",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181761/peraturan-bpom-no-19-tahun-2021"
+  },
+  {
+   "file": "pedoman-uji-farmakodinamik-praklinik-obat-tradisional-ea1476e8.md",
+   "title": "Pedoman Uji Farmakodinamik Praklinik Obat Tradisional",
+   "nomor": "20",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284986/peraturan-bpom-no-20-tahun-2023"
+  },
+  {
+   "file": "pedoman-uji-stabilitas-suplemen-kesehatan-9a72aa2e.md",
+   "title": "Pedoman Uji Stabilitas Suplemen Kesehatan",
+   "nomor": "6",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/316276/peraturan-bpom-no-6-tahun-2025"
+  },
+  {
+   "file": "pedoman-uji-toksisitas-praklinik-secara-in-vivo-ab505469.md",
+   "title": "Pedoman Uji Toksisitas Praklinik secara In Vivo",
+   "nomor": "10",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223969/peraturan-bpom-no-10-tahun-2022"
+  },
+  {
+   "file": "pedoman-verifikasi-metode-analisis-obat-dan-bahan-obat-8a0a8a45.md",
+   "title": "Pedoman Verifikasi Metode Analisis Obat dan Bahan Obat",
+   "nomor": "10",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/319871/peraturan-bpom-no-10-tahun-2025"
+  },
+  {
+   "file": "pelaksanaan-farmakovigilans-67ec614f.md",
+   "title": "Pelaksanaan Farmakovigilans",
+   "nomor": "4",
+   "tahun": "2026",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/345742/peraturan-bpom-no-4-tahun-2026"
+  },
+  {
+   "file": "pelaporan-kegiatan-industri-farmasi-dan-pedagang-besar-farmasi-bf88c5c7.md",
+   "title": "Pelaporan Kegiatan Industri Farmasi dan Pedagang Besar Farmasi",
+   "nomor": "2",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223957/peraturan-bpom-no-2-tahun-2022"
+  },
+  {
+   "file": "penandaan-obat-bahan-alam-obat-kuasi-dan-suplemen-kesehatan-d252d0e8.md",
+   "title": "Penandaan Obat Bahan Alam, Obat Kuasi, dan Suplemen Kesehatan",
+   "nomor": "10",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/294299/peraturan-bpom-no-10-tahun-2024"
+  },
+  {
+   "file": "penandaan-promosi-dan-iklan-kosmetik-0dd6c7ed.md",
+   "title": "Penandaan, Promosi, dan Iklan Kosmetik",
+   "nomor": "18",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/309969/peraturan-bpom-no-18-tahun-2024"
+  },
+  {
+   "file": "penarikan-dan-pemusnahan-obat-tradisional-yang-tidak-memenuhi-persyara-e9bb22d8.md",
+   "title": "Penarikan dan Pemusnahan Obat Tradisional yang Tidak Memenuhi Persyaratan",
+   "nomor": "5",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225521/perka-bpom-no-5-tahun-2016"
+  },
+  {
+   "file": "pencantuman-informasi-nilai-gizi-untuk-pangan-olahan-yang-diproduksi-o-6c45c8fd.md",
+   "title": "Pencantuman Informasi Nilai Gizi untuk Pangan Olahan yang Diproduksi oleh Usaha Mikro dan Usaha Kecil",
+   "nomor": "16",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181780/peraturan-bpom-no-16-tahun-2020"
+  },
+  {
+   "file": "penerapan-2d-barcode-dalam-pengawasan-obat-dan-makanan-bec28dfb.md",
+   "title": "Penerapan 2D Barcode dalam Pengawasan Obat dan Makanan",
+   "nomor": "33",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/219914/peraturan-bpom-no-33-tahun-2018"
+  },
+  {
+   "file": "penerapan-cara-pembuatan-obat-tradisional-yang-baik-8b9ca6ea.md",
+   "title": "Penerapan Cara Pembuatan Obat Tradisional yang Baik",
+   "nomor": "25",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223932/peraturan-bpom-no-25-tahun-2021"
+  },
+  {
+   "file": "penerapan-program-manajemen-resiko-keamanan-pangan-di-sarana-produksi-e32a4366.md",
+   "title": "Penerapan Program Manajemen Resiko Keamanan Pangan Di Sarana Produksi Pangan Olahan",
+   "nomor": "10",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/263208/peraturan-bpom-no-10-tahun-2023"
+  },
+  {
+   "file": "penerapan-program-manajemen-risiko-keamanan-pangan-di-industri-pangan-fa973d94.md",
+   "title": "Penerapan Program Manajemen Risiko Keamanan Pangan di Industri Pangan",
+   "nomor": "2",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220291/perka-bpom-no-2-tahun-2017"
+  },
+  {
+   "file": "penerapan-sistem-jaminan-keamanan-dan-mutu-pangan-olahan-di-sarana-per-04a35f33.md",
+   "title": "Penerapan Sistem Jaminan Keamanan dan Mutu Pangan Olahan di Sarana Peredaran",
+   "nomor": "21",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181759/peraturan-bpom-no-21-tahun-2021"
+  },
+  {
+   "file": "pengakhiran-penanganan-pandemi-corona-virus-disease-2019-covid-19-perl-d19c4318.md",
+   "title": "Pengakhiran Penanganan Pandemi Corona Virus Disease 2019 (COVID-19), perlu menetapkan Peraturan Badan Pengawas Obat dan Makanan tentang Pengawasan Penggunaan Obat dan Vaksin Corona Virus Disease 2019 (COVID-19) Pasca Pengakhiran Penanganan Pandemi Corona Virus Disease 2019 (COVID-19) di Wilayah Indonesia",
+   "nomor": "26",
+   "tahun": "2023",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/285048/perka-bpom-no-26-tahun-2023"
+  },
+  {
+   "file": "pengawasan-klaim-pada-label-dan-iklan-pangan-olahan-8a7accbe.md",
+   "title": "Pengawasan Klaim pada Label dan Iklan Pangan Olahan",
+   "nomor": "1",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223956/peraturan-bpom-no-1-tahun-2022"
+  },
+  {
+   "file": "pengawasan-pangan-olahan-organik-d7c50810.md",
+   "title": "Pengawasan Pangan Olahan Organik",
+   "nomor": "1",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220289/perka-bpom-no-1-tahun-2017"
+  },
+  {
+   "file": "pengawasan-pangan-produk-rekayasa-genetik-a54c0422.md",
+   "title": "Pengawasan Pangan Produk Rekayasa Genetik",
+   "nomor": "19",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/309970/peraturan-bpom-no-19-tahun-2024"
+  },
+  {
+   "file": "pengawasan-pengelolaan-obat-bahan-obat-narkotika-psikotropika-dan-prek-c8a060e2.md",
+   "title": "Pengawasan Pengelolaan Obat, Bahan Obat, Narkotika, Psikotropika, dan Prekursor Farmasi di Fasilitas Pelayanan Kefarmasian",
+   "nomor": "4",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/182196/peraturan-bpom-no-4-tahun-2018"
+  },
+  {
+   "file": "pengawasan-pengelolaan-obat-dan-bahan-obat-di-fasilitas-pelayanan-kefa-86410108.md",
+   "title": "Pengawasan Pengelolaan Obat dan Bahan Obat di Fasilitas Pelayanan Kefarmasian dan Fasilitas Lain",
+   "nomor": "5",
+   "tahun": "2026",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/350939/peraturan-bpom-no-5-tahun-2026"
+  },
+  {
+   "file": "pengawasan-peredaran-obat-donasi-di-wilayah-indonesia-449a44f4.md",
+   "title": "Pengawasan Peredaran Obat Donasi di Wilayah Indonesia",
+   "nomor": "16",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223980/peraturan-bpom-no-16-tahun-2022"
+  },
+  {
+   "file": "pengawasan-peredaran-obat-tradisional-obat-kuasi-dan-suplemen-kesehata-54aaff0a.md",
+   "title": "Pengawasan Peredaran Obat Tradisional, Obat Kuasi, dan Suplemen Kesehatan",
+   "nomor": "16",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284982/peraturan-bpom-no-16-tahun-2023"
+  },
+  {
+   "file": "pengawasan-periklanan-kosmetika-09e57736.md",
+   "title": "Pengawasan Periklanan Kosmetika",
+   "nomor": "32",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223944/peraturan-bpom-no-32-tahun-2021"
+  },
+  {
+   "file": "pengawasan-periklanan-pangan-olahan-e68be69a.md",
+   "title": "Pengawasan Periklanan Pangan Olahan",
+   "nomor": "6",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181746/peraturan-bpom-no-6-tahun-2021"
+  },
+  {
+   "file": "pengawasan-produk-tembakau-dan-rokok-elektronik-f430e3e2.md",
+   "title": "Pengawasan Produk Tembakau dan Rokok Elektronik",
+   "nomor": "18",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/326080/peraturan-bpom-no-18-tahun-2025"
+  },
+  {
+   "file": "pengawasan-sediaan-farmasi-dan-pangan-olahan-melalui-peran-serta-masya-c8e7b3ac.md",
+   "title": "Pengawasan Sediaan Farmasi dan Pangan Olahan Melalui Peran Serta Masyarakat",
+   "nomor": "16",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/326067/peraturan-bpom-no-16-tahun-2025"
+  },
+  {
+   "file": "penggunaan-bahan-penolong-golongan-enzim-dan-golongan-penjerap-enzim-d-79464d52.md",
+   "title": "Penggunaan Bahan Penolong Golongan Enzim dan Golongan Penjerap Enzim dalam Pengolahan Pangan",
+   "nomor": "10",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225526/perka-bpom-no-10-tahun-2016"
+  },
+  {
+   "file": "penilaian-pemenuhan-persyaratan-cara-pembuatan-obat-yang-baik-terhadap-e76f4965.md",
+   "title": "Penilaian Pemenuhan Persyaratan Cara Pembuatan Obat yang Baik Terhadap Fasilitas Pembuatan Obat Impor",
+   "nomor": "7",
+   "tahun": "2019",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/182034/peraturan-bpom-no-7-tahun-2019"
+  },
+  {
+   "file": "peraturan-bpom-no-1-tahun-2018-4d187f3d.md",
+   "title": "Peraturan BPOM No. 1 Tahun 2018",
+   "nomor": "1",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/182038/peraturan-bpom-no-1-tahun-2018"
+  },
+  {
+   "file": "peraturan-bpom-no-11-tahun-2025-87ceafa5.md",
+   "title": "Peraturan BPOM No. 11 Tahun 2025",
+   "nomor": "11",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/320018/peraturan-bpom-no-11-tahun-2025"
+  },
+  {
+   "file": "peraturan-bpom-no-12-tahun-2022-2a5e98ab.md",
+   "title": "Peraturan BPOM No. 12 Tahun 2022",
+   "nomor": "12",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223973/peraturan-bpom-no-12-tahun-2022"
+  },
+  {
+   "file": "peraturan-bpom-no-13-tahun-2019-9e7cb093.md",
+   "title": "Peraturan BPOM No. 13 Tahun 2019",
+   "nomor": "13",
+   "tahun": "2019",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/345957/peraturan-bpom-no-13-tahun-2019"
+  },
+  {
+   "file": "peraturan-bpom-no-13-tahun-2021-d595a8b8.md",
+   "title": "Peraturan BPOM No. 13 Tahun 2021",
+   "nomor": "13",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181753/peraturan-bpom-no-13-tahun-2021"
+  },
+  {
+   "file": "peraturan-bpom-no-14-tahun-2022-b018ae81.md",
+   "title": "Peraturan BPOM No. 14 Tahun 2022",
+   "nomor": "14",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223975/peraturan-bpom-no-14-tahun-2022"
+  },
+  {
+   "file": "peraturan-bpom-no-14-tahun-2024-104fe6af.md",
+   "title": "Peraturan BPOM No. 14 Tahun 2024",
+   "nomor": "14",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/297143/peraturan-bpom-no-14-tahun-2024"
+  },
+  {
+   "file": "peraturan-bpom-no-15-tahun-2023-0b4927fd.md",
+   "title": "Peraturan BPOM No. 15 Tahun 2023",
+   "nomor": "15",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/263266/peraturan-bpom-no-15-tahun-2023"
+  },
+  {
+   "file": "peraturan-bpom-no-19-tahun-2023-0bdb6d37.md",
+   "title": "Peraturan BPOM No. 19 Tahun 2023",
+   "nomor": "19",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/313082/peraturan-bpom-no-19-tahun-2023"
+  },
+  {
+   "file": "peraturan-bpom-no-20-tahun-2021-1f809ffd.md",
+   "title": "Peraturan BPOM No. 20 Tahun 2021",
+   "nomor": "20",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181758/peraturan-bpom-no-20-tahun-2021"
+  },
+  {
+   "file": "peraturan-bpom-no-21-tahun-2020-b036c786.md",
+   "title": "Peraturan BPOM No. 21 Tahun 2020",
+   "nomor": "21",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181785/peraturan-bpom-no-21-tahun-2020"
+  },
+  {
+   "file": "peraturan-bpom-no-22-tahun-2025-44fe9228.md",
+   "title": "Peraturan BPOM No. 22 Tahun 2025",
+   "nomor": "22",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/326376/peraturan-bpom-no-22-tahun-2025"
+  },
+  {
+   "file": "peraturan-bpom-no-23-tahun-2025-45c46afb.md",
+   "title": "Peraturan BPOM No. 23 Tahun 2025",
+   "nomor": "23",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/328077/peraturan-bpom-no-23-tahun-2025"
+  },
+  {
+   "file": "peraturan-bpom-no-24-tahun-2018-9362bfa3.md",
+   "title": "Peraturan BPOM No. 24 Tahun 2018",
+   "nomor": "24",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/219841/peraturan-bpom-no-24-tahun-2018"
+  },
+  {
+   "file": "peraturan-bpom-no-25-tahun-2023-14fc6b7d.md",
+   "title": "Peraturan BPOM No. 25 Tahun 2023",
+   "nomor": "25",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284994/peraturan-bpom-no-25-tahun-2023"
+  },
+  {
+   "file": "peraturan-bpom-no-27-tahun-2020-34976f16.md",
+   "title": "Peraturan BPOM No. 27 Tahun 2020",
+   "nomor": "27",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181791/peraturan-bpom-no-27-tahun-2020"
+  },
+  {
+   "file": "peraturan-bpom-no-27-tahun-2021-b0627c9f.md",
+   "title": "Peraturan BPOM No. 27 Tahun 2021",
+   "nomor": "27",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223936/peraturan-bpom-no-27-tahun-2021"
+  },
+  {
+   "file": "peraturan-bpom-no-27-tahun-2023-72a98ead.md",
+   "title": "Peraturan BPOM No. 27 Tahun 2023",
+   "nomor": "27",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/285051/peraturan-bpom-no-27-tahun-2023"
+  },
+  {
+   "file": "peraturan-bpom-no-28-tahun-2017-d2c15056.md",
+   "title": "Peraturan BPOM No. 28 Tahun 2017",
+   "nomor": "28",
+   "tahun": "2017",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220391/peraturan-bpom-no-28-tahun-2017"
+  },
+  {
+   "file": "peraturan-bpom-no-29-tahun-2017-62c8c54d.md",
+   "title": "Peraturan BPOM No. 29 Tahun 2017",
+   "nomor": "29",
+   "tahun": "2017",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220392/peraturan-bpom-no-29-tahun-2017"
+  },
+  {
+   "file": "peraturan-bpom-no-30-tahun-2017-c3c2d2ac.md",
+   "title": "Peraturan BPOM No. 30 Tahun 2017",
+   "nomor": "30",
+   "tahun": "2017",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220393/peraturan-bpom-no-30-tahun-2017"
+  },
+  {
+   "file": "peraturan-bpom-no-30-tahun-2022-c938dd6f.md",
+   "title": "Peraturan BPOM No. 30 Tahun 2022",
+   "nomor": "30",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/297139/peraturan-bpom-no-30-tahun-2022"
+  },
+  {
+   "file": "peraturan-bpom-no-31-tahun-2018-70583c00.md",
+   "title": "Peraturan BPOM No. 31 Tahun 2018",
+   "nomor": "31",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/219910/peraturan-bpom-no-31-tahun-2018"
+  },
+  {
+   "file": "peraturan-bpom-no-31-tahun-2025-370e53df.md",
+   "title": "Peraturan BPOM No. 31 Tahun 2025",
+   "nomor": "31",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/343797/peraturan-bpom-no-31-tahun-2025"
+  },
+  {
+   "file": "peraturan-bpom-no-32-tahun-2022-33c0d079.md",
+   "title": "Peraturan BPOM No. 32 Tahun 2022",
+   "nomor": "32",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/303290/peraturan-bpom-no-32-tahun-2022"
+  },
+  {
+   "file": "peraturan-bpom-no-5-tahun-2018-f801a95a.md",
+   "title": "Peraturan BPOM No. 5 Tahun 2018",
+   "nomor": "5",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/182201/peraturan-bpom-no-5-tahun-2018"
+  },
+  {
+   "file": "peraturan-bpom-no-6-tahun-2022-60e76029.md",
+   "title": "Peraturan BPOM No. 6 Tahun 2022",
+   "nomor": "6",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223965/peraturan-bpom-no-6-tahun-2022"
+  },
+  {
+   "file": "peraturan-bpom-no-7-tahun-2024-4cd27a85.md",
+   "title": "Peraturan BPOM No. 7 Tahun 2024",
+   "nomor": "7",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/286412/peraturan-bpom-no-7-tahun-2024"
+  },
+  {
+   "file": "peraturan-bpom-no-8-tahun-2024-5c7ce5b9.md",
+   "title": "Peraturan BPOM No. 8 Tahun 2024",
+   "nomor": "8",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/286416/peraturan-bpom-no-8-tahun-2024"
+  },
+  {
+   "file": "peraturan-bpom-no-9-tahun-2024-c838cbe8.md",
+   "title": "Peraturan BPOM No. 9 Tahun 2024",
+   "nomor": "9",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/291497/peraturan-bpom-no-9-tahun-2024"
+  },
+  {
+   "file": "perka-bpom-no-12-tahun-2024-e907c353.md",
+   "title": "Perka BPOM No. 12 Tahun 2024",
+   "nomor": "12",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/297137/perka-bpom-no-12-tahun-2024"
+  },
+  {
+   "file": "perka-bpom-no-14-tahun-2024-d4fdcce1.md",
+   "title": "Perka BPOM No. 14 Tahun 2024",
+   "nomor": "14",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/297143/perka-bpom-no-14-tahun-2024"
+  },
+  {
+   "file": "perka-bpom-no-4-tahun-2024-b833a510.md",
+   "title": "Perka BPOM No. 4 Tahun 2024",
+   "nomor": "4",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/282151/perka-bpom-no-4-tahun-2024"
+  },
+  {
+   "file": "persyaratan-bahan-tambahan-pangan-campuran-82dc8583.md",
+   "title": "Persyaratan Bahan Tambahan Pangan Campuran",
+   "nomor": "8",
+   "tahun": "2016",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/225524/perka-bpom-no-8-tahun-2016"
+  },
+  {
+   "file": "persyaratan-bahan-tambahan-pangan-campuran-c2c16d28.md",
+   "title": "Persyaratan Bahan Tambahan Pangan Campuran",
+   "nomor": "29",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223939/peraturan-bpom-no-29-tahun-2021"
+  },
+  {
+   "file": "persyaratan-cemaran-logam-berat-dalam-pangan-olahan-72563e49.md",
+   "title": "Persyaratan Cemaran Logam Berat dalam Pangan Olahan",
+   "nomor": "9",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223968/peraturan-bpom-no-9-tahun-2022"
+  },
+  {
+   "file": "persyaratan-dan-tata-cara-permohonan-analisis-hasil-pengawasan-dalam-r-0c98ea8d.md",
+   "title": "Persyaratan dan Tata Cara Permohonan Analisis Hasil Pengawasan dalam rangka Impor dan Ekspor Narkotika, Psikotropika, dan Prekursor Farmasi",
+   "nomor": "1",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/278713/peraturan-bpom-no-1-tahun-2024"
+  },
+  {
+   "file": "persyaratan-keamanan-dan-mutu-obat-bahan-alam-955a05b2.md",
+   "title": "Persyaratan Keamanan dan Mutu Obat Bahan Alam",
+   "nomor": "29",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/285065/peraturan-bpom-no-29-tahun-2023"
+  },
+  {
+   "file": "persyaratan-keamanan-dan-mutu-suplemen-kesehatan-2918d598.md",
+   "title": "Persyaratan Keamanan dan Mutu Suplemen Kesehatan",
+   "nomor": "24",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284992/peraturan-bpom-no-24-tahun-2023"
+  },
+  {
+   "file": "persyaratan-penambahan-zat-gizi-dan-zat-nongizi-dalam-pangan-olahan-c14f0e1a.md",
+   "title": "Persyaratan Penambahan Zat Gizi dan Zat Nongizi dalam Pangan Olahan",
+   "nomor": "30",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223941/peraturan-bpom-no-30-tahun-2021"
+  },
+  {
+   "file": "persyaratan-teknis-bahan-kosmetik-f3af383b.md",
+   "title": "Persyaratan Teknis Bahan Kosmetik",
+   "nomor": "25",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/333277/peraturan-bpom-no-25-tahun-2025"
+  },
+  {
+   "file": "persyaratan-teknis-klaim-kosmetika-08c61bab.md",
+   "title": "Persyaratan Teknis Klaim Kosmetika",
+   "nomor": "3",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223958/peraturan-bpom-no-3-tahun-2022"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-12-tahu-23a95c07.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 12 Tahun 2022 tentang Pedoman Cara Pembuatan Obat yang Baik di Rumah Sakit",
+   "nomor": "17",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/302520/peraturan-bpom-no-17-tahun-2024"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-13-tahu-676d60b4.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 13 Tahun 2020 tentang Bahan Tambahan Pangan Perisa",
+   "nomor": "11",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181751/peraturan-bpom-no-11-tahun-2021"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-13-tahu-aa30cbe6.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 13 Tahun 2019 tentang Batas Maksimal Cemaran Mikroba dalam Pangan Olahan",
+   "nomor": "3",
+   "tahun": "2026",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/345738/perka-bpom-no-3-tahun-2026"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-14-tahu-8c65763f.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 14 Tahun 2024 tentang Pengawasan Obat dan Makanan yang Diedarkan Secara Daring",
+   "nomor": "30",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/335228/peraturan-bpom-no-30-tahun-2025"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-2-tahun-6212820e.md",
+   "title": "Perubahan Atas Peraturan Badan Pengawas Obat dan Makanan Nomor 2 Tahun 2022 tentang Pelaporan Kegiatan Industri Farmasi dan Pedagang Besar Farmasi",
+   "nomor": "14",
+   "tahun": "2023",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/263263/peraturan-bpom-no-14-tahun-2023"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-25-tahu-9a66e4d8.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 25 Tahun 2019 tentang Pedoman Cara Pembuatan Kosmetika yang Baik",
+   "nomor": "31",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181795/peraturan-bpom-no-31-tahun-2020"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-27-tahu-85cedd1a.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 27 Tahun 2022 tentang Pengawasan Pemasukan Obat dan Makanan ke dalam Wilayah Indonesia",
+   "nomor": "28",
+   "tahun": "2023",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/285056/perka-bpom-no-28-tahun-2023"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-27-tahu-b0ff68fa.md",
+   "title": "Perubahan Atas Peraturan Badan Pengawas Obat dan Makanan Nomor 27 Tahun 2017 tentang Pendaftaran Pangan Olahan",
+   "nomor": "7",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181747/peraturan-bpom-no-7-tahun-2021"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-27-tahu-ea847d72.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 27 Tahun 2021 tentang Persyaratan Pangan Olahan Berasam Rendah Dikemas Hermetis",
+   "nomor": "14",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/321139/peraturan-bpom-no-14-tahun-2025"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-28-tahu-5338a1f4.md",
+   "title": "Perubahan Atas Peraturan Badan Pengawas Obat dan Makanan Nomor 28 Tahun 2019 tentang Bahan Penolong dalam Pengolahan Pangan",
+   "nomor": "20",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181784/peraturan-bpom-no-20-tahun-2020"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-29-tahu-0af937ff.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 29 Tahun 2017 tentang Pengawasan Pemasukan Bahan Obat dan Makanan ke dalam Wilayah Indonesia",
+   "nomor": "14",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181778/peraturan-bpom-no-14-tahun-2020"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-30-tahu-0c196026.md",
+   "title": "Perubahan Atas Peraturan Badan Pengawas Obat dan Makanan Nomor 30 Tahun 2017 tentang Pengawasan Pemasukan Obat dan Makanan ke dalam Wilayah Indonesia",
+   "nomor": "15",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181779/peraturan-bpom-no-15-tahun-2020"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-30-tahu-f6f64340.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 30 Tahun 2022 tentang Pemasukan Obat dan Bahan Obat melalui Mekanisme Jalur Khusus (Special Access Scheme)",
+   "nomor": "12",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/297137/peraturan-bpom-no-12-tahun-2024"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-32-tahu-af0f4734.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 32 Tahun 2022 tentang Kriteria dan Tata Laksana Registrasi Suplemen Kesehatan",
+   "nomor": "15",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/303288/peraturan-bpom-no-15-tahun-2024"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-7-tahun-cbc6572a.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 7 Tahun 2024 tentang Standar Cara Pembuatan Obat yang Baik",
+   "nomor": "7",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/316277/peraturan-bpom-no-7-tahun-2025"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-9-tahun-08e0b820.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 9 Tahun 2024 tentang Pedoman Tindak Lanjut Hasil Pengawasan Obat, Bahan Obat, Narkotika, Psikotropika, Prekursor, dan Zat Adiktif",
+   "nomor": "19",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/326087/peraturan-bpom-no-19-tahun-2025"
+  },
+  {
+   "file": "perubahan-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-9-tahun-ff97c358.md",
+   "title": "Perubahan atas Peraturan Badan Pengawas Obat dan Makanan Nomor 9 Tahun 2019 tentang Pedoman Teknis Cara Distribusi Obat yang Baik",
+   "nomor": "6",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181771/peraturan-bpom-no-6-tahun-2020"
+  },
+  {
+   "file": "perubahan-atas-peraturan-kepala-badan-pengawas-obat-dan-makanan-nomor-a94b4ff3.md",
+   "title": "Perubahan atas Peraturan Kepala Badan Pengawas Obat dan Makanan Nomor HK.03.1.33.12.12.8195 Tahun 2012 Tentang Penerapan Pedoman Cara Pembuatan Obat yang Baik",
+   "nomor": "13",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/183206/peraturan-bpom-no-13-tahun-2018"
+  },
+  {
+   "file": "perubahan-kedua-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-1-a1bad925.md",
+   "title": "Perubahan Kedua atas Peraturan Badan Pengawas Obat dan Makanan Nomor 1 Tahun 2018 tentang Pengawasan Pangan Olahan untuk Keperluan Gizi Khusus",
+   "nomor": "24",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181788/peraturan-bpom-no-24-tahun-2020"
+  },
+  {
+   "file": "perubahan-kedua-atas-peraturan-badan-pengawas-obat-dan-makanan-nomor-3-047c000d.md",
+   "title": "Perubahan Kedua atas Peraturan Badan Pengawas Obat dan Makanan Nomor 31 Tahun 2018 tentang Label Pangan Olahan",
+   "nomor": "6",
+   "tahun": "2024",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/284512/peraturan-bpom-no-6-tahun-2024"
+  },
+  {
+   "file": "program-desa-dan-kelurahan-pangan-aman-63a973cd.md",
+   "title": "Program Desa dan Kelurahan Pangan Aman",
+   "nomor": "4",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223959/peraturan-bpom-no-4-tahun-2022"
+  },
+  {
+   "file": "sertifikasi-cara-pembuatan-kosmetika-yang-baik-baf764a9.md",
+   "title": "Sertifikasi Cara Pembuatan Kosmetika yang Baik",
+   "nomor": "33",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223946/peraturan-bpom-no-33-tahun-2021"
+  },
+  {
+   "file": "sertifikasi-cara-pembuatan-obat-tradisional-yang-baik-6bf6c808.md",
+   "title": "Sertifikasi Cara Pembuatan Obat Tradisional yang Baik",
+   "nomor": "14",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181754/peraturan-bpom-no-14-tahun-2021"
+  },
+  {
+   "file": "standar-cara-distribusi-obat-yang-baik-7ff63bcf.md",
+   "title": "Standar Cara Distribusi Obat yang Baik",
+   "nomor": "20",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/326278/peraturan-bpom-no-20-tahun-2025"
+  },
+  {
+   "file": "standar-keamanan-dan-mutu-minuman-berakohol-a5d8ee16.md",
+   "title": "Standar Keamanan dan Mutu Minuman Berakohol",
+   "nomor": "5",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181745/peraturan-bpom-no-5-tahun-2021"
+  },
+  {
+   "file": "standar-kegiatan-usaha-dan-produk-pada-penyelenggaraan-perizinan-berus-274c8830.md",
+   "title": "Standar Kegiatan Usaha dan Produk pada Penyelenggaraan Perizinan Berusaha Berbasis Risiko Subsektor Obat dan Makanan",
+   "nomor": "27",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/334134/peraturan-bpom-no-27-tahun-2025"
+  },
+  {
+   "file": "standar-pelayanan-publik-di-lingkungan-badan-pengawas-obat-dan-makanan-60432728.md",
+   "title": "Standar Pelayanan Publik di Lingkungan Badan Pengawas Obat dan Makanan",
+   "nomor": "27",
+   "tahun": "2018",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/219844/peraturan-bpom-no-27-tahun-2018"
+  },
+  {
+   "file": "tata-cara-penerbitan-izin-penerapan-cara-produksi-pangan-olahan-yang-b-d8cb8b65.md",
+   "title": "Tata Cara Penerbitan Izin Penerapan Cara Produksi Pangan Olahan yang Baik",
+   "nomor": "22",
+   "tahun": "2021",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223927/peraturan-bpom-no-22-tahun-2021"
+  },
+  {
+   "file": "tata-cara-pengajuan-notifikasi-kosmetika-fe58b9ff.md",
+   "title": "Tata Cara Pengajuan Notifikasi Kosmetika",
+   "nomor": "12",
+   "tahun": "2020",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/181777/peraturan-bpom-no-12-tahun-2020"
+  },
+  {
+   "file": "tata-cara-sertifikasi-cara-distribusi-obat-yang-baik-7ff2cb8d.md",
+   "title": "Tata Cara Sertifikasi Cara Distribusi Obat yang Baik",
+   "nomor": "25",
+   "tahun": "2017",
+   "bentuk": "Perka BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/220388/perka-bpom-no-25-tahun-2017"
+  },
+  {
+   "file": "tata-laksana-persetujuan-obat-pengembangan-baru-be4a9350.md",
+   "title": "Tata Laksana Persetujuan Obat Pengembangan Baru",
+   "nomor": "24",
+   "tahun": "2025",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/328079/peraturan-bpom-no-24-tahun-2025"
+  },
+  {
+   "file": "tata-laksana-uji-bioekivalensi-b3f315f0.md",
+   "title": "Tata Laksana Uji Bioekivalensi",
+   "nomor": "11",
+   "tahun": "2022",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://peraturan.bpk.go.id/Details/223971/peraturan-bpom-no-11-tahun-2022"
+  }
+ ]
+}
