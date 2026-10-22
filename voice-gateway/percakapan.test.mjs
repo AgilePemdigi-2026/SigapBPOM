@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   PESAN_LAYANAN_1, PESAN_LAYANAN_2, PANJANG_MAKS_JAWABAN, PROMPT_SISTEM,
-  PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban,
+  PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban, teksUntukSuara,
 } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
@@ -24,6 +24,11 @@ test('jawaban dibersihkan dari markdown dan dipotong di batas kalimat', () => {
   const hasil = rapikanJawaban(panjang);
   assert.ok(hasil.length <= PANJANG_MAKS_JAWABAN);
   assert.ok(hasil.endsWith('.'));
+});
+
+test('alamat situs dibaca "titik" untuk TTS, angka bertitik tidak tersentuh', () => {
+  assert.equal(teksUntukSuara('Cek di cekbpom.pom.go.id, ya.'), 'Cek di cek BPOM titik pom titik go titik id, ya.');
+  assert.equal(teksUntukSuara('Ada 1.000 produk.'), 'Ada 1.000 produk.');
 });
 
 test('riwayat panggilan menyimpan giliran, dibatasi, dan kedaluwarsa', () => {

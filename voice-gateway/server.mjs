@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
-  PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban,
+  PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban, teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 
@@ -13,8 +13,12 @@ const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
 const ASAL_SITUS = env('SITE_ORIGIN', '');
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
-const ELEVENLABS_SUARA = env('ELEVENLABS_VOICE_ID', 'iWydkXKoiVtvdn4vLKp9');
+// Suara "Zaak" dari library ElevenLabs: penutur asli, jelas, cocok untuk IVR.
+const ELEVENLABS_SUARA = env('ELEVENLABS_VOICE_ID', 'HnnPtoATgzx4ubChwm24');
+// Flash dipilih karena latensinya stabil sekitar 0,4 detik dan satu-satunya model murah yang menghormati `speed`.
 const ELEVENLABS_MODEL_TTS = env('ELEVENLABS_TTS_MODEL', 'eleven_flash_v2_5');
+// Tempo bicara CS: 1.2 adalah batas atas ElevenLabs.
+const ELEVENLABS_KECEPATAN = Math.min(1.2, Math.max(0.7, Number(env('ELEVENLABS_TTS_SPEED', '1.2')) || 1.2));
 const ELEVENLABS_MODEL_STT = env('ELEVENLABS_STT_MODEL', 'scribe_v2');
 const HERMES_URL = env('HERMES_URL', 'http://host.docker.internal:8642');
 const HERMES_KEY = env('HERMES_API_KEY', '');
@@ -128,7 +132,9 @@ async function ttsElevenLabs(teks) {
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({ text: teks, model_id: ELEVENLABS_MODEL_TTS, language_code: 'id' }),
+    body: JSON.stringify({
+      text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { speed: ELEVENLABS_KECEPATAN },
+    }),
     signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
   });
   if (!r.ok || !r.body) throw new Error(`tts ${r.status}`);

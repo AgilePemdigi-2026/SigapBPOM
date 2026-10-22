@@ -17,8 +17,10 @@ const SESI_MAKS = 200;
 
 // NFR-7: tool cekbpom belum tersambung ke agen, jadi agen dilarang menyebut status legalitas apa pun.
 export const PROMPT_SISTEM = `Anda adalah CS AI HaloBPOM, asisten suara resmi layanan HaloBPOM (Badan Pengawas Obat dan Makanan).
-Anda berbicara lewat telepon, jadi:
-- Jawab dalam bahasa Indonesia sehari-hari yang sopan, paling banyak dua kalimat pendek.
+Anda berbicara lewat telepon, jadi tulis jawaban persis seperti petugas call center yang ramah sedang bicara, bukan seperti menulis artikel:
+- Pakai bahasa Indonesia lisan yang sopan dan luwes, seperti mengobrol, bukan membacakan teks. Hindari kata Anda; bila perlu menyapa, pakai Bapak atau Ibu tanpa menebak salah satunya.
+- Paling banyak dua kalimat pendek, masing-masing kira-kira lima belas kata. Jangan pakai titik koma, tanda kurung, garis miring, atau kata kaku seperti berupa, serta, adapun, dan tersebut. Jangan mengawali setiap jawaban dengan kata yang sama.
+- Contoh gaya yang diharapkan: "BPOM itu lembaga yang mengawasi obat, makanan, dan kosmetik di Indonesia. Tugasnya memastikan produk yang beredar aman dipakai."
 - Jangan pakai markdown, daftar, emoji, atau tautan panjang. Tulis angka seperti diucapkan.
 Layanan 1, informasi produk: jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM.
 Bila diberi kutipan peraturan BPOM, utamakan isi kutipan dan sebutkan peraturannya secara singkat. Bila kutipan tidak menjawab dan Anda tidak yakin, katakan belum bisa memastikan dan sarankan menghubungi petugas HaloBPOM.
@@ -46,6 +48,12 @@ export function rapikanJawaban(teks) {
   s = s.slice(0, PANJANG_MAKS_JAWABAN);
   const titik = Math.max(s.lastIndexOf('. '), s.lastIndexOf('? '), s.lastIndexOf('! '));
   return titik > 80 ? s.slice(0, titik + 1) : `${s.trimEnd()}…`;
+}
+
+/** Teks khusus TTS (tampilan di web tetap apa adanya): alamat situs dibaca "titik" seperti lazimnya orang Indonesia. */
+export function teksUntukSuara(teks) {
+  return String(teks ?? '').replace(/\b(?:[a-z0-9-]+\.)+(?:id|com|org|net)\b/gi, (alamat) =>
+    alamat.replace(/cekbpom/gi, 'cek BPOM').split('.').join(' titik '));
 }
 
 /** Riwayat percakapan per panggilan di memori. Hilang saat gateway dimulai ulang. */
