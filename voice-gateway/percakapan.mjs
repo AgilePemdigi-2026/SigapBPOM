@@ -92,7 +92,8 @@ export const jawabanDiLuarTopik = (jawaban) => sederhanakan(jawaban).includes(se
 
 /**
  * Anggaran token AI per hari (total dan per IP) dan per panggilan, supaya pemakaian langganan GPT tidak melonjak.
- * Dicek sebelum memanggil AI dan dicatat dari `usage` balasan, jadi pemakaian bisa melewati batas paling banyak satu giliran.
+ * Perkiraan token dicadangkan sebelum memanggil AI lalu dikoreksi dengan `usage` balasan, sehingga giliran yang
+ * berjalan serentak tidak bisa sama-sama lolos dari batas.
  */
 export class AnggaranToken {
   constructor(batas, now = () => Date.now()) {
@@ -122,11 +123,20 @@ export class AnggaranToken {
     return null;
   }
 
+  /** Cek batas lalu langsung catat perkiraan token. Alasan penolakan, atau null bila sudah dicadangkan. */
+  cadangkan(ip, id, perkiraan) {
+    const alasan = this.cek(ip, id);
+    if (!alasan) this.catat(ip, id, perkiraan);
+    return alasan;
+  }
+
+  /** Tambah pemakaian. Nilai negatif mengoreksi atau mengembalikan cadangan. */
   catat(ip, id, token) {
     this.gulir();
-    this.total += token;
-    this.perIp.set(ip, (this.perIp.get(ip) ?? 0) + token);
-    this.perPanggilan.set(id, (this.perPanggilan.get(id) ?? 0) + token);
+    const tambah = (n) => Math.max(0, n + token);
+    this.total = tambah(this.total);
+    this.perIp.set(ip, tambah(this.perIp.get(ip) ?? 0));
+    this.perPanggilan.set(id, tambah(this.perPanggilan.get(id) ?? 0));
     for (const m of [this.perIp, this.perPanggilan]) if (m.size > 5000) m.delete(m.keys().next().value);
   }
 }

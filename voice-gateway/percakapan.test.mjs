@@ -68,6 +68,19 @@ test('anggaran token AI menolak per panggilan, per IP, dan harian, lalu pulih es
   assert.equal(a.total, 0);
 });
 
+test('cadangan token membuat giliran serentak tidak lolos bersamaan, lalu dikoreksi atau dikembalikan', () => {
+  const a = new AnggaranToken({ harian: 100_000, harianPerIp: 100_000, perPanggilan: 4_000 });
+  assert.equal(a.cadangkan('ip1', 'p1', 4_000), null);
+  assert.equal(a.cadangkan('ip1', 'p1', 4_000), 'panggilan');
+  a.catat('ip1', 'p1', -4_000);
+  assert.equal(a.total, 0);
+  assert.equal(a.cadangkan('ip1', 'p1', 4_000), null);
+  a.catat('ip1', 'p1', 3_100 - 4_000);
+  assert.equal(a.total, 3_100);
+  a.catat('ip1', 'p1', -10_000);
+  assert.equal(a.total, 0);
+});
+
 test('jawaban dibersihkan dari markdown dan dipotong di batas kalimat', () => {
   assert.equal(rapikanJawaban('**BPOM** mengawasi [obat](https://x.y).'), 'BPOM mengawasi obat.');
   const panjang = `${'Kalimat pertama cukup panjang untuk diuji. '.repeat(20)}`;

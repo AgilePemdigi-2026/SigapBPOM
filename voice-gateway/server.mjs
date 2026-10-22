@@ -33,6 +33,10 @@ const KARAKTER_TTS_HARIAN_PER_IP = Number(env('TTS_KARAKTER_HARIAN_PER_IP', '150
 const TOKEN_AI_HARIAN = Number(env('AI_TOKEN_HARIAN', '500000'));
 const TOKEN_AI_HARIAN_PER_IP = Number(env('AI_TOKEN_HARIAN_PER_IP', '100000'));
 const TOKEN_AI_PER_PANGGILAN = Number(env('AI_TOKEN_PER_PANGGILAN', '40000'));
+// Dicadangkan per giliran sebelum AI dipanggil, lalu dikoreksi dengan `usage` nyata.
+const PERKIRAAN_TOKEN_GILIRAN = 4000;
+// Satu penelepon hanya punya satu giliran berjalan; sisanya untuk beberapa penelepon di balik IP yang sama.
+const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 // Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
 const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK,
@@ -58,6 +62,7 @@ try {
 }
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
+const giliranAktif = new Map();
 const tokenSuara = new Map();
 let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
 const suaraStatis = new Map();
@@ -174,43 +179,55 @@ async function giliran(req, res, url) {
   const id = url.searchParams.get('id');
   if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
   const ip = ipKlien(req);
-  // Dicek sebelum STT supaya panggilan yang anggarannya habis tidak ikut memakai kuota ElevenLabs.
-  const batasAi = anggaranAi.cek(ip, id);
+  // Sebelum STT: batasi giliran serentak dan cadangkan token, supaya permintaan paralel ikut terhitung
+  // dan panggilan yang anggarannya habis tidak ikut memakai kuota ElevenLabs.
+  if ((giliranAktif.get(ip) ?? 0) >= GILIRAN_SERENTAK_PER_IP) throw new ErrorGateway(429, 'Terlalu banyak permintaan. Coba lagi sebentar lagi.');
+  const batasAi = anggaranAi.cadangkan(ip, id, PERKIRAAN_TOKEN_GILIRAN);
   if (batasAi) throw new ErrorGateway(429, PESAN_BATAS_AI[batasAi]);
-  const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
-  if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+  giliranAktif.set(ip, (giliranAktif.get(ip) ?? 0) + 1);
+  let cadangan = PERKIRAAN_TOKEN_GILIRAN;
+  try {
+    const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
+    if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
 
-  const mulai = Date.now();
-  const transkrip = await sttElevenLabs(audio, tipe);
-  const tStt = Date.now() - mulai;
-  if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
+    const mulai = Date.now();
+    const transkrip = await sttElevenLabs(audio, tipe);
+    const tStt = Date.now() - mulai;
+    if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
-  // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
-  const saring = saringUcapan(transkrip, riwayat.diLuarTopik(id));
-  let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
-  if (!saring) {
-    riwayat.tambah(id, 'user', transkrip);
-    kutipan = korpus ? korpus.cari(transkrip) : [];
-    const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
-    token = hasil.token;
-    anggaranAi.catat(ip, id, token);
-    jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+    // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
+    const saring = saringUcapan(transkrip, riwayat.diLuarTopik(id));
+    let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
+    if (!saring) {
+      riwayat.tambah(id, 'user', transkrip);
+      kutipan = korpus ? korpus.cari(transkrip) : [];
+      const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
+      token = hasil.token;
+      anggaranAi.catat(ip, id, token - cadangan);
+      cadangan = 0;
+      jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+    }
+    const diLuarTopik = Boolean(saring) || jawabanDiLuarTopik(jawaban);
+    if (diLuarTopik) {
+      jawaban = PESAN_DI_LUAR_TOPIK;
+      kutipan = [];
+      riwayat.catatDiLuarTopik(id);
+    }
+    if (!saring) riwayat.tambah(id, 'assistant', jawaban);
+    const tTotal = Date.now() - mulai;
+    console.info(JSON.stringify({
+      ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
+      saring, di_luar_topik: diLuarTopik, token, token_hari_ini: anggaranAi.total - cadangan,
+    }));
+    const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+    const suara = diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
+    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara });
+  } finally {
+    // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
+    if (cadangan) anggaranAi.catat(ip, id, -cadangan);
+    const sisa = (giliranAktif.get(ip) ?? 1) - 1;
+    if (sisa > 0) giliranAktif.set(ip, sisa); else giliranAktif.delete(ip);
   }
-  const diLuarTopik = Boolean(saring) || jawabanDiLuarTopik(jawaban);
-  if (diLuarTopik) {
-    jawaban = PESAN_DI_LUAR_TOPIK;
-    kutipan = [];
-    riwayat.catatDiLuarTopik(id);
-  }
-  if (!saring) riwayat.tambah(id, 'assistant', jawaban);
-  const tTotal = Date.now() - mulai;
-  console.info(JSON.stringify({
-    ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
-    saring, di_luar_topik: diLuarTopik, token, token_hari_ini: anggaranAi.total,
-  }));
-  const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
-  const suara = diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
-  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara });
 }
 
 // Kuota dipotong saat audio benar-benar dibuat, bukan saat token diterbitkan.
