@@ -9,7 +9,7 @@
     "deployment": "VPS Linux Indonesia (Docker, Nginx) untuk Astro, Voice Gateway, Hermes Agent; Supabase Cloud"
   },
   "phases": [
-    { "number": 1, "title": "Sprint 1 — Layanan informasi suara", "goal": "Penelepon bisa menanyakan legalitas dan edukasi produk lewat suara, dan petugas bisa login serta mengelola basis pengetahuan." },
+    { "number": 1, "title": "Sprint 1 — Layanan informasi suara", "goal": "Penelepon bisa menanyakan legalitas dan edukasi produk lewat suara, dan petugas bisa login serta mengelola basis pengetahuan. Infrastruktur AI agent suara siap dipakai: Hermes Agent dengan model GPT, Voice Gateway dengan ElevenLabs STT/TTS bahasa Indonesia, dan deployment di VPS dengan HTTPS." },
     { "number": 2, "title": "Sprint 2 — Pengaduan dan pemantauan", "goal": "Penelepon bisa menyampaikan pengaduan bertiket dan petugas bisa memantau layanan serta AI Agent secara live." },
     { "number": 3, "title": "Sprint 3 — Penanganan dan laporan", "goal": "Petugas bisa menangani pengaduan sampai tiket ditutup, membaca transkrip, dan mengunduh laporan." }
   ],
