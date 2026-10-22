@@ -169,15 +169,18 @@ async function suara(res, token) {
   Readable.fromWeb(aliran).pipe(res);
 }
 
+// Promise disimpan agar permintaan bersamaan berbagi satu render; dibuang hanya bila render gagal.
 async function statis(res, nama) {
   const teks = Object.hasOwn(SUARA_STATIS, nama) ? SUARA_STATIS[nama] : null;
   if (!teks) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
   if (!suaraStatis.has(nama)) {
-    const aliran = await ttsElevenLabs(teks);
-    suaraStatis.set(nama, Buffer.from(await new Response(aliran).arrayBuffer()));
+    const render = ttsElevenLabs(teks).then(async (aliran) => Buffer.from(await new Response(aliran).arrayBuffer()));
+    render.catch(() => suaraStatis.delete(nama));
+    suaraStatis.set(nama, render);
   }
+  const audio = await suaraStatis.get(nama);
   res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=3600' });
-  res.end(suaraStatis.get(nama));
+  res.end(audio);
 }
 
 const server = createServer(async (req, res) => {
@@ -205,4 +208,8 @@ const server = createServer(async (req, res) => {
 });
 
 server.requestTimeout = 90_000;
-server.listen(PORT, () => console.info(JSON.stringify({ ev: 'siap', port: PORT, siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) })));
+server.listen(PORT, () => {
+  console.info(JSON.stringify({ ev: 'siap', port: PORT, siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) }));
+  // Render pesan tetap sekali saat mulai, supaya tidak ada render bersamaan dari permintaan pengguna.
+  if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS)) statis({ writeHead() {}, end() {} }, nama).catch(() => {});
+});
