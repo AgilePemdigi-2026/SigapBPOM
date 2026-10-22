@@ -1,0 +1,33 @@
+---
+title: "BPOM Temukan Gudang Penyimpanan Obat Bahan Alam, Suplemen Kesehatan, dan Kosmetik Ilegal Bernilai Puluhan Miliar Rupiah di Tangerang"
+tanggal: "2026-09-30"
+tahun: "2026"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/bpom-temukan-gudang-penyimpanan-obat-bahan-alam-suplemen-kesehatan-dan-kosmetik-ilegal-bernilai-puluhan-miliar-rupiah-di-tangerang"
+---
+# BPOM Temukan Gudang Penyimpanan Obat Bahan Alam, Suplemen Kesehatan, dan Kosmetik Ilegal Bernilai Puluhan Miliar Rupiah di Tangerang
+
+SIARAN PERS
+Nomor HM.01.2.1.09.26.288 Tanggal 30 September 2026
+Tentang
+BPOM Temukan Gudang Penyimpanan
+Obat Bahan Alam, Suplemen Kesehatan, dan Kosmetik Ilegal
+Bernilai Puluhan Miliar Rupiah di Tangerang
+Tangerang - Peredaran produk ilegal melalui platform online menjadi perhatian serius BPOM. Melalui pendalaman hasil patroli dan profiling siber, BPOM menindaklanjuti indikasi penjualan produk tanpa izin edar (TIE)/ilegal serta segera melakukan penelusuran dan pendalaman di lapangan sejak awal September 2026.
+Tim BPOM Pusat dan Balai POM di Tangerang didukung Tim Badan Intelijen Negara (BIN) kemudian memastikan dan memeriksa sarana gudang yang berlokasi di Kompleks Pergudangan Laksana Business Park, Pakuhaji, Kabupaten Tangerang, Banten. Sarana diduga digunakan sebagai tempat penyimpanan dan distribusi obat bahan alam (OBA), suplemen kesehatan, dan kosmetik ilegal. Temuan ini mengungkap adanya dugaan jalur pemasukan produk yang tidak sesuai ketentuan sebelum diedarkan kepada konsumen.
+Dari hasil pemeriksaan di gudang tersebut, BPOM menemukan 287 item (459 ribu pieces ) dengan estimasi nilai keekonomian mencapai Rp25 miliar. Petugas BPOM mengamankan 243 item (436 ribu pieces ) kosmetik ilegal dan/atau diduga palsu dengan estimasi nilai keekonomian mencapai Rp18,9 miliar. Selain itu, diamankan 44 item (23 ribu pieces ) OBA dan suplemen kesehatan ilegal dengan estimasi risiko kerugian masyarakat mencapai Rp6,1 miliar.
+Temuan ini didominasi oleh produk impor yang berasal dari Tiongkok, Amerika Serikat, dan Australia. Di antara produk tersebut, ditemukan obat bahan alam dengan merek seperti Sausando Saka Spirulinum dan Lumbar Spine Cooling Gel. Kemudian terdapat suplemen kesehatan impor ilegal Youthvita, Magnesium Glycinate, Women’s Probiotic, Collagen, dan Calcium Magnesium Zinc. Beberapa merek kosmetik yang ditemukan seperti Sun Cream Purple, Sun Cream Pink, 345 Relief Cream, Vital Spray Serum, dan First Spray Serum. Produk-produk tersebut tidak memiliki izin edar sehingga belum melalui proses evaluasi BPOM. Artinya, aspek keamanan, mutu, dan manfaat produk belum dapat dipastikan sesuai dengan ketentuan yang berlaku dan berisiko terhadap kesehatan.
+Kepala BPOM Taruna Ikrar menyampaikan bahwa hasil pengawasan ini menunjukkan pentingnya pengawasan secara terpadu terhadap peredaran produk obat dan makanan, baik secara online maupun offline . Pernyataan ini disampaikan pada konferensi pers yang digelar di tempat kejadian perkara (TKP), Rabu (30/9/2026).
+“BPOM melakukan pengawasan berbasis risiko dari hulu hingga hilir, mulai dari pemasukan, penyimpanan, distribusi, hingga penjualan kepada masyarakat. Informasi dari patroli siber, kami tindak lanjuti dengan penelusuran lapangan untuk memastikan sumber penyimpanan dan distribusi produk yang diduga ilegal,” urai Taruna Ikrar.
+Berdasarkan hasil pemeriksaan dan pendalaman awal, produk-produk tersebut diduga masuk ke wilayah Indonesia melalui jasa forwarder umum dengan jalur yang tidak sesuai ketentuan dan/atau tanpa dilengkapi dokumen importasi yang dipersyaratkan. Produk selanjutnya disimpan di gudang tersebut untuk didistribusikan kepada konsumen melalui platform online .
+Sebagai tindak lanjut, BPOM telah menghentikan sementara kegiatan pada sarana tersebut dan mengamankan seluruh produk obat bahan alam, suplemen kesehatan, serta kosmetik ilegal dan/atau diduga palsu yang ditemukan. BPOM juga telah melakukan pengambilan sampel terhadap produk yang ditemukan untuk dilakukan pengujian laboratorium guna memastikan kandungan produk tersebut. BPOM juga berkoordinasi dengan Kepolisian untuk memproses perkara lebih lanjut.
+Kepala BPOM menyebutkan langkah ini dilakukan sebagai upaya perlindungan masyarakat untuk mencegah peredaran produk ilegal secara lebih luas. “BPOM siap menindak tegas pelaku usaha yang terbukti melanggar peraturan,” tegas Taruna Ikrar.
+Pelaku yang menyimpan dan mendistribusikan temuan produk ilegal di Tangerang ini, dapat dikenakan ketentuan Pasal 435 Jo. Pasal 138 ayat (2) dan ayat (3) Undang-Undang Nomor 17 Tahun 2023 tentang Kesehatan. Pelanggaran tersebut dapat dikenai sanksi pidana penjara hingga 12 tahun atau pidana denda maksimal Rp5 miliar.
+BPOM mengingatkan seluruh pelaku usaha untuk senantiasa mematuhi ketentuan peraturan perundang-undangan, termasuk persyaratan importasi, perizinan, penyimpanan, dan distribusi produk obat dan makanan. Kepatuhan terhadap regulasi merupakan bagian penting dalam menjamin produk yang beredar memenuhi persyaratan keamanan, khasiat/manfaat, dan mutu, sekaligus menciptakan iklim usaha yang sehat dan berkeadilan.
+Selain itu, BPOM mengimbau masyarakat untuk melaporkan atau menyampaikan informasi kepada BPOM apabila menemukan kecurigaan penyimpanan atau peredaran produk ilegal di sekitarnya. Laporan atau pengaduan dapat disampaikan melalui Contact Center HALOBPOM 1-500-533 atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Selain itu, BPOM mengimbau masyarakat untuk menjadi konsumen cerdas dengan selalu melakukan Cek KLIK (Cek Kemasan, Label, Izin Edar, dan Kedaluwarsa) sebelum membeli atau menggunakan produk. Khususnya dalam pembelian secara online , masyarakat diimbau memilih sarana penjualan yang jelas dan tepercaya serta tidak mudah terpengaruh oleh klaim atau iklan yang berlebihan.
+BPOM terus memperkuat pengawasan secara menyeluruh dan berkoordinasi dengan aparat penegak hukum lainnya, mulai dari pemantauan peredaran di ruang digital hingga pemeriksaan langsung di lapangan. Upaya ini dilakukan untuk mencegah produk ilegal menjangkau masyarakat serta memastikan obat dan makanan yang beredar memenuhi ketentuan demi perlindungan kesehatan masyarakat.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

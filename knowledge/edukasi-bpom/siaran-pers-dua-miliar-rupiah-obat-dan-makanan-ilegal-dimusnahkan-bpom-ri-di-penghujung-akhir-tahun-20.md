@@ -1,0 +1,27 @@
+---
+title: "DUA MILIAR RUPIAH OBAT DAN MAKANAN ILEGAL DIMUSNAHKAN BPOM RI DI PENGHUJUNG AKHIR TAHUN 2018"
+tanggal: "2018-12-27"
+tahun: "2018"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/dua-miliar-rupiah-obat-dan-makanan-ilegal-dimusnahkan-bpom-ri-di-penghujung-akhir-tahun-2018"
+---
+# DUA MILIAR RUPIAH OBAT DAN MAKANAN ILEGAL DIMUSNAHKAN BPOM RI DI PENGHUJUNG AKHIR TAHUN 2018
+
+SIARAN PERS
+DUA MILIAR RUPIAH OBAT DAN MAKANAN ILEGAL DIMUSNAHKAN BPOM RI
+DI PENGHUJUNG AKHIR TAHUN 2018
+Medan – Menutup tahun 2018, BPOM RI memusnahkan kurang lebih 2 miliar rupiah obat dan makanan ilegal/tanpa izin edar dan/atau yang tidak memenuhi persyaratan keamanan, khasiat/manfaat, dan mutu di Medan, Kamis (27/12). Produk yang dimusnahkan tersebut merupakan hasil pemeriksaan dan penindakan Balai Besar POM (BBPOM) di Medan di sarana produksi dan distribusi di wilayah Sumatera Utara pada tahun 2018.
+Secara rinci, produk yang dimusnahkan terdiri dari 89 item (60.013 kemasan) pangan ilegal, 86 item (16.442 kemasan) obat tradisional ilegal, 73 item (3.267 kemasan) kosmetik ilegal, 70 item (512 kemasan) obat ilegal, dan 17 item (66 kemasan) bahan berbahaya. Keseluruhan produk ilegal tersebut ditemukan di 41 sarana produksi dan distribusi.
+Selama tahun 2018, BBPOM di Medan telah memproses 15 perkara pro-justitia dengan nilai barang bukti mencapai 4,1 miliar rupiah yang didominasi oleh perkara di bidang pangan. Selama tiga tahun yaitu 2016-2018, perkara di bidang pangan mendominasi hasil pengawasan BBPOM di Medan. Sedangkan nilai barang bukti mengalami fluktuasi, dimana pada tahun 2016 mencapai 10,34 miliar rupiah hasil dari 17 perkara pro-justitia dan 3,01 miliar rupiah pada tahun 2017 dari 17 perkara pro-justitia .
+Mengingat bahwa pelanggaran di bidang obat dan makanan merupakan kejahatan kemanusiaan karena membahayakan kesehatan masyarakat dan mengancam generasi penerus bangsa, maka BPOM RI terus meningkatkan koordinasi dan kerja sama lintas sektor untuk memperkuat sistem dan meningkatkan kinerja pengawasan obat dan makanan. Berbagai terobosan dan strategi dilakukan BPOM RI untuk menghadapi dan menangani tren terkini kasus pelanggaran dan/atau kejahatan di bidang obat dan makanan. “BPOM RI terus meningkatkan efektivitas penindakan melalui penindakan berdesain link khusus dengan intelijen, informan, kepolisian, dan kejaksaan, dengan pola tangkap tahan terhadap pelaku pelanggaran,” ungkap Kepala BPOM RI. “Selain itu BPOM RI mengembangkan strategi dan kapasitas investigasi terhadap modus kejahatan cyber online termasuk kolaborasi dengan masyarakat termasuk media dan criminal justice system (CJS) dalam operasi intelijen, menggerakkan potensi dan kapasitas pemerintah daerah, termasuk peningkatan forum dan operasi bersama instansi/lembaga lain yang merupakan implementasi Inpres Nomor 3 Tahun 2017,” tambahnya.
+Tak hanya itu, BPOM RI juga menjaring dan memberdayakan tokoh masyarakat potensial untuk membudayakan perilaku peduli dan cerdas melalui komunikasi, informasi, dan edukasi (KIE) berkesinambungan dan masif pada berbagai momen sosial di tengah masyarakat dan melakukan pendampingan pelaku usaha kecil/perorangan pada komunitas masyarakat desa/kelurahan melalui kegiatan bimtek dan sertifikasi menuju produk berdaya saing di pasar ekonomi.
+“BPOM RI memberikan dukungan penuh terhadap pelaku usaha agar dapat memproduksi obat dan makanan yang aman, bermanfaat, dan bermutu serta berdaya saing tinggi. Namun sekali lagi, jika pelaku usaha terbukti melanggar peraturan, BPOM RI tak segan untuk menindak dan menegakkan hukum agar pelanggaran diberi hukuman yang setimpal,” tegas Penny K. Lukito.
+Pengawasan di bidang Obat dan Makanan sarat dengan aspek yang sangat mendasar tentang kualitas manusia yang multi aspek (sosial, ekonomi, budaya, politik, ideologi, dan peradaban). Oleh karenanya dua intervensi strategis pengawasan, yakni penindakan terhadap pelaku kejahatan dan pemberdayaan bagi pelaku usaha dan masyarakat, dari yang terkecil sampai dengan terbesar, dilakukan secara paralel dan simultan, untuk mencapai dan mengawal kesejahteraan yang adil makmur bagi jiwa raga masyarakat.
+BPOM RI terus berkomitmen untuk melindungi masyarakat Indonesia dari peredaran obat dan makanan ilegal yang dapat membahayakan kesehatan dan keselamatan dengan meningkatkan kerja sama lintas sektor dengan semua pemangku kepentingan termasuk meningkatkan peran serta masyarakat sebagai konsumen cerdas dengan selalu “Cek KLIK”. Pastikan Kemasan dalam kondisi baik, baca informasi pada Label, memiliki Izin Edar, dan tidak melebihi masa Kedaluwarsa.
+_________________________________________________________________________________________________________________________________________
+Informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id, twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

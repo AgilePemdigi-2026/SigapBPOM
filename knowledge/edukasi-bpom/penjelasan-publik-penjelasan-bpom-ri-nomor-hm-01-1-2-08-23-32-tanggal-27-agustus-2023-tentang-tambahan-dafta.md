@@ -1,0 +1,34 @@
+---
+title: "PENJELASAN BPOM RI NOMOR HM.01.1.2.08.23.32 TANGGAL 27 AGUSTUS 2023 TENTANG TAMBAHAN DAFTAR SIROP (CAIRAN OBAT DALAM) OBAT TRADISIONAL DAN SUPLEMEN KESEHATAN YANG MEMENUHI KETENTUAN DAN AMAN DIGUNAKAN SEPANJANG SESUAI ATURAN PAKAI"
+tanggal: "2023-08-29"
+tahun: "2023"
+jenis: "edukasi"
+bentuk_singkat: "Penjelasan Publik BPOM"
+source_url: "https://www.pom.go.id/penjelasan-publik/penjelasan-bpom-ri-nomor-hm-01-1-2-08-23-32-tanggal-27-agustus-2023-tentang-tambahan-daftar-sirop-cairan-obat-dalam-obat-tradisional-dan-suplemen-kesehatan-yang-memenuhi-ketentuan-dan-aman-digunakan-sepanjang-sesuai-aturan-pakai"
+---
+# PENJELASAN BPOM RI NOMOR HM.01.1.2.08.23.32 TANGGAL 27 AGUSTUS 2023 TENTANG TAMBAHAN DAFTAR SIROP (CAIRAN OBAT DALAM) OBAT TRADISIONAL DAN SUPLEMEN KESEHATAN YANG MEMENUHI KETENTUAN DAN AMAN DIGUNAKAN SEPANJANG SESUAI ATURAN PAKAI
+
+PENJELASAN BPOM RI
+NOMOR HM.01.1.2.08.23.32 TANGGAL 27 AGUSTUS 2023
+TENTANG
+TAMBAHAN DAFTAR SIROP (CAIRAN OBAT DALAM)
+OBAT TRADISIONAL DAN SUPLEMEN KESEHATAN YANG MEMENUHI KETENTUAN
+DAN AMAN DIGUNAKAN SEPANJANG SESUAI ATURAN PAKAI
+Sehubungan dengan hasil verifikasi dari penilaian mandiri oleh industri farmasi (IF) dan industri obat tradisional (IOT), serta penelusuran data registrasi terhadap produk sirop (cairan obat dalam) obat tradisional (OT) dan suplemen kesehatan (SK), BPOM RI menyampaikan informasi sebagai berikut:
+1. BPOM terus melakukan verifikasi hasil pengujian bahan baku dan/atau sirop OT dan SK. Desk verifikasi dilakukan dengan mengedepankan prinsip kehati-hatian melalui evaluasi pemenuhan ketentuan cara pembuatan yang baik/ good manufacturing practices (GMP) untuk produk OT dan SK, antara lain kualifikasi pemasok, pengujian bahan baku setiap kedatangan dan setiap wadah, metode pengujian yang mengikuti standar/farmakope terkini serta informasi lainnya yang diperlukan untuk pemastian keamanan, khasiat, dan mutu OT dan SK.
+2. BPOM juga melakukan pemastian pemenuhan standar mutu sirop OT dan SK dengan pelarut yang berpotensi mengandung cemaran EG/DEG melalui desk verifikasi pengujian mandiri oleh IF dan IOT sebagai pemegang izin edar dengan tetap mengedepankan prinsip kehati-hatian. Hasil desk ini ditindaklanjuti dengan proses pelepasan (rilis) terhadap produk sirup OT dan SK yang dinyatakan aman melalui mekanisme penerbitan surat keterangan produk yang telah diverifikasi BPOM.
+3. Berdasarkan hasil verifikasi periode 2 Februari 2023 sampai 17 Juli 2023, terdapat tambahan sebanyak 1 5 produk sirop (cairan obat dalam) OT dan 70 produk sirop (cairan obat dalam) SK dari 31 pemegang izin edar yang telah memenuhi ketentuan . Dengan demikian, BPOM menyatakan 5 3 produk sirop (cairan obat dalam) OT dan 18 9 produk sirop (cairan obat dalam) SK dari 5 2 pemegang izin edar telah memenuhi ketentuan dan aman digunakan/dikonsumsi masyarakat sepanjang sesuai aturan pakai. Daftar tambahan produk sirop (cairan obat dalam) OT dan SK tersebut dapat dilihat pada Lampiran I dan Lampiran II .
+4. BPOM juga telah melakukan penelusuran data registrasi, terdapat tambahan sebanyak 41 produk OT dan 10 produk SK yang tidak menggunakan pelarut propilen glikol, polietilen glikol, sorbitol, dan/atau gliserin/gliserol, sehingga tidak berisiko mengandung cemaran etilen glikol (EG) dan dietilen glikol (DEG). Dengan demikian, produk sirop (cairan obat dalam) OT dan SK yang tidak menggunakan pelarut dan memenuhi ketentuan, serta aman digunakan/dikonsumsi masyarakat sepanjang sesuai aturan pakai dan diproduksi sesuai cara pembuatan yang baik saat ini berjumlah 542 produk sirop (cairan obat dalam) OT dan 120 produk sirop (cairan obat dalam) SK. Daftar tersebut dapat dilihat pada Lampiran III dan Lampiran IV .
+5. Dengan adanya sirop (cairan obat dalam) OT dan SK yang dinyatakan aman digunakan, maka produk-produk tersebut direkomendasikan dapat digunakan oleh masyarakat sepanjang sesuai aturan pakai. Produk-produk tersebut dapat digunakan untuk mendukung pelayanan kesehatan dan pengadaan produk di fasilitas pelayanan kefarmasian dan/atau kesehatan sesuai ketentuan yang berlaku.
+6. Informasi produk sirop (cairan obat dalam) OT dan SK yang memenuhi ketentuan dan aman digunakan sebagaimana tercantum dalam Lampiran I, II, III, dan IV dapat diakses melalui https://www.pom.go.id/sirop-aman .
+7. BPOM akan terus memperbarui informasi terkait hasil pengawasan terhadap sirop OT dan SK. Informasi akan disampaikan secara bertahap dengan mengedepankan prinsip kehati-hatian dan didasarkan pada database registrasi produk di BPOM serta verifikasi hasil pengujian bahan baku dan produk sirop OT dan SK .
+8. BPOM mengimbau pelaku usaha produsen dan pemegang izin edar OT dan SK untuk melakukan penarikan mandiri apabila ditemukan hal-hal yang tidak dapat menjamin mutu dan keamanan produk berdasarkan hasil penilaian mandiri. Hal ini sebagai bentuk tanggung jawab produsen dan pemilik izin edar sesuai ketentuan peraturan perundang-undangan yang berlaku.
+9. BPOM mengimbau masyarakat untuk mencatat produk OT dan SK yang diminum, baik oleh diri sendiri maupun keluarga, serta selalu menggunakan produk sesuai aturan pakai dan dosis yang tertulis pada etiket atau informasi pada kemasan.
+10. BPOM juga mengimbau kepada masyarakat untuk selalu membeli dan memperoleh OT dan SK di sarana/toko resmi, apotek, toko obat berizin, atau fasilitas pelayanan kesehatan. Jika ingin membeli OT dan SK secara online , pastikan dilakukan melalui toko resmi atau apotek yang telah memiliki izin Penyelenggara Sistem Elektronik Farmasi (PSEF) dari Kementerian Kesehatan.
+Lampiran I. Daftar Produk Sirop (Cairan Obat Dalam) Obat Tradisional Yang Berdasarkan Hasil Verifikasi Pengujian Mandiri Aman Digunakan Sepanjang Sesuai Aturan Pakai Dan Diproduksi Sesuai Cara Pembuatan Yang Baik
+Lampiran II. Daftar Produk Sirup (Cairan Obat Dalam) Suplemen Kesehatan Yang Berdasarkan Hasil Verifikasi Pengujian Mandiri Aman Digunakan Sepanjang Sesuai Aturan Pakai Dan Diproduksi Sesuai Cara Pembuatan Yang Baik
+Lampiran III. Daftar Produk Sirop (Cairan Obat Dalam/Cod) Obat Tradisional Yang Tidak Menggunakan Propilen Glikol, Polietilen Glikol, Sorbitol Dan/Atau Gliserin/Gliserol Dan Aman Digunakan Sepanjang Sesuai Aturan Pakai (Berdasarkan Data Registrasi BPOM)
+Lampiran IV. Daftar Produk Sirop (Cairan Obat Dalam/Cod) Suplemen Kesehatan Yang Tidak Menggunakan Propilen Glikol, Polietilen Glikol, Sorbitol Dan/Atau Gliserin/Gliserol Dan Aman Digunakan Sepanjang Sesuai Aturan Pakai (Berdasarkan Data Registrasi BPOM)
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Penjelasan Publik
+Bagikan:

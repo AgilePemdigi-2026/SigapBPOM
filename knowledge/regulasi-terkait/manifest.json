@@ -1,0 +1,140 @@
+{
+ "sumber": "peraturan.bpk.go.id (JDIH BPK), diunduh 23 Oktober 2026",
+ "jumlah": 16,
+ "dokumen": [
+  {
+   "file": "permenkes-no-30-tahun-2013.md",
+   "title": "Pencantuman Informasi Kandungan Gula, Garam, dan Lemak Serta Pesan Kesehatan untuk Pangan Olahan dan Pangan Siap Saji",
+   "tahun": "2013",
+   "bentuk": "Permenkes",
+   "source_url": "https://peraturan.bpk.go.id/Details/172111/permenkes-no-30-tahun-2013",
+   "nomor": "30",
+   "catatan": "telah diubah dengan Permenkes Nomor 63 Tahun 2015"
+  },
+  {
+   "file": "permenkes-no-5-tahun-2023.md",
+   "title": "Narkotika, Psikotropika, dan Prekursor Farmasi",
+   "tahun": "2023",
+   "bentuk": "Permenkes",
+   "source_url": "https://peraturan.bpk.go.id/Details/245565/permenkes-no-5-tahun-2023",
+   "nomor": "5"
+  },
+  {
+   "file": "permenkes-no-63-tahun-2015.md",
+   "title": "Perubahan atas Peraturan Menteri Kesehatan Nomor 30 Tahun 2013 tentang Pencantuman Informasi Kandungan Gula, Garam, dan Lemak Serta Pesan Kesehatan untuk Pangan Olahan dan Pangan Siap Saji",
+   "tahun": "2015",
+   "bentuk": "Permenkes",
+   "source_url": "https://peraturan.bpk.go.id/Details/172110/permenkes-no-63-tahun-2015",
+   "nomor": "63"
+  },
+  {
+   "file": "permenkes-no-73-tahun-2016.md",
+   "title": "Standar Pelayanan Kefarmasian di Apotek",
+   "tahun": "2016",
+   "bentuk": "Permenkes",
+   "source_url": "https://peraturan.bpk.go.id/Details/114626/permenkes-no-73-tahun-2016",
+   "nomor": "73"
+  },
+  {
+   "file": "permenkes-no-9-tahun-2017.md",
+   "title": "Apotek",
+   "tahun": "2017",
+   "bentuk": "Permenkes",
+   "source_url": "https://peraturan.bpk.go.id/Details/111973/permenkes-no-9-tahun-2017",
+   "nomor": "9",
+   "catatan": "telah diubah dengan Permenkes Nomor 26 Tahun 2018"
+  },
+  {
+   "file": "perpres-no-80-tahun-2017.md",
+   "title": "Badan Pengawas Obat dan Makanan",
+   "tahun": "2017",
+   "bentuk": "Perpres",
+   "source_url": "https://peraturan.bpk.go.id/Details/73132/perpres-no-80-tahun-2017",
+   "nomor": "80"
+  },
+  {
+   "file": "pp-no-1-tahun-2026.md",
+   "title": "Perubahan atas Peraturan Pemerintah Nomor 86 Tahun 2019 tentang Keamanan Pangan",
+   "tahun": "2026",
+   "bentuk": "PP",
+   "source_url": "https://peraturan.bpk.go.id/Details/348700/pp-no-1-tahun-2026",
+   "nomor": "1"
+  },
+  {
+   "file": "pp-no-28-tahun-2024.md",
+   "title": "Peraturan Pelaksanaan Undang-Undang Nomor 17 Tahun 2023 tentang Kesehatan",
+   "tahun": "2024",
+   "bentuk": "PP",
+   "source_url": "https://peraturan.bpk.go.id/Details/294077/pp-no-28-tahun-2024",
+   "nomor": "28"
+  },
+  {
+   "file": "pp-no-42-tahun-2024.md",
+   "title": "Penyelenggaraan Bidang Jaminan Produk Halal",
+   "tahun": "2024",
+   "bentuk": "PP",
+   "source_url": "https://peraturan.bpk.go.id/Details/304896/pp-no-42-tahun-2024",
+   "nomor": "42"
+  },
+  {
+   "file": "pp-no-69-tahun-1999.md",
+   "title": "Label Dan Iklan Pangan",
+   "tahun": "1999",
+   "bentuk": "PP",
+   "source_url": "https://peraturan.bpk.go.id/Details/54404/pp-no-69-tahun-1999",
+   "nomor": "69"
+  },
+  {
+   "file": "pp-no-86-tahun-2019.md",
+   "title": "Keamanan Pangan",
+   "tahun": "2019",
+   "bentuk": "PP",
+   "source_url": "https://peraturan.bpk.go.id/Details/129230/pp-no-86-tahun-2019",
+   "nomor": "86",
+   "catatan": "telah diubah dengan PP Nomor 1 Tahun 2026"
+  },
+  {
+   "file": "uu-no-17-tahun-2023.md",
+   "title": "Kesehatan",
+   "tahun": "2023",
+   "bentuk": "UU",
+   "source_url": "https://peraturan.bpk.go.id/Details/258028/uu-no-17-tahun-2023",
+   "nomor": "17"
+  },
+  {
+   "file": "uu-no-18-tahun-2012.md",
+   "title": "Pangan",
+   "tahun": "2012",
+   "bentuk": "UU",
+   "source_url": "https://peraturan.bpk.go.id/Details/39100/uu-no-18-tahun-2012",
+   "nomor": "18",
+   "catatan": "sebagian pasal telah diubah dengan UU Nomor 6 Tahun 2023 tentang Cipta Kerja"
+  },
+  {
+   "file": "uu-no-33-tahun-2014.md",
+   "title": "Jaminan Produk Halal",
+   "tahun": "2014",
+   "bentuk": "UU",
+   "source_url": "https://peraturan.bpk.go.id/Details/38709/uu-no-33-tahun-2014",
+   "nomor": "33",
+   "catatan": "sebagian pasal telah diubah dengan UU Nomor 6 Tahun 2023 tentang Cipta Kerja"
+  },
+  {
+   "file": "uu-no-35-tahun-2009.md",
+   "title": "Narkotika",
+   "tahun": "2009",
+   "bentuk": "UU",
+   "source_url": "https://peraturan.bpk.go.id/Details/38776/uu-no-35-tahun-2009",
+   "nomor": "35",
+   "catatan": "sebagian pasal telah diubah dengan UU Nomor 6 Tahun 2023 dan sebagian dicabut dengan UU Nomor 1 Tahun 2023 (KUHP)"
+  },
+  {
+   "file": "uu-no-8-tahun-1999.md",
+   "title": "Perlindungan Konsumen",
+   "tahun": "1999",
+   "bentuk": "UU",
+   "source_url": "https://peraturan.bpk.go.id/Details/45288/uu-no-8-tahun-1999",
+   "nomor": "8"
+  }
+ ]
+}

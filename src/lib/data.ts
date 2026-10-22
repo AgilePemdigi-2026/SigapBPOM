@@ -1,7 +1,9 @@
 // Data dashboard. Sengaja kosong: data tiruan prototipe sudah dihapus, dan isinya
 // nanti datang dari Supabase (T-F2.1-03, T-F3.1-03, F5.1). Halaman menampilkan state kosong.
 // Pengecualian: daftar materi dibaca dari manifest korpus RAG yang dipakai Voice Gateway.
-import korpus from '../../knowledge/regulasi-bpom/manifest.json';
+import regulasiBpom from '../../knowledge/regulasi-bpom/manifest.json';
+import regulasiTerkait from '../../knowledge/regulasi-terkait/manifest.json';
+import edukasiBpom from '../../knowledge/edukasi-bpom/manifest.json';
 
 export type Chip = { bg: string; fg: string };
 
@@ -48,16 +50,22 @@ const POLA_KATEGORI: [RegExp, string][] = [
 ];
 const kategoriDari = (judul: string) => POLA_KATEGORI.find(([pola]) => pola.test(judul))?.[1] ?? 'Edukasi Umum';
 
-export const MATERI: Materi[] = korpus.dokumen
-  .map((d, i) => ({
+type DokumenKorpus = { title: string; bentuk: string; tahun: string; nomor?: string; tanggal?: string };
+const tglTampil = (iso: string) =>
+  new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${iso}T00:00:00+07:00`)).replace('.', '');
+
+// Peraturan dirujuk dengan nomor dan tahun; informasi publik BPOM dengan tanggal terbitnya.
+export const MATERI: Materi[] = ([...regulasiBpom.dokumen, ...regulasiTerkait.dokumen, ...edukasiBpom.dokumen] as DokumenKorpus[])
+  .map((d) => ({ d, urut: d.tanggal || d.tahun }))
+  .sort((a, b) => b.urut.localeCompare(a.urut) || a.d.title.localeCompare(b.d.title, 'id'))
+  .map(({ d }, i) => ({
     id: i + 1,
     judul: d.title,
     kategori: kategoriDari(d.title),
-    rujukan: `${d.bentuk} No. ${d.nomor} Tahun ${d.tahun}`,
-    tgl: d.tahun,
+    rujukan: d.nomor ? `${d.bentuk} No. ${d.nomor} Tahun ${d.tahun}` : d.bentuk,
+    tgl: d.tanggal ? tglTampil(d.tanggal) : d.tahun,
     aktif: true,
-  }))
-  .sort((a, b) => Number(b.tgl) - Number(a.tgl) || a.judul.localeCompare(b.judul, 'id'));
+  }));
 
 export const KB_TOTAL = { total: MATERI.length, aktif: MATERI.filter((m) => m.aktif).length, nonaktif: MATERI.filter((m) => !m.aktif).length };
 

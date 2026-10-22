@@ -1,0 +1,24 @@
+---
+title: "SIARAN PERS Kampanye Cerdas Gunakan Kosmetik Untuk Generasi Milenial"
+tanggal: "2018-11-12"
+tahun: "2018"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/siaran-pers-kampanye-cerdas-gunakan-kosmetik-untuk-generasi-milenial-2"
+---
+# SIARAN PERS Kampanye Cerdas Gunakan Kosmetik Untuk Generasi Milenial
+
+SIARAN PERS
+KAMPANYE CERDAS GUNAKAN KOSMETIK UNTUK GENERASI MILENIAL
+Belitung – Rabu (31/10) lalu, BPOM RI berhasil mengungkap kasus pelanggaran tindak pidana penjualan obat, termasuk kosmetik ilegal yang dijual secara online dengan nilai keekonomian keseluruhan mencapai 17,4 miliar rupiah. Jumlah temuan khusus untuk kosmetik sendiri mencapai 420 juta rupiah. Secara nasional, temuan kosmetik ilegal yang mencapai 112 miliar rupiah, dan merupakan temuan terbesar diantara produk yang diawasi BPOM RI. ditengarai, adanya kebijakan post-border pemasukan kosmetik, juga berimplikasi banyak produk yang masuk ke Indonesia, tanpa izin edar atau ilegal.
+Produk kosmetik, menurut survei Asosiasi Penyelenggara Jasa Internet Indonesia, menduduki peringkat kedua sebagai produk yang paling sering dikonsumsi dari belanja online setelah produk busana. Pertumbuhan pasar kosmetik memang cenderung mengalami peningkatan. Data BPOM menunjukkan jumlah produk kosmetik ternotifikasi bertambah, dari 35.203 produk pada tahun 2015 menjadi 51.025 produk pada tahun 2017. Sementara itu, untuk tahun ini hingga bulan September 2018, jumlah nomor izin edar yang sudah dikeluarkan BPOM mencapai 39.388. “Hal ini salah satunya merupakan efek kemudahan proses pendaftaran melalui sistem notifikasi online BPOM RI, yang memungkinkan nomor notifikasi kosmetik diterbitkan dalam 14 hari kerja.” ujar Kepala BPOM RI, Penny K. Lukito.
+“Perubahan pola perdagangan dan perkembangan industri kosmetik menjadi salah satu perhatian BPOM RI. Peningkatan efektivitas pengawasan menjadi tanggung jawab BPOM untuk memastikan kosmetik yang beredar telah memenuhi persyaratan keamanan, manfaat, mutu dan penandaan produk”, jelas Penny K. Lukito. “BPOM RI juga berperan dalam mengedukasi masyarakat agar mampu memilih dan menggunakan kosmetik yang aman”, tambahnya.
+Untuk itu, Senin (12/11) BPOM menggelar kegiatan komunikasi, informasi dan edukasi (KIE) bertajuk “Kampanye Cerdas Menggunakan Kosmetik untuk Generasi Milenial” di Belitung. Kota Belitung menjadi lokasi ke-sembilan diadakannya kampanye kosmetik untuk generas milenial setelah Bandung, Denpasar, Bandar Lampung, Samarinda, Bengkulu, Gorontalo, Jayapura, dan Pangkal Pinang. “Melalui kegiatan ini, BPOM RI mengajak generasi milenial kota Belitung, terutama mereka yang sering mencari dan mendapatkan informasi dari iklan online , beauty blogger , dan beauty vlogger , untuk belajar lebih jauh tentang kosmetik.” ucap Penny K. Lukito.
+Dalam kegiatan kampanye yang diikuti oleh komunitas remaja tingkat Sekolah Menengah Atas, produsen, dan asosiasi serta lembaga pemerintah dan satuan kerja perangkat daerah di Kota Belitung ini, peserta diajak untuk belajar menjadi konsumen cerdas melalui diskusi dan talkshow, pameran produk kosmetik lokal, senam cek klik, kelas kecantikan, dan demonstrasi penggunaan aplikasi untuk pengecekan Nomor Izin Edar (NIE) kosmetik.
+“Semoga kegiatan ini dapat menjadi ajang pembelajaran kita untuk perlindungan kepada masyarakat Indonesia dari kosmetik ilegal dan/atau mengandung bahan berbahaya serta dapat membentuk konsumen cerdas dalam memilih kosmetik yang aman, bermanfaat, dan bermutu dengan Cek KLIK (Cek Kemasan, Label, Izin Edar, dan Kedaluwarsa),” ajak Kepala BPOM RI. “Tak terkecuali, para pelaku usaha di bidang kosmetik. Pelaku usaha harus selalu menaati peraturan perundang-undangan. Kami tidak segan menindak pelaku usaha yang melanggar ketentuan. Seperti contoh satu toko kosmetik dan gudang kosmetik yang menjual/mendistribusikan kosmetik ilegal di Belitung, yang kami proses secara pro-justitia ”, tegas Penny K. Lukito.
+BPOM RI mengharapkan agar masyarakat Indonesia, terutama generasi milenial, dapat meningkatkan kesadaran dan pengetahuannya dalam memilih kosmetik yang aman, serta menjadi agent of change dalam penyebarluasan informasi keamanan kosmetik bagi teman dan lingkungannya.
+Untuk informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id, Twitter @bpom_ri, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

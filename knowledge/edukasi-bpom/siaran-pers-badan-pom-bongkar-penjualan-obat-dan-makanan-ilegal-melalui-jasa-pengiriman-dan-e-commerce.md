@@ -1,0 +1,25 @@
+---
+title: "Badan POM Bongkar Penjualan Obat dan Makanan Ilegal Melalui Jasa Pengiriman dan E-Commerce"
+tanggal: "2019-12-10"
+tahun: "2019"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/badan-pom-bongkar-penjualan-obat-dan-makanan-ilegal-melalui-jasa-pengiriman-dan-e-commerce"
+---
+# Badan POM Bongkar Penjualan Obat dan Makanan Ilegal Melalui Jasa Pengiriman dan E-Commerce
+
+SIARAN PERS
+Badan POM Bongkar Penjualan Obat dan Makanan Ilegal
+Melalui Jasa Pengiriman dan E-Commerce
+Jakarta – Lebih dari 53 miliar rupiah kosmetik ilegal, obat tradisional ilegal, dan pangan olahan ilegal disita Penyidik Pegawai Negeri Sipil (PPNS) Badan POM di empat gudang pengiriman barang di daerah Jakarta Utara dan Jakarta Selatan pada Senin malam (09/12). Dari empat gudang tersebut, petugas mengamankan dan menyita 43.071 pieces kosmetik ilegal senilai 17,17 miliar rupiah, 58.355 pieces obat tradisional ilegal senilai 27,98 miliar rupiah, dan 14.533 pieces pangan olahan ilegal senilai 7,21 miliar rupiah. Rincian jumlah item keseluruhan 44 item (29 item kosmetik ilegal, 12 item obat tradisional ilegal dan 3 item pangan olahan ilegal) atau 127.281 pieces.
+Kepala Badan POM RI, Penny K. Lukito menyebutkan bahwa pelaku diduga melakukan kejahatan peredaran kosmetik, obat tradisional, dan pangan olahan ilegal dengan modus penjualan melalui jasa pengiriman kurir oleh PT Boxme Fullfillment Centre dan penjualan melalui e-commerce (online) oleh PT 2WTRADE. “Sesuai perjanjian kerja sama, PT Boxme Fullfillmet Centre menerima pesanan barang dari PT 2WTRADE, PT. Globalindo Kosmetika Internasional, dan PT. Digital Commerce Indonesia. Dalam perjanjian tersebut, PT Boxme menerima dan membungkus barang sesuai pesanan. Selanjutnya barang dikirim kepada pembeli melalui jasa pengiriman/kurir” ungkap Penny K. Lukito.
+Lebih lanjut Kepala Badan POM memaparkan bahwa kosmetik ilegal yang ditemukan dan disita petugas antara lain Diva Mask, Inno Gialuron, Xtrazex, Princess Hair, dan Vita Micrite 3D All Use. “Sementara itu, obat tradisional ilegal yang ditemukan antara lain Detoxic, Resize Gel, dan Hero Active, sedangkan pangan olahan ilegal antara lain Slim Mix Collagen 168 g, Choco mia, Black Latte 100 g,” lanjutnya.
+“Kami telah melakukan pemeriksaan setidaknya terhadap 10 orang saksi terkait temuan ini. Kami terus melakukan pendalaman untuk menemukan aktor intelektual dibalik kejahatan peredaran Obat dan Makanan ilegal ini,” papar Penny K. Lukito. Berdasarkan temuan dan fakta di lapangan, para tersangka dapat dijerat dengan ketentuan Pasal 197 UU Kesehatan jo pasal 62 ayat (1) jo pasal 8 ayat (1) huruf a UU nomor 8 tahun 1999 tentang Perlindungan Konsumen, jo Pasal 142 jo Pasal 91 ayat (1) UU no 18 Tahun 2012 tentang Pangan, yang pada intinya menyatakan bahwa setiap orang yang dengan sengaja memproduksi atau mengedarkan sediaan farmasi, dan/atau alat kesehatan yang tidak memiliki izin edar dipidana dengan pidana penjara paling lama 15 tahun dan denda paling banyak 1,5 miliar rupiah.
+Untuk meningkatkan efektivitas pengawasan keamanan dan mutu serta kebenaran informasi dari produk Obat dan Makanan yang beredar secara online, Badan POM telah menandatangani Kesepakatan Bersama dengan Asosiasi e-commerce Indonesia (idEA); 6 market place, dan penyedia transportasi online yaitu Bukalapak, Tokopedia, Halodoc, Klikdokter, Grab, dan Gojek; serta Masyarakat Anti Fitnah Indonesia (MAFINDO).
+Badan POM juga secara berkesinambungan melaksanakan Patroli Siber untuk menelusuri dan mencegah peredaran Obat dan Makanan ilegal di media daring melalui platform situs, media sosial, dan e-commerce . Berdasarkan hasil Patroli Siber, Badan POM memberikan rekomendasi kepada Kementerian Komunikasi dan Informatika serta Asosiasi E-commerce Indonesia (idEA) untuk pemblokiran ( take down ) platform yang melakukan perdagangan online produk ilegal.
+Kepala Badan POM mengimbau masyarakat untuk selalu ingat Cek “KLIK” (Kemasan, Label, izin Edar dan Kedaluwarsa) sebelum membeli atau mengonsumsi produk Obat dan Makanan. Masyarakat dapat memperoleh informasi tentang produk Obat dan Makanan dengan mudah melalui situs resmi Badan POM, sosial media resmi Badan POM, maupun HaloBPOM 1500533.
+__________________________________________________________________________________________________________________________
+Informasi lebih lanjut hubungi: Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533 , WhatsApp 0811-9181-533, email halobpom@pom.go.id , twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

@@ -1,0 +1,27 @@
+---
+title: "Satgas Pemberantasan Obat dan Makanan Ilegal Bongkar Gudang Produk Ilegal"
+tanggal: "2015-06-25"
+tahun: "2015"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/satgas-pemberantasan-obat-dan-makanan-ilegal-bongkar-gudang-produk-ilegal"
+---
+# Satgas Pemberantasan Obat dan Makanan Ilegal Bongkar Gudang Produk Ilegal
+
+Pemberantasan Peredaran Produk Ilegal Yang Dipasarkan Secara Online
+Melalui Operasi Pangea VIII
+Peredaran produk obat, obat tradisional, suplemen kesehatan, kosmetika dan pangan ilegal secara online semakin marak seiring dengan pesatnya perkembangan teknologi dan pemanfaatan internet. Hal ini merupakan ancaman serius bagi kesehatan masyarakat Indonesia. Pasalnya, produk yang dijual secara online seringkali tidak jelas sumbernya, sehingga tidak dapat dijamin keamanan, khasiat/manfaat, dan mutunya. Sebagai contoh, baru-baru ini telah ditemukan sejumlah situs website dan media sosial yang menjual obat yang digunakan untuk aborsi secara online , dimana obat tersebut digunakan secara off label (penggunaan obat di luar indikasi yang disetujui oleh Badan POM).
+Sejak tahun 2011, Badan POM ikut aktif menjalankan Operasi Pangea dalam rangka memberantas penjualan produk ilegal termasuk palsu yang dipasarkan secara online , mengingat risikonya yang cukup besar bagi kesehatan sehingga intensifikasi pengawasan peredaran produk Obat dan Makanan ilegal melalui situs online ini menjadi salah satu fokus kegiatan Badan POM beberapa tahun terakhir.
+Badan POM dalam kerangka Satuan Tugas (Satgas) Pemberantasan Obat dan Makanan Ilegal yang ditunjuk sebagai National Coordinator dalam pelaksanaan Operasi Pangea VIII dan berkoordinasi dengan International Criminal Police Organization (ICPO) - Interpol. Aksi sepekan yang digelar pada 9 – 16 Juni 2015 yang diikuti oleh 115 negara dan dinyatakan sebagai operasi terbesar karena hasil temuan mencapai 20,7 juta kemasan produk ilegal termasuk palsu. Target Operasi Pangea VIII selain obat, obat tradisional, kosmetik dan suplemen kesehatan ilegal termasuk palsu, juga termasuk target prioritas khusus yaitu alat kesehatan ilegal termasuk palsu.
+Pada Operasi Pangea VIII ini berhasil diidentifikasi 216 situs internet yang memasarkan obat, obat tradisional, suplemen kesehatan, dan kosmetika ilegal termasuk palsu, 26 situs internet yang memasarkan obat yang disalahgunakan sebagai penggugur kandungan dan 51 situs internet yang memasarkan alat kesehatan (lensa kontak) ilegal. Operasi dilakukan di seluruh wilayah Indonesia melalui 32 Balai Besar/Balai POM. Pemeriksaan dilakukan terhadap 69 (enam puluh sembilan) sarana yang terdiri dari 66 (enam puluh enam) sarana produksi dan/atau distribusi sediaan farmasi, 1 (satu) sarana distribusi alat kesehatan (lensa kontak) dan 2 (dua) postal hub yaitu Kantor Pelayanan dan Pengawasan Bea dan Cukai Tipe Pratama Kantor Pos Pasar Baru serta Kantor Pelayanan dan Pengawasan Bea dan Cukai Tipe Madya Pabean Soekarno Hatta. Operasi ini berhasil menyita 3.462.905 kemasan produk ilegal termasuk palsu dengan nilai keekonomian mencapai 27,6 milyar rupiah. Badan POM juga berhasil mengungkap kegiatan pelaku yang telah melakukan tindakan kriminal dengan cara mengubah tanggal kedaluwarsa pada obat legal yang telah kedaluwarsa dan mengubah dosis bahan aktif obat legal pada kemasan, kemudian mendistribusikan produk tersebut ke sarana farmasi legal untuk dijual kembali.
+Sebagai tindak lanjut hasil Operasi Pangea VIII ini, telah dilakukan penyitaan terhadap barang bukti dan selanjutnya akan dilakukan tindakan pro-justitia . Untuk situs website yang teridentifikasi memasarkan produk ilegal serta palsu, Kepala Badan POM selaku Ketua Satgas Pemberantasan Obat dan Makanan Ilegal telah mengajukan usulan kepada Kementerian Komunikasi dan Informatika agar situs tersebut diblokir atau ditutup.
+Badan POM bersama dengan seluruh anggota Satgas Pemberantasan Obat dan Makanan Ilegal terus berkomitmen dan berkoordinasi lebih intensif serta berkesinambungan dalam mengawasi Obat dan Makanan guna melindungi konsumen dari produk yang tidak memenuhi standar dan persyaratan, termasuk Obat dan Makanan impor ilegal yang dipasarkan secara online.
+Pada hari ini, juga dilaksanakan pemusnahan Obat dan Makanan ilegal hasil pengawasan Badan POM tahun 2014, yang terdiri dari 105 (seratus lima) item obat tradisional tanpa izin edar/ilegal dan mengandung bahan kimia obat, dengan nilai keekonomian produk diperkirakan mencapai enam milyar rupiah.
+Badan POM menghimbau kepada pelaku usaha agar menaati peraturan perundang-undangan yang berlaku. Jika masyarakat menemukan hal-hal yang mencurigakan terkait peredaran Obat dan Makanan ilegal termasuk palsu yang dipasarkan secara online , dapat menghubungi Contact Center HALOBPOM 1-500-533, sms 0-8121-9999-533, email halobpom@pom.go.id , twitter @bpom_ri atau Unit Layanan Pengaduan Konsumen (ULPK) di seluruh Indonesia.
+Jakarta, 25 Juni 2015
+Biro Hukum dan Humas Badan POM RI
+Telepon/Fax: (021) 4209221
+Email : hukmas@pom.go.id, humasbpom@gmail.com
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

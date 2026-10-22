@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Korpus, akar, pesanKutipan, potong, token } from './pengetahuan.mjs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Korpus, akar, labelPeraturan, pesanKutipan, potong, tanggalIndonesia, token } from './pengetahuan.mjs';
 import { RiwayatPanggilan } from './percakapan.mjs';
 
 const dok = (judul, nomor, tahun, badan) => `---
@@ -69,4 +72,29 @@ test('untukModel menyisipkan kutipan tepat sebelum ucapan terakhir tanpa menyimp
   const pesan = r.untukModel(id, 'KUTIPAN');
   assert.deepEqual(pesan.slice(-2).map((m) => m.content), ['KUTIPAN', 'pertanyaan kedua']);
   assert.equal(r.untukModel(id).some((m) => m.content === 'KUTIPAN'), false);
+});
+
+test('label informasi publik memakai tanggal terbit, peraturan memakai nomor dan tahun', () => {
+  assert.equal(tanggalIndonesia('2026-01-14'), '14 Januari 2026');
+  assert.equal(labelPeraturan({ bentuk_singkat: 'Penjelasan Publik BPOM', tanggal: '2026-01-14' }), 'Penjelasan Publik BPOM 14 Januari 2026');
+  assert.equal(labelPeraturan({ bentuk_singkat: 'UU', nomor: '18', tahun: '2012' }), 'UU Nomor 18 Tahun 2012');
+});
+
+test('muat membaca subfolder, melewati README, dan catatan perubahan ikut ke kutipan', () => {
+  const akarKorpus = mkdtempSync(join(tmpdir(), 'korpus-'));
+  mkdirSync(join(akarKorpus, 'regulasi-terkait'));
+  writeFileSync(join(akarKorpus, 'README.md'), '# Korpus\nBerkas penjelasan tentang pangan yang tidak boleh terindeks sama sekali.');
+  writeFileSync(join(akarKorpus, 'regulasi-terkait', 'uu-pangan.md'), `---
+title: "Pangan"
+nomor: "18"
+tahun: "2012"
+bentuk_singkat: "UU"
+catatan: "sebagian pasal telah diubah dengan UU Nomor 6 Tahun 2023"
+source_url: "https://peraturan.bpk.go.id/contoh-uu-18"
+---
+Pasal 1 Keamanan pangan adalah kondisi dan upaya yang diperlukan untuk mencegah pangan dari kemungkinan cemaran biologis dan kimia.`);
+  const k = Korpus.muat(akarKorpus);
+  assert.equal(new Set(k.potongan.map((p) => p.sumber)).size, 1);
+  const pesan = pesanKutipan(k.cari('cemaran kimia pada pangan', 3, 1));
+  assert.match(pesan, /UU Nomor 18 Tahun 2012 tentang Pangan \(catatan: sebagian pasal telah diubah/);
 });

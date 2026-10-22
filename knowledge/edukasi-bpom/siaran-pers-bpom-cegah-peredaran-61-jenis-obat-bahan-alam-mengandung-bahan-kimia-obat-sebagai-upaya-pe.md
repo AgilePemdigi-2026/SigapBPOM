@@ -1,0 +1,29 @@
+---
+title: "BPOM Cegah Peredaran 61 Jenis Obat Bahan Alam Mengandung Bahan Kimia Obat Sebagai Upaya Perlindungan Terhadap Kesehatan Masyarakat"
+tanggal: "2025-02-27"
+tahun: "2025"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/bpom-cegah-peredaran-61-jenis-obat-bahan-alam-mengandung-bahan-kimia-obat-sebagai-upaya-perlindungan-terhadap-kesehatan-masyarakat"
+---
+# BPOM Cegah Peredaran 61 Jenis Obat Bahan Alam Mengandung Bahan Kimia Obat Sebagai Upaya Perlindungan Terhadap Kesehatan Masyarakat
+
+SIARAN PERS
+Nomor HM. 01.1.2.02.25.80 Tanggal 27 Februari 2025
+Tentang
+BPOM Cegah Peredaran 61 Jenis Obat Bahan Alam Mengandung Bahan Kimia Obat Sebagai Upaya Perlindungan Terhadap Kesehatan Masyarakat
+Jakarta – BPOM kembali menemukan 61 item obat bahan alam (OBA) mengandung bahan kimia obat (BKO). Temuan tersebut terungkap berdasarkan hasil sampling dan pengujian selama periode Februari hingga Desember 2024.
+Tren penambahan BKO ini didominasi oleh BKO sildenafil sitrat dan tadalafil pada produk OBA dengan klaim penambah stamina pria, serta BKO parasetamol pada produk OBA dengan klaim pegal linu dan penambah stamina pria. Daftar 61 produk OBA yang mengandung BKO ini dapat dilihat pada Lampiran 1 .
+Selain temuan dari hasil pengawasan peredaran OBA di dalam negeri, BPOM juga menindaklanjuti temuan berdasarkan laporan beberapa otoritas pengawas obat dan makanan negara lain, yaitu Singapura, Thailand, dan Brunei Darussalam. Dari laporan tersebut, diketahui sebanyak 15 OBA dan suplemen kesehatan (SK) mengandung BKO. Semua produk yang dilaporkan melalui mekanisme laporan dari otoritas pengawas obat dan makanan negara lain tersebut merupakan produk yang tidak terdaftar di BPOM. Daftar temuan produk OBA dan SK mengandung BKO hasil pengawasan badan otoritas negara lain dapat dilihat pada Lampiran 2 .
+BPOM melalui unit pelaksana teknis (UPT) di seluruh Indonesia telah melakukan penertiban terhadap fasilitas produksi dan distribusi, termasuk ritel, dengan melakukan pengamanan, perintah penarikan, dan perintah pemusnahan terhadap produk OBA yang mengandung BKO. Selain itu, BPOM juga menjatuhkan sanksi tegas kepada pelaku usaha yang memproduksi dan/atau mengedarkan OBA BKO berupa peringatan keras dan pencabutan izin edar produk.
+Pelaku pelanggaran tersebut juga dapat dikenakan sanksi pidana sebagaimana ditetapkan dalam Pasal 435 Jo . Pasal 138 ayat (2) dan ayat (3) Undang-Undang Nomor 17 Tahun 2023 tentang Kesehatan. Berdasarkan aturan tersebut, pelaku dapat diancam dengan pidana penjara paling lama 12 tahun atau denda paling banyak Rp5 miliar.
+Terkait dengan temuan produk OBA dan SK mengandung BKO, pada kesempatan terpisah, Kepala BPOM Taruna Ikrar kembali menegaskan kepada pelaku usaha agar selalu menjalankan usahanya sesuai dengan ketentuan peraturan perundangan-undangan. “Sesuai dengan konsep tiga pilar pengawasan obat dan makanan, yaitu pelaku usaha, pemerintah, dan masyarakat. Pelaku Usaha memegang tanggung jawab terhadap integritas produk yang dimiliki dan bagi pelaku usaha yang terbukti melanggar, maka akan dikenakan sanksi berat sampai dengan sanksi pidana,” tukas Taruna Ikrar.
+Taruna Ikrar juga mengingatkan akan bahaya dari konsumsi produk tersebut bagi kesehatan masyarakat. “ Kandungan BKO pada obat bahan alam sangat berisiko bagi kesehatan. Penambahan BKO dapat menimbulkan efek samping berupa kehilangan penglihatan dan pendengaran, nyeri dada, pusing, pembengkakan (mulut, bibir, dan wajah), stroke , serangan jantung, bahkan kematian. Penggunaan BKO juga dapat menyebabkan kerusakan hati apabila dikonsumsi dalam jangka panjang atau dosis tinggi,” urai Taruna Ikrar.
+Untuk itu, BPOM mengimbau agar masyarakat dapat lebih waspada dan berhati-hati sebelum membeli dan/atau mengonsumsi produk OBA maupun SK. Mengingat maraknya penjualan OBA dan SK yang dilakukan secara daring/ online , masyarakat diharapkan lebih kritis dalam membaca dan mencermati informasi produk yang terdapat pada kemasan produk atau materi promosi (iklan) produk.
+Masyarakat diharapkan hanya membeli produk OBA dan SK dari sumber terpercaya, serta tidak menggunakan produk–produk sebagaimana yang tercantum dalam Lampiran 1 dan Lampiran 2 siaran pers ini ataupun yang sudah pernah diumumkan dalam public warning BPOM sebelumnya. Selalu ingat untuk lakukan Cek KLIK (Kemasan, Label, Izin Edar, Kedaluwarsa) sebelum membeli dan/atau menggunakan produk OBA dan SK: pastikan K emasan dalam kondisi baik, baca informasi produk yang tertera pada L abelnya, pastikan produk memiliki I zin edar BPOM, dan belum melebihi masa K edaluwarsa.
+BPOM mengimbau masyarakat untuk segera laporkan kepada BPOM apabila menemukan produk OBA dan SK yang tidak sesuai dengan ketentuan. BPOM juga meminta masyarakat dan pelaku usaha untuk tidak ragu untuk menyampaikan informasi atau laporan kepada BPOM apabila mengetahui adanya dugaan terjadinya pelanggaran terhadap produksi, peredaran, promosi, dan/atau iklan OBA dan SK. Laporan dapat disampaikan secara langsung maupun elektronik kepada BPOM melalui Contact Center HALOBPOM 1500533, media sosial resmi BPOM, dan Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Lampiran 1. Daftar 61 Jenis Obat Bahan Alam Mengandung BKO Hasil Pengawasan BPOM Periode Februari-Desember 2024
+Lampiran 2. Daftar 15 Obat Bahan Alam dan Suplemen Kesehatan Mengandung BKO Hasil Pengawasan Otoritas Negara Lain Periode Februari-Desember 2024
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

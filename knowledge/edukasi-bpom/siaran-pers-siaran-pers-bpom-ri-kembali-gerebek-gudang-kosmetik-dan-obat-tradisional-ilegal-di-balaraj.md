@@ -1,0 +1,26 @@
+---
+title: "SIARAN PERS BPOM RI KEMBALI GEREBEK GUDANG KOSMETIK DAN OBAT TRADISIONAL ILEGAL DI BALARAJA"
+tanggal: "2018-08-07"
+tahun: "2018"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/siaran-pers-bpom-ri-kembali-gerebek-gudang-kosmetik-dan-obat-tradisional-ilegal-di-balaraja"
+---
+# SIARAN PERS BPOM RI KEMBALI GEREBEK GUDANG KOSMETIK DAN OBAT TRADISIONAL ILEGAL DI BALARAJA
+
+SIARAN PERS
+BPOM RI KEMBALI GEREBEK GUDANG KOSMETIK
+DAN OBAT TRADISIONAL ILEGAL DI BALARAJA
+Serang – Tingginya minat terhadap kosmetik menjadi peluang bagi para pengusaha nakal untuk meraup untung yang lebih besar. BPOM RI melalui Kedeputian Bidang Penindakan terus melakukan pengawasan di wilayah pintu masuk dan peredaran kosmetik ilegal. Menepati janjinya untuk terus melakukan penelusuran lebih lanjut terhadap jaringan distribusi kosmetik ilegal, Senin (06/08) petugas Balai POM di Serang bersama dengan Kepolisian Daerah Banten, Kepolisian Sektor Balaraja, dan Dinas Kesehatan Kabupaten Tangerang berhasil menggerebek tiga gudang penyimpanan kosmetik dan obat tradisional ilegal di Kawasan Pergudangan Surya Balaraja - Tangerang.
+Dari tiga gudang tersebut, petugas menemukan bahan baku berupa bahan dasar krim, kemasan primer produk, produk jadi kosmetik ilegal dan kedaluwarsa, serta produk jadi obat tradisional ilegal dan mengandung bahan kimia obat (BKO).
+“Temuan ini merupakan hasil pengembangan BPOM RI dari kasus temuan kosmetik ilegal di DKI Jakarta”, ungkap Hendri Siswadi Deputi Bidang Penindakan BPOM RI. “Baru minggu lalu, Balai Besar POM (BBPOM) di Jakarta menggerebek gudang di kawasan Kapuk Muara Jakarta Utara. Produk yang ditemukan sekarang ini, memiliki beberapa kesamaan dengan temuan di Kapuk Muara tersebut. Kegiatan ini merupakan upaya Badan POM dalam rangka menghentikan peredaran produk ilegal selain kami akan terus menelusuri lebih lanjut untuk mengungkap jaringan peredaran produk ilegal ini”, lanjut Hendri Siswadi.
+Setidaknya terdapat 3.830 tong bahan baku berupa bahan dasar krim kosmetik, ribuan item produk jadi kosmetik ilegal dan kedaluwarsa, ribuan item produk jadi obat tradisional ilegal dan/atau mengandung bahan kimia obat, serta 148 rol bahan kemasan primer kosmetik dengan nilai keekonomian mencapai lebih dari 41.5 miliar rupiah. “Temulawak Two Way Cake, New Papaya Whitening Soap, Collagen Plus, NYX Pensil Alis, MAC Pensil Alis, Revlon Pensil Alis, Pi Kang Shuang, Fluocinamide Ointment, dan Gingseng Royal Jelly Merah, adalah beberapa merek produk ilegal yang kami temukan kali ini”, Hendri Siswadi menyampaikan.
+BPOM RI telah menyita seluruh bahan baku, kemasan primer, serta produk jadi kosmetik dan obat tradisional ilegal tersebut. “BPOM RI menindaklanjuti temuan ini melalui proses pro-justitia guna mengungkap aktor intelektual. Seperti kami selalu sampaikan, kami terus bergerak memberantas peredaran produk ilegal di masyarakat”, tegas Hendri Siswadi. “Salah satu tugas BPOM RI adalah mendukung peningkatan daya saing industri kosmetik dan obat tradisional lokal. Karena itu, kami tidak ragu untuk menindak pelaku usaha yang melanggar ketentuan dan merugikan kesehatan serta perekonomian bangsa”, lanjutnya.
+Pelaku diduga melanggar Pasal 196 dan 197 Undang-Undang No. 36 Tahun 2009 tentang Kesehatan dengan ancaman hukuman penjara paling lama 15 tahun dan denda paling banyak 1,5 miliar rupiah serta Pasal 62 Undang-Undang No. 8 Tahun 1999 tentang Perlindungan Konsumen, dengan ancaman hukuman penjara paling lama 5 tahun dan denda paling banyak 2 miliar rupiah.
+BPOM RI tak henti meminta kepada seluruh pelaku usaha untuk mematuhi segala peraturan perundang-undangan yang berlaku. Tingginya angka temuan kosmetik ilegal yang terjadi secara masif di seluruh Indonesia menunjukkan adanya demand yang tinggi dari masyarakat terhadap produk kosmetik. “Untuk itu, belajar dari kasus-kasus produksi dan distribusi kosmetik ilegal di seluruh Indonesia, BPOM RI mengimbau kepada para konsumen untuk bijak dlm memilih produk kosmetika dan tidak tergiur dengan iklan-iklan menyesatkan atau harga yang tidak wajar”, ujar Hendri Siswadi. Masyarakat juga diharapkan untuk lebih berhati-hati dalam memilih kosmetik yang akan digunakan. Jangan membeli atau memilih produk kosmetik yang tidak memiliki izin edar/nomor notifikasi. Ingat selalu Cek KLIK, Cek Kemasan, Cek Label, Cek Izin edar, dan Cek Kedaluwarsa sebelum membeli atau memilih produk kosmetik.
+__________________________________________________________________________________________________________
+Untuk informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id, twitter @bpom_ri, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

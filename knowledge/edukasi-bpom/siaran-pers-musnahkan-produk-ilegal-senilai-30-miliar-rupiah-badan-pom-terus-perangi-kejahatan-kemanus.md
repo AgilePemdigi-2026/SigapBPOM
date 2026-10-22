@@ -1,0 +1,22 @@
+---
+title: "MUSNAHKAN PRODUK ILEGAL SENILAI 30 MILIAR RUPIAH, BADAN POM TERUS PERANGI KEJAHATAN KEMANUSIAAN"
+tanggal: "2016-10-06"
+tahun: "2016"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/musnahkan-produk-ilegal-senilai-30-miliar-rupiah-badan-pom-terus-perangi-kejahatan-kemanusiaan"
+---
+# MUSNAHKAN PRODUK ILEGAL SENILAI 30 MILIAR RUPIAH, BADAN POM TERUS PERANGI KEJAHATAN KEMANUSIAAN
+
+MUSNAHKAN PRODUK ILEGAL SENILAI 30 MILIAR RUPIAH,
+BADAN POM TERUS PERANGI KEJAHATAN KEMANUSIAAN
+Tangerang - Setelah berhasil mengungkap kasus produksi dan penyimpanan produk ilegal di Komplek Pergudangan Surya Balaraja Tangerang - Banten pada 2 September 2016 lalu, sebagai tindak lanjutnya, hari ini Kamis (06/10/16) Badan POM memusnahkan barang bukti dimaksud. Barang bukti yang dimusnahkan antara lain berupa 42 juta tablet produk jadi obat, obat tradisional, dan produk ruah obat, 76 tong bahan baku obat, serta bahan kemas obat. Sebanyak 60 truk barang bukti yang dimusnahkan tersebut memiliki nilai keekonomian sekitar 30 miliar rupiah.
+Temuan obat ilegal di Balaraja didominasi oleh golongan Obat-Obat Tertentu (OOT) antara lain Trihexyphenydyl, Tramadol, Karisoprodol, dan Dekstrometorfan yang seringkali disalahgunakan karena dapat menimbulkan efek halusinasi. Selain itu, petugas juga menemukan obat tradisional tanpa izin edar/mencantumkan nomor izin edar fiktif, dan telah masuk dalam daftar public warning Badan POM karena mengandung bahan kimia obat Sildenafil Sitrat yang disalahgunakan sebagai penambah stamina pria/obat kuat. Peredaran produk ilegal ini sangat membahayakan kesehatan masyarakat dan merupakan kejahatan kemanusiaan yang dapat meracuni generasi muda bangsa Indonesia.
+Status hukum barang bukti yang dimusnahkan telah mendapatkan persetujuan dari Pengadilan Negeri Tangerang berdasarkan Surat Penetapan Nomor 1805/Pen.Pers.Sita/2016/PN.Tng tanggal 9 September 2016 tentang Persetujuan Penyitaan dan Surat Penetapan Nomor 07/Pen.Ijin.Pemusnahan/2016/PN.Tng tanggal 27 September 2016 tentang Izin Pemusnahan Terhadap Barang Bukti. Pemusnahan barang bukti dilakukan secara simbolis oleh Kepala Badan POM, Kepala Badan Reserse Kriminal Mabes Polri, Ketua Komisi IX DPR RI, dan undangan lainnya di Komplek Pergudangan Surya Balaraja. Selanjutnya, keseluruhan barang bukti dimusnahkan dengan cara dibakar menggunakan insinerator oleh PT. Tenang Jaya Sejahtera di Karawang. Sementara barang bukti berupa mesin produksi obat ilegal dibawa dan disimpan di Kantor Badan POM, Jl. Percetakan Negara Nomor 23, Jakarta Pusat.
+Hingga saat ini, kasus temuan produk ilegal di Balaraja masih terus diproses secara pro-justitia dan sedang dalam proses pemanggilan saksi serta pengumpulan bukti oleh Penyidik Pegawai Negeri Sipil (PPNS) Badan POM bekerja sama dengan Kepolisian RI. Dari hasil pemeriksaan telah ditetapkan 1 (satu) orang tersangka dengan inisial IW alias K. Petugas PPNS Badan POM akan terus melakukan pengembangan guna menemukan pihak lain yang diduga terlibat dalam kejahatan ini.
+Badan POM berkomitmen untuk terus mengawal peredaran Obat dan Makanan yang aman, bermanfaat, dan bermutu di wilayah Indonesia serta memberikan sanksi tegas bagi para pelaku usaha yang memproduksi dan/atau mengedarkan Obat dan Makanan ilegal termasuk palsu maupun tanpa izin edar. Badan POM mengimbau kepada masyarakat, apabila mencurigai adanya praktik produksi dan peredaran Obat dan Makanan ilegal, laporkan ke Contact Center Badan POM. Masyarakat harus menjadi konsumen cerdas, ingat selalu Cek KIK. Pastikan Kemasan dalam kondisi baik, memiliki Izin edar, tidak melebihi masa Kedaluwarsa, serta belilah obat di sarana resmi. Khusus untuk obat, belilah di sarana resmi seperti apotek dan toko obat berizin. Obat keras hanya boleh dibeli di apotek dengan resep dokter.
+Untuk informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id , atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

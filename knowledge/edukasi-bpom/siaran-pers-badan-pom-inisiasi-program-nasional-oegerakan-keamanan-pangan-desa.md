@@ -1,0 +1,26 @@
+---
+title: "Badan POM Inisiasi Program Nasional œGerakan Keamanan Pangan Desa"
+tanggal: "2015-01-30"
+tahun: "2015"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/badan-pom-inisiasi-program-nasional-oegerakan-keamanan-pangan-desa"
+---
+# Badan POM Inisiasi Program Nasional œGerakan Keamanan Pangan Desa
+
+B adan POM Inisiasi Program Nasional “ Gerakan Keamanan Pangan Desa”
+Melanjutkan keberhasilan Aksi Nasional Pangan Jajan an Anak Sekolah (ANPJAS),
+Badan POM kembali aktif libatkan masyarakat dalam kampanye Gerakan Keamanan Pangan Desa .
+Selama lima tahun terakhir, Badan POM telah berhasil menjalankan program Aksi Nasional Pangan Jajanan Anak Sekolah (ANPJAS). Tujuan utama ANPJAS antara lain meningkatkan keamanan pangan jajanan anak sekolah dan meningkatkan kepedulian masyarakat akan pentingnya pangan yang aman. Melalui program ini, diharapkan keamanan pangan jajanan anak sekolah di 23.510 SD/MI yang telah diintervensi mencapai 90%, dari sebelumnya hanya 50% dalam kurun waktu 2011 – 2014. Dampak ANPJAS diperkirakan dapat melindungi sekitar 3,9 juta siswa dari PJAS yang tidak aman, serta 7,8 juta orang tua siswa, 236.000 guru SD, 236.000 pedagang PJAS di sekitar sekolah dan 71.000 pengelola kantin telah terpapar KIE keamanan pangan. Pencapaian target ANPJAS tersebut hanya berkisar 13% dari perkiraan total 180.000 SD/MI di Indonesia. Idealnya ANPJAS dilaksanakan di seluruh wilayah baik di perkotaan maupun di pedesaan. Namun hal ini terkendala dengan sumber daya yang tersedia sehingga program ini sebagian besar dilaksanakan di ibu kota provinsi dan kabupaten di sekitarnya belum mencakup sekolah di pedesaan. Oleh karena itu, diperlukan program tindak lanjut ANPJAS yang mencakup pedesaan.
+Undang-Undang No 18 Tahun 2012 tentang Pangan mengamanatkan bahwa pangan merupakan kebutuhan dasar manusia yang paling utama dan pemenuhannya merupakan bagian dari hak asasi manusia yang dijamin di dalam Undang-Undang Dasar Negara Republik Indonesia Tahun 1945 sebagai komponen dasar untuk mewujudkan sumber daya manusia yang berkualitas. Selain itu, negara berkewajiban mewujudkan ketersediaan, keterjangkauan, dan pemenuhan konsumsi Pangan yang cukup, aman, bermutu, dan bergizi seimbang, baik pada tingkat nasional maupun daerah hingga perseorangan secara merata di seluruh wilayah Negara Kesatuan Republik Indonesia sepanjang waktu dengan memanfaatkan sumber daya, kelembagaan, dan budaya lokal.
+Sebagai tindak lanjut keberhasilan program ANPJAS dan amanat undang-undang tersebut di atas, maka Badan POM menginisiasi program dan kegiatan di bidang keamanan pangan yang berbasis masyarakat. Program nasional ini disebut Gerakan Keamanan Pangan Desa. Pada tahun 2014, Badan POM telah memulai program dan kegiatan ini di 290 desa di 31 provinsi sebagai pendekatan awal untuk menghasilkan ± 2.100 Kader Keamanan Pangan Desa. Kader Keamanan Pangan Desa dilatih dari kelompok masyarakat desa seperti ibu PKK, karang taruna, guru, tenaga Penyuluh Keamanan Pangan (PKP) dan District Food Inspector (DFI). Para kader ini telah melakukan kegiatan bimbingan dan edukasi keamanan pangan kepada komunitas desa ± 24.750 orang.
+Program nasional Gerakan Keamanan Pangan Desa ini akan dilaksanakan dari tahun 2015 sampai 2019 di 500 desa yang tersebar di seluruh pelosok Indonesia. Untuk itu diperlukan ± 4.000 Kader Keamanan Pangan Desa yang diharapkan dapat membimbing dan mengedukasi komunitas desa sebanyak ± 450.000 masyarakat desa, termasuk usaha pangan yang ada di desa seperti Industri Rumah Tangga Pangan (IRTP), Pedagang kreatif lapangan (PKL), koperasi dan ritel pangan desa, termasuk pasar desa.
+Pada tahun 2015 program nasional Gerakan Keamanan Pangan Desa akan dilaksanakan di 100 desa baru dan melakukan pengawalan terhadap 290 desa yang diintervensi tahun 2014. Dari hasil intervensi ini akan dikembangkan menjadi kategori Desa Pangan Aman. Adapun indikator Desa Pangan Aman antara lain adalah hadirnya Kader Keamanan Pangan Desa secara aktif untuk membimbing dan mengedukasi komunitas desa. Salah satu upaya untuk keberhasilan program ini adalah perlunya komitmen yang tinggi dari semua pihak terutama pemerintah daerah untuk mewujudkan kemandirian pangan, termasuk keamanan pangan di wilayahnya. Desa Pangan Aman ini akan menjadi model atau replikasi bagi Pemerintah Kabupaten/Kota lainnya sebagai basis peningkatan keamanan pangan hingga tingkat individu di wilayah masing-masing.
+Jika masyarakat memerlukan informasi lebih lanjut, dapat menghubungi Contact Center HALOBPOM 1-500-533 , SMS 0-8121-9999-533, email halobpom@pom.go.id , atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Jakarta, 30 Januari 2015
+Biro Hukum dan Humas Badan POM RI
+Telepon/Fax: 021-4209221
+Email: hukmas@pom.go.id , humasbpom@gmail.com
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

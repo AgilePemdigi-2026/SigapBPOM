@@ -1,0 +1,24 @@
+---
+title: "PENJELASAN BADAN POM RI TENTANG INFORMASI KEAMANAN VAKSIN COVID-19 ASTRAZENECA"
+tanggal: "2021-03-17"
+tahun: "2021"
+jenis: "edukasi"
+bentuk_singkat: "Penjelasan Publik BPOM"
+source_url: "https://www.pom.go.id/penjelasan-publik/penjelasan-badan-pom-ri-tentang-informasi-keamanan-vaksin-covid-19-astrazeneca"
+---
+# PENJELASAN BADAN POM RI TENTANG INFORMASI KEAMANAN VAKSIN COVID-19 ASTRAZENECA
+
+PENJELASAN BADAN POM RI
+TENTANG
+INFORMASI KEAMANAN VAKSIN COVID-19 ASTRAZENECA
+Sehubungan dengan penangguhan penggunaan vaksin COVID-19 AstraZeneca di beberapa negara di Uni Eropa, Badan POM perlu memberikan penjelasan sebagai berikut:
+- Dari informasi sampai dengan tanggal 17 Maret 2021 diketahui bahwa telah dilakukan penangguhan penggunaan vaksin COVID-19 AstraZeneca di 15 (lima belas) negara di Eropa, karena diketahui adanya kejadian pembekuan darah ( blood clot cases ) termasuk 2 (dua) kasus fatal di Austria dan Denmark pasca penyuntikan vaksin COVID-19 AstraZeneca bets tertentu. Negara-negara tersebut melakukan penangguhan penggunaan sebagai tindakan kehati-hatian selama proses investigasi menyeluruh terhadap kasus tersebut sedang dilaksanakan. Namun demikian, izin penggunaan kondisi darurat ( Emergency Use Authorization / EUA ) tidak dicabut.
+- Badan Kesehatan Dunia ( World Health Organization / WHO ) dalam penjelasannya tanggal 12 Maret 2021 mengatakan bahwa WHO telah menerima informasi kasus pembekuan darah termasuk 2 (dua) kasus fatal akibat bets tertentu (ABV5300, ABV3025 dan ABV2856) yang diduga terkait dengan vaksin COVID-19 AstraZeneca, dan sedang melakukan kajian mendalam. Namun, disebutkan juga bahwa tidak ada alasan untuk menghentikan penggunaan vaksin tersebut dengan mengikuti EUL (Emergency Use Listing) yang ditetapkan WHO untuk vaksin COVID-19 AstraZeneca.
+- Beberapa Badan Otoritas Obat global diantaranya European Medicines Agency -EMA (Uni Eropa), Medicine Health Regulatory Authority – MHRA (Inggris), Swedish Medical Product Agency (Swedia), Therapeutic Goods Administration – TGA (Australia) dan Health Canada (Kanada) tetap menjalankan vaksinasi walaupun telah menerima informasi kasus serius yang diduga terkait vaksin COVID-19 AstraZeneca tersebut, karena manfaat vaksin lebih besar dari risikonya. Hal ini didasarkan pada bukti ilmiah hasil uji klinik dimana tidak ada indikasi keterkaitan antara vaksin dengan kejadian pembekuan darah.
+- Walaupun vaksin COVID-19 AstraZeneca telah mendapatkan Emergency Use Listing (EUL) dari WHO untuk vaksinasi COVID-19, Badan POM tetap melakukan pengkajian lengkap aspek khasiat dan keamanan bersama Komite Nasional Penilai Obat (KOMNAS PO) serta melakukan kajian aspek mutu yang komprehensif. Dari hasil uji klinik yang dilakukan pada 23.745 subjek di Inggris, Brasil dan Afrika Selatan, diketahui bahwa data keamanan berupa efek samping sifatnya ringan sampai sedang, berupa reaksi lokal dan sistemik, juga tidak ada efek samping yang sifatnya serius dan terkait dengan gangguan pembekuan darah. Secara umum manfaat vaksin COVID-19 AstraZeneca lebih besar dari risikonya.
+- Saat ini vaksin COVID-19 AstraZeneca telah diterima Indonesia, melalui COVAX Facility yang diproduksi di Korea Selatan, dengan jaminan mutu sesuai standar persyaratan global untuk Cara Pembuatan Obat yang Baik (CPOB). Bets produk vaksin COVID-19 AstraZeneca yang telah masuk ke Indonesia tersebut berbeda dengan bets produk yang diduga menyebabkan pembekuan darah dan diproduksi di fasilitas produksi yang berbeda.
+- Walaupun vaksin COVID-19 AstraZeneca dengan nomor bets ABV5300, ABV3025 dan ABV2856 tidak masuk ke Indonesia, namun untuk kehati-hatian, Badan POM bersama dengan tim pakar KOMNAS Penilai Obat, KOMNAS PP KIPI dan ITAGI melakukan kajian lebih lanjut sejak diketahui isu keamanan tersebut. Badan POM juga melakukan komunikasi dengan WHO dan Badan Otoritas Obat negara lain untuk mendapatkan hasil investigasi dan kajian yang lengkap serta terkini terkait keamanan vaksin COVID-19 AstraZeneca. Selama masih dalam proses kajian, vaksin Covid-19 AstraZeneca direkomendasikan tidak digunakan.
+- Apabila masyarakat memerlukan informasi lebih lanjut dapat menghubungi Contact Center HALO BPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Penjelasan Publik
+Bagikan:

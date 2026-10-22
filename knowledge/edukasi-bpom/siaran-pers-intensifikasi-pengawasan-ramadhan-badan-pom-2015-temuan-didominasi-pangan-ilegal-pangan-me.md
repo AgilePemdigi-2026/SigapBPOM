@@ -1,0 +1,25 @@
+---
+title: "Intensifikasi Pengawasan Ramadhan Badan POM 2015: Temuan Didominasi Pangan Ilegal, Pangan Mengandung Bahan Berbahaya Menurun"
+tanggal: "2015-07-13"
+tahun: "2015"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/intensifikasi-pengawasan-ramadhan-badan-pom-2015-temuan-didominasi-pangan-ilegal-pangan-mengandung-bahan-berbahaya-menurun"
+---
+# Intensifikasi Pengawasan Ramadhan Badan POM 2015: Temuan Didominasi Pangan Ilegal, Pangan Mengandung Bahan Berbahaya Menurun
+
+Intensifikasi Pengawasan Ramadhan B adan POM 2015:
+Temuan Didominasi Pangan Ilegal, Pangan Mengandung Bahan Berbahaya Menurun
+Dalam empat tahun terakhir, sejak tahun 2011 – 2014, hasil intensifikasi pengawasan pangan jelang dan selama Ramadhan menunjukkan pangan Tanpa Izin Edar (TIE) menjadi temuan paling banyak. Pada tahun 2015 ini tren temuan masih menunjukkan hal yang sama.
+Hasil intensifikasi pengawasan hingga 10 Juli 2015, Badan POM menemukan 4.709 item (250.908 kemasan) pangan Tidak Memenuhi Ketentuan (TMK) dengan nilai keekonomian mencapai 28,3 miliar rupiah dari berbagai sarana retail dan gudang importir, dengan rincian 1.031 item (77.607 kemasan) dengan nilai keekonomian 21,4 miliar rupiah pangan TIE (75,5%), 2.303 item (135.123 kemasan) pangan kedaluwarsa dengan keekonomian 5,4 miliar rupiah (19,1%), dan 1.375 item (38.178 kemasan) pangan rusak dengan keekonomian 1,5 miliar rupiah (5,4%). Jenis pangan TIE yang paling banyak ditemukan adalah cokelat, Makanan Pendamping Air Susu Ibu (MPASI) dan bumbu, yang banyak dilaporkan dari Jakarta, Bandung dan Batam.
+Hasil pengawasan takjil pada tahun 2015 dari 7.806 sampel diketahui 7.126 sampel (91,29%) Memenuhi Syarat dan 680 sampel (8,71%) Tidak Memenuhi Syarat. Hasil pengawasan menunjukkan bahwa pewarna tekstil rhodamin B menjadi bahan berbahaya yang paling banyak disalahgunakan dalam pangan. Secara rinci, 285 sampel pangan ditemukan mengandung Rhodamin B, 211 sampel pangan mengandung Formalin, 162 sampel pangan mengandung Boraks dan 5 sampel pangan mengandung Methanyl Yellow.
+Kosmetika dan obat tradisional juga menjadi sasaran intensifikasi pengawasan Badan POM karena hingga saat ini masih marak peredaran kosmetika dan obat tradisional ilegal dan/atau mengandung bahan dilarang/bahan kimia obat (BKO). Dari kegiatan penertiban menjelang Ramadhan dan pelaksanaan serentak pada 15 – 19 Juni 2015, ditemukan 74.082 kemasan kosmetika yang tidak terdaftar/ternotifikasi di Badan POM senilai lebih dari 2 milyar rupiah, 684 kemasan kosmetika mengandung bahan berbahaya senilai lebih dari 14 juta rupiah, dan 1.438 pieces kosmetika rusak atau kedaluwarsa senilai lebih dari 28 juta rupiah. Temuan paling banyak diperoleh dari kota Bandung, Batam dan Medan. Untuk produk obat tradisional, ditemukan 26.515 kemasan obat tradisional yang tidak terdaftar di Badan POM senilai lebih dari 318 juta rupiah, 6.903 kemasan obat tradisional mengandung BKO senilai lebih dari 50 juta rupiah, dan 69 kemasan obat tradisional rusak atau kedaluwarsa senilai lebih dari 800 ribu rupiah. Selain itu juga ditemukan kurang lebih 30.000 kemasan kosmetika tidak terdaftar/ternotifikasi senilai 2 milyar rupiah pada 6 Juli 2015.
+Badan POM terus melakukan intervensi pengawasan obat dan makanan pasca lebaran untuk menyentuh akar masalah peredaran obat dan makanan yang tidak memenuhi syarat, antara lain melalui pengawasan yang lebih ketat di pintu masuk/perbatasan, pengawasan lebih difokuskan pada temuan besar dan ke hulu, penguatan peran pelaku usaha dalam penanganan produk sesuai cara ritel yang baik dan cara distribusi yang baik serta pengawasan pangan dilaksanakan secara terpadu dan sinergis dengan lintas sektor di sepanjang rantai pasokan. Namun upaya Badan POM ini tidak akan berjalan optimal tanpa dukungan lintas sektor dan masyarakat.
+Peran masyarakat dalam pengawasan obat dan makanan perlu ditingkatkan. Masyarakat diharapkan mampu menjadi konsumen cerdas yang teliti sebelum membeli dan mengkonsumsi obat dan makanan. Selalu terapkan “Cek KIK”, perhatikan Kemasan, Izin edar, dan tanggal Kedaluwarsa produk. Jika masyarakat memiliki informasi adanya Obat dan Makanan yang diduga melanggar peraturan, seperti pangan rusak, kedaluwarsa, tanpa ijin edar atau pangan yang dicurigai mengandung bahan berbahaya, dapat menghubungi Contact Center HALOBPOM 1-500-533, sms 0-8121-9999-533, email halobpom@pom.go.id , twitter @bpom_ri atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Jakarta, 13 Juli 2015
+Biro Hukum dan Humas Badan POM RI
+Telepon/Fax: (021) 4209221
+Email : hukmas@pom.go.id, humasbpom@gmail.com
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

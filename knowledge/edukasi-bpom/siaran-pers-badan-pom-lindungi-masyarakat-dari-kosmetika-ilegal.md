@@ -1,0 +1,22 @@
+---
+title: "BADAN POM LINDUNGI MASYARAKAT DARI KOSMETIKA ILEGAL"
+tanggal: "2016-09-20"
+tahun: "2016"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/badan-pom-lindungi-masyarakat-dari-kosmetika-ilegal"
+---
+# BADAN POM LINDUNGI MASYARAKAT DARI KOSMETIKA ILEGAL
+
+S IARAN PERS
+BADAN POM LINDUNGI MASYARAKAT DARI KOSMETIKA ILEGAL
+Jakarta – Kejahatan pelanggaran Obat dan Makanan merupakan kejahatan kemanusiaan. Untuk itu Badan POM hadir melindungi masyarakat dari Obat dan Makanan ilegal termasuk kosmetika. Dalam kerangka Satuan Tugas (Satgas) Pemberantasan Obat dan Makanan Ilegal, Badan POM secara rutin melakukan pengawasan, baik di sarana produksi maupun distribusi. Jenis pelanggaran yang ditemukan Badan POM untuk produk kosmetika adalah kosmetika tanpa izin edar (TIE) dan kosmetika mengandung bahan berbahaya antara lain merkuri, asam retinoat, hidrokinon, resorsinol, pewarna merah K3, K10, serta pewarna jingga K1.
+Terhadap pelaku pelanggaran kosmetika ilegal, selain sanksi administrasi, Badan POM juga melakukan penindakan. Tahun 2014 Balai Besar POM (BBPOM) di Jakarta telah melakukan empat kali penindakan, yaitu satu produsen kosmetika di Jakarta Pusat dan tiga distributor dan toko kosmetika di Jakarta Utara dan Jakarta Pusat dengan total nilai keekonomian mencapai lebih dari 7 miliar rupiah. Tahun 2015, BBPOM di Jakarta kembali melakukan empat penindakan terhadap distributor di Jakarta Barat dan Jakarta Pusat dengan total nilai keekonomian lebih dari 17 miliar rupiah. Dan di tahun 2016 sampai dengan bulan April, penindakan yang telah dilakukan sebanyak 2 (dua) kali terhadap distributor di Jakarta Barat dan Jakarta Selatan dengan total nilai keekonomian mencapai lebih dari 4 miliar rupiah. Total nilai penindakan selama kurun waktu tersebut mencapai lebih dari 29 miliar rupiah, dimana saat ini sedang dilakukan proses pro - justitia terhadap pelanggaran tersebut.
+Hari ini, Selasa, 20 September 2016, Satgas Pemberantasan Obat dan Makanan Ilegal kembali melakukan Operasi Gabungan Nasional (Opgabnas) di Pasar Asemka Jakarta. Satgas yang dipimpin oleh Kepala Balai Besar POM di Jakarta tersebut berhasil menemukan kosmetika ilegal yang terdiri dari krim dan lotion pemutih kulit, sabun mandi, perona mata, perona pipi, dan hand body lotion . Saat ini jumlah dan nilai keekonomian temuan masih dalam proses penghitungan. Sebagian kosmetika ilegal tersebut TIE dan yang lainnya merupakan produk yang sudah dicabut izin edarnya oleh Badan POM. “Terhadap temuan ini akan dilakukan sanksi administrasi dan sanksi pidana sesuai ketentuan peraturan perundang-undangan yang berlaku”, tegas Penny, Kepala Badan POM di lokasi temuan
+“Dengan diterapkannya sistem Notifikasi Kosmetika sejak 1 Januari 2011, produk yang beredar tetap harus memenuhi persyaratan keamanan, kemanfaatan dan mutu“, lanjut Penny. Kosmetika merupakan komoditi yang cukup prospektif secara ekonomi. “Untuk itu, perlindungan konsumen terhadap keamanan dan kemanfaatan produk merupakan isu yang cukup penting, karena kosmetika sudah merupakan produk kebutuhan sehari-hari“, tutupnya.
+Badan POM terus berkomitmen mengawal peredaran Obat dan Makanan di Indonesia dengan melakukan pengawasan berkesinambungan dan berkoordinasi lebih intensif dengan lintas sektor terkait. Kepada masyarakat dihimbau untuk lebih teliti saat memilih dan membeli kosmetika. Ingat “Cek KLIKK” yaitu Cek Kemasan, Label, Izin Edar, Kegunaan dan Cara Penggunaan, serta Kedaluwarsa. Pastikan legalitas produk Obat dan Makanan melalui aplikasi android “CekBPOM”. Jika masyarakat mencurigai adanya pelanggaran Obat dan Makanan, jangan ragu untuk menghubungi Badan POM. Khusus untuk BBPOM di Jakarta, dapat dihubungi nomor telepon 021-84304047 / 021-84304049 atau e-mail bpom_jakarta@pom.go.id .
+Untuk informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id , atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:
