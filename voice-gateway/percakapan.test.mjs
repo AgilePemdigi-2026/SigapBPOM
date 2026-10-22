@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BATAS_DI_LUAR_TOPIK, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PANJANG_MAKS_JAWABAN, PROMPT_SISTEM,
-  AnggaranToken, PembatasLaju, RiwayatPanggilan, idPanggilanSah, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban,
+  BATAS_DI_LUAR_TOPIK, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PANJANG_MAKS_JAWABAN, PROMPT_SISTEM,
+  AnggaranToken, PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban,
   saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
 
@@ -79,6 +79,26 @@ test('cadangan token membuat giliran serentak tidak lolos bersamaan, lalu dikore
   assert.equal(a.total, 3_100);
   a.catat('ip1', 'p1', -10_000);
   assert.equal(a.total, 0);
+});
+
+test('penelepon yang menolak tawaran bantuan lagi mengakhiri panggilan', () => {
+  assert.ok(PROMPT_SISTEM.includes(PESAN_TAWARAN_PENUTUP));
+  const tawaran = `Pengaduan akan diteruskan kepada petugas. ${PESAN_TAWARAN_PENUTUP}`;
+  for (const u of ['Tidak, terima kasih.', 'Oke siap', 'Sudah cukup, makasih ya', 'nggak ada', 'Tidak ada lagi.']) {
+    assert.ok(inginMenutup(u, tawaran), u);
+  }
+  for (const u of ['Tidak, tapi saya mau tanya soal obat batuk', 'Ada lagi', 'Ada, satu lagi soal kosmetik']) {
+    assert.ok(!inginMenutup(u, tawaran), u);
+  }
+  assert.ok(!inginMenutup('Tidak', 'Obat keras harus dengan resep dokter.'));
+
+  const r = new RiwayatPanggilan();
+  assert.equal(r.jawabanTerakhir(ID), '');
+  r.tambah(ID, 'assistant', 'pertama');
+  r.tambah(ID, 'user', 'halo');
+  r.tambah(ID, 'assistant', tawaran);
+  r.tambah(ID, 'user', 'tidak');
+  assert.equal(r.jawabanTerakhir(ID), tawaran);
 });
 
 test('jawaban dibersihkan dari markdown dan dipotong di batas kalimat', () => {

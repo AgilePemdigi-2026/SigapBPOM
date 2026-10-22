@@ -42,7 +42,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
 <script>
   type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string };
-  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null };
+  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean };
 
   const GATEWAY = '/voice';
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
@@ -131,6 +131,8 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (h.transkrip) push({ kind: 'user', text: h.transkrip });
       if (h.jawaban) say(h.jawaban);
       if (h.suara) await putar(h.suara);
+      // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
+      if (h.akhiri) return end();
       if (phase !== 'ended') dengar();
     }
 

@@ -5,8 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
-  PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju,
-  RiwayatPanggilan, idPanggilanSah, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan, teksUntukSuara,
+  PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PANJANG_MAKS_UCAPAN, AnggaranToken,
+  PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan,
+  teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 
@@ -39,7 +40,7 @@ const PERKIRAAN_TOKEN_GILIRAN = 4000;
 const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 // Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
 const SUARA_STATIS = {
-  menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK,
+  menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
 };
 
 const AUDIO_MAKS_BYTE = 4 * 1024 * 1024;
@@ -206,10 +207,15 @@ async function giliran(req, res, url) {
     const tStt = Date.now() - mulai;
     if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
+    // Penelepon menolak tawaran bantuan lagi: salam penutup tanpa memanggil AI, lalu web mengakhiri panggilan.
+    const menutup = inginMenutup(transkrip, riwayat.jawabanTerakhir(id));
     // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
-    const saring = saringUcapan(transkrip, riwayat.diLuarTopik(id));
+    const saring = menutup ? null : saringUcapan(transkrip, riwayat.diLuarTopik(id));
     let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
-    if (!saring) {
+    if (menutup) {
+      riwayat.tambah(id, 'user', transkrip);
+      jawaban = PESAN_PENUTUP;
+    } else if (!saring) {
       riwayat.tambah(id, 'user', transkrip);
       kutipan = korpus ? korpus.cari(transkrip) : [];
       const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
@@ -218,7 +224,7 @@ async function giliran(req, res, url) {
       cadangan = 0;
       jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
     }
-    const diLuarTopik = Boolean(saring) || jawabanDiLuarTopik(jawaban);
+    const diLuarTopik = !menutup && (Boolean(saring) || jawabanDiLuarTopik(jawaban));
     if (diLuarTopik) {
       jawaban = PESAN_DI_LUAR_TOPIK;
       kutipan = [];
@@ -228,11 +234,11 @@ async function giliran(req, res, url) {
     const tTotal = Date.now() - mulai;
     console.info(JSON.stringify({
       ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
-      saring, di_luar_topik: diLuarTopik, token, token_hari_ini: anggaranAi.total - cadangan,
+      saring, di_luar_topik: diLuarTopik, menutup, token, token_hari_ini: anggaranAi.total - cadangan,
     }));
     const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
-    const suara = diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
-    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara });
+    const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
+    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup });
   } finally {
     // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
     if (cadangan) anggaranAi.catat(ip, id, -cadangan);
