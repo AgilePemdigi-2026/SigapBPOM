@@ -200,7 +200,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       say(PESAN_MENU);
       push({ kind: 'menu' });
       if (!mic) say('Izin mikrofon ditolak. Izinkan mikrofon di browser agar bisa berbicara dengan CS AI.');
-      await putar(`${GATEWAY}/sapa`);
+      await putar(`${GATEWAY}/statis/menu`);
       if (phase !== 'ended') dengar();
     }
 

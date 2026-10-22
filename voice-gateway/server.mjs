@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import {
-  PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban,
+  PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban,
 } from './percakapan.mjs';
 
 const env = (k, d) => process.env[k] || d;
@@ -17,8 +17,11 @@ const ELEVENLABS_MODEL_STT = env('ELEVENLABS_STT_MODEL', 'scribe_v2');
 const HERMES_URL = env('HERMES_URL', 'http://host.docker.internal:8642');
 const HERMES_KEY = env('HERMES_API_KEY', '');
 const HERMES_MODEL = env('HERMES_MODEL', 'sigap-hermes');
-// Kuota karakter TTS per hari agar kuota paket ElevenLabs tidak habis oleh penyalahgunaan.
+// Kuota karakter TTS per hari (total dan per IP) agar kuota paket ElevenLabs tidak habis oleh satu pengguna.
 const KARAKTER_TTS_HARIAN = Number(env('TTS_KARAKTER_HARIAN', '6000'));
+const KARAKTER_TTS_HARIAN_PER_IP = Number(env('TTS_KARAKTER_HARIAN_PER_IP', '1500'));
+// Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
+const SUARA_STATIS = { menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2 };
 
 const AUDIO_MAKS_BYTE = 4 * 1024 * 1024;
 const JSON_MAKS_BYTE = 16 * 1024;
@@ -30,8 +33,8 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const riwayat = new RiwayatPanggilan();
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 const tokenSuara = new Map();
-let pemakaianTts = { hari: '', karakter: 0 };
-let sapaanTersimpan = null;
+let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
+const suaraStatis = new Map();
 
 const kirim = (res, kode, status, message, data = null) => {
   res.writeHead(kode, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -56,21 +59,29 @@ function bacaBody(req, maks) {
   });
 }
 
-const ipKlien = (req) => String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim();
+// Gateway hanya bisa dicapai lewat Caddy, yang menambahkan alamat klien sebagai entri TERAKHIR
+// X-Forwarded-For. Entri sebelumnya bisa dipalsukan klien, jadi tidak dipakai.
+const ipKlien = (req) => {
+  const xff = String(req.headers['x-forwarded-for'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  return xff.at(-1) ?? req.socket.remoteAddress ?? '';
+};
 
-function catatTts(teks) {
+function catatTts(teks, ip) {
   const hari = new Date().toISOString().slice(0, 10);
-  if (pemakaianTts.hari !== hari) pemakaianTts = { hari, karakter: 0 };
-  if (pemakaianTts.karakter + teks.length > KARAKTER_TTS_HARIAN) throw new ErrorGateway(429, 'Kuota suara hari ini sudah habis. Coba lagi besok.');
+  if (pemakaianTts.hari !== hari) pemakaianTts = { hari, karakter: 0, perIp: new Map() };
+  const milikIp = pemakaianTts.perIp.get(ip) ?? 0;
+  if (pemakaianTts.karakter + teks.length > KARAKTER_TTS_HARIAN || milikIp + teks.length > KARAKTER_TTS_HARIAN_PER_IP) {
+    throw new ErrorGateway(429, 'Kuota suara hari ini sudah habis. Coba lagi besok.');
+  }
   pemakaianTts.karakter += teks.length;
+  pemakaianTts.perIp.set(ip, milikIp + teks.length);
 }
 
-function terbitkanTokenSuara(teks) {
+function terbitkanTokenSuara(teks, ip) {
   const sekarang = Date.now();
   for (const [t, v] of tokenSuara) if (v.kedaluwarsa < sekarang) tokenSuara.delete(t);
-  catatTts(teks);
   const token = randomUUID();
-  tokenSuara.set(token, { teks, kedaluwarsa: sekarang + TOKEN_SUARA_MS });
+  tokenSuara.set(token, { teks, ip, kedaluwarsa: sekarang + TOKEN_SUARA_MS });
   return `/voice/suara/${token}`;
 }
 
@@ -125,7 +136,7 @@ async function giliran(req, res, url) {
     if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
     riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
     riwayat.tambah(body.id, 'assistant', jawaban);
-    return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: terbitkanTokenSuara(jawaban) });
+    return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${Number(body.pilih)}` });
   }
 
   if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
@@ -144,25 +155,29 @@ async function giliran(req, res, url) {
   riwayat.tambah(id, 'assistant', jawaban);
   const tTotal = Date.now() - mulai;
   console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length }));
-  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, suara: terbitkanTokenSuara(jawaban) });
+  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, suara: terbitkanTokenSuara(jawaban, ipKlien(req)) });
 }
 
+// Kuota dipotong saat audio benar-benar dibuat, bukan saat token diterbitkan.
 async function suara(res, token) {
   const entri = tokenSuara.get(token);
   if (!entri || entri.kedaluwarsa < Date.now()) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
   tokenSuara.delete(token);
+  catatTts(entri.teks, entri.ip);
   const aliran = await ttsElevenLabs(entri.teks);
   res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'no-store' });
   Readable.fromWeb(aliran).pipe(res);
 }
 
-async function sapa(res) {
-  if (!sapaanTersimpan) {
-    const aliran = await ttsElevenLabs(PESAN_MENU);
-    sapaanTersimpan = Buffer.from(await new Response(aliran).arrayBuffer());
+async function statis(res, nama) {
+  const teks = Object.hasOwn(SUARA_STATIS, nama) ? SUARA_STATIS[nama] : null;
+  if (!teks) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
+  if (!suaraStatis.has(nama)) {
+    const aliran = await ttsElevenLabs(teks);
+    suaraStatis.set(nama, Buffer.from(await new Response(aliran).arrayBuffer()));
   }
-  res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=3600', 'x-teks': encodeURIComponent(PESAN_MENU) });
-  res.end(sapaanTersimpan);
+  res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=3600' });
+  res.end(suaraStatis.get(nama));
 }
 
 const server = createServer(async (req, res) => {
@@ -171,7 +186,7 @@ const server = createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && path === '/voice/kesehatan') return kirim(res, 200, 'success', 'OK', { siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) });
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
-    if (req.method === 'GET' && path === '/voice/sapa') return await sapa(res);
+    if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(res, path.slice('/voice/statis/'.length));
     if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(res, path.slice('/voice/suara/'.length));
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
     if (req.method === 'POST' && path === '/voice/akhiri') {
