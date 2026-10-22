@@ -75,6 +75,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
     let pantau: number | undefined;
     const pemutar = new Audio();
+    // Tempo bicara gaya CS. Model TTS v3 tidak punya pengaturan kecepatan, jadi audio dipercepat di sini
+    // dengan nada tetap. defaultPlaybackRate dipakai karena mengganti src mengembalikan playbackRate ke nilai itu.
+    const KECEPATAN_PUTAR = 1.3;
+    pemutar.defaultPlaybackRate = pemutar.playbackRate = KECEPATAN_PUTAR;
+    pemutar.preservesPitch = true;
 
     const stamp = () => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
     const LABEL = { diam: 'TERSAMBUNG', mendengar: 'MENDENGARKAN', memproses: 'MEMPROSES', berbicara: 'BERBICARA' };

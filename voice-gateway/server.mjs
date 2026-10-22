@@ -5,7 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
-  PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban, teksUntukSuara,
+  PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju,
+  RiwayatPanggilan, idPanggilanSah, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 
@@ -15,10 +16,12 @@ const ASAL_SITUS = env('SITE_ORIGIN', '');
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
 // Suara "Zaak" dari library ElevenLabs: penutur asli, jelas, cocok untuk IVR.
 const ELEVENLABS_SUARA = env('ELEVENLABS_VOICE_ID', 'HnnPtoATgzx4ubChwm24');
-// Flash dipilih karena latensinya stabil sekitar 0,4 detik dan satu-satunya model murah yang menghormati `speed`.
-const ELEVENLABS_MODEL_TTS = env('ELEVENLABS_TTS_MODEL', 'eleven_flash_v2_5');
-// Tempo bicara CS: 1.2 adalah batas atas ElevenLabs.
-const ELEVENLABS_KECEPATAN = Math.min(1.2, Math.max(0.7, Number(env('ELEVENLABS_TTS_SPEED', '1.2')) || 1.2));
+// v3 conversational dipilih karena intonasinya paling natural. Model ini mengabaikan `speed`, jadi tempo CS
+// diatur di pemutar web (KECEPATAN_PUTAR di PanelSuara.astro). Render pertama suatu suara bisa belasan detik;
+// render pesan tetap saat mulai sekaligus memanaskannya.
+const ELEVENLABS_MODEL_TTS = env('ELEVENLABS_TTS_MODEL', 'eleven_v3_conversational');
+// Stabilitas v3 hanya menerima 0 (kreatif), 0.5 (natural), atau 1 (robust).
+const ELEVENLABS_STABILITAS = Number(env('ELEVENLABS_TTS_STABILITY', '0.5'));
 const ELEVENLABS_MODEL_STT = env('ELEVENLABS_STT_MODEL', 'scribe_v2');
 const HERMES_URL = env('HERMES_URL', 'http://host.docker.internal:8642');
 const HERMES_KEY = env('HERMES_API_KEY', '');
@@ -26,8 +29,14 @@ const HERMES_MODEL = env('HERMES_MODEL', 'sigap-hermes');
 // Kuota karakter TTS per hari (total dan per IP) agar kuota paket ElevenLabs tidak habis oleh satu pengguna.
 const KARAKTER_TTS_HARIAN = Number(env('TTS_KARAKTER_HARIAN', '6000'));
 const KARAKTER_TTS_HARIAN_PER_IP = Number(env('TTS_KARAKTER_HARIAN_PER_IP', '1500'));
+// Anggaran token AI dari `usage` Hermes. Satu giliran sekitar 3.600 token: prompt sistem Hermes plus kutipan peraturan.
+const TOKEN_AI_HARIAN = Number(env('AI_TOKEN_HARIAN', '500000'));
+const TOKEN_AI_HARIAN_PER_IP = Number(env('AI_TOKEN_HARIAN_PER_IP', '100000'));
+const TOKEN_AI_PER_PANGGILAN = Number(env('AI_TOKEN_PER_PANGGILAN', '40000'));
 // Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
-const SUARA_STATIS = { menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2 };
+const SUARA_STATIS = {
+  menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK,
+};
 
 const AUDIO_MAKS_BYTE = 4 * 1024 * 1024;
 const JSON_MAKS_BYTE = 16 * 1024;
@@ -48,6 +57,7 @@ try {
   console.error(JSON.stringify({ ev: 'korpus_gagal', jenis: e instanceof Error ? e.code ?? e.message : 'unknown' }));
 }
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
+const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
 const tokenSuara = new Map();
 let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
 const suaraStatis = new Map();
@@ -115,16 +125,19 @@ async function sttElevenLabs(audio, tipe) {
   return String(d.text ?? '').replace(/\s+/g, ' ').trim().slice(0, PANJANG_MAKS_UCAPAN);
 }
 
+// Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan rapikanJawaban, pemakaian lewat AnggaranToken.
 async function tanyaHermes(id, kutipan) {
+  const pesan = riwayat.untukModel(id, kutipan);
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: HERMES_MODEL, messages: riwayat.untukModel(id, kutipan) }),
+    body: JSON.stringify({ model: HERMES_MODEL, messages: pesan }),
     signal: AbortSignal.timeout(BATAS_WAKTU_HERMES_MS),
   });
   if (!r.ok) throw new Error(`hermes ${r.status}`);
   const d = await r.json();
-  return rapikanJawaban(d.choices?.[0]?.message?.content);
+  const token = Number(d.usage?.total_tokens) || Math.ceil(JSON.stringify(pesan).length / 3);
+  return { jawaban: rapikanJawaban(d.choices?.[0]?.message?.content), token };
 }
 
 async function ttsElevenLabs(teks) {
@@ -133,7 +146,7 @@ async function ttsElevenLabs(teks) {
     method: 'POST',
     headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
     body: JSON.stringify({
-      text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { speed: ELEVENLABS_KECEPATAN },
+      text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { stability: ELEVENLABS_STABILITAS },
     }),
     signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
   });
@@ -160,6 +173,10 @@ async function giliran(req, res, url) {
   if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
   const id = url.searchParams.get('id');
   if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
+  const ip = ipKlien(req);
+  // Dicek sebelum STT supaya panggilan yang anggarannya habis tidak ikut memakai kuota ElevenLabs.
+  const batasAi = anggaranAi.cek(ip, id);
+  if (batasAi) throw new ErrorGateway(429, PESAN_BATAS_AI[batasAi]);
   const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
   if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
 
@@ -168,14 +185,32 @@ async function giliran(req, res, url) {
   const tStt = Date.now() - mulai;
   if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
-  riwayat.tambah(id, 'user', transkrip);
-  const kutipan = korpus ? korpus.cari(transkrip) : [];
-  const jawaban = await tanyaHermes(id, pesanKutipan(kutipan)) || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
-  riwayat.tambah(id, 'assistant', jawaban);
+  // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
+  const saring = saringUcapan(transkrip, riwayat.diLuarTopik(id));
+  let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
+  if (!saring) {
+    riwayat.tambah(id, 'user', transkrip);
+    kutipan = korpus ? korpus.cari(transkrip) : [];
+    const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
+    token = hasil.token;
+    anggaranAi.catat(ip, id, token);
+    jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+  }
+  const diLuarTopik = Boolean(saring) || jawabanDiLuarTopik(jawaban);
+  if (diLuarTopik) {
+    jawaban = PESAN_DI_LUAR_TOPIK;
+    kutipan = [];
+    riwayat.catatDiLuarTopik(id);
+  }
+  if (!saring) riwayat.tambah(id, 'assistant', jawaban);
   const tTotal = Date.now() - mulai;
-  console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length }));
+  console.info(JSON.stringify({
+    ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
+    saring, di_luar_topik: diLuarTopik, token, token_hari_ini: anggaranAi.total,
+  }));
   const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
-  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara: terbitkanTokenSuara(jawaban, ipKlien(req)) });
+  const suara = diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
+  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara });
 }
 
 // Kuota dipotong saat audio benar-benar dibuat, bukan saat token diterbitkan.
