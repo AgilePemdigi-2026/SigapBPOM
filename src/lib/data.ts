@@ -1,5 +1,7 @@
 // Data dashboard. Sengaja kosong: data tiruan prototipe sudah dihapus, dan isinya
 // nanti datang dari Supabase (T-F2.1-03, T-F3.1-03, F5.1). Halaman menampilkan state kosong.
+// Pengecualian: daftar materi dibaca dari manifest korpus RAG yang dipakai Voice Gateway.
+import korpus from '../../knowledge/regulasi-bpom/manifest.json';
 
 export type Chip = { bg: string; fg: string };
 
@@ -36,7 +38,26 @@ export const KATEGORI: [string, number, string][] = [];
 
 export type Materi = { id: number; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
 
-export const MATERI: Materi[] = [];
+// Kategori ditebak dari judul; urutan penting karena "Obat Tradisional" juga mengandung "Obat".
+const POLA_KATEGORI: [RegExp, string][] = [
+  [/kosmetik/i, 'Kosmetik'],
+  [/suplemen/i, 'Suplemen Kesehatan'],
+  [/obat tradisional|obat bahan alam|fitofarmaka/i, 'Obat Tradisional'],
+  [/pangan|gizi|makanan|minuman|perisa/i, 'Pangan Olahan'],
+  [/obat|farmakovigilans|vaksin|narkotika|psikotropika/i, 'Obat'],
+];
+const kategoriDari = (judul: string) => POLA_KATEGORI.find(([pola]) => pola.test(judul))?.[1] ?? 'Edukasi Umum';
+
+export const MATERI: Materi[] = korpus.dokumen
+  .map((d, i) => ({
+    id: i + 1,
+    judul: d.title,
+    kategori: kategoriDari(d.title),
+    rujukan: `${d.bentuk} No. ${d.nomor} Tahun ${d.tahun}`,
+    tgl: d.tahun,
+    aktif: true,
+  }))
+  .sort((a, b) => Number(b.tgl) - Number(a.tgl) || a.judul.localeCompare(b.judul, 'id'));
 
 export const KB_TOTAL = { total: MATERI.length, aktif: MATERI.filter((m) => m.aktif).length, nonaktif: MATERI.filter((m) => !m.aktif).length };
 
