@@ -108,11 +108,22 @@ function catatTts(teks, ip) {
   pemakaianTts.perIp.set(ip, milikIp + teks.length);
 }
 
+// Render TTS dimulai saat token terbit, jadi audio sudah mengalir ketika browser memintanya. Kuota dipotong di sini
+// karena di sinilah biaya terjadi; bila kuota habis, jawaban tetap tampil sebagai teks tanpa suara.
+// Render yang tidak pernah diambil berhenti sendiri oleh BATAS_WAKTU_TTS_MS.
 function terbitkanTokenSuara(teks, ip) {
   const sekarang = Date.now();
   for (const [t, v] of tokenSuara) if (v.kedaluwarsa < sekarang) tokenSuara.delete(t);
+  try {
+    catatTts(teks, ip);
+  } catch (e) {
+    if (e instanceof ErrorGateway) return null;
+    throw e;
+  }
+  const render = ttsElevenLabs(teks);
+  render.catch(() => {});
   const token = randomUUID();
-  tokenSuara.set(token, { teks, ip, kedaluwarsa: sekarang + TOKEN_SUARA_MS });
+  tokenSuara.set(token, { render, kedaluwarsa: sekarang + TOKEN_SUARA_MS });
   return `/voice/suara/${token}`;
 }
 
@@ -230,13 +241,11 @@ async function giliran(req, res, url) {
   }
 }
 
-// Kuota dipotong saat audio benar-benar dibuat, bukan saat token diterbitkan.
 async function suara(res, token) {
   const entri = tokenSuara.get(token);
   if (!entri || entri.kedaluwarsa < Date.now()) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
   tokenSuara.delete(token);
-  catatTts(entri.teks, entri.ip);
-  const aliran = await ttsElevenLabs(entri.teks);
+  const aliran = await entri.render;
   res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'no-store' });
   Readable.fromWeb(aliran).pipe(res);
 }

@@ -48,7 +48,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
   // Deteksi giliran bicara sederhana dari kekuatan sinyal mikrofon.
   const AMBANG_SUARA = 0.025;
-  const JEDA_SELESAI_MS = 1200;
+  const JEDA_SELESAI_MS = 800;
   const UCAPAN_MAKS_MS = 15_000;
   const TUNGGU_MAKS_MS = 8_000;
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
