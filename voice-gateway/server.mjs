@@ -11,7 +11,7 @@ import {
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 import {
-  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
+  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
 } from './eskalasi.mjs';
 
@@ -51,6 +51,11 @@ const SUARA_STATIS = {
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+const pembatasTiket = new PembatasTiket({
+  perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
+  perIpHarian: Number(env('TIKET_HARIAN_PER_IP', '5')),
+  perNomorHarian: Number(env('TIKET_HARIAN_PER_NOMOR', '3')),
+});
 
 const AUDIO_MAKS_BYTE = 4 * 1024 * 1024;
 const JSON_MAKS_BYTE = 16 * 1024;
@@ -233,7 +238,14 @@ async function giliran(req, res, url) {
         // Nomor telepon tidak masuk riwayat yang dikirim ke AI.
         riwayat.tambah(id, 'user', nomorTelepon ? '(menyebutkan nomor telepon)' : transkrip);
         if (nomorTelepon) {
+          const batasTiket = pembatasTiket.cek(id, ip, nomorTelepon);
+          if (batasTiket) {
+            riwayat.selesaiEskalasi(id);
+            console.info(JSON.stringify({ ev: 'eskalasi', tahap: 'ditolak', batas: batasTiket }));
+            throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
+          }
           tiket = await penerbitTiket.terbitkan({ percakapanId: id, nomorTelepon, pertanyaan: pertanyaanEskalasi });
+          pembatasTiket.catat(id, ip, nomorTelepon);
           riwayat.selesaiEskalasi(id);
           jawaban = pesanTiketEskalasi(tiket);
           suara = terbitkanTokenSuara(jawaban, ip);

@@ -70,3 +70,38 @@ export class PenerbitTiketSupabase {
     return d.data.nomorTiket;
   }
 }
+
+/**
+ * Batas penerbitan tiket agar gateway publik tidak dipakai membanjiri antrean petugas atau SMS ke nomor sembarang:
+ * per panggilan, per IP per hari, dan per nomor telepon per hari. Mengembalikan jenis batas yang terlampaui, atau null.
+ */
+export class PembatasTiket {
+  constructor({ perPanggilan = 2, perIpHarian = 5, perNomorHarian = 3 } = {}, now = () => Date.now()) {
+    this.batas = { panggilan: perPanggilan, ip: perIpHarian, nomor: perNomorHarian };
+    this.now = now;
+    this.hari = '';
+    this.hitungan = { panggilan: new Map(), ip: new Map(), nomor: new Map() };
+  }
+
+  gulir() {
+    const hari = new Date(this.now()).toISOString().slice(0, 10);
+    if (hari === this.hari) return;
+    this.hari = hari;
+    for (const m of Object.values(this.hitungan)) m.clear();
+  }
+
+  cek(id, ip, nomor) {
+    this.gulir();
+    const kunci = { panggilan: id, ip, nomor };
+    for (const jenis of ['panggilan', 'ip', 'nomor']) {
+      if ((this.hitungan[jenis].get(kunci[jenis]) ?? 0) >= this.batas[jenis]) return jenis;
+    }
+    return null;
+  }
+
+  catat(id, ip, nomor) {
+    this.gulir();
+    const kunci = { panggilan: id, ip, nomor };
+    for (const jenis of ['panggilan', 'ip', 'nomor']) this.hitungan[jenis].set(kunci[jenis], (this.hitungan[jenis].get(kunci[jenis]) ?? 0) + 1);
+  }
+}

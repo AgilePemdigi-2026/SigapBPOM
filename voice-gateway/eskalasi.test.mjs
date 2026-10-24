@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan, pesanTiketEskalasi,
+  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan, pesanTiketEskalasi,
 } from './eskalasi.mjs';
 import { PROMPT_SISTEM, RiwayatPanggilan, teksUntukSuara } from './percakapan.mjs';
 
@@ -71,3 +71,17 @@ test('nomor tiket dieja per digit untuk TTS', () => {
     'Nomor tiket Anda E S K, dua nol dua enam satu nol satu sembilan, nol nol nol satu. Jawaban petugas akan dikirim melalui SMS.');
 });
 
+
+test('penerbitan tiket dibatasi per panggilan, per IP, dan per nomor, lalu pulih esok hari', () => {
+  let t = Date.parse('2026-10-19T03:00:00Z');
+  const b = new PembatasTiket({ perPanggilan: 1, perIpHarian: 2, perNomorHarian: 2 }, () => t);
+  assert.equal(b.cek('p1', 'ip1', '081234567890'), null);
+  b.catat('p1', 'ip1', '081234567890');
+  assert.equal(b.cek('p1', 'ip1', '081234567891'), 'panggilan');
+  b.catat('p2', 'ip2', '081234567890');
+  assert.equal(b.cek('p3', 'ip3', '081234567890'), 'nomor');
+  b.catat('p4', 'ip1', '081200000000');
+  assert.equal(b.cek('p5', 'ip1', '081211111111'), 'ip');
+  t = Date.parse('2026-10-20T00:00:01Z');
+  assert.equal(b.cek('p1', 'ip1', '081234567890'), null);
+});
