@@ -77,6 +77,37 @@ test('req_1_7 nomor tidak valid ditolak dengan pesan minta ulang dan tidak mener
   assert.equal(tiket.length, 0);
 });
 
+test('bug_32 percakapan tidak ditemukan tetap tercatat di log_tool tanpa percakapan dengan berhasil false', async () => {
+  const log: LogTool[] = [];
+  const p: PenyimpananLayanan = {
+    async catatLogTool(l) {
+      if (l.percakapanId !== null) throw new Error('violates foreign key constraint');
+      log.push(l);
+    },
+    async terbitkanTiketEskalasi() { throw new ErrorSigap(404, 'Percakapan tidak ditemukan.'); },
+  };
+  const c = new InformasiProdukController(new AdapterCekBpomTiruan(), p);
+  await assert.rejects(
+    c.terbitkanTiketEskalasi({ percakapanId: PERCAKAPAN, nomorTelepon: '081234567890', pertanyaan: 'Aman untuk ibu hamil?' }),
+    (e: unknown) => e instanceof ErrorSigap && e.status === 404,
+  );
+  assert.deepEqual(log.map((l) => [l.namaTool, l.berhasil, l.percakapanId]), [['terbitkan_tiket_eskalasi', false, null]]);
+});
+
+test('bug_32 log yang ditolak karena percakapanId dicatat ulang tanpa percakapan', async () => {
+  const log: LogTool[] = [];
+  const p: PenyimpananLayanan = {
+    async catatLogTool(l) {
+      if (l.percakapanId !== null) throw new Error('violates foreign key constraint');
+      log.push(l);
+    },
+    async terbitkanTiketEskalasi() { return 'ESK-20261020-0001'; },
+  };
+  const c = new InformasiProdukController(new AdapterCekBpomTiruan(), p);
+  await c.cekRegistrasi({ namaProduk: 'Susu Formula Sehat', percakapanId: PERCAKAPAN });
+  assert.deepEqual(log.map((l) => [l.namaTool, l.berhasil, l.percakapanId]), [['cek_registrasi_bpom', true, null]]);
+});
+
 test('nomor telepon format Indonesia: 08… atau +628…, 10–13 digit', () => {
   assert.equal(normalkanNomorTelepon('0812345678'), '0812345678');
   assert.equal(normalkanNomorTelepon('0812345678901'), '0812345678901');
