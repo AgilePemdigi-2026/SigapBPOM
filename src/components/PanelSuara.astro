@@ -1,7 +1,7 @@
 ---
 // Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.4, REQ-2.5).
-// Dibuka lewat event `sigap:buka-panggilan`. Isi percakapan masih skenario tiruan dari prototipe
-// Claude Design sampai panel disambungkan ke Voice Gateway (T-F1.1-05).
+// Dibuka lewat event `sigap:buka-panggilan`. Suara penelepon direkam di browser lalu dikirim ke
+// Voice Gateway (/voice) yang meneruskannya ke ElevenLabs STT, Hermes Agent, dan ElevenLabs TTS.
 interface Props { mode: 'desktop' | 'mobile' }
 const { mode } = Astro.props;
 const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
@@ -41,7 +41,16 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 </div>
 
 <script>
-  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'product' | 'ticket' | 'ended'; text?: string; time?: string };
+  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string };
+  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null };
+
+  const GATEWAY = '/voice';
+  const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
+  // Deteksi giliran bicara sederhana dari kekuatan sinyal mikrofon.
+  const AMBANG_SUARA = 0.025;
+  const JEDA_SELESAI_MS = 1200;
+  const UCAPAN_MAKS_MS = 15_000;
+  const TUNGGU_MAKS_MS = 8_000;
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
   function render(m: Msg) {
@@ -52,15 +61,6 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
         <button data-pick="1"><span class="no">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
         <button data-pick="2"><span class="no purple">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
       case 'processing': return `<div class="m-proc"><i class="icon-loader-circle"></i>${esc(m.text!)}</div>`;
-      case 'product': return `<div class="m-product">
-        <div class="row"><span class="cap">HASIL DATA REGISTRASI</span><span class="ok"><span></span>Berlaku</span></div>
-        <div class="name">Susu Formula Sehat</div>
-        <div class="nie"><span>Nomor izin edar</span><span class="mono">ML 865009001234</span></div>
-        <span class="src">Sumber: cekbpom.pom.go.id · diambil langsung saat panggilan</span></div>`;
-      case 'ticket': return `<div class="m-ticket">
-        <div class="row"><i class="icon-circle-check"></i><span>Pengaduan Anda telah dicatat dengan nomor tiket ADU-0456. Tindak lanjut akan dikirim melalui SMS.</span></div>
-        <div class="no"><span>NOMOR TIKET PENGADUAN</span><span class="mono">ADU-0456</span></div>
-        <span class="src">Data pengaduan lengkap. Berkas kasus diteruskan ke antrean tindak lanjut petugas HaloBPOM.</span></div>`;
       case 'ended': return `<div class="m-ended"><i class="icon-phone-off"></i><span>${esc(m.text!)}</span></div>`;
     }
   }
@@ -69,18 +69,21 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     const $ = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
     const tr = $('[data-tr]');
     let phase: 'connecting' | 'menu' | 'flow' | 'ended' = 'connecting';
-    let service: 1 | 2 | null = null, complete = false, secs = 0, msgs: Msg[] = [];
-    let timers: number[] = [], typer: number | undefined, tick: number | undefined;
+    let mode: 'diam' | 'mendengar' | 'memproses' | 'berbicara' = 'diam';
+    let service: 1 | 2 | null = null, secs = 0, msgs: Msg[] = [];
+    let tick: number | undefined, idPanggilan = '';
+    let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
+    let pantau: number | undefined;
+    const pemutar = new Audio();
 
     const stamp = () => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-    const clear = () => { timers.forEach(clearTimeout); timers = []; clearInterval(typer); };
-    const at = (ms: number, fn: () => void) => { timers.push(window.setTimeout(fn, ms)); };
+    const LABEL = { diam: 'TERSAMBUNG', mendengar: 'MENDENGARKAN', memproses: 'MEMPROSES', berbicara: 'BERBICARA' };
 
     function paint() {
       const ended = phase === 'ended', live = !ended && phase !== 'connecting';
       tr.innerHTML = msgs.map(render).join('');
       tr.scrollTop = tr.scrollHeight;
-      $('[data-state]').textContent = ended ? 'BERAKHIR' : phase === 'connecting' ? 'MENYAMBUNGKAN' : 'TERSAMBUNG';
+      $('[data-state]').textContent = ended ? 'BERAKHIR' : phase === 'connecting' ? 'MENYAMBUNGKAN' : LABEL[mode];
       root.classList.toggle('live', live);
       root.classList.toggle('ended', ended);
       $('[data-dur]').textContent = stamp();
@@ -94,57 +97,139 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     }
     const push = (m: Msg) => { msgs = msgs.filter((x) => x.kind !== 'processing').concat({ ...m, time: stamp() }); paint(); };
     const say = (text: string) => push({ kind: 'sys', text });
-    const menu = () => { say('Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'); push({ kind: 'menu' }); };
+    const setMode = (m: typeof mode) => { mode = m; paint(); };
 
-    // ponytail: ucapan penelepon disimulasikan kata per kata; diganti hasil STT ElevenLabs di T-F1.1-04.
-    function hear(text: string, done: () => void) {
-      const words = text.split(' ');
-      let i = 0;
-      push({ kind: 'user', text: '' });
-      typer = window.setInterval(() => {
-        i++;
-        msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: words.slice(0, i).join(' ') };
-        paint();
-        if (i >= words.length) { clearInterval(typer); at(500, done); }
-      }, 110);
+    // Putar audio jawaban lalu kembali mendengarkan. Mikrofon tidak merekam selama agen berbicara.
+    function putar(src: string) {
+      return new Promise<void>((selesai) => {
+        setMode('berbicara');
+        pemutar.src = src;
+        pemutar.onended = pemutar.onerror = () => selesai();
+        pemutar.play().catch(() => selesai());
+      });
     }
 
-    function start() {
-      clear();
-      phase = 'connecting'; service = null; complete = false; secs = 0; msgs = [];
+    async function kirimGiliran(body: Blob | { pilih: number }) {
+      const audio = body instanceof Blob;
+      const r = await fetch(audio ? `${GATEWAY}/giliran?id=${idPanggilan}` : `${GATEWAY}/giliran`, {
+        method: 'POST',
+        headers: { 'content-type': audio ? (body.type || 'audio/webm') : 'application/json' },
+        body: audio ? body : JSON.stringify({ id: idPanggilan, ...body }),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.data) throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
+      return d.data as Hasil;
+    }
+
+    async function prosesHasil(h: Hasil) {
+      if (phase === 'ended') return;
+      if (h.transkrip) push({ kind: 'user', text: h.transkrip });
+      if (h.jawaban) say(h.jawaban);
+      if (h.suara) await putar(h.suara);
+      if (phase !== 'ended') dengar();
+    }
+
+    async function giliranSuara(rekaman: Blob) {
+      setMode('memproses');
+      push({ kind: 'processing', text: 'Memproses ucapan Anda' });
+      try { await prosesHasil(await kirimGiliran(rekaman)); } catch (e) { gagal(e); }
+    }
+
+    function gagal(e: unknown) {
+      if (phase === 'ended') return;
+      say(e instanceof Error ? e.message : 'Layanan suara sedang gangguan. Silakan coba lagi.');
+      dengar();
+    }
+
+    function berhentiRekam() {
+      clearInterval(pantau);
+      pantau = undefined;
+      if (rekam && rekam.state !== 'inactive') { rekam.ondataavailable = null; rekam.onstop = null; rekam.stop(); }
+      rekam = null;
+    }
+
+    // Rekam satu ucapan: mulai saat sinyal melewati ambang, berhenti setelah jeda hening.
+    function dengar() {
+      berhentiRekam();
+      if (phase === 'ended' || phase === 'connecting' || !mic || !ctx || !analis) { setMode('diam'); return; }
+      setMode('mendengar');
+      ctx.resume().catch(() => {});
+      const a = analis;
+      const sampel = new Float32Array(a.fftSize);
+      const tipe = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find((t) => MediaRecorder.isTypeSupported(t));
+      const r = new MediaRecorder(mic, tipe ? { mimeType: tipe } : undefined);
+      const potongan: Blob[] = [];
+      const mulai = Date.now();
+      let bicaraSejak = 0, heningSejak = 0;
+      r.ondataavailable = (e) => { if (e.data.size) potongan.push(e.data); };
+      r.onstop = () => {
+        if (rekam === r) rekam = null;
+        if (bicaraSejak) giliranSuara(new Blob(potongan, { type: r.mimeType }));
+        else dengar();
+      };
+      r.start(250);
+      rekam = r;
+      pantau = window.setInterval(() => {
+        a.getFloatTimeDomainData(sampel);
+        const rms = Math.sqrt(sampel.reduce((n, x) => n + x * x, 0) / sampel.length);
+        const t = Date.now();
+        if (rms > AMBANG_SUARA) { if (!bicaraSejak) bicaraSejak = t; heningSejak = 0; }
+        else if (bicaraSejak && !heningSejak) heningSejak = t;
+        const selesai = bicaraSejak && ((heningSejak && t - heningSejak > JEDA_SELESAI_MS) || t - bicaraSejak > UCAPAN_MAKS_MS);
+        if (selesai || (!bicaraSejak && t - mulai > TUNGGU_MAKS_MS)) { clearInterval(pantau); pantau = undefined; r.stop(); }
+      }, 100);
+    }
+
+    async function start() {
+      phase = 'connecting'; mode = 'diam'; service = null; secs = 0; msgs = [];
+      idPanggilan = crypto.randomUUID();
       paint();
       clearInterval(tick);
       tick = window.setInterval(() => { if (phase !== 'ended') { secs++; $('[data-dur]').textContent = stamp(); } }, 1000);
-      at(900, () => { phase = 'menu'; menu(); });
+      try {
+        mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+        ctx = new AudioContext();
+        analis = ctx.createAnalyser();
+        analis.fftSize = 1024;
+        ctx.createMediaStreamSource(mic).connect(analis);
+      } catch {
+        mic = null;
+      }
+      if (phase === 'ended') return lepasMic();
+      phase = 'menu';
+      say(PESAN_MENU);
+      push({ kind: 'menu' });
+      if (!mic) say('Izin mikrofon ditolak. Izinkan mikrofon di browser agar bisa berbicara dengan CS AI.');
+      await putar(`${GATEWAY}/statis/menu`);
+      if (phase !== 'ended') dengar();
     }
 
-    function pick(n: 1 | 2) {
+    async function pick(n: 1 | 2) {
       if (phase === 'ended' || phase === 'connecting') return;
-      clear();
-      phase = 'flow'; service = n; complete = false;
+      berhentiRekam();
+      pemutar.pause();
+      phase = 'flow'; service = n;
       msgs = msgs.filter((m) => m.kind !== 'menu');
-      if (n === 1) {
-        say('Silakan sebutkan nama produk atau pertanyaan Anda.');
-        at(1300, () => hear('Susu Formula Sehat, apakah sudah terdaftar di BPOM?', () => {
-          push({ kind: 'processing', text: 'Mencari di data registrasi BPOM' });
-          at(1700, () => { say('Susu Formula Sehat terdaftar dengan nomor izin edar ML 865009001234, status izin Berlaku.'); push({ kind: 'product' }); complete = true; });
-        }));
-      } else {
-        say('Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda.');
-        at(1400, () => hear('Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian. Nama saya Budi Santoso.', () => {
-          say('Mohon sebutkan nomor telepon Anda.');
-          at(1300, () => hear('081234567890', () => {
-            push({ kind: 'processing', text: 'Mencatat pengaduan dan menerbitkan tiket' });
-            at(1500, () => { push({ kind: 'ticket' }); complete = true; });
-          }));
-        }));
-      }
+      setMode('memproses');
+      try { await prosesHasil(await kirimGiliran({ pilih: n })); } catch (e) { gagal(e); }
+    }
+
+    function lepasMic() {
+      berhentiRekam();
+      mic?.getTracks().forEach((t) => t.stop());
+      mic = null;
+      ctx?.close().catch(() => {});
+      ctx = null;
+      analis = null;
     }
 
     function end() {
-      clear();
-      // REQ-2.5: pengaduan yang belum lengkap tidak mendapat nomor tiket.
-      const text = service === 2 && !complete
+      if (phase === 'ended') return;
+      lepasMic();
+      pemutar.pause();
+      if (idPanggilan) fetch(`${GATEWAY}/akhiri`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) }).catch(() => {});
+      // REQ-2.5: pengaduan lewat suara belum menerbitkan nomor tiket.
+      const text = service === 2
         ? 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.'
         : 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
       phase = 'ended';
@@ -153,7 +238,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     }
 
     function close() {
-      clear();
+      end();
       clearInterval(tick);
       root.hidden = true;
       document.documentElement.classList.remove('panel-open');
@@ -166,7 +251,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (t.closest('[data-close]')) return close();
       if (t.closest('[data-end]')) return end();
       if (t.closest('[data-restart]')) return start();
-      if (t.closest('[data-ganti]')) { clear(); phase = 'menu'; service = null; msgs = msgs.filter((m) => m.kind !== 'processing'); menu(); }
+      if (t.closest('[data-ganti]') && phase === 'flow') { phase = 'menu'; service = null; say(PESAN_MENU); push({ kind: 'menu' }); }
     });
     root.addEventListener('keydown', (e) => { if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2); if (e.key === 'Escape') close(); });
 
@@ -244,23 +329,6 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.m-menu .d) { font-size: 13px; color: #6b7280; line-height: 1.35; }
   .ps-tr :global(.m-proc) { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 999px; background: #fff; align-self: flex-start; font-size: 14px; color: #4b5260; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
   .ps-tr :global(.m-proc i) { color: var(--blue); }
-  .ps-tr :global(.m-product), .ps-tr :global(.m-ticket) { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 20px; background: #fff; }
-  .ps-tr :global(.m-product) { border: 1px solid #d9f2e3; box-shadow: 0 4px 14px rgba(16, 24, 40, .06); }
-  .ps-tr :global(.m-ticket) { border: 1.5px solid var(--blue); box-shadow: 0 6px 18px rgba(47, 107, 245, .12); }
-  .ps-tr :global(.m-product .row) { display: flex; align-items: center; justify-content: space-between; }
-  .ps-tr :global(.cap) { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #6b7280; }
-  .ps-tr :global(.ok) { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #dcf5e6; color: #15803d; font-size: 13px; font-weight: 600; }
-  .ps-tr :global(.ok span) { width: 6px; height: 6px; border-radius: 9px; background: #16a34a; }
-  .ps-tr :global(.m-product .name) { font-size: 18px; font-weight: 600; }
-  .ps-tr :global(.nie) { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: #f4f5f7; }
-  .ps-tr :global(.nie span:first-child) { font-size: 12px; color: #6b7280; }
-  .ps-tr :global(.nie .mono) { font-size: 17px; font-weight: 600; }
-  .ps-tr :global(.src) { font-size: 13px; color: #6b7280; line-height: 1.4; }
-  .ps-tr :global(.m-ticket .row) { display: flex; gap: 10px; align-items: flex-start; font-size: 16.5px; font-weight: 600; line-height: 1.4; }
-  .ps-tr :global(.m-ticket .row i) { color: #16a34a; font-size: 20px; margin-top: 2px; }
-  .ps-tr :global(.m-ticket .no) { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: #dcf5e6; }
-  .ps-tr :global(.m-ticket .no span:first-child) { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #15803d; }
-  .ps-tr :global(.m-ticket .no .mono) { font-size: 24px; font-weight: 600; color: #14532d; }
   .ps-tr :global(.m-ended) { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px; border-radius: 20px; background: #fff; text-align: center; font-size: 16px; font-weight: 600; line-height: 1.4; }
   .ps-tr :global(.m-ended i) { font-size: 24px; color: #6b7280; }
 
