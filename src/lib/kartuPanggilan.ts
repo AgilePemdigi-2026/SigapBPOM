@@ -47,3 +47,16 @@ export function htmlKartuProduk(h: HasilProduk): string {
     <p class="k-sumber">Sumber: ${esc(tampil[0]?.sumber ?? '')}</p>
   </section>`;
 }
+
+/** Kamus pesan Lampiran A (UC-01 "Tiket eskalasi terbit"). */
+export const pesanTiketEskalasi = (nomorTiket: string) => `Nomor tiket Anda ${nomorTiket}. Jawaban petugas akan dikirim melalui SMS.`;
+
+/** Kartu eskalasi (T-F1.4-01). Selain warna kuning, teks menyatakan jawaban datang dari petugas, bukan AI. */
+export function htmlKartuEskalasi(nomorTiket: string): string {
+  return `<section class="k-eskalasi" aria-label="Diteruskan ke petugas">
+    <div class="k-eskalasi-judul"><i class="icon-user-round-check" aria-hidden="true"></i>Diteruskan ke petugas BPOM</div>
+    <p>Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.</p>
+    <dl><dt>Nomor tiket</dt><dd>${esc(nomorTiket)}</dd></dl>
+    <p class="k-sumber">Jawaban petugas akan dikirim melalui SMS.</p>
+  </section>`;
+}
