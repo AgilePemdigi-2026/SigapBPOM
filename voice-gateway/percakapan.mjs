@@ -1,5 +1,6 @@
 // Control UC-01/UC-02 Voice Gateway: aturan percakapan, riwayat per panggilan, dan pembatas laju.
 // Tanpa I/O agar bisa diuji dengan `node --test`.
+import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
 
 /** Kamus pesan PRD-rinci Lampiran A (UC-01, UC-02 "Panggilan tersambung", REQ-1.1). */
 export const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.';
@@ -38,7 +39,7 @@ Layanan 1, informasi produk: jawab pertanyaan edukasi umum tentang obat, makanan
 Bila diberi kutipan peraturan BPOM, utamakan isi kutipan dan sebutkan peraturannya secara singkat. Bila kutipan tidak menjawab dan Anda tidak yakin, katakan belum bisa memastikan dan sarankan menghubungi petugas HaloBPOM.
 Aturan wajib:
 - Anda BELUM terhubung ke data registrasi BPOM. Jika ditanya apakah suatu produk terdaftar, legal, atau berapa nomor izin edarnya, JANGAN menyebut status atau nomor apa pun. Katakan pengecekan data registrasi belum tersedia di layanan ini dan sarankan memeriksa di cekbpom.pom.go.id.
-- Jangan memberi nasihat medis, dosis, atau diagnosis. Sarankan berkonsultasi dengan dokter atau apoteker.
+- Jangan memberi nasihat medis, dosis, diagnosis, atau penilaian aman tidaknya suatu produk untuk kondisi tertentu. Untuk pertanyaan seperti itu, jawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}
 Layanan 2, pengaduan: tanyakan satu per satu nama produk, kronologi kejadian, nama, dan nomor telepon. Setelah lengkap, ringkas datanya dan sampaikan bahwa pengaduan akan diteruskan kepada petugas. Jangan pernah mengarang nomor tiket.
 Setelah pertanyaan selesai dijawab atau pengaduan selesai diringkas, akhiri jawaban dengan kalimat: ${PESAN_TAWARAN_PENUTUP} Jangan pakai kalimat itu selama masih menanyakan data pengaduan atau meminta penelepon mengulang.
 Cakupan layanan hanya obat, makanan dan minuman, kosmetik, obat tradisional atau jamu, suplemen kesehatan, tugas BPOM, serta pengaduan tentang produk tersebut. Sapaan, ucapan terima kasih, dan data pengaduan seperti nama atau nomor telepon tetap dilayani.
@@ -67,8 +68,14 @@ export function rapikanJawaban(teks) {
 }
 
 /** Teks khusus TTS (tampilan di web tetap apa adanya): alamat situs dibaca "titik" seperti lazimnya orang Indonesia. */
+const EJAAN_ANGKA = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
+const eja = (digit) => [...digit].map((d) => EJAAN_ANGKA[d]).join(' ');
+
 export function teksUntukSuara(teks) {
-  return String(teks ?? '').replace(/\b(?:[a-z0-9-]+\.)+(?:id|com|org|net)\b/gi, (alamat) =>
+  return String(teks ?? '')
+    // Nomor tiket dieja per digit agar mudah dicatat penelepon: ESK-20261019-0001 -> "E S K, dua nol dua enam ..., nol nol nol satu".
+    .replace(/\b(ESK|ADU)-(\d{8})-(\d{4})\b/g, (_, jenis, tanggal, urut) => `${[...jenis].join(' ')}, ${eja(tanggal)}, ${eja(urut)}`)
+    .replace(/\b(?:[a-z0-9-]+\.)+(?:id|com|org|net)\b/gi, (alamat) =>
     alamat.replace(/cekbpom/gi, 'cek BPOM').split('.').join(' titik '));
 }
 
@@ -172,7 +179,7 @@ export class RiwayatPanggilan {
     let s = this.sesi.get(id);
     if (!s) {
       if (this.sesi.size >= SESI_MAKS) this.sesi.delete(this.sesi.keys().next().value);
-      s = { pesan: [], aktif: this.now(), diLuarTopik: 0 };
+      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, eskalasi: null };
       this.sesi.set(id, s);
     }
     s.aktif = this.now();
@@ -206,6 +213,33 @@ export class RiwayatPanggilan {
   catatDiLuarTopik(id) {
     this.ambil(id);
     this.sesi.get(id).diLuarTopik += 1;
+  }
+
+  /** Layanan yang dipilih dari menu (1 atau 2), atau null. */
+  layanan(id) {
+    this.ambil(id);
+    return this.sesi.get(id).layanan;
+  }
+
+  pilihLayanan(id, nomor) {
+    this.ambil(id);
+    this.sesi.get(id).layanan = nomor;
+  }
+
+  /** Pertanyaan yang sedang menunggu nomor telepon untuk tiket eskalasi, atau null. */
+  eskalasi(id) {
+    this.ambil(id);
+    return this.sesi.get(id).eskalasi;
+  }
+
+  mulaiEskalasi(id, pertanyaan) {
+    this.ambil(id);
+    this.sesi.get(id).eskalasi = pertanyaan;
+  }
+
+  selesaiEskalasi(id) {
+    this.ambil(id);
+    this.sesi.get(id).eskalasi = null;
   }
 
   hapus(id) {
