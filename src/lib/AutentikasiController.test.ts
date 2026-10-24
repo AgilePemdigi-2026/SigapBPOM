@@ -62,6 +62,7 @@ function sesiIdle() {
 
 test('nfr_12 sesi tetap aktif selama ada aktivitas sebelum batas idle', async () => {
   const { c, maju } = sesiIdle();
+  await c.masuk({ email: DEWI.email, password: 'x' }, COOKIES);
   assert.deepEqual(await c.sesiAktif(COOKIES), DEWI);
   for (let i = 0; i < 5; i++) {
     maju(50_000);
@@ -71,16 +72,22 @@ test('nfr_12 sesi tetap aktif selama ada aktivitas sebelum batas idle', async ()
 
 test('nfr_12 sesi yang idle melewati batas dihapus di server', async () => {
   const { c, keluar, maju } = sesiIdle();
-  await c.sesiAktif(COOKIES);
+  await c.masuk({ email: DEWI.email, password: 'x' }, COOKIES);
   maju(60_001);
   assert.equal(await c.sesiAktif(COOKIES), null);
   assert.deepEqual(keluar, ['token-1']);
   assert.equal(c.aktivitas.size, 0);
 });
 
+test('nfr_12 sesi tanpa catatan aktivitas dianggap kedaluwarsa', async () => {
+  const { c, keluar } = sesiIdle();
+  assert.equal(await c.sesiAktif(COOKIES), null);
+  assert.deepEqual(keluar, ['token-1']);
+});
+
 test('t_f3_3_02 logout menghapus sesi dan catatan aktivitasnya', async () => {
   const { c, keluar } = sesiIdle();
-  await c.sesiAktif(COOKIES);
+  await c.masuk({ email: DEWI.email, password: 'x' }, COOKIES);
   await c.keluar(COOKIES);
   assert.deepEqual(keluar, ['token-1']);
   assert.equal(c.aktivitas.size, 0);

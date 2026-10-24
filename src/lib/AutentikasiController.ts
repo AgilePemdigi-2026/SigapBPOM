@@ -58,17 +58,22 @@ export class AutentikasiController {
     }
     const petugas = await this.adapter.masuk(email, password, cookies);
     if (!petugas) return { kode: 401, pesan: PESAN_LOGIN.salah, petugas: null };
+    const kunci = this.adapter.kunci(cookies);
+    if (kunci) this.aktivitas.set(kunci, this.now());
     return { kode: 200, pesan: PESAN_LOGIN.berhasil, petugas };
   }
 
-  /** Pemilik sesi bila sesi sah dan belum idle melewati batas. Setiap pemeriksaan yang lolos dihitung sebagai aktivitas. */
+  /**
+   * Pemilik sesi bila sesi sah dan belum idle melewati batas. Setiap pemeriksaan yang lolos dihitung sebagai aktivitas.
+   * Gagal tertutup: sesi tanpa catatan aktivitas (misalnya catatannya sudah dibersihkan) dianggap kedaluwarsa.
+   */
   async sesiAktif(cookies: AstroCookies): Promise<Petugas | null> {
     const petugas = await this.adapter.baca(cookies);
     const kunci = this.adapter.kunci(cookies);
     if (!petugas || !kunci) return null;
     const sekarang = this.now();
     const terakhir = this.aktivitas.get(kunci);
-    if (terakhir !== undefined && sekarang - terakhir > this.batasIdleMs) {
+    if (terakhir === undefined || sekarang - terakhir > this.batasIdleMs) {
       await this.keluar(cookies);
       return null;
     }
