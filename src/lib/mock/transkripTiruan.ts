@@ -1,4 +1,4 @@
-// Data tiruan untuk kartu di panel suara selama tool cekbpom belum tersambung (#28). Hanya dipakai mode demo di dev server.
+// Data tiruan untuk kartu di panel suara selama tool cekbpom (#28) dan penerbitan tiket belum tersambung. Hanya dipakai mode demo di dev server.
 import type { HasilProduk, Produk } from '../kartuPanggilan.ts';
 
 export const PRODUK_TIRUAN: Produk[] = [

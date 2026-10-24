@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KANDIDAT_MAKS, PESAN_TIDAK_DITEMUKAN, htmlKartuProduk, type Produk } from './kartuPanggilan.ts';
-import { PRODUK_TIRUAN } from './mock/produkTiruan.ts';
+import { PRODUK_TIRUAN } from './mock/transkripTiruan.ts';
 
 const SUSU = PRODUK_TIRUAN[0];
 
