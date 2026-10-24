@@ -9,10 +9,11 @@ const { title } = Astro.props;
 const petugas = Astro.locals.petugas!;
 const inisial = petugas.nama.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 const path = Astro.url.pathname.replace(/\/$/, '');
+const batasIdleMs = Astro.locals.autentikasi.batasIdleMs;
 const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
 ---
 <BaseLayout title={title}>
-  <div class="app">
+  <div class="app" data-idle-ms={batasIdleMs}>
     <nav class="panel side" aria-label="Menu dashboard">
       <div class="logo" title="SIGAP · HaloBPOM Dashboard Petugas"><i class="icon-shield-check"></i></div>
       <span class="grow"></span>
@@ -64,29 +65,25 @@ const cari = TIKET.map((t) => ({ ...t, ...chip(t.status) }));
 </BaseLayout>
 
 <script>
-  // Sesi diperiksa middleware di server. ponytail: timeout idle masih dihitung di browser sampai
-  // T-F3.3-02 melacak aktivitas terakhir di middleware.
-  const AKTIF_KEY = 'sigap-aktif';
-  const IDLE_MS = 30 * 60 * 1000; // NFR-12
+  // NFR-12: timeout idle ditegakkan middleware dari aktivitas terakhir di server. Browser hanya melapor aktivitas
+  // (klik, ketik, gerak) lewat /api/sesi, lalu memuat ulang halaman setelah idle agar middleware mengarahkan ke /login.
+  // Memuat ulang, bukan logout, supaya tab lain yang masih aktif tidak ikut keluar.
+  const IDLE_MS = Number(document.querySelector<HTMLElement>('.app')!.dataset.idleMs);
+  const JEDA_LAPOR_MS = Math.min(60_000, IDLE_MS / 4);
 
-  // AKTIF_KEY tidak perlu dihapus: login berikutnya selalu menimpanya.
   function keluar() {
     fetch('/api/keluar', { method: 'POST' }).finally(() => location.replace('/login'));
   }
 
-  let last = Number(sessionStorage.getItem(AKTIF_KEY)) || Date.now();
-  if (Date.now() - last > IDLE_MS) {
-    keluar();
-  } else {
-    sessionStorage.setItem(AKTIF_KEY, String(last));
-    const sentuh = () => {
-      if (Date.now() - last < 5000) return;
-      last = Date.now();
-      sessionStorage.setItem(AKTIF_KEY, String(last));
-    };
-    ['click', 'keydown', 'mousemove'].forEach((ev) => addEventListener(ev, sentuh, { passive: true }));
-    setInterval(() => { if (Date.now() - last > IDLE_MS) keluar(); }, 60_000);
-  }
+  let terakhir = Date.now(), terlapor = terakhir;
+  const sentuh = () => {
+    terakhir = Date.now();
+    if (terakhir - terlapor < JEDA_LAPOR_MS) return;
+    terlapor = terakhir;
+    fetch('/api/sesi', { method: 'POST' }).then((r) => { if (r.status === 401) location.replace('/login'); }).catch(() => {});
+  };
+  ['click', 'keydown', 'mousemove', 'scroll'].forEach((ev) => addEventListener(ev, sentuh, { passive: true }));
+  setInterval(() => { if (Date.now() - terakhir > IDLE_MS) location.reload(); }, Math.min(15_000, IDLE_MS / 4));
 
   document.getElementById('logout')!.addEventListener('click', keluar);
 

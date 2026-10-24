@@ -15,6 +15,7 @@ function buat() {
     },
     async baca() { return null; },
     async keluar() {},
+    kunci() { return null; },
   };
   return { c: new AutentikasiController(adapter), panggilan };
 }
@@ -44,4 +45,48 @@ test('isian melebihi batas panjang ditolak tanpa memanggil penyedia autentikasi'
   const { c, panggilan } = buat();
   assert.equal((await c.masuk({ email: DEWI.email, password: 'x'.repeat(257) }, COOKIES)).kode, 401);
   assert.equal(panggilan.length, 0);
+});
+
+function sesiIdle() {
+  let t = 0;
+  const keluar: string[] = [];
+  const adapter: AdapterSesi = {
+    async masuk() { return DEWI; },
+    async baca() { return keluar.length ? null : DEWI; },
+    async keluar() { keluar.push('token-1'); },
+    kunci() { return keluar.length ? null : 'token-1'; },
+  };
+  const c = new AutentikasiController(adapter, { batasIdleMs: 60_000, now: () => t });
+  return { c, keluar, maju: (ms: number) => { t += ms; } };
+}
+
+test('nfr_12 sesi tetap aktif selama ada aktivitas sebelum batas idle', async () => {
+  const { c, maju } = sesiIdle();
+  assert.deepEqual(await c.sesiAktif(COOKIES), DEWI);
+  for (let i = 0; i < 5; i++) {
+    maju(50_000);
+    assert.deepEqual(await c.sesiAktif(COOKIES), DEWI);
+  }
+});
+
+test('nfr_12 sesi yang idle melewati batas dihapus di server', async () => {
+  const { c, keluar, maju } = sesiIdle();
+  await c.sesiAktif(COOKIES);
+  maju(60_001);
+  assert.equal(await c.sesiAktif(COOKIES), null);
+  assert.deepEqual(keluar, ['token-1']);
+  assert.equal(c.aktivitas.size, 0);
+});
+
+test('t_f3_3_02 logout menghapus sesi dan catatan aktivitasnya', async () => {
+  const { c, keluar } = sesiIdle();
+  await c.sesiAktif(COOKIES);
+  await c.keluar(COOKIES);
+  assert.deepEqual(keluar, ['token-1']);
+  assert.equal(c.aktivitas.size, 0);
+  assert.equal(await c.sesiAktif(COOKIES), null);
+});
+
+test('nfr_12 batas idle bawaan 30 menit', () => {
+  assert.equal(new AutentikasiController(sesiIdle().c.adapter).batasIdleMs, 30 * 60 * 1000);
 });
