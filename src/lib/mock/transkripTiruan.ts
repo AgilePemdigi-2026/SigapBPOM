@@ -8,7 +8,7 @@ export const PRODUK_TIRUAN: Produk[] = [
   { nama: 'Paracetamol Kaplet Forte', nomorIzinEdar: 'DBL1234567904A1', status: 'Tidak Berlaku', pendaftar: 'PT Medika Prima', sumber: 'Data tiruan cekbpom' },
 ];
 
-export type GiliranTiruan = { ucapan: string; jawaban: string; produk?: HasilProduk };
+export type GiliranTiruan = { ucapan: string; jawaban: string; produk?: HasilProduk; tiket?: string };
 
 /** Transkrip tiruan per jalur, dibuka lewat `?demo=<nama>` di dev server. */
 export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
@@ -27,4 +27,8 @@ export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
     jawaban: 'Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan.',
     produk: { jenis: 'tidak_ditemukan' },
   }],
+  eskalasi: [
+    { ucapan: 'Apakah obat batuk ini aman untuk ibu hamil?', jawaban: 'Pertanyaan Anda akan diteruskan kepada petugas. Mohon sebutkan nomor telepon Anda.' },
+    { ucapan: 'Nol delapan satu dua tiga empat lima enam tujuh delapan sembilan nol.', jawaban: 'Nomor tiket Anda ESK-20261019-0001. Jawaban petugas akan dikirim melalui SMS.', tiket: 'ESK-20261019-0001' },
+  ],
 };
