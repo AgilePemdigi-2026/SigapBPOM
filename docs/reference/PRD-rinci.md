@@ -399,6 +399,11 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 01 | Produk tidak ditemukan | Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan. |
 | 01 | Di luar topik | Pertanyaan tersebut berada di luar cakupan layanan HaloBPOM. |
 | 01 | Nama tidak jelas | Maaf, nama produk kurang jelas. Mohon sebutkan kembali. |
+| 01, 02 | Pertanyaan selesai dijawab | Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup. |
+| 01, 02 | Penelepon tidak butuh bantuan lagi | Terima kasih sudah menghubungi HaloBPOM. Percakapan ini saya tutup ya. |
+| 01, 02 | Batas pemakaian AI harian tercapai | Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok. |
+| 01, 02 | Batas percakapan satu panggilan tercapai | Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru. |
+| 01 | Batas tiket eskalasi tercapai | Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok. |
 | 02 | Tekan 2 | Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda. |
 | 02 | Data kurang (contoh) | Mohon sebutkan nomor telepon Anda. |
 | 02 | Tiket pengaduan terbit | Pengaduan Anda telah dicatat dengan nomor tiket [nomor tiket]. Tindak lanjut akan dikirim melalui SMS. |
@@ -423,11 +428,15 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 08 | Unduh sukses | Laporan berhasil diunduh. |
 | 08 | Tanpa hak ekspor | Anda tidak memiliki hak akses ekspor data. |
 
+**Pengecualian pesan API internal.** Pesan dari Edge Function dan endpoint yang hanya dibaca sistem lain (Voice Gateway atau Hermes Agent), bukan ditampilkan atau diucapkan kepada penelepon maupun petugas, tidak wajib tercantum di kamus ini. Contohnya "Nama produk wajib diisi.", "Percakapan tidak valid.", "Percakapan tidak ditemukan.", "Tiket untuk percakapan ini sudah diterbitkan.", dan "Akses ditolak.". Pesan seperti ini tetap ditulis dalam bahasa Indonesia, tidak memuat detail teknis, dan tidak boleh diteruskan apa adanya ke penelepon. Bila suatu saat pesan tersebut ditampilkan atau diucapkan kepada pengguna, pesan itu harus ditambahkan ke kamus lebih dulu.
+
 ## Lampiran B. Label Tombol dan Field
 
 Tombol: "Telepon CS AI", "Akhiri Panggilan", "Login", "Buka Kasus", "Lihat Transkrip", "Simpan Catatan", "Telaah", "Simpan Telaah", "Simpan Jadwal", "Simpan Tanggapan", "Tutup Tiket", "Tambah Materi", "Hapus", "Graf Pengetahuan", "Simpan", "Tampilkan", "Unduh Laporan", "Konfirmasi Unduh".
 
 Field: "Email", "Password", "Catatan Pemeriksaan", "Tindak Lanjut", "Catatan Tindak Lanjut", "Tanggal Pemeriksaan", "Unit Pelaksana", "Tanggapan", "Judul Materi", "Rujukan Sumber", "Periode", "Format Berkas".
+
+Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber".
 
 Elemen bernama untuk uji penerimaan: PanelPercakapanSuara, TranskripPercakapan, RingkasanPercakapan, StepperPenanganan, GrafPengetahuan, GrafikRekapitulasi, TabelRekapitulasi.
 
