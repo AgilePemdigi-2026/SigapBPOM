@@ -41,11 +41,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 </div>
 
 <script>
-  import { esc, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
+  import { esc, htmlKartuEskalasi, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
 
   type Sumber = { peraturan: string; judul: string; url: string };
-  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk };
-  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk };
+  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string };
+  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string };
 
   const GATEWAY = '/voice';
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
@@ -67,7 +67,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   function render(m: Msg) {
     switch (m.kind) {
       case 'sys': return `<div class="m-sys"><span>CS AI · ${m.time}</span><div>${esc(m.text!)}</div>${
-        m.produk ? htmlKartuProduk(m.produk) : ''}${
+        m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? htmlKartuEskalasi(m.tiket) : ''}${
         m.sumber?.length ? `<ul class="m-sumber" aria-label="Sumber rujukan">${m.sumber.map(chipSumber).join('')}</ul>` : ''}</div>`;
       case 'user': return `<div class="m-user"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
       case 'menu': return `<div class="m-menu">
@@ -114,7 +114,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       $('[data-after]').hidden = !ended;
     }
     const push = (m: Msg) => { msgs = msgs.filter((x) => x.kind !== 'processing').concat({ ...m, time: stamp() }); paint(); };
-    const say = (text: string, sumber?: Sumber[], produk?: HasilProduk) => push({ kind: 'sys', text, sumber, produk });
+    const say = (text: string, sumber?: Sumber[], produk?: HasilProduk, tiket?: string) => push({ kind: 'sys', text, sumber, produk, tiket });
     const setMode = (m: typeof mode) => { mode = m; paint(); };
 
     // Putar audio jawaban lalu kembali mendengarkan. Mikrofon tidak merekam selama agen berbicara.
@@ -146,10 +146,12 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     async function prosesHasil(h: Hasil) {
       if (phase === 'ended') return;
       if (h.transkrip) push({ kind: 'user', text: h.transkrip });
-      if (h.jawaban) say(h.jawaban, h.sumber, h.produk);
+      if (h.jawaban) say(h.jawaban, h.sumber, h.produk, h.tiket);
       if (h.suara) await putar(h.suara);
       // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
       if (h.akhiri) return end();
+      // Mode demo tanpa mikrofon: giliran tiruan berikutnya langsung diputar.
+      if (giliranTiruan?.length) return prosesHasil(giliranTiruan.shift()!);
       if (phase !== 'ended') dengar();
     }
 
@@ -211,7 +213,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       const demo = import.meta.env.DEV && new URLSearchParams(location.search).get('demo');
       if (demo) {
         const { TRANSKRIP_TIRUAN } = await import('../lib/mock/transkripTiruan');
-        giliranTiruan = (TRANSKRIP_TIRUAN[demo] ?? []).map((g) => ({ transkrip: g.ucapan, jawaban: g.jawaban, suara: null, produk: g.produk }));
+        giliranTiruan = (TRANSKRIP_TIRUAN[demo] ?? []).map((g) => ({ transkrip: g.ucapan, jawaban: g.jawaban, suara: null, produk: g.produk, tiket: g.tiket }));
       }
       paint();
       clearInterval(tick);
@@ -353,7 +355,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.m-sumber a), .ps-tr :global(.m-sumber span) { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #eef3ff; border: 1px solid #d3dff9; color: #1d3f9e; font-size: 12.5px; font-weight: 600; text-decoration: none; }
   .ps-tr :global(.m-sumber a:hover), .ps-tr :global(.m-sumber a:focus-visible) { background: #dce7fe; text-decoration: underline; }
   /* T-F1.2-01: kartu hasil cek produk. Status selalu tampil sebagai ikon dan teks, tidak hanya warna. */
-  .ps-tr :global(.m-sys:has(.k-produk)) { max-width: 100%; }
+  .ps-tr :global(.m-sys:has(.k-produk, .k-eskalasi)) { max-width: 100%; }
   .ps-tr :global(.k-produk) { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid #dfe3ea; font-size: 14px; }
   .ps-tr :global(.k-produk-nama) { font-size: 15.5px; font-weight: 600; }
   .ps-tr :global(.k-produk dl) { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
@@ -368,6 +370,14 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.k-status.no) { background: #fdecec; color: #b42318; }
   .ps-tr :global(.k-produk.kosong) { flex-direction: row; align-items: flex-start; gap: 10px; background: #fff8eb; border-color: #f5d9a8; color: #7a4b00; }
   .ps-tr :global(.k-produk.kosong i) { font-size: 18px; }
+  /* T-F1.4-01: kartu eskalasi kuning. Teks "Diteruskan ke petugas BPOM" dan "bukan oleh AI" menjadi penanda utama. */
+  .ps-tr :global(.k-eskalasi) { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: #fff8e1; border: 1px solid #f2d27a; color: #5c4300; font-size: 14px; }
+  .ps-tr :global(.k-eskalasi-judul) { display: flex; align-items: center; gap: 8px; font-size: 15.5px; font-weight: 600; color: #4a3500; }
+  .ps-tr :global(.k-eskalasi-judul i) { font-size: 18px; }
+  .ps-tr :global(.k-eskalasi p) { margin: 0; }
+  .ps-tr :global(.k-eskalasi dl) { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 0; }
+  .ps-tr :global(.k-eskalasi dd) { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .02em; color: #2e2200; }
+  .ps-tr :global(.k-eskalasi .k-sumber) { color: #7a5c00; }
   .ps-tr :global(.m-sys > div) { padding: 12px 15px; border-radius: 6px 18px 18px 18px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); font-size: 16px; line-height: 1.45; text-wrap: pretty; }
   .ps-tr :global(.m-user > div) { padding: 12px 15px; border-radius: 18px 6px 18px 18px; background: linear-gradient(180deg, #e7efff, #dce7fe); border: 1px solid #d3dff9; font-size: 16px; line-height: 1.45; color: #16295e; text-wrap: pretty; min-height: 1.45em; }
   .ps-tr :global(.m-menu) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
