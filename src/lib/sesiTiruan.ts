@@ -26,6 +26,10 @@ export class AdapterSesiTiruan implements AdapterSesi {
     return (token && this.sesi.get(token)) || null;
   }
 
+  kunci(cookies: AstroCookies): string | null {
+    return cookies.get(COOKIE_SESI)?.value || null;
+  }
+
   async keluar(cookies: AstroCookies): Promise<void> {
     const token = cookies.get(COOKIE_SESI)?.value;
     if (token) this.sesi.delete(token);

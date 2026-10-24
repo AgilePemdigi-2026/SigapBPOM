@@ -4,7 +4,9 @@ import { defineMiddleware } from 'astro:middleware';
 import { AutentikasiController } from './lib/AutentikasiController';
 import { AdapterSesiTiruan } from './lib/sesiTiruan';
 
-const autentikasi = new AutentikasiController(new AdapterSesiTiruan());
+// NFR-12: SESI_IDLE_MENIT bisa diperkecil untuk pengujian, misalnya 1.
+const idleMenit = Number(process.env.SESI_IDLE_MENIT);
+const autentikasi = new AutentikasiController(new AdapterSesiTiruan(), idleMenit > 0 ? { batasIdleMs: idleMenit * 60_000 } : {});
 const RUTE_PUBLIK = new Set(['/', '/homepage', '/login', '/api/login']);
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
