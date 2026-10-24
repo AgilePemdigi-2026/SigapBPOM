@@ -10,6 +10,10 @@ import {
   teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
+import {
+  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
+  pesanTiketEskalasi,
+} from './eskalasi.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -41,7 +45,12 @@ const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 // Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
 const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
+  'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON,
 };
+// Tiket eskalasi lewat Edge Function bila Supabase dikonfigurasi, selain itu tiket tiruan di memori (#30).
+const SUPABASE_URL = env('SUPABASE_URL', '');
+const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
+const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 
 const AUDIO_MAKS_BYTE = 4 * 1024 * 1024;
 const JSON_MAKS_BYTE = 16 * 1024;
@@ -182,6 +191,8 @@ async function giliran(req, res, url) {
     if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
     const jawaban = pesanLayanan(Number(body.pilih));
     if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+    riwayat.pilihLayanan(body.id, Number(body.pilih));
+    riwayat.selesaiEskalasi(body.id);
     riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
     riwayat.tambah(body.id, 'assistant', jawaban);
     return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${Number(body.pilih)}` });
@@ -207,6 +218,35 @@ async function giliran(req, res, url) {
     const tStt = Date.now() - mulai;
     if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
+    // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
+    // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
+    const pertanyaanEskalasi = riwayat.eskalasi(id);
+    if (pertanyaanEskalasi !== null || (riwayat.layanan(id) !== 2 && butuhPetugas(transkrip))) {
+      let jawaban, suara, tiket = null;
+      if (pertanyaanEskalasi === null) {
+        riwayat.mulaiEskalasi(id, transkrip);
+        riwayat.tambah(id, 'user', transkrip);
+        jawaban = PESAN_BUTUH_PETUGAS;
+        suara = '/voice/statis/butuh-petugas';
+      } else {
+        const nomorTelepon = nomorTeleponDariUcapan(transkrip);
+        // Nomor telepon tidak masuk riwayat yang dikirim ke AI.
+        riwayat.tambah(id, 'user', nomorTelepon ? '(menyebutkan nomor telepon)' : transkrip);
+        if (nomorTelepon) {
+          tiket = await penerbitTiket.terbitkan({ percakapanId: id, nomorTelepon, pertanyaan: pertanyaanEskalasi });
+          riwayat.selesaiEskalasi(id);
+          jawaban = pesanTiketEskalasi(tiket);
+          suara = terbitkanTokenSuara(jawaban, ip);
+        } else {
+          jawaban = PESAN_MINTA_ULANG_TELEPON;
+          suara = '/voice/statis/ulang-telepon';
+        }
+      }
+      riwayat.tambah(id, 'assistant', jawaban);
+      console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
+      return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber: [], suara, tiket });
+    }
+
     // Penelepon menolak tawaran bantuan lagi: salam penutup tanpa memanggil AI, lalu web mengakhiri panggilan.
     const menutup = inginMenutup(transkrip, riwayat.jawabanTerakhir(id));
     // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
@@ -223,6 +263,11 @@ async function giliran(req, res, url) {
       anggaranAi.catat(ip, id, token - cadangan);
       cadangan = 0;
       jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+      // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
+      if (jawaban.includes(PESAN_BUTUH_PETUGAS)) {
+        jawaban = PESAN_BUTUH_PETUGAS;
+        riwayat.mulaiEskalasi(id, transkrip);
+      }
     }
     const diLuarTopik = !menutup && (Boolean(saring) || jawabanDiLuarTopik(jawaban));
     if (diLuarTopik) {
