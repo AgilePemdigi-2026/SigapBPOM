@@ -342,8 +342,9 @@ Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 1 (mulai Minggu 10).**
     ├── components/       # komponen Astro
     ├── layouts/          # layout dasar dan dashboard
     ├── lib/              # data tiruan dan logika pendukung
-    ├── pages/            # halaman (homepage, login, ringkasan, basis pengetahuan)
-    └── styles/           # CSS global
+    ├── pages/            # halaman (homepage, login, ringkasan, basis pengetahuan) dan endpoint api/
+    ├── styles/           # CSS global
+    └── middleware.ts     # pemeriksaan sesi petugas di server untuk semua route dashboard
 ```
 
 Kode aplikasi Astro untuk Sprint 1 (login, ringkasan, basis pengetahuan) ada di `src/`.
@@ -370,10 +371,11 @@ npm run dev
 | Perintah | Fungsi |
 |---|---|
 | `npm run dev` | Server pengembangan di `http://localhost:4321` |
-| `npm run build` | Build produksi ke folder `dist/` |
+| `npm run build` | Build produksi ke folder `dist/`. Servernya dijalankan dengan `node dist/server/entry.mjs` |
 | `npm run preview` | Menjalankan hasil build secara lokal |
+| `npm test` | Unit test lapisan control |
 
-Autentikasi dan data di prototipe tersebut masih tiruan sampai integrasi Supabase selesai. Variabel environment (Supabase, ElevenLabs, model GPT) akan dicatat di `.env.example` begitu dibutuhkan. Berkas `.env` tidak pernah di-commit.
+Astro berjalan dalam mode server (adapter Node), dan `src/middleware.ts` memeriksa sesi petugas sebelum halaman dashboard dikirim. Membuka halaman dashboard tanpa login mengarah ke `/login`. Penyedia autentikasinya masih tiruan, dengan satu akun demo yang tertera di halaman login, sampai Supabase Auth terpasang (T-F3.1-03). Data dashboard juga masih kosong. Variabel environment (Supabase, ElevenLabs, model GPT) akan dicatat di `.env.example` begitu dibutuhkan. Berkas `.env` tidak pernah di-commit.
 
 ## Aturan Kontribusi
 
