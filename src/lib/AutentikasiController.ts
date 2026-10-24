@@ -1,4 +1,5 @@
-// Control UC-03 Melakukan Login Dashboard (REQ-3.1 sampai REQ-3.4). Penguncian akun (REQ-3.5) menyusul di F3.2.
+// Control UC-03 Melakukan Login Dashboard (REQ-3.1 sampai REQ-3.4) dan timeout idle sesi (NFR-12).
+// Penguncian akun (REQ-3.5) menyusul di F3.2.
 import type { AstroCookies } from 'astro';
 
 export type Petugas = { nama: string; email: string };
@@ -10,7 +11,12 @@ export interface AdapterSesi {
   /** Pemilik cookie sesi, atau null bila tidak ada sesi yang sah. */
   baca(cookies: AstroCookies): Promise<Petugas | null>;
   keluar(cookies: AstroCookies): Promise<void>;
+  /** Penanda unik sesi pada cookie ini, untuk mencatat aktivitas terakhir. Null bila tidak ada sesi. */
+  kunci(cookies: AstroCookies): string | null;
 }
+
+/** NFR-12: sesi berakhir setelah 30 menit tanpa aktivitas. */
+export const BATAS_IDLE_BAWAAN_MS = 30 * 60 * 1000;
 
 /** Kamus pesan PRD-rinci Lampiran A, UC-03. */
 export const PESAN_LOGIN = {
@@ -28,9 +34,15 @@ export type HasilLogin =
 
 export class AutentikasiController {
   adapter: AdapterSesi;
+  batasIdleMs: number;
+  now: () => number;
+  // Aktivitas terakhir per sesi disimpan di server agar tidak bisa diperpanjang dari browser.
+  aktivitas = new Map<string, number>();
 
-  constructor(adapter: AdapterSesi) {
+  constructor(adapter: AdapterSesi, opsi: { batasIdleMs?: number; now?: () => number } = {}) {
     this.adapter = adapter;
+    this.batasIdleMs = opsi.batasIdleMs ?? BATAS_IDLE_BAWAAN_MS;
+    this.now = opsi.now ?? Date.now;
   }
 
   /**
@@ -46,14 +58,36 @@ export class AutentikasiController {
     }
     const petugas = await this.adapter.masuk(email, password, cookies);
     if (!petugas) return { kode: 401, pesan: PESAN_LOGIN.salah, petugas: null };
+    const kunci = this.adapter.kunci(cookies);
+    if (kunci) this.aktivitas.set(kunci, this.now());
     return { kode: 200, pesan: PESAN_LOGIN.berhasil, petugas };
   }
 
-  sesiAktif(cookies: AstroCookies): Promise<Petugas | null> {
-    return this.adapter.baca(cookies);
+  /**
+   * Pemilik sesi bila sesi sah dan belum idle melewati batas. Setiap pemeriksaan yang lolos dihitung sebagai aktivitas.
+   * Gagal tertutup: sesi tanpa catatan aktivitas (misalnya catatannya sudah dibersihkan) dianggap kedaluwarsa.
+   */
+  async sesiAktif(cookies: AstroCookies): Promise<Petugas | null> {
+    const petugas = await this.adapter.baca(cookies);
+    const kunci = this.adapter.kunci(cookies);
+    if (!petugas || !kunci) return null;
+    const sekarang = this.now();
+    const terakhir = this.aktivitas.get(kunci);
+    if (terakhir === undefined || sekarang - terakhir > this.batasIdleMs) {
+      await this.keluar(cookies);
+      return null;
+    }
+    this.aktivitas.set(kunci, sekarang);
+    if (this.aktivitas.size > 1000) {
+      for (const [k, t] of this.aktivitas) if (sekarang - t > this.batasIdleMs) this.aktivitas.delete(k);
+    }
+    return petugas;
   }
 
-  keluar(cookies: AstroCookies): Promise<void> {
-    return this.adapter.keluar(cookies);
+  /** Logout: sesi dihapus di penyedia autentikasi beserta cookie dan catatan aktivitasnya. */
+  async keluar(cookies: AstroCookies): Promise<void> {
+    const kunci = this.adapter.kunci(cookies);
+    if (kunci) this.aktivitas.delete(kunci);
+    await this.adapter.keluar(cookies);
   }
 }
