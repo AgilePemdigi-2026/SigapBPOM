@@ -1,0 +1,26 @@
+---
+title: "SIARAN PERS YUK PASTIKAN PANGAN LEBARAN KITA AMAN"
+tanggal: "2018-06-05"
+tahun: "2018"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/siaran-pers-yuk-pastikan-pangan-lebaran-kita-aman"
+---
+# SIARAN PERS YUK PASTIKAN PANGAN LEBARAN KITA AMAN
+
+SIARAN PERS
+YUK PASTIKAN PANGAN LEBARAN KITA AMAN
+Jakarta – Rabu (23/05), Balai Besar POM (BBPOM) di Banjarmasin menemukan 7 (tujuh) item produk pangan kedaluwarsa dan 9 (sembilan) item produk pangan rusak (kemasan penyok) di 2 (dua) sarana distribusi di kota Banjarmasin. Sementara itu BBPOM di Palembang menemukan 9 (sembilan) item produk pangan tanpa izin edar (TIE)/ilegal, 4 (empat) item produk pangan kedaluwarsa, 5 (lima) item produk pangan rusak, dan 2 (dua) item produk pangan dengan label tidak memenuhi ketentuan (TMK).
+Jelang dan selama Ramadhan 2018, BPOM RI melalui BBPOM/BPOM di seluruh Indonesia serentak melakukan pengawasan secara intensif untuk mencegah peredaran obat dan makanan ilegal, rusak dan kedaluwarsa di masyarakat. “Kegiatan intensifikasi pengawasan Ramadhan rutin dilakukan untuk memastikan produk obat dan makanan yang dikonsumsi masyarakat aman, tidak rusak dan tidak kedaluwarsa”, ungkap Kepala BPOM RI Penny K. Lukito. “Pengawasan ini dilakukan dua minggu sebelum Ramadhan hingga satu minggu setelah Idul Fitri/Lebaran”, lanjutnya.
+Sampai dengan 30 Mei 2018, BPOM RI menemukan produk pangan olahan tidak memenuhi ketentuan (TMK) sebanyak 5.272 item (1.405.030 kemasan) dari 932 sarana ritel dan 84 gudang importir/distributor di seluruh Indonesia. Produk-produk tersebut tidak memiliki nomor izin edar (TIE)/ilegal, kemasan rusak dan/atau kedaluwarsa.
+Temuan produk pangan olahan ilegal, rusak dan kedaluwarsa ini tersebar di seluruh Indonesia. “Untuk pangan olahan kedaluwarsa misalnya, banyak ditemukan di Yogyakarta, Samarinda, Manokwari, Padang, dan Mamuju. Sementara pangan olahan ilegal banyak ditemukan di Ambon, Makassar, Surabaya, Semarang, Batam dan Medan”, jelas Kepala BPOM RI. “Sedangkan pangan olahan rusak banyak ditemukan di Yogyakarta, Bandung, Makassar, Serang dan Mamuju”, tambah Penny K. Lukito.
+Terkait maraknya peredaran pangan olahan ilegal, rusak dan kedaluwarsa ini, Kepala BPOM RI kembali meminta kepada seluruh pelaku usaha untuk mematuhi segala peraturan perundang-undangan yang berlaku. Masyarakat sebagai konsumen akhir dari produk pangan tersebut juga harus memiliki kesadaran, minimal dari dirinya sendiri, untuk tetap waspada dan memilih produk Pangan yang aman. Salah satunya adalah melalui penerapan Cek KLIK (Cek Kemasan, Cek Label, Cek Izin Edar, dan Cek Kedaluwarsa) setiap akan membeli atau mengonsumsi produk Pangan Olahan dalam kemasan.
+Untuk itu, Selasa (05/06) BPOM RI bekerja sama dengan Gabungan Pengusaha Makanan dan Minuman Indonesia (GAPMMI) dan Asosiasi Pengusaha Ritel Indonesia (Aprindo) mengundang komunitas Blogger dan Media untuk berbagi informasi mengenai pentingnya memilih produk pangan yang aman. Melalui acara yang mengangkat tema “Pastikan Pangan Lebaran Kita Aman” ini, diharapkan komunitas blogger dan media dapat menyebarluaskan informasi melalui tulisan atau pemberitaan yang dihasilkannya, sehingga semakin banyak masyarakat yang turut memahami mengenai pentingnya memilih produk Pangan yang aman.
+“Tugas memastikan pangan yang dikonsumsi masyarakat aman, bukan hanya tugas Pemerintah, tetapi juga pelaku usaha dan masyarakat. Karena itu hari ini BPOM RI mengajak GAPMMI dan APRINDO untuk berbagi informasi dengan kita semua. GAPMMI memberikan penjelasan terkait bagaimana pelaku usaha memastikan dan menjamin keamanan, mutu, dan gizi produk yang diproduksinya, sedangkan Aprindo bertugas untuk memastikan produk pangan tersebut didistribusikan dengan baik dan benar sampai ke tangan konsumen”, jelas Kepala BPOM RI.
+Masyarakat juga dapat berperan aktif dengan menjadi konsumen cerdas, baca label sebelum membeli. Hal itu dilakukan untuk mendapatkan informasi yang benar, jelas, dan tidak menyesatkan. Saat membeli produk pangan, masyarakat setidaknya harus mencari informasi pada label. Sesuai dengan Undang-Undang No. 18 Tahun 2012 tentang Pangan, label produk pangan harus memuat nama produk, daftar bahan yang digunakan, berat bersih atau isi bersih, nama dan alamat pihak yang memproduksi atau mengimpor, halal bagi yang dipersyaratkan, tanggal dan kode produksi, tanggal, bulan, dan tahun kedaluwarsa, nomor izin edar bagi Pangan Olahan; dan asal usul bahan Pangan tertentu.
+_______________________________________________________________________________________________________________________
+Informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id , twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

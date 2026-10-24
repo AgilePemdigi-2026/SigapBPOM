@@ -1,0 +1,20 @@
+---
+title: "Badan POM TIngkatkan Eksistensi Obat Bahan Alam Indonesia"
+tanggal: "2017-05-11"
+tahun: "2017"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/badan-pom-tingkatkan-eksistensi-obat-bahan-alam-indonesia"
+---
+# Badan POM TIngkatkan Eksistensi Obat Bahan Alam Indonesia
+
+The 3rd Meeting Of Medicinal Plants Focal Points Of Indian Ocean Rim Association Regional Centre for Science and Technology Transfe r
+Jakarta – Dewasa ini, obat bahan alam menjadi salah satu alternatif strategis dalam pelayanan kesehatan. Integrasi produk obat bahan alam ke dalam pelayanan kesehatan diharapkan dapat memperluas jangkauan pelayanan, meningkatkan alternatif jenis layanan, tanpa membebani finansial populasi layanan, bahkan justru diharapkan menekan biaya yang dikeluarkan.
+Sebagai pengawas Obat dan Makanan, Badan POM turut mendukung upaya pengembangan produk obat bahan alam yang memenuhi kaidah keamanan, manfaat, dan mutu. Untuk itu Badan POM menyelenggarakan The 3rd Meeting Of Medicinal Plants Focal Points Of Indian Ocean Rim Association (IORA) Regional Centre for Science and Technology Transfer di Jakarta, 10 – 12 Mei 2017. Kegiatan yang dilaksanakan melalui expert meeting, technical visit, dan exhibition ini mengusung tema “ Synergism between Academician, Business, and Government in the Development of Medicinal Plant Products: Utilization of Evidence-Based Research ”.
+“Kami berharap rangkaian kegiatan IORA ini dapat menjadi ajang untuk meningkatkan eksistensi obat bahan alam Indonesia (jamu) melalui promosi produk-produk obat bahan alam Indonesia dan penyampaian informasi perkembangan industri obat bahan alam di Indonesia yang berbasis riset, teknologi, dan kearifan budaya lokal”, ujar Kepala Badan POM, Penny K. Lukito. “Selain itu, kegiatan ini juga dapat menjadi forum komunikasi dan informasi yang melibatkan semua Stakeholders ( government, academician, dan business ) dalam rangka pengembangan kebijakan dan regulasi pemerintah, pengembangan obat bahan alam berbasis riset dan teknologi, serta komersialisasi produk obat bahan alam”, tambahnya.
+IORA merupakan organisasi regional di wilayah Samudera Hindia, yang berdiri berdasarkan pilar – pilar ekonomi, keamanan dan keselamatan maritim, dan pendidikan serta kebudayaan. Saat ini, IORA beranggotakan 21 negara antara lain Afrika Selatan, Australia, Bangladesh, Komoros, India, Indonesia, Iran, Malaysia, Mauritius, Oman, Seychelles, Somalia, dan Thailand. Selain itu, IORA juga menggandeng 7 negara mitra dialog yaitu Amerika Serikat, Inggris, Jepang, Jerman, Mesir, Perancis dan Republik Rakyat Tiongkok (RRT). Penyelenggaraan kegiatan ini juga merupakan bentuk dukungan Badan POM terhadap keketuaan Indonesia di organisasi IORA periode 2015-2017.
+Dalam rangkaian kegiatan ini, Badan POM juga menyelenggarakan pameran “Indonesia Natural Product Expo ” (INPE) 2017 di JCC Senayan pada tanggal 11-14 Mei 2017 sebagai sarana memperkenalkan obat bahan alam (Jamu) Indonesia kepada delegasi negara IORA.
+Upaya hilirisasi penelitian bahan alam merupakan proses yang kompleks dan melibatkan berbagai pihak. Oleh karena itu, upaya tersebut perlu dilakukan dengan langkah-langkah terpadu, komprehensif, mulai dari hulu hingga ke hilir melibatkan stakeholders academician, business, dan government (ABG). “Badan POM mengajak akademisi dan pelaku usaha untuk bersinergi dalam menghadapi tantangan dan peluang komersialisasi produk obat bahan alam. Mari bersama kita kembangkan produk bahan alam asli Indonesia”, ujar Kepala Badan POM.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

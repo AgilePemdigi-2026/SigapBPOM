@@ -1,0 +1,27 @@
+---
+title: "Pemusnahan Obat dan Makanan Ilegal Hasil Pengawasan BBPOM di Manado Sebagai Komitmen Melindungi Masyarakat"
+tanggal: "2013-11-14"
+tahun: "2013"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/pemusnahan-obat-dan-makanan-ilegal-hasil-pengawasan-bbpom-di-manado-sebagai-komitmen-melindungi-masyarakat"
+---
+# Pemusnahan Obat dan Makanan Ilegal Hasil Pengawasan BBPOM di Manado Sebagai Komitmen Melindungi Masyarakat
+
+SIARAN PERS
+KOMITMEN BALAI BESAR POM DI MANADO
+UNTUK PERLINDUNGAN MASYARAKAT
+Dalam melaksanakan tugas untuk melindungi masyarakat dari peredaran dan penggunaan obat dan makanan yang tidak memenuhi persyaratan kesehatan, Badan POM melakukan pengawasan secara komprehensif, yang meliputi pengawasan pre-market dan post-market dengan didukung laboratorium pengujian yang handal. Pengawasan post-market antara lain dilakukan dengan melakukan sampling dan pengujian secara laboratoris untuk mendeteksi Obat dan Makanan ilegal, palsu, mengandung bahan berbahaya, dan obat tradisional yang mengandung bahan kimia obat.
+Terkait dengan pengawasan post-market yang dilakukan oleh Balai Besar POM (BBPOM) di Manado, hari ini, Rabu 13 November 2013, Deputi Bidang Pengawasan Keamanan Pangan dan Bahan Berbahaya Badan POM bersama Sekretaris Direktorat Jenderal Standardisasi dan Perlindungan Konsumen dan jajaran pemerintahan di Provinsi Sulawesi Utara, Kejaksaan Tinggi, Kepolisian Daerah, Kepala Dinas Kesehatan, Kepala Dinas Perindustrian dan Perdagangan, serta Kepala BBPOM di Manado, melakukan pemusnahan obat dan makanan ilegal. Produk ilegal yang dimusnahkan terdiri dari obat, obat tradisional, dan kosmetika ilegal serta pangan yang tidak memiliki ketentuan hasil pengawasan tahun 2013, dengan nilai keekonomian sekitar Rp160.000.000,- (Seratus Enam Puluh Juta Rupiah). Jumlah tersebut terdiri dari 371 item kosmetika ilegal dan tidak memenuhi ketentuan, 62 item pangan kadaluarsa, 3 item obat ilegal dan tidak memenuhi ketentuan, serta 6 item obat tradisional ilegal mengandung bahan kimia obat (BKO) dan tidak memenuhi ketentuan.
+Pemusnahan obat dan makanan ilegal hasil pengawasan BBPOM di Manado ini merupakan kegiatan pemusnahan ke-16 dari serangkaian kegiatan tindak lanjut pengawasan Badan POM selama tahun 2013. Sebelumnya, telah dilakukan pemusnahan obat dan makanan ilegal di Pekanbaru, Bandar Lampung, DKI Jakarta, Palangka Raya, Palembang, Medan, Batam, Semarang, Serang, Jayapura, Banjarmasin, Yogyakarta, Kupang, Mataram dan Pontianak dengan total nilai keekonomian mencapai hampir Rp13.000.000.000,- (Tiga Belas Milyar Rupiah). Kegiatan ini kembali membuktikan keseriusan Pemerintah dalam menegakkan peraturan dan memerangi produk ilegal yang merugikan kita semua, baik konsumen maupun negara.
+Hasil pengawasan BBPOM di Manado selama tahun 2013 menunjukkan bahwa pelanggaran di bidang pengawasan obat dan makanan didominasi oleh temuan produk kosmetika. Selama periode tersebut BBPOM di Manado telah menemukan produk tidak memenuhi ketentuan dengan nilai ekonomis sekitar Rp400.000.000,- (Empat Ratus Juta Rupiah).
+Pengawasan terhadap peredaran produk pangan dan non pangan terus digalakkan oleh Pemerintah di berbagai wilayah. Pada kesempatan ini, Tim Terpadu Pengawasan Barang Beredar (TPBB) yang dipimpin oleh Deputi Bidang Pengawasan Keamanan Pangan dan Bahan Berbahaya beserta anggota Tim TPBB lainnya kembali melakukan inspeksi di sejumlah lokasi di wilayah Kota Bitung. Dalam kegiatan inspeksi tersebut, Tim TPBB berkoordinasi dengan Tim Pengawasan Daerah yang terdiri dari jajaran Dinas Perindag Provinsi Sulawesi Utara dan Dinas Perindag Kota Bitung.
+Pada hari ini, BBPOM di Manado juga melakukan sampling dan pengujian terhadap pangan olahan yang dilakukan pada para penjaja di pasar tradisional Winenet dan Girian. Jumlah sampel yang diambil dan diuji sebanyak 39 sampel, dan seluruhnya menunjukkan hasil uji negatif terhadap parameter yang diujikan. Parameter tersebut antara lain formalin, boraks, rhodamin-B dan methanyl yellow. Sampel terdiri dari ikan cakalang fufu (ikan asap), mie basah, kue basah, es, bakso, bumbu kuning, terasi, ikan malalugis, pewarna makanan, kerupuk, saos tomat dan tahu.
+Badan POM menghimbau kepada masyarakat untuk menjadi konsumen yang cerdas, salah satunya dengan tidak mengkonsumsi obat dan makanan yang tidak memenuhi persyaratan, tanpa izin edar, dan atau palsu. Apabila masyarakat menemukan hal- hal yang mencurigakan atau mempunyai informasi yang ingin disampaikan, agar menghubungi Unit La yanan Pengaduan Konsumen (ULPK) Badan POM dengan nomor telepon 021-4263333 dan 021-32199000 atau email ulpk@pom.go.id dan ulpk_badanpom@yahoo.co.id, atau Unit Layanan Pengaduan Konsumen di BBPOM/BPOM di seluruh Indonesia. Untuk BBPOM di Manado dapat menghubungi Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar POM di Manado dengan nomor telepon 0431-824327.
+Manado, 13 November 2013
+Balai Besar POM di Manado
+No Telp. (0431) 824686/ Fax. (0431) 824327
+Email: ulpk_mdo@yahoo.co.id
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

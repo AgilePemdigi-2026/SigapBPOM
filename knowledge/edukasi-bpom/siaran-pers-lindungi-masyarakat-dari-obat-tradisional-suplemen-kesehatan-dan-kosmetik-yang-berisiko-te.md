@@ -1,0 +1,30 @@
+---
+title: "Lindungi Masyarakat dari Obat Tradisional, Suplemen Kesehatan, dan Kosmetik yang Berisiko terhadap Kesehatan, Badan POM Kembali Terbitkan Public Warning"
+tanggal: "2020-07-02"
+tahun: "2020"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/lindungi-masyarakat-dari-obat-tradisional-suplemen-kesehatan-dan-kosmetik-yang-berisiko-terhadap-kesehatan-badan-pom-kembali-terbitkan-public-warning"
+---
+# Lindungi Masyarakat dari Obat Tradisional, Suplemen Kesehatan, dan Kosmetik yang Berisiko terhadap Kesehatan, Badan POM Kembali Terbitkan Public Warning
+
+SIARAN PERS
+Lindungi Masyarakat dari Obat Tradisional, Suplemen Kesehatan, dan Kosmetik yang Berisiko terhadap Kesehatan, Badan POM Kembali Terbitkan Public Warning
+Jakarta – Badan POM terus melakukan pengawasan terhadap obat tradisional dan suplemen kesehatan Tanpa Izin Edar (TIE)/ilegal dan mengandung Bahan Kimia Obat (BKO). Badan POM juga melakukan pengawasan terhadap kosmetik ilegal dan/atau mengandung bahan dilarang/bahan berbahaya di peredaran. Melalui Balai Besar/Balai POM di seluruh Indonesia, Badan POM melakukan pengawasan produk di peredaran baik secara rutin, penyidikan kasus, maupun operasi penertiban ke sarana produksi, sarana distribusi, atau retail .
+Kepala Badan POM RI, Penny K. Lukito mengungkapkan bahwa selama tahun 2019, Badan POM menemukan obat tradisional dan suplemen kesehatan ilegal dan/atau mengandung BKO senilai 6,2 miliar rupiah. Temuan obat tradisional dan suplemen kesehatan tersebut didominasi oleh produk yang mengandung BKO Sildenafil Sitrat, Parasetamol, Deksametason, dan Fenilbutazon . Badan POM juga menemukan satu obat tradisional impor terdaftar yang mengandung BKO Metformin dan Glibenklamid . Obat tradisional dan suplemen kesehatan yang mengandung BKO memiliki risiko kesehatan, seperti kehilangan penglihatan dan pendengaran, stroke, serangan jantung, kerusakan hati, bahkan kematian.
+Selain itu, Badan POM juga menemukan 32 miliar rupiah kosmetik ilegal dan/atau mengandung bahan dilarang/bahan berbahaya. “Temuan didominasi oleh kosmetik yang mengandung Merkuri dan Hidrokinon . Selain itu Badan POM juga menemukan 4 jenis kosmetik yang sudah ternotifikasi mengandung bahan dilarang/bahan berbahaya yaitu pewarna dilarang Merah K3. Secara umum bahan tersebut dapat menyebabkan kanker (karsinogenik), kelainan pada janin (teratogenik), dan iritasi kulit,” jelas Kepala Badan POM.
+Temuan obat tradisional, suplemen kesehatan dan kosmetik ilegal tersebut merupakan hasil pengawasan di lapangan dan pengawasan di media daring. Temuan obat tradisional dan suplemen kesehatan mengandung BKO serta kosmetik mengandung bahan dilarang/bahan berbahaya telah ditindaklanjuti secara administratif, antara lain berupa pembatalan notifikasi/izin edar, penarikan dan pengamanan produk dari peredaran, serta pemusnahan.
+Terkait penanganan produk ilegal, selama tahun 2019 Badan POM telah mengungkap 42 perkara obat tradisional dan suplemen kesehatan ilegal dan/atau mengandung BKO, serta 96 perkara kosmetik ilegal dan/atau mengandung bahan dilarang/bahan berbahaya yang telah ditindaklanjuti secara pro-justitia . Kepala Badan POM menyampaikan bahwa dalam kurun waktu lima tahun terakhir, putusan tertinggi pengadilan perkara obat tradisional dan suplemen kesehatan dijatuhi sanksi berupa putusan pengadilan paling tinggi penjara 2 tahun dan denda 1 miliar rupiah, sedangkan perkara kosmetik dijatuhi sanksi berupa putusan pengadilan paling tinggi penjara 2 tahun 6 bulan dan denda 1 miliar rupiah.
+Selain hasil temuan di atas, Badan POM juga telah menindaklanjuti hasil laporan Post-Marketing Alert System (PMAS) yang dilaporkan oleh negara lain yaitu sebanyak 324 produk obat tradisional dan suplemen kesehatan, serta 78 item kosmetik mengandung bahan dilarang/bahan berbahaya. Semua temuan PMAS tersebut merupakan produk yang tidak terdaftar di Badan POM.
+Kepala Badan POM kembali menegaskan agar pelaku usaha menjalankan usahanya sesuai dengan ketentuan peraturan perundangan-undangan. “Di tahun 2019 Badan POM masih menemukan adanya peredaran produk yang sudah pernah dilakukan public warning tahun-tahun sebelumnya. Untuk itu masyarakat harus lebih waspada serta tidak mengonsumsi produk–produk sebagaimana tercantum dalam lampiran public warning ini, ataupun yang sudah pernah diumumkan dalam public warning sebelumnya,” tegas Penny K. Lukito .
+Kepala Badan POM mengajak masyarakat untuk bersama-sama melindungi diri dari konsumsi obat tradisional, kosmetik, dan suplemen kesehatan ilegal termasuk palsu yang banyak ditemukan Badan POM dijual secara daring. Karena obat tradisional, kosmetik, dan suplemen kesehatan ilegal termasuk palsu tersebut, tidak terjamin keamanan, manfaat, dan mutunya. Ingat selalu Cek KLIK (Kemasan, Label, Izin Edar, Kedaluwarsa). Pastikan kemasan dalam kondisi baik, baca informasi produk yang tertera pada labelnya, memiliki Izin edar Badan POM, dan tidak melebihi masa kedaluwarsa.
+Informasi lebih lanjut hubungi:
+Contact Center HALOBPOM di nomor telepon 1500533, SMS 0-8121-9999-533 , WhatsApp 0811-9181 533, e-mail halobpom@pom.go.id , twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia
+Lampiran I - Obat Tradisional dan Suplemen Kesehatan Mengandung Bahan Kimia Obat
+Lampiran II - Obat Tradisional dan Suplemen Kesehatan Mengandung BKO Hasil PMAS
+Lampiran I - Kosmetika Mengandung Bahan Berbahaya
+Lampiran II - Kosmetika Mengandung Bahan Berbahaya Hasil PMAS
+Lampiran - Waspada Produk Obat Tradisional dan Suplemen Kesehatan Pals u
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

@@ -1,0 +1,24 @@
+---
+title: "LINDUNGI MASYARAKAT DARI PRODUK ILEGAL, BADAN POM MUSNAHKAN LEBIH DARI 8,3 MILIAR RUPIAH OBAT DAN MAKANAN ILEGAL DI SURABAYA"
+tanggal: "2016-11-15"
+tahun: "2016"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/lindungi-masyarakat-dari-produk-ilegal-badan-pom-musnahkan-lebih-dari-8-3-miliar-rupiah-obat-dan-makanan-ilegal-di-surabaya"
+---
+# LINDUNGI MASYARAKAT DARI PRODUK ILEGAL, BADAN POM MUSNAHKAN LEBIH DARI 8,3 MILIAR RUPIAH OBAT DAN MAKANAN ILEGAL DI SURABAYA
+
+SIARAN PERS
+LINDUNGI MASYARAKAT DARI PRODUK ILEGAL,
+BADAN POM MUSNAHKAN LEBIH DARI 8,3 MILIAR RUPIAH
+OBAT DAN MAKANAN ILEGAL DI SURABAYA
+Surabaya – Sebagai bentuk komitmen Badan POM untuk melindungi masyarakat dari Obat dan Makanan ilegal yang berisiko bagi kesehatan, Badan POM terus melakukan pengawasan secara rutin dan komprehensif, yang meliputi pre-market evaluation dan post-market control . Tindakan pengamanan dan pemusnahan produk ilegal pun terus digalakkan untuk memastikan bahwa produk tersebut tidak lagi beredar dan dikonsumsi oleh masyarakat.
+Penegakan hukum yang tegas melalui serangkaian kegiatan pengamanan dan pemusnahan produk ilegal membuktikan Badan POM selalu hadir untuk melindungi masyarakat dari Obat dan Makanan yang membahayakan kesehatan. Tercatat selama tahun 2016, Badan POM telah beberapa kali melakukan pemusnahan Obat dan Makanan ilegal, termasuk palsu dan tidak memenuhi syarat (TMS) antara lain di Jakarta, Denpasar, Serang, Jayapura, dan kota-kota lainnya. Hari ini, Rabu, 16 November 2016, giliran Balai Besar POM (BBPOM) di Surabaya melakukan pemusnahan terhadap hasil temuan operasi gabungan termasuk operasi pengawasan pada tahun 2015 dan 2016. Produk yang dimusnahkan didominasi oleh obat, obat tradisional (OT)/jamu, dan kosmetik sebanyak 2.229 jenis (2.414.879 pcs ) dengan nilai keekonomian mencapai lebih dari 8,3 miliar rupiah .
+Secara rinci, Obat dan Makanan ilegal tersebut terdiri atas 210 jenis (2.136.295 pcs ) obat ilegal senilai lebih dari 4,1 miliar rupiah, 858 jenis (97.859 pcs ) obat tradisional ilegal senilai lebih dari 1,5 miliar rupiah, 731 jenis (89.956 pcs ) kosmetik ilegal senilai lebih dari 766 juta rupiah, dan 360 jenis (14.721 pcs ) pangan ilegal senilai lebih dari 388 juta rupiah. Di samping itu, dimusnahkan juga 5 jenis (54 pcs) produk komplemen ilegal dengan nilai keekonomian mencapai lebih dari 4,2 juta rupiah, 2 jenis (21 pcs ) bahan baku obat ilegal dengan nilai keekonomian mencapai lebih dari 554 juta rupiah, 40 jenis (3.076 pcs ) label pangan ilegal dengan nilai keekonomian mencapai lebih dari 830 juta rupiah serta 23 jenis (72.897 pcs ) kemasan sekunder pangan ilegal dengan nilai keekonomian mencapai lebih dari 182 juta rupiah. Seluruh barang bukti yang dimusnahkan tersebut telah mendapatkan Ketetapan Pemusnahan dari Pengadilan Negeri Setempat.
+Dari hasil kegiatan pemeriksaan rutin, Operasi Storm, Operasi Pangea, Operasi Gabungan Daerah, dan Operasi Gabungan Nasional sepanjang tahun 2015, BBPOM di Surabaya telah menangani 20 perkara pelanggaran di bidang Obat dan Makanan. Semua perkara tersebut sudah dilakukan penyerahan tersangka dan barang bukti dari PPNS Badan POM ke Jaksa Penuntut Umum. Enam perkara diantaranya telah mendapat putusan pengadilan. Putusan tertinggi berupa hukuman pidana penjara selama 1 tahun dan denda sebanyak 5 juta rupiah. Sementara di tahun 2016, jumlah pelanggaran yang berhasil ditangani berjumlah 18 perkara dimana 2 perkara telah disidangkan di pengadilan dan 7 perkara sudah mendapatkan penetapan P-21.
+Kejahatan pelanggaran di bidang Obat dan Makanan merupakan kejahatan kemanusiaan karena berisiko membahayakan kesehatan, terutama untuk kelompok masyarakat dengan penyakit yang sedang membutuhkan pengobatan, bayi, anak kecil, ataupun orang tua. Untuk itu, Badan POM menghimbau kepada masyarakat agar turut berpartisipasi aktif mengawasi Obat dan Makanan di sekitarnya. Tetap waspada sebelum membeli dan mengonsumsi Obat dan Makanan. Ingat selalu “ Cek KIK ”, pastikan K emasan dalam kondisi baik, memiliki I zin edar, dan tidak melebihi masa K edaluwarsa. Masyarakat juga dapat mengecek legalitas produk melalui website Badan POM atau melalui aplikasi android “ CekBPOM ”.
+Untuk informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id , twitter @bpom_ri, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

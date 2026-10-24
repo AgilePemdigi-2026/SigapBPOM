@@ -1,0 +1,28 @@
+---
+title: "BPOM Dorong Kolaborasi Pengawasan Bertanggung Jawab oleh Masyarakat untuk Kawal Keamanan Obat dan Makanan"
+tanggal: "2025-07-17"
+tahun: "2025"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/bpom-dorong-kolaborasi-pengawasan-bertanggung-jawab-oleh-masyarakat-untuk-kawal-keamanan-obat-dan-makanan"
+---
+# BPOM Dorong Kolaborasi Pengawasan Bertanggung Jawab oleh Masyarakat untuk Kawal Keamanan Obat dan Makanan
+
+SIARAN PERS
+Nomor HM.01.1.2.07.25.132 Tanggal 17 Juli 2025
+Tentang
+BPOM Dorong Kolaborasi Pengawasan Bertanggung Jawab oleh Masyarakat untuk Kawal Keamanan Obat dan Makanan
+Jakarta – Kamis (17/7/2025), Kepala BPOM Taruna Ikrar menggelar sosialisasi Peraturan BPOM Nomor 16 Tahun 2025 (PerBPOM 16/2025) tentang Pengawasan Sediaan Farmasi dan Pangan Olahan melalui Peran Serta Masyarakat. Peraturan ini ditetapkan oleh Kepala BPOM pada 28 Mei 2025 dan diundangkan oleh Kementerian Hukum pada 4 Juni 2025. Peraturan ini diterbitkan sebagai langkah penguatan sistem pengawasan yang partisipatif dengan memberikan ruang bagi masyarakat dalam pengawasan sediaan farmasi dan pangan olahan.
+Penerbitan Peraturan BPOM ini sejalan dengan Undang-Undang Nomor 17 Tahun 2023 tentang Kesehatan dan peraturan pelaksananya. Kemudian, sejalan juga dengan Undang-Undang Nomor 8 Tahun 1999 tentang Perlindungan Konsumen, Peraturan Pemerintah Nomor 86 Tahun 2019 tentang Keamanan Pangan, serta Peraturan BPOM Nomor 18 Tahun 2024 tentang Penandaan, Promosi, dan Iklan Kosmetik.
+“Jadi, pemerintah memiliki kewajiban untuk mendukung partisipasi masyarakat dalam pengawasan sektor kesehatan termasuk sediaan farmasi dan pangan olahan. Dan, masyarakat memiliki hak dan diberikan ruang untuk berperan serta dalam pengawasan tersebut, guna memastikan bahwa produk yang beredar di pasaran aman untuk dikonsumsi,” jelas Kepala BPOM Taruna Ikrar.
+Sistem pengawasan BPOM ditopang oleh 3 pilar utama, yaitu pengawasan oleh BPOM sebagai regulator, pelaku usaha sebagai pemilik produk, dan pengawasan oleh masyarakat sebagai konsumen utama. Dengan peredaran produk obat, obat bahan alam, suplemen kesehatan, obat kuasi, kosmetik, dan pangan olahan yang marak melalui ranah digital, masyarakat ikut berperan penting dalam memastikan keamanan, manfaat, dan mutu produk melalui pengawasan yang partisipatif, kolaboratif, dan edukatif.
+Sebagai bentuk partisipasi aktif masyarakat di era perkembangan teknologi dan informasi, saat ini, banyak beredar praktik ulasan dan testimoni mengenai produk obat dan makanan di media sosial dan platform digital. Tidak jarang informasi diberikan oleh pihak yang tidak memiliki kewenangan atau kompetensi di bidang obat dan makanan. Tidak sedikit pula yang memberikan informasi secara tidak lengkap, tidak objektif, atau menyesatkan. Hal ini tentu berisiko menimbulkan kebingungan bagi masyarakat, berpotensi membahayakan kesehatan, serta menyebabkan kegaduhan di tengah masyarakat dan antar pelaku usaha.
+Kepala BPOM Taruna Ikrar menyatakan bahwa PerBPOM 16/2025 menjadi respons BPOM dalam menyediakan regulasi yang adaptif dengan kondisi tersebut. “Penyusunan pedoman ini diharapkan mampu memberikan kepastian hukum bagi masyarakat dalam sinergi pengawasan sediaan farmasi dan pangan olahan bersama dengan BPOM,” paparnya.
+Peran serta masyarakat yang diatur dalam peraturan tersebut dapat berupa pemberian informasi atau laporan yang berdasarkan pada hasil survei, penelitian, atau pengujian dari laboratorium yang terakreditasi. Selain itu, peran serta dapat pula berupa keikutsertaan dalam penyebaran informasi atau kampanye kepada masyarakat.
+“Untuk memberikan partisipasi tersebut, BPOM meminta agar masyarakat memegang 2 prinsip utama, yaitu bertanggung jawab dan objektif serta bebas dari kepentingan pribadi. Penyebaran informasi dapat dilakukan setelah melalui proses verifikasi atau evaluasi BPOM,” tegas Kepala BPOM.
+Untuk informasi atau laporan kepada BPOM dapat disampaikan secara tertulis atau lisan melalui laman resmi pengaduan masyarakat BPOM, alamat resmi surat elektronik/non elektronik, media sosial resmi, dan aplikasi BPOM Mobile . Pemberi informasi atau pelapor perlu menyertakan identitas resmi, rincian kejadian, identitas produk yang dilaporkan, serta informasi dugaan pelanggaran terhadap standar/ketentuan .
+Kegiatan sosialisasi hari ini dilakukan dengan menghadirkan komunitas masyarakat termasuk influencer , lintas sektor terkait, asosiasi pelaku usaha, dan media massa. Bersamaan dengan kegiatan ini, Kepala BPOM meluncurkan Buku Peran Serta Masyarakat dalam Pengawasan Sediaan Farmasi dan Pangan Olahan. Buku ini berisi pemahaman ringkas dan aplikatif terhadap substansi peran serta masyarakat yang terdapat pada PerBPOM 16/2025. Peraturan ini dapat diakses melalui s itus resmi Jaringan Dokumentasi dan Informasi Hukum (JDIH) BPOM ( https://jdih.pom.go.id ).
+Dengan kehadiran PerBPOM 16/2025, diharapkan dapat menjadi referensi bagi masyarakat dalam membangun ekosistem pengawasan sediaan farmasi dan pangan olahan yang kuat, adaptif, dan tepercaya. Peran serta masyarakat yang bertanggung jawab dan objektif juga diharapkan dapat semakin meningkatkan efektivitas pengawasan obat dan makanan untuk memberikan perlindungan kesehatan yang optimal bagi konsumen.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

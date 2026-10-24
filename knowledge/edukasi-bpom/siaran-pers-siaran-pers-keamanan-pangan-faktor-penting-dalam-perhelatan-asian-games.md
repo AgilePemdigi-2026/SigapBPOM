@@ -1,0 +1,26 @@
+---
+title: "SIARAN PERS KEAMANAN PANGAN FAKTOR PENTING DALAM PERHELATAN ASIAN GAMES"
+tanggal: "2018-07-24"
+tahun: "2018"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/siaran-pers-keamanan-pangan-faktor-penting-dalam-perhelatan-asian-games"
+---
+# SIARAN PERS KEAMANAN PANGAN FAKTOR PENTING DALAM PERHELATAN ASIAN GAMES
+
+SIARAN PERS
+KEAMANAN PANGAN FAKTOR PENTING DALAM PERHELATAN ASIAN GAMES
+Jakarta – Perhelatan Asian Games ke-18 akan segera dimulai pada 18 Agustus 2018. Indonesia sebagai tuan rumah terus bekerja keras memastikan kesiapan seluruh infrastruktur Asian Games yang akan difokuskan di dua kota yakni Jakarta dan Palembang. Keamanan pangan bagi para atlet dan official yang berlaga di pesta olahraga bangsa-bangsa di Kawasan Asia menjadi fokus Pemerintah. Tidak hanya itu, perlindungan atas keamanan pangan bagi para penonton dan masyarakat umum juga menjadi perhatian.
+Kepala BPOM RI Penny K. Lukito menyatakan BPOM RI siap mendukung kesuksesan penyelenggaraan Asian Games melalui pengawalan keamanan pangan terpadu bersama lintas sektor terkait. BPOM RI melalui Balai Besar POM (BBPOM) di Jakarta, BBPOM di Palembang, BBPOM di Yogyakarta, BBPOM di Denpasar dan kota-kota yang dilalui obor ASIAN Games telah menggelar intensifikasi pengawasan pangan. Dalam kunjungan kerjanya Rabu (11/07) ke Palembang, Kepala BPOM RI, Penny K. Lukito menempelkan stiker pangan aman di toko oleh-oleh Lenggok Kambang Iwak. Kegiatan stikerisasi ini juga merupakan bagian dari penempelan stiker yang dilakukan oleh Sekretaris Daerah Sumatera Selatan terhadap sarana pangan aman di Kampung Sentra Pempek 26 Hilir.
+Di Palembang, telah dilakukan pembinaan kepada 1.166 orang pelaku usaha yang terdapat pada 270 titik Pedagang Kaki Lima (PKL) dan 47 restoran yang akan melayani kebutuhan pangan sekaligus tujuan kuliner selama perhelatan Asian Games berlangsung. Kegiatan bersama pemerintah daerah telah dilakukan meliputi pemetaan restoran dan penjual pangan lainnya, bimbingan teknis (bimtek) keamanan pangan kepada pelaku usaha pangan, penyuluhan kepada pelaku usaha kuliner, sampling dan pemeriksaan, serta intensifikasi mobil laboratorium keliling. Selain itu BBPOM di Palembang mengadakan edukasi keamanan pangan juga dilakukan kepada 300 orang PKK Sumatera Selatan, dan 120 perwakilan Kwarda Pramuka Sumatera Selatan untuk ikut berperan dalam pengawasan keamanan pangan saat Asian Games.
+Jelang Asian Games intensifikasi pengawasan terpadu dengan melibatkan tim jejaring keamanan pangan terus diperluas di lokasi wisata kuliner, jajanan anak sekolah, pasar modern, pasar tradisional, pusat kuliner, terminal, stasiun, dan bandara, serta terutama tempat yang menjadi lokasi pertandingan di Palembang dan Jakarta. “Kami akan lakukan stikerisasi kepada pelaku usaha kuliner yang telah lulus pemeriksaan’’, tegas Kepala BPOM RI.
+Sementara itu, BBPOM di Jakarta juga telah mengoperasikan mobil laboratorium keliling di Gelora Bung Karno, Kemayoran dan Wisma Atlet, melakukan penyuluhan terhadap 40 penjual makanan di Gelora Bung Karno, serta pengawalan food security di beberapa hotel yang menjadi penginapan atlet dan official Asian Games.
+Hari ini Selasa (24/07), Wakil Gubernur Provinsi DKI Jakarta, Sandiaga Uno bersama Kepala BPOM RI melakukan penempelan stiker dan pemberian Sertifikat Aman Saji serta stiker BPOM Asian Games kepada pelaku usaha kuliner di foodcourt, restoran dan swalayan di kawasan Jakarta Pusat. Kegiatan penempelan stiker ini merupakan kerja sama Kementerian Kesehatan, BPOM RI, dan Dinas Kesehatan.
+“Stikerisasi sarana penjualan pangan ini merupakan penanda bahwa pelaku usaha yang bersangkutan telah dibina dan produknya dinyatakan memenuhi ketentuan Cara Produk Pangan Olahan yang Baik (CPPOB)”, ungkap Kepala BPOM RI. “Stiker ini diharapkan dapat menjadi ikon keamanan pangan yang mudah diiingat oleh masyarakat”, lanjutnya.
+Terkait masih ditemukannya pangan yang mengandung bahan berbahaya, Kepala BPOM RI mengimbau seluruh pelaku usaha pangan untuk memproduksi pangan yang aman dan bermutu sesuai peraturan perundang-undangan yang berlaku. “Masyarakat juga diharapkan lebih berhati-hati dalam memilih pangan. Belilah pangan dalam kondisi baik di tempat yang terjamin kebersihannya. Hindari pangan yang mengandung bahan berbahaya, terlalu kenyal, berwarna mencolok, dan cenderung berpendar. Jangan membeli pangan yang dibungkus menggunakan kertas bertinta karena mengandung logam berat yang berbahaya bagi kesehatan” imbau Kepala BPOM RI menutup penjelasannya.
+___________________________________________________________________________________________________________________
+Informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id , twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

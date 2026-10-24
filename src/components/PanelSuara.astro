@@ -42,13 +42,13 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
 <script>
   type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string };
-  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null };
+  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean };
 
   const GATEWAY = '/voice';
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
   // Deteksi giliran bicara sederhana dari kekuatan sinyal mikrofon.
   const AMBANG_SUARA = 0.025;
-  const JEDA_SELESAI_MS = 1200;
+  const JEDA_SELESAI_MS = 800;
   const UCAPAN_MAKS_MS = 15_000;
   const TUNGGU_MAKS_MS = 8_000;
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -75,6 +75,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
     let pantau: number | undefined;
     const pemutar = new Audio();
+    // Tempo bicara gaya CS. Model TTS v3 tidak punya pengaturan kecepatan, jadi audio dipercepat di sini
+    // dengan nada tetap. defaultPlaybackRate dipakai karena mengganti src mengembalikan playbackRate ke nilai itu.
+    const KECEPATAN_PUTAR = 1.2;
+    pemutar.defaultPlaybackRate = pemutar.playbackRate = KECEPATAN_PUTAR;
+    pemutar.preservesPitch = true;
 
     const stamp = () => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
     const LABEL = { diam: 'TERSAMBUNG', mendengar: 'MENDENGARKAN', memproses: 'MEMPROSES', berbicara: 'BERBICARA' };
@@ -126,6 +131,8 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (h.transkrip) push({ kind: 'user', text: h.transkrip });
       if (h.jawaban) say(h.jawaban);
       if (h.suara) await putar(h.suara);
+      // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
+      if (h.akhiri) return end();
       if (phase !== 'ended') dengar();
     }
 

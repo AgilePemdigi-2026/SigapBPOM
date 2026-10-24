@@ -1,0 +1,30 @@
+---
+title: "BPOM Bersama Polri dan TNI Bongkar Toko Online Kosmetik Impor Ilegal"
+tanggal: "2024-10-28"
+tahun: "2024"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/bpom-bersama-polri-dan-tni-bongkar-toko-online-kosmetik-impor-ilegal"
+---
+# BPOM Bersama Polri dan TNI Bongkar Toko Online Kosmetik Impor Ilegal
+
+SIARAN PERS
+Nomor HM.01.1.2.10.24.81 Tanggal 28 Oktober 2024
+Tentang
+BPOM Bersama Polri dan TNI Bongkar Toko Online Kosmetik Impor Ilegal
+Jakarta – Penyidik Pegawai Negeri Sipil (PPNS) Balai Besar POM (BBPOM) di Jakarta melakukan penindakan sebagai tindak lanjut atas informasi masyarakat terhadap adanya penjualan kosmetik ilegal dengan akun “Kimberlybeauty88" pada Kamis, 24 Oktober 2024. Penindakan dilakukan di gudang toko online yang berada di 2 lokasi beralamat di Jl. Jelambar Utama dan Taman Duta Mas Blok A3/24, Jelambar Baru, Grogol Petamburan, Jakarta Barat. Pada Penindakan tersebut, BBPOM di Jakarta didampingi oleh personel Koordinator Pengawas (Korwas) PPNS Kepolisian Daerah (Polda) Metro Jaya dan Badan Intelijen Strategis Tentara Nasional Indonesia (BAIS TNI).
+“Toko online yang digerebek merupakan rumah toko (ruko) 4 lantai yang mana lantai 1 digunakan sebagai tempat pengemasan/ packing sedangkan lantai 2—4 digunakan sebagai gudang penyimpanan dan ruang administrasi,” ungkap Kepala BPOM Taruna Ikrar saat konferensi pers di kantor BBPOM di Jakarta, Senin (28/10/2024). Taruna Ikrar menjelaskan pemilik toko online tersebut telah melakukan usaha penjualan kosmetik pada platform Shopee dan Tokopedia selama kurang lebih 1 tahun dengan penjualan online sekitar 400 paket kiriman/hari.
+“ ⁠ Produk yang dijual berupa kosmetik impor ilegal dengan merek Lameila dan SVMY. Produk ini berasal dari Tiongkok dengan proses impor melalui jasa forwarder ,” ungkap Kepala BPOM lebih lanjut.
+Pada saat dilakukan penindakan, petugas menemukan 158 item (152.744 pieces ) produk kosmetik tanpa izin edar (TIE) dengan nilai keekonomian diperkirakan mencapai lebih dari 2,2 miliar rupiah. Pada lokasi gudang juga ditemukan paket kosmetik impor siap kirim, alat elektronik serta dokumen yang digunakan untuk transaksi online . Seluruh barang bukti tersebut telah disita dan diamankan BBPOM di Jakarta untuk dilakukan proses penyidikan lebih lanjut.
+Produk yang disita mayoritas berjenis rias wajah yang diduga mengandung bahan pewarna yang dilarang ditambahkan pada kosmetik yaitu Merah K-3 dan Merah K-10. Saat ini terhadap produk yang disita tersebut telah diambil sampel untuk dilakukan pengujian di laboratorium.
+“Selanjutnya kami akan memanggil pemilik dan 3 orang karyawan untuk diperiksa sebagai saksi,” papar Taruna Ikrar. BBPOM di Jakarta bersama dengan Tim Korwas PPNS Polda Metro Jaya, dan Tim Bagian Pengawas Penyidikan Reserse Kriminal Khusus (Wassidik Dirreskrimsus) Polda Metro Jaya akan melakukan gelar perkara dalam rangka penetapan tersangka pada akhir Oktober 2024.
+BPOM sedang melakukan proses penyidikan lebih lanjut dan berkas perkara akan dilimpahkan ke Kejaksaan Tinggi Provinsi DKI Jakarta. Pelaku pelanggaran akan dikenakan ketentuan Pasal 435 jo. Pasal 138 ayat (2) Undang-Undang Nomor 17 Tahun 2023 tentang Kesehatan dengan ancaman pidana penjara paling lama 12 tahun atau denda paling banyak 5 miliar rupiah.
+Dengan temuan terbaru ini, selama tahun 2024 BBPOM di Jakarta telah melakukan tindak lanjut terhadap penindakan berupa 5 perkara bidang sediaan farmasi dan 1 perkara bidang pangan. Dari 5 perkara tersebut, 2 di antaranya adalah perkara kosmetik ilegal dengan nilai ekonomi barang bukti sebesar 5,8 miliar rupiah.
+Sebelumnya, BPOM bersama Kementerian Perdagangan juga berhasil mengamankan lebih dari 11,4 miliar rupiah kosmetik impor ilegal yang merupakan produk tanpa izin edar dan mengandung bahan dilarang yang sebagian juga berasal dari negara Tiongkok. Penggunaan produk kosmetik tanpa izin edar dan/atau mengandung bahan pewarna dilarang sangat berisiko bagi kesehatan, karena bersifat karsinogenik dan dapat menimbulkan gangguan fungsi hati serta kanker hati.
+Melihat maraknya peredaran kosmetik impor ilegal ini, BPOM terus aktif berkolaborasi dengan lintas sektor berupaya menumpas tindak kejahatan ini. Bukan hanya masyarakat yang dirugikan dengan beredarnya produk impor ilegal ini, melainkan juga para pelaku usaha kosmetik lokal/nasional yang menjalankan usahanya secara legal. Karena itu, BPOM mengajak pelaku usaha untuk bersama memberantas produk impor ilegal ini.
+Salah satunya dengan memproduksi dan memasarkan produk kosmetik legal yang aman, bermanfaat, dan berkualitas. Komitmen pelaku usaha kosmetik untuk memenuhi standar/persyaratan produk dan regulasi adalah hal utama dalam merespons permintaan kosmetik yang terus tumbuh. Hal ini juga menjadi salah satu faktor kunci dalam memutus mata rantai peredaran kosmetik impor ilegal dan/atau mengandung bahan dilarang dalam kosmetik ke dalam negeri.
+Masyarakat sebagai konsumen juga diimbau untuk terus mengedukasi diri menjadi konsumen cerdas dan berdaya dalam melindungi diri dari produk obat dan makanan, termasuk kosmetik ilegal dan/atau mengandung bahan berbahaya yang berisiko terhadap kesehatan. Selalu mencermati dan menerapkan Cek KLIK (cek Kemasan, Label, Izin edar, dan tanggal Kedaluwarsa) terhadap produk yang akan dibeli atau digunakan.
+Jika menemukan atau mencurigai adanya peredaran atau penggunaan kosmetik ilegal dan mengandung bahan berbahaya, masyarakat dapat melaporkan kepada BPOM melalui Contact Center HALOBPOM 1500533 atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia .
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

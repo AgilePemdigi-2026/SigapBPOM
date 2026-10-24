@@ -1,0 +1,29 @@
+---
+title: "Penjelasan Badan POM RI Tentang Perpanjangan Batas Kedaluwarsa (Expired Date/ED) Vaksin COVID-19"
+tanggal: "2022-03-20"
+tahun: "2022"
+jenis: "edukasi"
+bentuk_singkat: "Penjelasan Publik BPOM"
+source_url: "https://www.pom.go.id/penjelasan-publik/penjelasan-badan-pom-ri-tentang-perpanjangan-batas-kedaluwarsa-expired-date-ed-vaksin-covid-19"
+---
+# Penjelasan Badan POM RI Tentang Perpanjangan Batas Kedaluwarsa (Expired Date/ED) Vaksin COVID-19
+
+PENJELASAN BADAN POM RI
+Tentang
+Perpanjangan Batas Kedaluwarsa ( Expired Date /ED) Vaksin COVID-19
+Melengkapi informasi terkait Perpanjangan Batas Kedaluwarsa Vaksin COVID-19 yang telah kami sampaikan melalui website Badan POM pada Tanggal 1 April 2021 melalui tautan https://www.pom.go.id/penjelasan-publik/penjelasan-badan-pom-tentang-batas-kedaluwarsa-vaksin-covid-19 dan Tanggal 14 Maret 2022 melalui tautan https://www.pom.go.id/penjelasan-publik/penjelasan-badan-pom-ri-tentang-perpanjangan-batas-kedaluwarsa-vaksin-covid-19 , Badan POM memandang perlu untuk menyampaikan hal-hal berikut:
+- Expired date adalah tanggal batas kedaluwarsa suatu obat dinyatakan stabil dan masih memenuhi syarat sesuai spesifikasi mutu produk yang ditetapkan bila disimpan pada kondisi penyimpanan yang tertera pada label/kemasan.
+- Sesuai dengan pedoman uji stabilitas yang berlaku internasional, batas kedaluwarsa obat dan vaksin ditetapkan berdasarkan data uji stabilitas pada kondisi penyimpanan yang diajukan oleh industri farmasi dengan hasil memenuhi spesifikasi selama waktu uji stabilitas ( shelf life/ masa simpan). Batas kedaluwarsa ini dihitung sejak tanggal produksi.
+- Batas kedaluwarsa obat dan vaksin dapat diperpanjang apabila telah tersedia update data uji stabilitas dengan hasil memenuhi syarat sesuai dengan lama dan kondisi penyimpanan yang diajukan. Perpanjangan batas kedaluwarsa suatu obat dan vaksin dapat diajukan oleh industri farmasi dengan menyerahkan update data stabilitas tersebut.
+- Badan POM melakukan pengawalan dan pengawasan secara menyeluruh terhadap obat dan vaksin yang diedarkan di Indonesia, termasuk penetapan batas kedaluwarsa obat dan vaksin berdasarkan pedoman uji stabilitas yang berlaku secara Internasional.
+- Dalam kondisi pandemi, masa simpan/ shelf life untuk vaksin COVID-19 yang diberikan izin penggunaan darurat/ Emergency Use Authorization (EUA) masih singkat karena data hasil uji stabilitas pada saat pengajuan EUA baru tersedia untuk jangka waktu yang terbatas. Namun demikian, uji stabilitas vaksin COVID-19 tersebut masih terus dilanjutkan sesuai dengan protokol uji stabilitas untuk mendapatkan data stabilitas pada waktu yang lebih panjang.
+- Badan POM menetapkan batas kedaluwarsa vaksin sesuai standar internasional yaitu 2 (dua) kali waktu pelaksanaan uji stabilitas (2n). Dengan demikian, semua vaksin COVID-19 yang merupakan vaksin yang baru diproduksi dan memiliki data uji stabilitas dengan durasi 3 (tiga) bulan, diberikan persetujuan masa kedaluwarsa 6 (enam) bulan pada saat pemberian EUA. Jika terdapat data baru, Badan POM dapat melakukan perpanjangan batas kedaluwarsa sesuai dengan data yang diberikan oleh industri farmasi pemegang EUA.
+- Badan POM melakukan evaluasi terhadap data uji stabilitas terbaru untuk vaksin COVID-19 yang telah disetujui perpanjangan batas kedaluwarsanya, sehingga dapat dipastikan produk vaksin tersebut masih memenuhi persyaratan mutu saat digunakan oleh masyarakat.
+- Selain Badan POM di Indonesia, otoritas negara lain di dunia juga telah memberikan persetujuan perpanjangan shelf life beberapa vaksin COVID-19 yang dilakukan berdasarkan data uji stabilitas terbaru yang diberikan oleh industri farmasi. Hal ini dilakukan diantaranya oleh The United States Food and Drug Administration/US-FDA (Amerika Serikat), European Medicines Agency/EMA (Eropa), Health Canada (Kanada), The Medicines and Healthcare products Regulatory/MHRA (Inggris), The Therapeutic Goods Administration/TGA (Australia) dan The Central Drugs Standard Control Organisation/CDSCO (India).
+- Pemantauan batas kedaluwarsa vaksin COVID-19 di peredaran merupakan tanggung jawab industri farmasi pemegang EUA dan dilakukan bekerjasama dengan Kementerian Kesehatan dan Dinas Kesehatan Provinsi/Kabupaten/Kota. Pemilik EUA wajib memastikan bahwa vaksin COVID-19 yang digunakan dalam program vaksinasi COVID-19 tetap memenuhi persyaratan keamanan, khasiat, dan mutu.
+- Badan POM mengawal mutu vaksin COVID-19 melalui evaluasi mutu vaksin saat pengajuan EUA. Kemudian saat vaksin (produk jadi maupun bulk ) masuk ke wilayah Indonesia dilakukan pengecekan kesesuaian dokumen mutu dan kesesuaian suhu penyimpanan saat sejak kedatangan di bandara. Badan POM juga melakukan penerbitan lot release dan mengawal integritas distribusi vaksin di sepanjang jalur distribusi, mulai keluar dari industri farmasi hingga digunakan dalam pelayanan vaksinasi kepada masyarakat, serta melakukan sampling dan pengujian berbasis risiko (risiko penyimpanan dan risiko distribusi).
+_____________________________________________________________________________________________________
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Fanpage @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Penjelasan Publik
+Bagikan:

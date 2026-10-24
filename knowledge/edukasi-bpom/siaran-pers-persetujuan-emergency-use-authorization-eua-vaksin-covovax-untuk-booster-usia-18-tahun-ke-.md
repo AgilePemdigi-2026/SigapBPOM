@@ -1,0 +1,29 @@
+---
+title: "Persetujuan Emergency Use Authorization (EUA) Vaksin Covovax Untuk Booster Usia 18 Tahun Ke Atas"
+tanggal: "2022-09-12"
+tahun: "2022"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/persetujuan-emergency-use-authorization-eua-vaksin-covovax-untuk-booster-usia-18-tahun-ke-atas"
+---
+# Persetujuan Emergency Use Authorization (EUA) Vaksin Covovax Untuk Booster Usia 18 Tahun Ke Atas
+
+SIARAN PERS
+Persetujuan Emergency Use Authorization (EUA) Vaksin Covovax
+Unt uk Booster Usia 18 Tahun Ke A tas
+Jakarta – BPOM telah memberi persetujuan perluasan EUA Vaksin Covovax untuk penambahan posologi dosis booster homolog untuk dewasa usia 18 tahun atau lebih pada 19 Agustus 2022. Vaksin Covovax merupakan vaksin COVID-19 dengan platform protein subunit glikoprotein spike menggunakan adjuvant Matrix-M1 yang dikembangkan Novavax Inc., USA. Vaksin ini diproduksi oleh Serum Institute of India Pvt. Ltd., India dan didaftarkan di Indonesia oleh PT Indofarma.
+Vaksin Covovax merupakan satu dari 13 vaksin COVID-19 yang telah mendapatkan persetujuan Emergency Use Authorization (EUA) di Indonesia pada 31 Oktober 2021, dengan indikasi untuk vaksinasi primer pada usia 18 tahun atau lebih. Setelah itu, BPOM mengeluarkan persetujuan perluasan EUA vaksin Covovax untuk penambahan indikasi vaksinasi primer pada anak usia 12 tahun atau lebih pada tanggal 28 Juni 2022.
+“Dalam penggunaannya sebagai booster homolog, Vaksin Covovax diberikan dalam 1 dosis (0.5 mL), sekurang-kurangnya 6 bulan setelah dosis kedua vaksinasi primer dengan Vaksin Covovax,” terang Kepala BPOM, Penny K. Lukito terkait pemberian EUA ini.
+Dalam pemberian izin edar obat, termasuk EUA vaksin, BPOM mengutamakan aspek khasiat, keamanan, dan mutu serta pertimbangan ilmiah berdasarkan rekomendasi Komite Nasional Penilai Khusus Vaksin COVID-19, Indonesia Technical Advisory Group of Immunization (ITAGI), dan asosiasi klinisi.
+“Pemberian EUA Vaksin Covovax sebagai booster homolog dilakukan setelah BPOM bersama para ahli melakukan evaluasi terhadap aspek keamanan, mutu, dan khasiat berdasarkan data-data uji klinik yang juga menjadi acuan para ahli yang terlibat,” lanjut Kepala BPOM.
+Secara lebih rinci, hasil evaluasi terhadap aspek keamanan dan khasiat pemberian dosis booster pada dewasa berdasarkan data studi klinik fase 1/2 dan studi klinik fase 2a/b yang dilakukan pada subjek usia 18 tahun atau lebih. Hasil 2 (dua) studi klinik tersebut memperlihatkan efektivitas pemberian booste r 6 (enam) bulan setelah vaksinasi primer lengkap pada kelompok usia 18 tahun ke atas. Hasil studi juga menunjukkan profil keamanan yang serupa dengan profil keamanan pada pemberian vaksinasi dosis primer, serta dapat ditoleransi dengan baik.
+Studi klinik pertama pada subjek dewasa sehat menunjukkan titer antibodi Imunoglobulin G (IgG) pada 28 hari setelah pemberian booster meningkat sebesar 33,7 kali dibandingkan sebelum pemberian booster . Hasil pengukuran titer antibodi netralisasi juga menunjukkan peningkatan sebesar 95,6 kali dibandingkan sebelum pemberian booster.
+Kemudian dalam tahapan studi klinik kedua dengan pengukuran titer antibodi yang lebih panjang (35 hari setelah pemberian booster ) menunjukkan peningkatan antibodi IgG sebesar 17,1 kali dibandingkan sebelum pemberian booster dengan seroconversion rate 100%. Hasil pengukuran titer antibodi netralisasi juga menunjukkan peningkatan sebesar 7,7 kali dibandingkan sebelum pemberian booster dengan seroconversion rate 99.6%.
+BPOM membuka informasi seluas-luasnya terkait penggunaan produk Vaksin Covovax sebagai booster dengan menerbitkan factsheet yang dapat diacu oleh tenaga kesehatan dan informasi produk yang dikhususkan untuk masyarakat. Di dalam factsheet tercantum informasi lebih lengkap terkait keamanan dan efikasi Vaksin Covovax, termasuk untuk penggunaannya sebagai booster pada dewasa usia 18 tahun atau lebih, serta hal-hal yang harus menjadi kewaspadaan dalam penggunaan vaksin, termasuk monitoring kemungkinan efek samping atau Kejadian Ikutan Pasca Imunisasi (KIPI) dan pelaporannya. Tenaga kesehatan dan masyarakat dapat mengakses factsheet dan informasi produk vaksin COVID-19 melalui website BPOM pada link http://pionas.pom.go.id/cari/obat-baru.
+“Jadi, setelah EUA diberikan, BPOM juga memberikan edukasi kepada tenaga kesehatan dan masyarakat. Selanjutnya, BPOM juga akan terus mengevaluasi efektivitas dan keamanan Vaksin Covovax sebagai vaksin booster homolog,” ujar Kepala BPOM.
+Secara konsisten, BPOM selalu mengimbau masyarakat untuk selalu menerapkan protokol kesehatan sebagai upaya kunci dalam memutus rantai penyebaran COVID-19. Masyarakat juga diminta untuk bijak dan berhati-hati dalam mengonsumsi obat-obatan yang digunakan dalam penanganan COVID-19, serta tidak mudah terpengaruh dengan promosi produk obat, obat tradisional, maupun suplemen kesehatan dengan klaim dapat mencegah atau mengobati COVID-19.
+__________________________________________________________________________________
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Fanpage @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

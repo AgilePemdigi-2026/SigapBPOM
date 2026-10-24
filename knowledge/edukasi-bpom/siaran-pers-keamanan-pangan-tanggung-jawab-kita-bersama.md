@@ -1,0 +1,24 @@
+---
+title: "KEAMANAN PANGAN TANGGUNG JAWAB KITA BERSAMA"
+tanggal: "2019-06-30"
+tahun: "2019"
+jenis: "edukasi"
+bentuk_singkat: "Siaran Pers BPOM"
+source_url: "https://www.pom.go.id/siaran-pers/keamanan-pangan-tanggung-jawab-kita-bersama"
+---
+# KEAMANAN PANGAN TANGGUNG JAWAB KITA BERSAMA
+
+SIARAN PERS
+”KEAMANAN PANGAN TANGGUNG JAWAB KITA BERSAMA”
+Jakarta - Penyakit akibat pangan yang tercemar, contohnya penyakit diare merupakan penyakit yang paling banyak terjadi di Indonesia saat ini, diperkirakan mencapai 10 hingga 22 juta kasus. Indonesia juga menghadapi masalah penyakit tidak menular (PTM) yang berkaitan dengan konsumsi pangan, seperti obesitas, hipertensi, diabetes atau kencing manis, serta kekurangan gizi atau gizi buruk, yang dapat berdampak pada kualitas hidup masyarakat Indonesia. Hal ini menunjukkan pentingnya perhatian terhadap keamanan, mutu, gizi, dan kecukupan pangan yang dikonsumsi masyarakat Indonesia. Terkait hal tersebut, Kepala Badan POM RI, Penny K. Lukito berulang kali menyerukan bahwa keamanan pangan merupakan tanggung jawab bersama pemerintah, pelaku usaha dan masyarakat konsumen.
+Pada bulan Desember 2018 lalu, Sidang Majelis Umum Perserikatan Bangsa-Bangsa (PBB) menetapkan tanggal 7 Juni sebagai ”Hari Keamanan Pangan Dunia” ( World Food Safety Day ). “Keamanan pangan merupakan isu penting karena merupakan salah satu pilar kualitas dan kesehatan bangsa serta menentukan daya saing ekonomi dan perdagangan produk pangan,” ungkap Penny K. Lukito. Karena itu, Indonesia melalui Badan POM, menjadi salah satu negara yang menyelenggarakan serangkaian kegiatan untuk menggaungkan semangat hari keamanan pangan dunia.
+Lebih lanjut, Kepala Badan POM menjelaskan bahwa permasalahan pangan tidak hanya terkait aspek keamanan pangan saja, tetapi juga terkait gizi. Beberapa program Badan POM terkait gizi antara lain adanya kewajiban produsen pangan untuk mencantumkan informasi nilai gizi dalam label pangan dan sosialisasi kepada masyarakat, sehingga masyarakat sebagai konsumen dapat bijak memilih pangan yang akan dikonsumsi sesuai kebutuhannya. Selain itu, juga dilakukan pengawasan terhadap pangan fortifikasi seperti garam dan tepung terigu.
+Dalam rangka meningkatkan kesadaran masyarakat akan pentingnya pangan yang aman, bermutu, dan bergizi bagi kehidupan, Badan POM juga secara pro-aktif melakukan berbagai kegiatan komunikasi, informasi, dan edukasi (KIE) kepada masyarakat umum. Dan hari ini, Minggu (30/06), Badan POM menyelenggarakan perayaan Hari Keamanan Pangan Dunia di area Car Free Day FX Sudirman Jakarta, bersinergi dengan berbagai lintas sektor antara lain BSN, Kementerian Perdagangan, Kementerian Kesehatan, Kementerian Pertanian, Kementerian Perindustrian, Bappenas, Kementerian Perikanan dan Kelautan, Kementerian Komunikasi dan Informatika, Kementerian Koperasi dan Usaha Kecil dan Menengah, serta Kementerian Dalam Negeri.
+Selain itu, hadir juga asosiasi pelaku usaha, perguruan tinggi, profesi terkait pangan, dan komunitas masyarakat. Berbagai aktivitas digelar pada acara tersebut seperti senam bersama, pawai keamanan pangan, dan talkshow yang diselingi dengan berbagai hiburan dan games edukatif. Kegiatan KIE perayaan Hari Keamanan Pangan ini dilakukan secara serentak, dikoordinir oleh Balai Besar/Balai POM di seluruh wilayah Indonesia.
+Perwakilan Food and Agriculture Organization (FAO) dan World Health Organization (WHO) Indonesia turut memberikan dukungan terhadap upaya Badan POM untuk meningkatkan kesadaran tentang pentingnya keamanan pangan. Kepala Badan POM mengajak semua pihak untuk bersinergi mengawal keamanan pangan di Indonesia, baik melalui pembinaan maupun pengawasan. “Mari kita manfaatkan Hari Keamanan Pangan Dunia ini sebagai momen untuk menggaungkan kampanye keamanan pangan dalam rangka meningkatkan kesadaran masyarakat dan menginspirasi upaya peningkatan keamanan pangan nasional,” seru Penny K. Lukito. ”Kami tidak hanya berhenti pada perayaan hari keamanan pangan hari ini, namun sosialisasi keamanan pangan terus dilakukan. Bersama kita wujudkan Indonesia maju, terdepan dengan tingkat keamanan pangan yang unggul.” tutup Kepala Badan POM.
+________________________________________________________________________________________________________________
+Informasi lebih lanjut hubungi:
+Contact Center HALO BPOM di nomor telepon 1-500-533, SMS 0-8121-9999-533, email halobpom@pom.go.id , twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai POM di seluruh Indonesia.
+Apabila masyarakat memerlukan informasi lebih lanjut atau menyampaikan pengaduan obat dan makanan, dapat menghubungi lapor.go.id, Contact Center HALOBPOM 1-500-533 (pulsa lokal), SMS 0812-1-9999-533, WhatsApp 0811-9181-533, e-mail halobpom@pom.go.id, Instagram @BPOM_RI, Facebook Page @bpom.official, Twitter @BPOM_RI, atau Unit Layanan Pengaduan Konsumen (ULPK) Balai Besar/Balai/Loka POM di seluruh Indonesia.
+Kembali ke halaman Siaran Pers
+Bagikan:

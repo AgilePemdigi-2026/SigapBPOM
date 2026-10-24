@@ -3,16 +3,26 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
 import {
-  PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PANJANG_MAKS_UCAPAN, PembatasLaju, RiwayatPanggilan, idPanggilanSah, pesanLayanan, rapikanJawaban,
+  PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PANJANG_MAKS_UCAPAN, AnggaranToken,
+  PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan,
+  teksUntukSuara,
 } from './percakapan.mjs';
+import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
 const ASAL_SITUS = env('SITE_ORIGIN', '');
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
-const ELEVENLABS_SUARA = env('ELEVENLABS_VOICE_ID', 'iWydkXKoiVtvdn4vLKp9');
-const ELEVENLABS_MODEL_TTS = env('ELEVENLABS_TTS_MODEL', 'eleven_flash_v2_5');
+// Suara "Zaak" dari library ElevenLabs: penutur asli, jelas, cocok untuk IVR.
+const ELEVENLABS_SUARA = env('ELEVENLABS_VOICE_ID', 'HnnPtoATgzx4ubChwm24');
+// v3 conversational dipilih karena intonasinya paling natural. Model ini mengabaikan `speed`, jadi tempo CS
+// diatur di pemutar web (KECEPATAN_PUTAR di PanelSuara.astro). Render pertama suatu suara bisa belasan detik;
+// render pesan tetap saat mulai sekaligus memanaskannya.
+const ELEVENLABS_MODEL_TTS = env('ELEVENLABS_TTS_MODEL', 'eleven_v3_conversational');
+// Stabilitas v3 hanya menerima 0 (kreatif), 0.5 (natural), atau 1 (robust).
+const ELEVENLABS_STABILITAS = Number(env('ELEVENLABS_TTS_STABILITY', '0.5'));
 const ELEVENLABS_MODEL_STT = env('ELEVENLABS_STT_MODEL', 'scribe_v2');
 const HERMES_URL = env('HERMES_URL', 'http://host.docker.internal:8642');
 const HERMES_KEY = env('HERMES_API_KEY', '');
@@ -20,8 +30,18 @@ const HERMES_MODEL = env('HERMES_MODEL', 'sigap-hermes');
 // Kuota karakter TTS per hari (total dan per IP) agar kuota paket ElevenLabs tidak habis oleh satu pengguna.
 const KARAKTER_TTS_HARIAN = Number(env('TTS_KARAKTER_HARIAN', '6000'));
 const KARAKTER_TTS_HARIAN_PER_IP = Number(env('TTS_KARAKTER_HARIAN_PER_IP', '1500'));
+// Anggaran token AI dari `usage` Hermes. Satu giliran sekitar 3.600 token: prompt sistem Hermes plus kutipan peraturan.
+const TOKEN_AI_HARIAN = Number(env('AI_TOKEN_HARIAN', '500000'));
+const TOKEN_AI_HARIAN_PER_IP = Number(env('AI_TOKEN_HARIAN_PER_IP', '100000'));
+const TOKEN_AI_PER_PANGGILAN = Number(env('AI_TOKEN_PER_PANGGILAN', '40000'));
+// Dicadangkan per giliran sebelum AI dipanggil, lalu dikoreksi dengan `usage` nyata.
+const PERKIRAAN_TOKEN_GILIRAN = 4000;
+// Satu penelepon hanya punya satu giliran berjalan; sisanya untuk beberapa penelepon di balik IP yang sama.
+const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 // Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
-const SUARA_STATIS = { menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2 };
+const SUARA_STATIS = {
+  menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
+};
 
 const AUDIO_MAKS_BYTE = 4 * 1024 * 1024;
 const JSON_MAKS_BYTE = 16 * 1024;
@@ -30,8 +50,20 @@ const BATAS_WAKTU_STT_MS = 20_000;
 const BATAS_WAKTU_HERMES_MS = 60_000;
 const BATAS_WAKTU_TTS_MS = 30_000;
 
+const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
+
 const riwayat = new RiwayatPanggilan();
+let korpus = null;
+try {
+  const mulai = Date.now();
+  korpus = Korpus.muat(DIREKTORI_KORPUS);
+  console.info(JSON.stringify({ ev: 'korpus', potongan: korpus.potongan.length, ms: Date.now() - mulai }));
+} catch (e) {
+  console.error(JSON.stringify({ ev: 'korpus_gagal', jenis: e instanceof Error ? e.code ?? e.message : 'unknown' }));
+}
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
+const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
+const giliranAktif = new Map();
 const tokenSuara = new Map();
 let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
 const suaraStatis = new Map();
@@ -77,11 +109,22 @@ function catatTts(teks, ip) {
   pemakaianTts.perIp.set(ip, milikIp + teks.length);
 }
 
+// Render TTS dimulai saat token terbit, jadi audio sudah mengalir ketika browser memintanya. Kuota dipotong di sini
+// karena di sinilah biaya terjadi; bila kuota habis, jawaban tetap tampil sebagai teks tanpa suara.
+// Render yang tidak pernah diambil berhenti sendiri oleh BATAS_WAKTU_TTS_MS.
 function terbitkanTokenSuara(teks, ip) {
   const sekarang = Date.now();
   for (const [t, v] of tokenSuara) if (v.kedaluwarsa < sekarang) tokenSuara.delete(t);
+  try {
+    catatTts(teks, ip);
+  } catch (e) {
+    if (e instanceof ErrorGateway) return null;
+    throw e;
+  }
+  const render = ttsElevenLabs(teks);
+  render.catch(() => {});
   const token = randomUUID();
-  tokenSuara.set(token, { teks, ip, kedaluwarsa: sekarang + TOKEN_SUARA_MS });
+  tokenSuara.set(token, { render, kedaluwarsa: sekarang + TOKEN_SUARA_MS });
   return `/voice/suara/${token}`;
 }
 
@@ -99,16 +142,19 @@ async function sttElevenLabs(audio, tipe) {
   return String(d.text ?? '').replace(/\s+/g, ' ').trim().slice(0, PANJANG_MAKS_UCAPAN);
 }
 
-async function tanyaHermes(id) {
+// Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan rapikanJawaban, pemakaian lewat AnggaranToken.
+async function tanyaHermes(id, kutipan) {
+  const pesan = riwayat.untukModel(id, kutipan);
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: HERMES_MODEL, messages: riwayat.untukModel(id) }),
+    body: JSON.stringify({ model: HERMES_MODEL, messages: pesan }),
     signal: AbortSignal.timeout(BATAS_WAKTU_HERMES_MS),
   });
   if (!r.ok) throw new Error(`hermes ${r.status}`);
   const d = await r.json();
-  return rapikanJawaban(d.choices?.[0]?.message?.content);
+  const token = Number(d.usage?.total_tokens) || Math.ceil(JSON.stringify(pesan).length / 3);
+  return { jawaban: rapikanJawaban(d.choices?.[0]?.message?.content), token };
 }
 
 async function ttsElevenLabs(teks) {
@@ -116,7 +162,9 @@ async function ttsElevenLabs(teks) {
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({ text: teks, model_id: ELEVENLABS_MODEL_TTS, language_code: 'id' }),
+    body: JSON.stringify({
+      text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { stability: ELEVENLABS_STABILITAS },
+    }),
     signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
   });
   if (!r.ok || !r.body) throw new Error(`tts ${r.status}`);
@@ -142,29 +190,68 @@ async function giliran(req, res, url) {
   if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
   const id = url.searchParams.get('id');
   if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
-  const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
-  if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+  const ip = ipKlien(req);
+  // Sebelum STT: batasi giliran serentak dan cadangkan token, supaya permintaan paralel ikut terhitung
+  // dan panggilan yang anggarannya habis tidak ikut memakai kuota ElevenLabs.
+  if ((giliranAktif.get(ip) ?? 0) >= GILIRAN_SERENTAK_PER_IP) throw new ErrorGateway(429, 'Terlalu banyak permintaan. Coba lagi sebentar lagi.');
+  const batasAi = anggaranAi.cadangkan(ip, id, PERKIRAAN_TOKEN_GILIRAN);
+  if (batasAi) throw new ErrorGateway(429, PESAN_BATAS_AI[batasAi]);
+  giliranAktif.set(ip, (giliranAktif.get(ip) ?? 0) + 1);
+  let cadangan = PERKIRAAN_TOKEN_GILIRAN;
+  try {
+    const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
+    if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
 
-  const mulai = Date.now();
-  const transkrip = await sttElevenLabs(audio, tipe);
-  const tStt = Date.now() - mulai;
-  if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
+    const mulai = Date.now();
+    const transkrip = await sttElevenLabs(audio, tipe);
+    const tStt = Date.now() - mulai;
+    if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
-  riwayat.tambah(id, 'user', transkrip);
-  const jawaban = await tanyaHermes(id) || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
-  riwayat.tambah(id, 'assistant', jawaban);
-  const tTotal = Date.now() - mulai;
-  console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length }));
-  return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, suara: terbitkanTokenSuara(jawaban, ipKlien(req)) });
+    // Penelepon menolak tawaran bantuan lagi: salam penutup tanpa memanggil AI, lalu web mengakhiri panggilan.
+    const menutup = inginMenutup(transkrip, riwayat.jawabanTerakhir(id));
+    // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
+    const saring = menutup ? null : saringUcapan(transkrip, riwayat.diLuarTopik(id));
+    let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
+    if (menutup) {
+      riwayat.tambah(id, 'user', transkrip);
+      jawaban = PESAN_PENUTUP;
+    } else if (!saring) {
+      riwayat.tambah(id, 'user', transkrip);
+      kutipan = korpus ? korpus.cari(transkrip) : [];
+      const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
+      token = hasil.token;
+      anggaranAi.catat(ip, id, token - cadangan);
+      cadangan = 0;
+      jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+    }
+    const diLuarTopik = !menutup && (Boolean(saring) || jawabanDiLuarTopik(jawaban));
+    if (diLuarTopik) {
+      jawaban = PESAN_DI_LUAR_TOPIK;
+      kutipan = [];
+      riwayat.catatDiLuarTopik(id);
+    }
+    if (!saring) riwayat.tambah(id, 'assistant', jawaban);
+    const tTotal = Date.now() - mulai;
+    console.info(JSON.stringify({
+      ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
+      saring, di_luar_topik: diLuarTopik, menutup, token, token_hari_ini: anggaranAi.total - cadangan,
+    }));
+    const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+    const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
+    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup });
+  } finally {
+    // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
+    if (cadangan) anggaranAi.catat(ip, id, -cadangan);
+    const sisa = (giliranAktif.get(ip) ?? 1) - 1;
+    if (sisa > 0) giliranAktif.set(ip, sisa); else giliranAktif.delete(ip);
+  }
 }
 
-// Kuota dipotong saat audio benar-benar dibuat, bukan saat token diterbitkan.
 async function suara(res, token) {
   const entri = tokenSuara.get(token);
   if (!entri || entri.kedaluwarsa < Date.now()) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
   tokenSuara.delete(token);
-  catatTts(entri.teks, entri.ip);
-  const aliran = await ttsElevenLabs(entri.teks);
+  const aliran = await entri.render;
   res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'no-store' });
   Readable.fromWeb(aliran).pipe(res);
 }
@@ -187,7 +274,9 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://gateway');
   const path = url.pathname;
   try {
-    if (req.method === 'GET' && path === '/voice/kesehatan') return kirim(res, 200, 'success', 'OK', { siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) });
+    if (req.method === 'GET' && path === '/voice/kesehatan') {
+      return kirim(res, 200, 'success', 'OK', { siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0 });
+    }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
     if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(res, path.slice('/voice/statis/'.length));
     if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(res, path.slice('/voice/suara/'.length));
