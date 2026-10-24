@@ -75,13 +75,21 @@ test('nomor tiket dieja per digit untuk TTS', () => {
 test('penerbitan tiket dibatasi per panggilan, per IP, dan per nomor, lalu pulih esok hari', () => {
   let t = Date.parse('2026-10-19T03:00:00Z');
   const b = new PembatasTiket({ perPanggilan: 1, perIpHarian: 2, perNomorHarian: 2 }, () => t);
-  assert.equal(b.cek('p1', 'ip1', '081234567890'), null);
-  b.catat('p1', 'ip1', '081234567890');
-  assert.equal(b.cek('p1', 'ip1', '081234567891'), 'panggilan');
-  b.catat('p2', 'ip2', '081234567890');
-  assert.equal(b.cek('p3', 'ip3', '081234567890'), 'nomor');
-  b.catat('p4', 'ip1', '081200000000');
-  assert.equal(b.cek('p5', 'ip1', '081211111111'), 'ip');
+  assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), null);
+  assert.equal(b.cadangkan('p1', 'ip1', '081234567891'), 'panggilan');
+  assert.equal(b.cadangkan('p2', 'ip2', '081234567890'), null);
+  assert.equal(b.cadangkan('p3', 'ip3', '081234567890'), 'nomor');
+  assert.equal(b.cadangkan('p4', 'ip1', '081200000000'), null);
+  assert.equal(b.cadangkan('p5', 'ip1', '081211111111'), 'ip');
   t = Date.parse('2026-10-20T00:00:01Z');
-  assert.equal(b.cek('p1', 'ip1', '081234567890'), null);
+  assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), null);
+});
+
+test('kuota tiket dipesan sebelum penerbitan dan dikembalikan bila gagal', () => {
+  const b = new PembatasTiket({ perPanggilan: 1, perIpHarian: 5, perNomorHarian: 5 });
+  assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), null);
+  // Giliran serentak kedua pada panggilan yang sama langsung ditolak, tanpa menunggu penerbitan pertama selesai.
+  assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), 'panggilan');
+  b.batalkan('p1', 'ip1', '081234567890');
+  assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), null);
 });

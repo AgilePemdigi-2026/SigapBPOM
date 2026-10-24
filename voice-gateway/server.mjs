@@ -238,15 +238,21 @@ async function giliran(req, res, url) {
         // Nomor telepon tidak masuk riwayat yang dikirim ke AI.
         riwayat.tambah(id, 'user', nomorTelepon ? '(menyebutkan nomor telepon)' : transkrip);
         if (nomorTelepon) {
-          const batasTiket = pembatasTiket.cek(id, ip, nomorTelepon);
+          // Status eskalasi dan kuota diambil sebelum await, jadi giliran serentak pada panggilan yang sama
+          // tidak bisa menerbitkan tiket kedua. Bila penerbitan gagal, keduanya dikembalikan.
+          riwayat.selesaiEskalasi(id);
+          const batasTiket = pembatasTiket.cadangkan(id, ip, nomorTelepon);
           if (batasTiket) {
-            riwayat.selesaiEskalasi(id);
             console.info(JSON.stringify({ ev: 'eskalasi', tahap: 'ditolak', batas: batasTiket }));
             throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
           }
-          tiket = await penerbitTiket.terbitkan({ percakapanId: id, nomorTelepon, pertanyaan: pertanyaanEskalasi });
-          pembatasTiket.catat(id, ip, nomorTelepon);
-          riwayat.selesaiEskalasi(id);
+          try {
+            tiket = await penerbitTiket.terbitkan({ percakapanId: id, nomorTelepon, pertanyaan: pertanyaanEskalasi });
+          } catch (e) {
+            pembatasTiket.batalkan(id, ip, nomorTelepon);
+            riwayat.mulaiEskalasi(id, pertanyaanEskalasi);
+            throw e;
+          }
           jawaban = pesanTiketEskalasi(tiket);
           suara = terbitkanTokenSuara(jawaban, ip);
         } else {

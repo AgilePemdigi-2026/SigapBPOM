@@ -90,18 +90,26 @@ export class PembatasTiket {
     for (const m of Object.values(this.hitungan)) m.clear();
   }
 
-  cek(id, ip, nomor) {
+  /** Memeriksa lalu langsung memesan kuota dalam satu langkah sinkron, agar giliran serentak tidak lolos bersamaan. */
+  cadangkan(id, ip, nomor) {
     this.gulir();
     const kunci = { panggilan: id, ip, nomor };
     for (const jenis of ['panggilan', 'ip', 'nomor']) {
       if ((this.hitungan[jenis].get(kunci[jenis]) ?? 0) >= this.batas[jenis]) return jenis;
     }
+    this.ubah(kunci, 1);
     return null;
   }
 
-  catat(id, ip, nomor) {
-    this.gulir();
-    const kunci = { panggilan: id, ip, nomor };
-    for (const jenis of ['panggilan', 'ip', 'nomor']) this.hitungan[jenis].set(kunci[jenis], (this.hitungan[jenis].get(kunci[jenis]) ?? 0) + 1);
+  /** Mengembalikan kuota yang dipesan bila penerbitan tiket gagal. */
+  batalkan(id, ip, nomor) {
+    this.ubah({ panggilan: id, ip, nomor }, -1);
+  }
+
+  ubah(kunci, n) {
+    for (const jenis of ['panggilan', 'ip', 'nomor']) {
+      const nilai = Math.max(0, (this.hitungan[jenis].get(kunci[jenis]) ?? 0) + n);
+      this.hitungan[jenis].set(kunci[jenis], nilai);
+    }
   }
 }
