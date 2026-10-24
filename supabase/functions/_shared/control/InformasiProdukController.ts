@@ -73,12 +73,17 @@ export class InformasiProdukController {
 
     const mulai = Date.now();
     let berhasil = false;
+    // Percakapan yang tidak ada tidak bisa dirujuk foreign key log_tool, jadi log gagalnya dicatat tanpa percakapan (#32).
+    let percakapanLog: string | null = percakapanId;
     try {
       const nomorTiket = await this.penyimpanan.terbitkanTiketEskalasi({ percakapanId, nomorTelepon, ringkasan: pertanyaan });
       berhasil = true;
       return { nomorTiket };
+    } catch (e) {
+      if (e instanceof ErrorSigap && e.status === 404) percakapanLog = null;
+      throw e;
     } finally {
-      await this.catat({ percakapanId, namaTool: 'terbitkan_tiket_eskalasi', durasiMs: Date.now() - mulai, berhasil });
+      await this.catat({ percakapanId: percakapanLog, namaTool: 'terbitkan_tiket_eskalasi', durasiMs: Date.now() - mulai, berhasil });
     }
   }
 
@@ -107,10 +112,17 @@ export class InformasiProdukController {
     }
   }
 
-  // Gagal mencatat log tidak boleh menggagalkan jawaban ke penelepon.
+  // Gagal mencatat log tidak boleh menggagalkan jawaban ke penelepon. Bila percakapanId ditolak basis data
+  // (misalnya percakapan tidak ada), log tetap disimpan tanpa percakapan agar panggilan gagal tetap terlihat.
   async catat(log: LogTool) {
     try {
       await this.penyimpanan.catatLogTool(log);
+      return;
+    } catch {
+      if (log.percakapanId === null) return console.error('log_tool gagal dicatat', log.namaTool);
+    }
+    try {
+      await this.penyimpanan.catatLogTool({ ...log, percakapanId: null });
     } catch {
       console.error('log_tool gagal dicatat', log.namaTool);
     }
