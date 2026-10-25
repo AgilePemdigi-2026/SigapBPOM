@@ -164,6 +164,7 @@ async function sttElevenLabs(audio, tipe) {
 // Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan SusunanJawaban, pemakaian lewat AnggaranToken.
 async function* aliranHermes(id, kutipan, hasil) {
   const pesan = riwayat.untukModel(id, kutipan);
+  hasil.karPrompt = JSON.stringify(pesan).length;
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
@@ -172,7 +173,7 @@ async function* aliranHermes(id, kutipan, hasil) {
   });
   if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
   const dekoder = new TextDecoder();
-  let sisa = '', keluaran = '';
+  let sisa = '';
   for await (const bagian of r.body) {
     sisa += dekoder.decode(bagian, { stream: true });
     let n;
@@ -185,11 +186,14 @@ async function* aliranHermes(id, kutipan, hasil) {
       if (d?.usage?.total_tokens) hasil.token = Number(d.usage.total_tokens);
       // Hermes juga mengirim event miliknya sendiri tanpa `choices`; event itu dilewati.
       const potongan = d?.choices?.[0]?.delta?.content;
-      if (potongan) { keluaran += potongan; yield potongan; }
+      if (potongan) { hasil.karKeluaran += potongan.length; yield potongan; }
     }
   }
-  if (!hasil.token) hasil.token = Math.ceil((JSON.stringify(pesan).length + keluaran.length) / 3);
 }
+
+// Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
+// datang (termasuk saat stream putus di tengah). Hanya permintaan yang belum menghasilkan keluaran yang dikembalikan.
+const tokenTerpakai = (hasil) => hasil.token || (hasil.karKeluaran ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / 3) : 0);
 
 async function ttsElevenLabs(teks) {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
@@ -323,7 +327,7 @@ async function giliran(req, res, url) {
       const kutipan = korpus ? korpus.cari(transkrip, KUTIPAN_MAKS) : [];
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const pemecah = new PemecahKalimat();
-      const hasil = { token: 0 };
+      const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
       let tKalimat1 = 0;
       const proses = (kalimat) => {
         for (const k of kalimat) {
@@ -337,12 +341,15 @@ async function giliran(req, res, url) {
         for await (const potongan of aliranHermes(id, pesanKutipan(kutipan), hasil)) proses(pemecah.tambah(potongan));
         proses(pemecah.akhiri());
       } finally {
+        hasil.token = tokenTerpakai(hasil);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
         cadangan = 0;
       }
 
       let jawaban = susunan.teks;
       const diLuarTopik = susunan.khusus === 'di_luar_topik';
+      // Jawaban baku baru dikenali setelah kalimat isi terkirim: panel membuang audio yang belum diputar dan teksnya.
+      if (susunan.khusus && susunan.isi.length) tulis({ jenis: 'ganti' });
       if (diLuarTopik) {
         jawaban = PESAN_DI_LUAR_TOPIK;
         riwayat.catatDiLuarTopik(id);

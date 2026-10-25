@@ -141,6 +141,14 @@ test('jawaban baku di luar topik dan butuh petugas dikenali dari kalimat pertama
   assert.equal(petugas.susunan.khusus, 'butuh_petugas');
 });
 
+test('jawaban baku butuh petugas atau di luar topik setelah kalimat isi tetap dikenali', () => {
+  const petugas = alirkan(`Obat batuk umumnya punya aturan pakai di kemasan. ${PESAN_BUTUH_PETUGAS}`);
+  assert.equal(petugas.diucapkan.length, 1);
+  assert.equal(petugas.susunan.khusus, 'butuh_petugas');
+  const luar = alirkan(`Baik, saya coba jelaskan sedikit dulu ya. ${PESAN_DI_LUAR_TOPIK}`);
+  assert.equal(luar.susunan.khusus, 'di_luar_topik');
+});
+
 test('kalimat yang terlalu panjang dipotong di batas kata', () => {
   const { diucapkan } = alirkan(`${'Kata panjang sekali '.repeat(20)}selesai.`);
   assert.ok(diucapkan[0].length <= 221);

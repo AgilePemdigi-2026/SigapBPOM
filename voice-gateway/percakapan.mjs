@@ -132,14 +132,19 @@ export class SusunanJawaban {
     this.khusus = null;
   }
 
-  /** Mengembalikan kalimat yang boleh langsung diucapkan, atau null bila kalimat ini tidak diucapkan. */
+  /**
+   * Mengembalikan kalimat yang boleh langsung diucapkan, atau null bila kalimat ini tidak diucapkan.
+   * Setiap kalimat diperiksa terhadap jawaban baku, bukan hanya kalimat pertama: bila jawaban baku muncul setelah
+   * kalimat isi, `khusus` terisi dan pemanggil wajib membatalkan kalimat yang sudah dikirim.
+   */
   tambah(kalimatMentah) {
     if (this.khusus || this.tawaran) return null;
     let k = String(kalimatMentah ?? '').replace(/[*_`#>]+/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\s+/g, ' ').trim();
     if (!k) return null;
     const ringkas = sederhanakan(k);
-    if (!this.isi.length && jawabanDiLuarTopik(k)) { this.khusus = 'di_luar_topik'; return null; }
-    if (!this.isi.length && ringkas.length >= 20 && sederhanakan(this.pesanButuhPetugas).startsWith(ringkas)) { this.khusus = 'butuh_petugas'; return null; }
+    if (jawabanDiLuarTopik(k)) { this.khusus = 'di_luar_topik'; return null; }
+    if (ringkas.includes('diteruskan kepada petugas')
+      || (ringkas.length >= 20 && sederhanakan(this.pesanButuhPetugas).startsWith(ringkas))) { this.khusus = 'butuh_petugas'; return null; }
     if (POLA_TAWARAN.test(ringkas)) { this.tawaran = true; return null; }
     if (this.isi.length >= this.maks) return null;
     if (k.length > KALIMAT_MAKS_KAR) k = `${k.slice(0, KALIMAT_MAKS_KAR).replace(/\s+\S*$/, '')}…`;
