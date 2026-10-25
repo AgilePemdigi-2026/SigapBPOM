@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PANJANG_POTONGAN = 1100;
-const PANJANG_KUTIPAN = 700;
+const PANJANG_KUTIPAN = 600;
 const BM25_K1 = 1.4;
 const BM25_B = 0.75;
 // Skor minimal agar kutipan dianggap relevan; di bawahnya agen menjawab tanpa kutipan.

@@ -45,6 +45,12 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
   type Sumber = { peraturan: string; judul: string; url: string };
   type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string };
+  // Baris NDJSON dari /voice/giliran untuk ucapan: transkrip, lalu kalimat demi kalimat, lalu selesai.
+  type Baris =
+    | { jenis: 'transkrip'; transkrip: string; jeda?: boolean }
+    | { jenis: 'kalimat'; teks: string; suara: string | null }
+    | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null }
+    | { jenis: 'galat'; message: string };
   type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string };
 
   const GATEWAY = '/voice';
@@ -127,6 +133,20 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       });
     }
 
+    // Antrean audio: kalimat jeda lalu kalimat jawaban diputar berurutan begitu masing-masing siap.
+    let antrean: string[] = [];
+    let pemutaran: Promise<void> | null = null;
+    function antrekan(src: string) {
+      antrean.push(src);
+      pemutaran ??= (async () => {
+        while (antrean.length && phase !== 'ended') await putar(antrean.shift()!);
+        pemutaran = null;
+      })();
+    }
+    async function tungguAntrean() {
+      while (pemutaran) await pemutaran;
+    }
+
     // Mode demo dev server (?demo=<nama>): giliran diambil dari transkrip tiruan, bukan dari gateway suara.
     let giliranTiruan: Hasil[] | null = null;
 
@@ -155,10 +175,56 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (phase !== 'ended') dengar();
     }
 
+    // Jawaban ucapan datang bertahap: kalimat jeda diputar segera, tiap kalimat jawaban diantrekan begitu tiba.
+    async function prosesAliran(r: Response) {
+      const pembaca = r.body!.getReader();
+      const dekoder = new TextDecoder();
+      let sisa = '', jawaban: Msg | null = null, akhiri = false;
+      for (;;) {
+        const { value, done } = await pembaca.read();
+        if (done || phase === 'ended') break;
+        sisa += dekoder.decode(value, { stream: true });
+        let n;
+        while ((n = sisa.indexOf('\n')) >= 0) {
+          const b = JSON.parse(sisa.slice(0, n)) as Baris;
+          sisa = sisa.slice(n + 1);
+          if (b.jenis === 'transkrip') {
+            if (b.transkrip) push({ kind: 'user', text: b.transkrip });
+            if (b.jeda) { antrekan(`${GATEWAY}/statis/jeda`); push({ kind: 'processing', text: 'Menyiapkan jawaban' }); }
+          } else if (b.jenis === 'kalimat') {
+            if (jawaban) { jawaban.text = `${jawaban.text} ${b.teks}`; paint(); }
+            else { say(b.teks); jawaban = msgs[msgs.length - 1]; }
+            if (b.suara) antrekan(b.suara);
+          } else if (b.jenis === 'selesai') {
+            if (jawaban) { jawaban.sumber = b.sumber; jawaban.tiket = b.tiket ?? undefined; paint(); }
+            akhiri = Boolean(b.akhiri);
+          } else if (b.jenis === 'galat') {
+            throw new Error(b.message);
+          }
+        }
+      }
+      await tungguAntrean();
+      if (phase === 'ended') return;
+      // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
+      if (akhiri) return end();
+      dengar();
+    }
+
     async function giliranSuara(rekaman: Blob) {
       setMode('memproses');
       push({ kind: 'processing', text: 'Memproses ucapan Anda' });
-      try { await prosesHasil(await kirimGiliran(rekaman)); } catch (e) { gagal(e); }
+      try {
+        if (giliranTiruan) return await prosesHasil(await kirimGiliran(rekaman));
+        const r = await fetch(`${GATEWAY}/giliran?id=${idPanggilan}`, { method: 'POST', headers: { 'content-type': rekaman.type || 'audio/webm' }, body: rekaman });
+        if (!r.ok || !r.headers.get('content-type')?.includes('ndjson')) {
+          const d = await r.json().catch(() => null);
+          throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
+        }
+        await prosesAliran(r);
+      } catch (e) {
+        await tungguAntrean();
+        gagal(e);
+      }
     }
 
     function gagal(e: unknown) {
@@ -258,6 +324,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     function end() {
       if (phase === 'ended') return;
       lepasMic();
+      antrean = [];
       pemutar.pause();
       if (idPanggilan) fetch(`${GATEWAY}/akhiri`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) }).catch(() => {});
       // REQ-2.5: pengaduan lewat suara belum menerbitkan nomor tiket.
