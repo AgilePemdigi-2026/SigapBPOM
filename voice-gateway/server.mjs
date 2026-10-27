@@ -173,7 +173,7 @@ async function* aliranHermes(id, kutipan, hasil) {
   });
   if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
   const dekoder = new TextDecoder();
-  let sisa = '';
+  let sisa = '', awal = '';
   for await (const bagian of r.body) {
     sisa += dekoder.decode(bagian, { stream: true });
     let n;
@@ -186,10 +186,27 @@ async function* aliranHermes(id, kutipan, hasil) {
       if (d?.usage?.total_tokens) hasil.token = Number(d.usage.total_tokens);
       // Hermes juga mengirim event miliknya sendiri tanpa `choices`; event itu dilewati.
       const potongan = d?.choices?.[0]?.delta?.content;
-      if (potongan) { hasil.karKeluaran += potongan.length; yield potongan; }
+      if (!potongan) continue;
+      // Saat semua provider gagal, Hermes mengirim pemberitahuan berawalan "⚠️" sebagai isi jawaban (status 200).
+      // Pemberitahuan itu tidak boleh dibacakan ke penelepon, jadi diperlakukan sebagai galat.
+      if (awal.trim().length < 2) {
+        awal += potongan;
+        if (awal.trim().length < 2) continue;
+        if (pesanGalatHermes(awal)) throw new Error('hermes tanpa jawaban');
+        hasil.karKeluaran += awal.length;
+        yield awal;
+        continue;
+      }
+      hasil.karKeluaran += potongan.length;
+      yield potongan;
     }
   }
+  // Jawaban yang sangat pendek (kurang dari dua karakter) belum sempat dikirim di atas.
+  if (awal.trim() && awal.trim().length < 2) { hasil.karKeluaran += awal.length; yield awal; }
 }
+
+/** Pemberitahuan internal Hermes (misalnya "⚠️ No reply: every provider ... failed"), bukan jawaban model. */
+const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
 
 // Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
 // datang (termasuk saat stream putus di tengah). Hanya permintaan yang belum menghasilkan keluaran yang dikembalikan.
