@@ -4,7 +4,7 @@ import type { AstroCookies } from 'astro';
 import type { AdapterSesi, Petugas } from './AutentikasiController';
 
 const COOKIE_SESI = 'sigap-sesi';
-const DEMO = { email: 'dewi.lestari@pom.go.id', password: 'sigap2026', nama: 'Dewi Lestari' };
+const DEMO = { id: '11111111-1111-1111-1111-111111111111', email: 'dewi.lestari@pom.go.id', password: 'sigap2026', nama: 'Dewi Lestari' };
 
 // PROJECT_RULES 5.3. Secure hanya di build produksi karena server pengembangan memakai http.
 const OPSI_COOKIE = { path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax' } as const;
@@ -15,7 +15,7 @@ export class AdapterSesiTiruan implements AdapterSesi {
   async masuk(email: string, password: string, cookies: AstroCookies): Promise<Petugas | null> {
     if (email.toLowerCase() !== DEMO.email || password !== DEMO.password) return null;
     const token = crypto.randomUUID();
-    const petugas = { nama: DEMO.nama, email: DEMO.email };
+    const petugas = { id: DEMO.id, nama: DEMO.nama, email: DEMO.email };
     this.sesi.set(token, petugas);
     cookies.set(COOKIE_SESI, token, OPSI_COOKIE);
     return petugas;

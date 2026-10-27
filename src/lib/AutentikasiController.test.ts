@@ -4,7 +4,7 @@ import type { AstroCookies } from 'astro';
 import { AutentikasiController, PESAN_LOGIN, type AdapterSesi } from './AutentikasiController.ts';
 
 const COOKIES = {} as AstroCookies;
-const DEWI = { nama: 'Dewi Lestari', email: 'dewi.lestari@pom.go.id' };
+const DEWI = { id: '11111111-1111-1111-1111-111111111111', nama: 'Dewi Lestari', email: 'dewi.lestari@pom.go.id' };
 
 function buat() {
   const panggilan: [string, string][] = [];

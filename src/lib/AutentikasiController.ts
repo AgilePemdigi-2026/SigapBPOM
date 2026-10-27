@@ -2,7 +2,7 @@
 // Penguncian akun (REQ-3.5) menyusul di F3.2.
 import type { AstroCookies } from 'astro';
 
-export type Petugas = { nama: string; email: string };
+export type Petugas = { id: string; nama: string; email: string };
 
 /** Penyedia autentikasi (PROJECT_RULES 4.3): sekarang tiruan, Supabase Auth di T-F3.1-03. */
 export interface AdapterSesi {

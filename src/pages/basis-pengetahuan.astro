@@ -95,14 +95,15 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
 
 <script>
   // ponytail: perubahan materi hanya di memori browser sampai T-F2.2-02 / T-F2.3-02 menyimpan ke Supabase.
-  type Materi = { id: number; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
+  type Materi = { id: string | number; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
   type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
   const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
-  const materi: Materi[] = D.materi;
+  const materi: Materi[] = [];
   const toast = (msg: string) => (window as any).sigapToast?.(msg);
   const fmt = (n: number) => n.toLocaleString('id-ID');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
   const st = { tab: 'Semua', q: '', added: 0, deact: 0 };
+  let materiDimuat = false;
 
   const rowsEl = document.getElementById('kb-rows')!;
   function render() {
@@ -119,11 +120,11 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
       </div>`;
     }).join('');
     document.getElementById('kb-shown')!.textContent = String(list.length);
-    document.getElementById('kb-empty')!.hidden = list.length > 0;
+    document.getElementById('kb-empty')!.hidden = !materiDimuat || list.length > 0;
     document.getElementById('kb-empty-text')!.textContent = materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.';
-    document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(D.total.total + st.added)));
-    document.getElementById('kb-aktif')!.textContent = fmt(D.total.aktif + st.added - st.deact);
-    document.getElementById('kb-nonaktif')!.textContent = fmt(D.total.nonaktif + st.deact);
+    document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(materi.length)));
+    document.getElementById('kb-aktif')!.textContent = fmt(materi.filter((m) => m.aktif).length);
+    document.getElementById('kb-nonaktif')!.textContent = fmt(materi.filter((m) => !m.aktif).length);
   }
 
   function pressGroup(attr: string, value: string) {
@@ -137,12 +138,21 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
   rowsEl.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('.hapus');
     if (!btn) return;
-    const m = materi.find((x) => x.id === Number(btn.dataset.id))!;
+    const m = materi.find((x) => String(x.id) === btn.dataset.id);
+    if (!m) return;
     if (!confirm(`Tandai "${m.judul}" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban.`)) return;
-    m.aktif = false;
-    st.deact++;
-    render();
-    toast('Materi ditandai tidak aktif.');
+    void fetch('/api/materi/nonaktif', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: m.id }),
+    }).then(async (response) => {
+      const hasil = await response.json();
+      if (!response.ok || hasil.status !== 'success') throw new Error(hasil.message || 'Materi gagal dinonaktifkan.');
+      m.aktif = false;
+      st.deact++;
+      render();
+      toast('Materi ditandai tidak aktif.');
+    }).catch((error) => console.error('Materi gagal dinonaktifkan', error));
   });
 
   function showView(v: 'list' | 'graph') {
@@ -199,7 +209,29 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
     toast('Materi siap digunakan sistem.');
   });
 
+  async function muatMateri() {
+    try {
+      const response = await fetch('/api/materi', { cache: 'no-store' });
+      const hasil = await response.json();
+      if (!response.ok || hasil.status !== 'success' || !Array.isArray(hasil.data?.materi)) throw new Error('Daftar materi gagal dimuat.');
+      const tampil = hasil.data.materi.map((m: { id: string; judul: string; kategori: string | null; rujukanSumber: string; diperbaruiPada: string; status: 'aktif' | 'tidak_aktif' }) => ({
+        id: m.id,
+        judul: m.judul,
+        kategori: m.kategori ?? 'Edukasi Umum',
+        rujukan: m.rujukanSumber,
+        tgl: new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(m.diperbaruiPada)).replace('.', ''),
+        aktif: m.status === 'aktif',
+      }));
+      materi.splice(0, materi.length, ...tampil);
+      materiDimuat = true;
+      render();
+    } catch (error) {
+      console.error('Daftar materi gagal dimuat', error);
+    }
+  }
+
   render();
+  void muatMateri();
   if (new URLSearchParams(location.search).has('tambah')) bukaTambah();
 </script>
 
