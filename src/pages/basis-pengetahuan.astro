@@ -1,11 +1,24 @@
 ---
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { MATERI, KB_TOTAL, KATEGORI_MATERI, SIMPUL, SISI, chip } from '../lib/data';
+import { KATEGORI_MATERI, chip } from '../lib/data';
+import { BasisPengetahuanController, UKURAN_HALAMAN_MAKS, type Materi } from '../lib/BasisPengetahuanController';
+import { PenyimpananMateriTiruan } from '../lib/mock/materiTiruan';
+
+// ponytail: penyimpanan tiruan sampai T-F3.1-03 memberi token sesi Supabase; lalu pakai
+// PenyimpananMateriSupabase dengan token itu agar RLS petugas berlaku.
+const basis = new BasisPengetahuanController(new PenyimpananMateriTiruan());
+const [daftar, graf] = await Promise.all([basis.daftarMateri({ ukuran: UKURAN_HALAMAN_MAKS }), basis.grafPengetahuan()]);
+const MATERI: Materi[] = 'materi' in daftar ? daftar.materi : [];
+const gagal = 'gagal' in daftar ? daftar.gagal : '';
+const SIMPUL = 'simpul' in graf ? graf.simpul : [];
+const SISI = 'sisi' in graf ? graf.sisi : [];
+const aktif = MATERI.filter((m) => m.aktif).length;
+const KB_TOTAL = { total: MATERI.length, aktif, nonaktif: MATERI.length - aktif };
 
 const awal = SIMPUL[0];
 const byId = Object.fromEntries(SIMPUL.map((n) => [n.id, n]));
-const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip('Aktif'), chipNonaktif: chip('Tidak Aktif') };
+const data = { materi: MATERI, total: KB_TOTAL, gagal, simpul: SIMPUL, chipAktif: chip('Aktif'), chipNonaktif: chip('Tidak Aktif') };
 ---
 <DashboardLayout title="Basis Pengetahuan">
   <div class="page">
@@ -95,7 +108,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
 
 <script>
   // ponytail: perubahan materi hanya di memori browser sampai T-F2.2-02 / T-F2.3-02 menyimpan ke Supabase.
-  type Materi = { id: number; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
+  type Materi = { id: string; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
   type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
   const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
   const materi: Materi[] = D.materi;
@@ -120,7 +133,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
     }).join('');
     document.getElementById('kb-shown')!.textContent = String(list.length);
     document.getElementById('kb-empty')!.hidden = list.length > 0;
-    document.getElementById('kb-empty-text')!.textContent = materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.';
+    document.getElementById('kb-empty-text')!.textContent = D.gagal || (materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.');
     document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(D.total.total + st.added)));
     document.getElementById('kb-aktif')!.textContent = fmt(D.total.aktif + st.added - st.deact);
     document.getElementById('kb-nonaktif')!.textContent = fmt(D.total.nonaktif + st.deact);
@@ -137,7 +150,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
   rowsEl.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('.hapus');
     if (!btn) return;
-    const m = materi.find((x) => x.id === Number(btn.dataset.id))!;
+    const m = materi.find((x) => x.id === btn.dataset.id)!;
     if (!confirm(`Tandai "${m.judul}" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban.`)) return;
     m.aktif = false;
     st.deact++;
@@ -188,7 +201,7 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
     if (!judul) return field('judul').focus();
     if (!rujukan) { err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
     const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
-    materi.unshift({ id: Date.now(), judul, kategori: field('kategori').value, rujukan, tgl, aktif: true });
+    materi.unshift({ id: String(Date.now()), judul, kategori: field('kategori').value, rujukan, tgl, aktif: true });
     st.added++;
     st.tab = 'Semua'; st.q = '';
     (document.getElementById('kb-q') as HTMLInputElement).value = '';

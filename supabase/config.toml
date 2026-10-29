@@ -69,7 +69,7 @@ schema_paths = []
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = ["./seed.sql", "./seed_materi.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -218,8 +218,8 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = false
+# Tetap true: di Supabase CLI nilai false mematikan login email. Pendaftaran publik dimatikan lewat [auth] enable_signup.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -421,14 +421,3 @@ verify_jwt = false
 
 [functions.terbitkan-tiket-eskalasi]
 verify_jwt = false
-
-[functions.login]
-enabled = true
-verify_jwt = false
-import_map = "./functions/login/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/login/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/login/*.html" ]
