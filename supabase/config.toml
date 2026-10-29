@@ -421,3 +421,9 @@ verify_jwt = false
 
 [functions.terbitkan-tiket-eskalasi]
 verify_jwt = false
+
+[functions.login]
+enabled = true
+verify_jwt = false
+import_map = "./functions/login/deno.json"
+entrypoint = "./functions/login/index.ts"
