@@ -1,16 +1,24 @@
----
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { MATERI, KB_TOTAL, KATEGORI_MATERI, SIMPUL, SISI, chip } from '../lib/data';
+import { MATERI, KATEGORI_MATERI, SIMPUL, SISI, chip } from '../lib/data';
+import { basisPengetahuan } from '../lib/instans';
+
+const listMateri = MATERI.map((m) => {
+  const nonaktif = basisPengetahuan.penyimpanan.apakahNonaktif?.(String(m.id)) ?? false;
+  return { ...m, aktif: !nonaktif };
+});
+const totalAktif = listMateri.filter((m) => m.aktif).length;
+const totalNonaktif = listMateri.filter((m) => !m.aktif).length;
+const kbTotal = { total: listMateri.length, aktif: totalAktif, nonaktif: totalNonaktif };
 
 const awal = SIMPUL[0];
 const byId = Object.fromEntries(SIMPUL.map((n) => [n.id, n]));
-const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip('Aktif'), chipNonaktif: chip('Tidak Aktif') };
+const data = { materi: listMateri, total: kbTotal, simpul: SIMPUL, chipAktif: chip('Aktif'), chipNonaktif: chip('Tidak Aktif') };
 ---
 <DashboardLayout title="Basis Pengetahuan">
   <div class="page">
     <section class="panel head">
-      <div class="head-title"><h1>Basis Pengetahuan</h1><span><span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi · {KB_TOTAL.total ? 'diperbarui dari basis data' : 'belum ada pembaruan'}</span></div>
+      <div class="head-title"><h1>Basis Pengetahuan</h1><span><span data-total>{kbTotal.total.toLocaleString('id-ID')}</span> materi · {kbTotal.total ? 'diperbarui dari basis data' : 'belum ada pembaruan'}</span></div>
       <span class="search"><i class="icon-search"></i><input id="kb-q" placeholder="Cari judul materi atau rujukan sumber…" aria-label="Cari judul materi atau rujukan sumber" /></span>
       <button class="tab big" data-view="list" aria-pressed="true"><i class="icon-list"></i>Daftar Materi</button>
       <button class="tab big" data-view="graph" aria-pressed="false"><i class="icon-waypoints"></i>Graf Pengetahuan</button>
@@ -27,16 +35,16 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
         <div class="row-grid cols-head" aria-hidden="true"><span>JUDUL MATERI</span><span>RUJUKAN SUMBER</span><span>PEMUTAKHIRAN</span><span>STATUS</span><span>AKSI</span></div>
         <div class="rows" id="kb-rows"></div>
         <div class="empty" id="kb-empty" hidden><i class="icon-book-open"></i><span id="kb-empty-text">Belum ada materi yang cocok.</span><button class="pill" id="empty-add"><i class="icon-plus"></i>Tambah Materi</button></div>
-        <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
+        <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span data-total>{kbTotal.total.toLocaleString('id-ID')}</span> materi</span>
       </section>
 
       <aside class="side-col">
         <section class="panel index">
           <h2>Indeks Pengetahuan</h2>
-          <span class="index-total"><span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span><span>materi</span></span>
+          <span class="index-total"><span data-total>{kbTotal.total.toLocaleString('id-ID')}</span><span>materi</span></span>
           <div class="index-split">
-            <div class="tile-flat"><span>Aktif</span><span class="v ok" id="kb-aktif">{KB_TOTAL.aktif.toLocaleString('id-ID')}</span></div>
-            <div class="tile-flat"><span>Tidak aktif</span><span class="v" id="kb-nonaktif">{KB_TOTAL.nonaktif.toLocaleString('id-ID')}</span></div>
+            <div class="tile-flat"><span>Aktif</span><span class="v ok" id="kb-aktif">{kbTotal.aktif.toLocaleString('id-ID')}</span></div>
+            <div class="tile-flat"><span>Tidak aktif</span><span class="v" id="kb-nonaktif">{kbTotal.nonaktif.toLocaleString('id-ID')}</span></div>
           </div>
           <div class="sync idle"><i class="icon-refresh-cw"></i>Indeks RAG belum berisi materi</div>
         </section>
@@ -134,15 +142,31 @@ const data = { materi: MATERI, total: KB_TOTAL, simpul: SIMPUL, chipAktif: chip(
   (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; showView('list'); render(); });
 
   // REQ-7.3, BR-5: nonaktifkan, tidak menghapus permanen.
-  rowsEl.addEventListener('click', (e) => {
+  rowsEl.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('.hapus');
     if (!btn) return;
     const m = materi.find((x) => x.id === Number(btn.dataset.id))!;
     if (!confirm(`Tandai "${m.judul}" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban.`)) return;
-    m.aktif = false;
-    st.deact++;
-    render();
-    toast('Materi ditandai tidak aktif.');
+
+    try {
+      const res = await fetch(`/api/materi/${m.id}/nonaktifkan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const hasil = await res.json().catch(() => null);
+
+      if (!res.ok || hasil?.status !== 'success') {
+        toast(hasil?.message || 'Gagal menonaktifkan materi.');
+        return;
+      }
+
+      m.aktif = false;
+      st.deact++;
+      render();
+      toast(hasil?.message || 'Materi ditandai tidak aktif.');
+    } catch {
+      toast('Terjadi kesalahan koneksi.');
+    }
   });
 
   function showView(v: 'list' | 'graph') {

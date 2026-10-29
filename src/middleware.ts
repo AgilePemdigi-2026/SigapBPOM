@@ -1,8 +1,7 @@
-// Boundary UC-03: setiap route dashboard memeriksa sesi di server sebelum halaman dikirim (PROJECT_RULES 5.4).
-// Route di luar daftar publik dianggap dashboard, jadi halaman baru otomatis terlindungi.
 import { defineMiddleware } from 'astro:middleware';
 import { AutentikasiController } from './lib/AutentikasiController';
 import { AdapterSesiTiruan } from './lib/sesiTiruan';
+import { basisPengetahuan } from './lib/instans';
 
 // NFR-12: SESI_IDLE_MENIT bisa diperkecil untuk pengujian, misalnya 1.
 const idleMenit = Number(process.env.SESI_IDLE_MENIT);
@@ -11,6 +10,7 @@ const RUTE_PUBLIK = new Set(['/', '/homepage', '/login', '/api/login']);
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   ctx.locals.autentikasi = autentikasi;
+  ctx.locals.basisPengetahuan = basisPengetahuan;
   const path = ctx.url.pathname.replace(/\/+$/, '') || '/';
   if (ctx.isPrerendered || RUTE_PUBLIK.has(path)) return next();
 
