@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AstroCookies } from 'astro';
-import { AutentikasiController, PESAN_LOGIN, type AdapterSesi } from './AutentikasiController.ts';
+import { AutentikasiController, PESAN_LOGIN, PembatasLajuLogin, type AdapterSesi } from './AutentikasiController.ts';
 
 const COOKIES = {} as AstroCookies;
 const DEWI = { nama: 'Dewi Lestari', email: 'dewi.lestari@pom.go.id' };
 
-function buat() {
+function buat(opsi: { batasLaju?: number; jendelaMs?: number; now?: () => number } = {}) {
   const panggilan: [string, string][] = [];
   const adapter: AdapterSesi = {
     async masuk(email, password) {
@@ -17,7 +17,10 @@ function buat() {
     async keluar() {},
     kunci() { return null; },
   };
-  return { c: new AutentikasiController(adapter), panggilan };
+  const pembatas = opsi.batasLaju
+    ? new PembatasLajuLogin(opsi.batasLaju, opsi.jendelaMs ?? 60_000, opsi.now)
+    : undefined;
+  return { c: new AutentikasiController(adapter, { now: opsi.now, pembatasLaju: pembatas }), panggilan };
 }
 
 test('req_3_3 isian kosong ditolak sebelum kredensial diperiksa', async () => {
@@ -45,6 +48,33 @@ test('isian melebihi batas panjang ditolak tanpa memanggil penyedia autentikasi'
   const { c, panggilan } = buat();
   assert.equal((await c.masuk({ email: DEWI.email, password: 'x'.repeat(257) }, COOKIES)).kode, 401);
   assert.equal(panggilan.length, 0);
+});
+
+test('nfr_11 pembatas laju menolak setelah batas percobaan login per IP tercapai', async () => {
+  let waktu = 1000;
+  const { c } = buat({ batasLaju: 3, jendelaMs: 60_000, now: () => waktu });
+  const ip = '192.168.1.10';
+
+  // Percobaan 1-3 diizinkan (walaupun gagal karena password keliru)
+  for (let i = 0; i < 3; i++) {
+    const hasil = await c.masuk({ email: DEWI.email, password: 'salah', ip }, COOKIES);
+    assert.equal(hasil.kode, 401);
+    assert.equal(hasil.pesan, PESAN_LOGIN.salah);
+  }
+
+  // Percobaan ke-4 ditolak oleh pembatas laju IP
+  const hasil4 = await c.masuk({ email: DEWI.email, password: 'benar', ip }, COOKIES);
+  assert.equal(hasil4.kode, 429);
+  assert.equal(hasil4.pesan, PESAN_LOGIN.terlaluBanyak);
+
+  // IP lain tetap dapat mencoba
+  const hasilIpLain = await c.masuk({ email: DEWI.email, password: 'benar', ip: '192.168.1.20' }, COOKIES);
+  assert.equal(hasilIpLain.kode, 200);
+
+  // Setelah jendela waktu berlalu (60 detik), IP pertama dapat mencoba kembali
+  waktu += 60_001;
+  const hasilPulih = await c.masuk({ email: DEWI.email, password: 'benar', ip }, COOKIES);
+  assert.equal(hasilPulih.kode, 200);
 });
 
 function sesiIdle() {

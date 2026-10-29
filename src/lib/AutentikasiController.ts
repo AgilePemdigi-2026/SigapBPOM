@@ -4,7 +4,7 @@ import type { AstroCookies } from 'astro';
 
 export type Petugas = { nama: string; email: string };
 
-/** Penyedia autentikasi (PROJECT_RULES 4.3): sekarang tiruan, Supabase Auth di T-F3.1-03. */
+/** Penyedia autentikasi (PROJECT_RULES 4.3): implementasi produksi di AdapterSesiSupabase (T-F3.1-03). */
 export interface AdapterSesi {
   /** Memeriksa kredensial lalu memasang cookie sesi. Null bila email atau password salah. */
   masuk(email: string, password: string, cookies: AstroCookies): Promise<Petugas | null>;
@@ -23,6 +23,7 @@ export const PESAN_LOGIN = {
   berhasil: 'Login berhasil!',
   kosong: 'Login gagal. Semua field harus diisi!',
   salah: 'Login gagal. Email atau password Anda salah.',
+  terlaluBanyak: 'Terlalu banyak percobaan login. Silakan coba lagi nanti.',
 } as const;
 
 // PROJECT_RULES 5.6: panjang isian dibatasi sebelum diteruskan ke penyedia autentikasi.
@@ -30,26 +31,74 @@ const PANJANG_MAKS_ISIAN = 256;
 
 export type HasilLogin =
   | { kode: 200; pesan: string; petugas: Petugas }
-  | { kode: 401 | 422; pesan: string; petugas: null };
+  | { kode: 401 | 422 | 429; pesan: string; petugas: null };
+
+/**
+ * Pembatas laju login per IP (NFR-11, OWASP Top 10) dengan jendela geser.
+ * Membatasi percobaan login untuk melindungi dari serangan brute-force.
+ */
+export class PembatasLajuLogin {
+  batas: number;
+  jendelaMs: number;
+  now: () => number;
+  catatan = new Map<string, number[]>();
+
+  constructor(batas = 10, jendelaMs = 60_000, now: () => number = Date.now) {
+    this.batas = batas;
+    this.jendelaMs = jendelaMs;
+    this.now = now;
+  }
+
+  izinkan(ip: string): boolean {
+    if (!ip) return true;
+    const t = this.now();
+    const daftar = (this.catatan.get(ip) ?? []).filter((w) => w > t - this.jendelaMs);
+    if (daftar.length >= this.batas) {
+      this.catatan.set(ip, daftar);
+      return false;
+    }
+    daftar.push(t);
+    this.catatan.set(ip, daftar);
+    if (this.catatan.size > 2000) {
+      for (const [k, d] of this.catatan) {
+        if (d.every((w) => w <= t - this.jendelaMs)) this.catatan.delete(k);
+      }
+    }
+    return true;
+  }
+}
 
 export class AutentikasiController {
   adapter: AdapterSesi;
   batasIdleMs: number;
   now: () => number;
+  pembatasLaju: PembatasLajuLogin;
   // Aktivitas terakhir per sesi disimpan di server agar tidak bisa diperpanjang dari browser.
   aktivitas = new Map<string, number>();
 
-  constructor(adapter: AdapterSesi, opsi: { batasIdleMs?: number; now?: () => number } = {}) {
+  constructor(
+    adapter: AdapterSesi,
+    opsi: { batasIdleMs?: number; now?: () => number; pembatasLaju?: PembatasLajuLogin } = {},
+  ) {
     this.adapter = adapter;
     this.batasIdleMs = opsi.batasIdleMs ?? BATAS_IDLE_BAWAAN_MS;
     this.now = opsi.now ?? Date.now;
+    this.pembatasLaju = opsi.pembatasLaju ?? new PembatasLajuLogin(10, 60_000, this.now);
   }
 
   /**
    * REQ-3.1: isian divalidasi dulu (REQ-3.3), baru kredensial diperiksa (REQ-3.4).
    * Pesan gagal tidak membedakan email tidak terdaftar dan password salah.
+   * Laju percobaan dibatasi per IP (T-F3.1-03).
    */
-  async masuk(input: { email?: unknown; password?: unknown }, cookies: AstroCookies): Promise<HasilLogin> {
+  async masuk(
+    input: { email?: unknown; password?: unknown; ip?: string },
+    cookies: AstroCookies,
+  ): Promise<HasilLogin> {
+    if (input.ip && !this.pembatasLaju.izinkan(input.ip)) {
+      return { kode: 429, pesan: PESAN_LOGIN.terlaluBanyak, petugas: null };
+    }
+
     const email = typeof input.email === 'string' ? input.email.trim() : '';
     const password = typeof input.password === 'string' ? input.password : '';
     if (!email || !password) return { kode: 422, pesan: PESAN_LOGIN.kosong, petugas: null };

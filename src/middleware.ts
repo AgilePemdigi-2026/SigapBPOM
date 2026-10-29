@@ -2,11 +2,18 @@
 // Route di luar daftar publik dianggap dashboard, jadi halaman baru otomatis terlindungi.
 import { defineMiddleware } from 'astro:middleware';
 import { AutentikasiController } from './lib/AutentikasiController';
+import { AdapterSesiSupabase } from './lib/sesiSupabase';
 import { AdapterSesiTiruan } from './lib/sesiTiruan';
 
 // NFR-12: SESI_IDLE_MENIT bisa diperkecil untuk pengujian, misalnya 1.
 const idleMenit = Number(process.env.SESI_IDLE_MENIT);
-const autentikasi = new AutentikasiController(new AdapterSesiTiruan(), idleMenit > 0 ? { batasIdleMs: idleMenit * 60_000 } : {});
+
+// T-F3.1-03: Hapus pemakaian sesiTiruan.ts dari jalur produksi.
+// Jalur produksi memakai Supabase Auth melalui AdapterSesiSupabase.
+// AdapterSesiTiruan hanya dipakai jika secara eksplisit disetel AUTH_ADAPTER=tiruan untuk pengujian offline tanpa DB.
+const pakaiTiruan = process.env.AUTH_ADAPTER === 'tiruan';
+const adapter = pakaiTiruan ? new AdapterSesiTiruan() : new AdapterSesiSupabase();
+const autentikasi = new AutentikasiController(adapter, idleMenit > 0 ? { batasIdleMs: idleMenit * 60_000 } : {});
 const RUTE_PUBLIK = new Set(['/', '/homepage', '/login', '/api/login']);
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
