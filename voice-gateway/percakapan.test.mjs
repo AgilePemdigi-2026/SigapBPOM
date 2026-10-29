@@ -1,10 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BATAS_DI_LUAR_TOPIK, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PANJANG_MAKS_JAWABAN, PROMPT_SISTEM,
-  AnggaranToken, PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban,
-  saringUcapan, teksUntukSuara,
+  BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
+  AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
+  pesanLayanan, saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
+import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
+
+/** Mengalirkan teks potongan demi potongan seperti stream AI, lalu mengumpulkan kalimat yang diucapkan. */
+function alirkan(teks, ukuran = 7) {
+  const pemecah = new PemecahKalimat();
+  const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
+  const diucapkan = [];
+  const proses = (kalimat) => { for (const k of kalimat) { const u = susunan.tambah(k); if (u) diucapkan.push(u); } };
+  for (let i = 0; i < teks.length; i += ukuran) proses(pemecah.tambah(teks.slice(i, i + ukuran)));
+  proses(pemecah.akhiri());
+  return { diucapkan, susunan };
+}
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
@@ -101,12 +113,46 @@ test('penelepon yang menolak tawaran bantuan lagi mengakhiri panggilan', () => {
   assert.equal(r.jawabanTerakhir(ID), tawaran);
 });
 
-test('jawaban dibersihkan dari markdown dan dipotong di batas kalimat', () => {
-  assert.equal(rapikanJawaban('**BPOM** mengawasi [obat](https://x.y).'), 'BPOM mengawasi obat.');
-  const panjang = `${'Kalimat pertama cukup panjang untuk diuji. '.repeat(20)}`;
-  const hasil = rapikanJawaban(panjang);
-  assert.ok(hasil.length <= PANJANG_MAKS_JAWABAN);
-  assert.ok(hasil.endsWith('.'));
+test('stream AI dipecah per kalimat tanpa memecah angka atau singkatan pendek', () => {
+  const p = new PemecahKalimat();
+  assert.deepEqual(p.tambah('BPOM mengawasi 1.000 lebih produk setiap tahun. Menurut Perka No. 25 '), ['BPOM mengawasi 1.000 lebih produk setiap tahun.']);
+  assert.deepEqual(p.tambah('Tahun 2017, izin edar wajib dimiliki. Sisa'), ['Menurut Perka No. 25 Tahun 2017, izin edar wajib dimiliki.']);
+  assert.deepEqual(p.akhiri(), ['Sisa']);
+});
+
+test('jawaban dibatasi dua kalimat isi, lalu tawaran penutup diganti audio statis', () => {
+  const { diucapkan, susunan } = alirkan(
+    '**Untuk mendaftarkan produk**, ajukan permohonan secara online di situs BPOM. Setelah itu lengkapi dokumen sesuai jenis produknya. '
+    + 'Prosesnya bisa memakan waktu beberapa minggu. Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup.',
+  );
+  assert.equal(diucapkan.length, KALIMAT_JAWABAN_MAKS);
+  assert.equal(diucapkan[0], 'Untuk mendaftarkan produk, ajukan permohonan secara online di situs BPOM.');
+  assert.ok(susunan.tawaran);
+  assert.ok(susunan.teks.endsWith(PESAN_TAWARAN_PENUTUP));
+  assert.ok(!susunan.teks.includes('beberapa minggu'));
+});
+
+test('jawaban baku di luar topik dan butuh petugas dikenali dari kalimat pertama', () => {
+  const luar = alirkan(PESAN_DI_LUAR_TOPIK);
+  assert.deepEqual(luar.diucapkan, []);
+  assert.equal(luar.susunan.khusus, 'di_luar_topik');
+  const petugas = alirkan(PESAN_BUTUH_PETUGAS);
+  assert.deepEqual(petugas.diucapkan, []);
+  assert.equal(petugas.susunan.khusus, 'butuh_petugas');
+});
+
+test('jawaban baku butuh petugas atau di luar topik setelah kalimat isi tetap dikenali', () => {
+  const petugas = alirkan(`Obat batuk umumnya punya aturan pakai di kemasan. ${PESAN_BUTUH_PETUGAS}`);
+  assert.equal(petugas.diucapkan.length, 1);
+  assert.equal(petugas.susunan.khusus, 'butuh_petugas');
+  const luar = alirkan(`Baik, saya coba jelaskan sedikit dulu ya. ${PESAN_DI_LUAR_TOPIK}`);
+  assert.equal(luar.susunan.khusus, 'di_luar_topik');
+});
+
+test('kalimat yang terlalu panjang dipotong di batas kata', () => {
+  const { diucapkan } = alirkan(`${'Kata panjang sekali '.repeat(20)}selesai.`);
+  assert.ok(diucapkan[0].length <= 221);
+  assert.ok(diucapkan[0].endsWith('…'));
 });
 
 test('alamat situs dibaca "titik" untuk TTS, angka bertitik tidak tersentuh', () => {

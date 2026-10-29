@@ -3,11 +3,12 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import {
-  PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PANJANG_MAKS_UCAPAN, AnggaranToken,
-  PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan,
-  teksUntukSuara,
+  PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
+  PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup,
+  pesanLayanan, saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 import {
@@ -45,8 +46,11 @@ const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 // Pesan tetap dirender sekali lalu disimpan di memori, tanpa memakai kuota harian.
 const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
-  'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON,
+  'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON, 'tawaran-penutup': PESAN_TAWARAN_PENUTUP, jeda: PESAN_JEDA,
 };
+// Kutipan RAG yang dikirim ke AI. Lebih sedikit kutipan berarti prompt lebih pendek dan token pertama lebih cepat.
+const KUTIPAN_MAKS = 2;
+const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
 // Tiket eskalasi lewat Edge Function bila Supabase dikonfigurasi, selain itu tiket tiruan di memori (#30).
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
@@ -156,20 +160,57 @@ async function sttElevenLabs(audio, tipe) {
   return String(d.text ?? '').replace(/\s+/g, ' ').trim().slice(0, PANJANG_MAKS_UCAPAN);
 }
 
-// Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan rapikanJawaban, pemakaian lewat AnggaranToken.
-async function tanyaHermes(id, kutipan) {
+// Jawaban dialirkan (stream) per potongan agar kalimat pertama bisa diubah menjadi suara sebelum jawaban selesai.
+// Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan SusunanJawaban, pemakaian lewat AnggaranToken.
+async function* aliranHermes(id, kutipan, hasil) {
   const pesan = riwayat.untukModel(id, kutipan);
+  hasil.karPrompt = JSON.stringify(pesan).length;
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: HERMES_MODEL, messages: pesan }),
+    body: JSON.stringify({ model: HERMES_MODEL, messages: pesan, stream: true }),
     signal: AbortSignal.timeout(BATAS_WAKTU_HERMES_MS),
   });
-  if (!r.ok) throw new Error(`hermes ${r.status}`);
-  const d = await r.json();
-  const token = Number(d.usage?.total_tokens) || Math.ceil(JSON.stringify(pesan).length / 3);
-  return { jawaban: rapikanJawaban(d.choices?.[0]?.message?.content), token };
+  if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
+  const dekoder = new TextDecoder();
+  let sisa = '', awal = '';
+  for await (const bagian of r.body) {
+    sisa += dekoder.decode(bagian, { stream: true });
+    let n;
+    while ((n = sisa.indexOf('\n')) >= 0) {
+      const baris = sisa.slice(0, n).trim();
+      sisa = sisa.slice(n + 1);
+      if (!baris.startsWith('data:')) continue;
+      let d;
+      try { d = JSON.parse(baris.slice(5)); } catch { continue; }
+      if (d?.usage?.total_tokens) hasil.token = Number(d.usage.total_tokens);
+      // Hermes juga mengirim event miliknya sendiri tanpa `choices`; event itu dilewati.
+      const potongan = d?.choices?.[0]?.delta?.content;
+      if (!potongan) continue;
+      // Saat semua provider gagal, Hermes mengirim pemberitahuan berawalan "⚠️" sebagai isi jawaban (status 200).
+      // Pemberitahuan itu tidak boleh dibacakan ke penelepon, jadi diperlakukan sebagai galat.
+      if (awal.trim().length < 2) {
+        awal += potongan;
+        if (awal.trim().length < 2) continue;
+        if (pesanGalatHermes(awal)) throw new Error('hermes tanpa jawaban');
+        hasil.karKeluaran += awal.length;
+        yield awal;
+        continue;
+      }
+      hasil.karKeluaran += potongan.length;
+      yield potongan;
+    }
+  }
+  // Jawaban yang sangat pendek (kurang dari dua karakter) belum sempat dikirim di atas.
+  if (awal.trim() && awal.trim().length < 2) { hasil.karKeluaran += awal.length; yield awal; }
 }
+
+/** Pemberitahuan internal Hermes (misalnya "⚠️ No reply: every provider ... failed"), bukan jawaban model. */
+const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
+
+// Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
+// datang (termasuk saat stream putus di tengah). Hanya permintaan yang belum menghasilkan keluaran yang dikembalikan.
+const tokenTerpakai = (hasil) => hasil.token || (hasil.karKeluaran ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / 3) : 0);
 
 async function ttsElevenLabs(teks) {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
@@ -221,87 +262,140 @@ async function giliran(req, res, url) {
     const mulai = Date.now();
     const transkrip = await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
-    if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
-    // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
-    // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
-    const pertanyaanEskalasi = riwayat.eskalasi(id);
-    if (pertanyaanEskalasi !== null || (riwayat.layanan(id) !== 2 && butuhPetugas(transkrip))) {
-      let jawaban, suara, tiket = null;
-      if (pertanyaanEskalasi === null) {
-        riwayat.mulaiEskalasi(id, transkrip);
-        riwayat.tambah(id, 'user', transkrip);
-        jawaban = PESAN_BUTUH_PETUGAS;
-        suara = '/voice/statis/butuh-petugas';
-      } else {
-        const nomorTelepon = nomorTeleponDariUcapan(transkrip);
-        // Nomor telepon tidak masuk riwayat yang dikirim ke AI.
-        riwayat.tambah(id, 'user', nomorTelepon ? '(menyebutkan nomor telepon)' : transkrip);
-        if (nomorTelepon) {
-          // Status eskalasi dan kuota diambil sebelum await, jadi giliran serentak pada panggilan yang sama
-          // tidak bisa menerbitkan tiket kedua. Bila penerbitan gagal, keduanya dikembalikan.
-          riwayat.selesaiEskalasi(id);
-          const batasTiket = pembatasTiket.cadangkan(id, ip, nomorTelepon);
-          if (batasTiket) {
-            console.info(JSON.stringify({ ev: 'eskalasi', tahap: 'ditolak', batas: batasTiket }));
-            throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
-          }
-          try {
-            tiket = await penerbitTiket.terbitkan({ percakapanId: id, nomorTelepon, pertanyaan: pertanyaanEskalasi });
-          } catch (e) {
-            pembatasTiket.batalkan(id, ip, nomorTelepon);
-            riwayat.mulaiEskalasi(id, pertanyaanEskalasi);
-            throw e;
-          }
-          jawaban = pesanTiketEskalasi(tiket);
-          suara = terbitkanTokenSuara(jawaban, ip);
+    // Jawaban dikirim sebagai NDJSON: transkrip lebih dulu (dengan tanda putar kalimat jeda bila AI dipanggil),
+    // lalu tiap kalimat beserta suaranya begitu siap, terakhir sumber dan status panggilan.
+    res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' });
+    const tulis = (baris) => res.write(`${JSON.stringify(baris)}\n`);
+    const ucapkan = (teks, suara) => tulis({ jenis: 'kalimat', teks, suara });
+    try {
+      if (!transkrip) {
+        tulis({ jenis: 'transkrip', transkrip: '' });
+        tulis({ jenis: 'selesai' });
+        return;
+      }
+
+      // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
+      // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
+      const pertanyaanEskalasi = riwayat.eskalasi(id);
+      if (pertanyaanEskalasi !== null || (riwayat.layanan(id) !== 2 && butuhPetugas(transkrip))) {
+        tulis({ jenis: 'transkrip', transkrip });
+        let jawaban, suara, tiket = null;
+        if (pertanyaanEskalasi === null) {
+          riwayat.mulaiEskalasi(id, transkrip);
+          riwayat.tambah(id, 'user', transkrip);
+          jawaban = PESAN_BUTUH_PETUGAS;
+          suara = '/voice/statis/butuh-petugas';
         } else {
-          jawaban = PESAN_MINTA_ULANG_TELEPON;
-          suara = '/voice/statis/ulang-telepon';
+          const nomorTelepon = nomorTeleponDariUcapan(transkrip);
+          // Nomor telepon tidak masuk riwayat yang dikirim ke AI.
+          riwayat.tambah(id, 'user', nomorTelepon ? '(menyebutkan nomor telepon)' : transkrip);
+          if (nomorTelepon) {
+            // Status eskalasi dan kuota diambil sebelum await, jadi giliran serentak pada panggilan yang sama
+            // tidak bisa menerbitkan tiket kedua. Bila penerbitan gagal, keduanya dikembalikan.
+            riwayat.selesaiEskalasi(id);
+            const batasTiket = pembatasTiket.cadangkan(id, ip, nomorTelepon);
+            if (batasTiket) {
+              console.info(JSON.stringify({ ev: 'eskalasi', tahap: 'ditolak', batas: batasTiket }));
+              throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
+            }
+            try {
+              tiket = await penerbitTiket.terbitkan({ percakapanId: id, nomorTelepon, pertanyaan: pertanyaanEskalasi });
+            } catch (e) {
+              pembatasTiket.batalkan(id, ip, nomorTelepon);
+              riwayat.mulaiEskalasi(id, pertanyaanEskalasi);
+              throw e;
+            }
+            jawaban = pesanTiketEskalasi(tiket);
+            suara = terbitkanTokenSuara(jawaban, ip);
+          } else {
+            jawaban = PESAN_MINTA_ULANG_TELEPON;
+            suara = '/voice/statis/ulang-telepon';
+          }
         }
+        riwayat.tambah(id, 'assistant', jawaban);
+        console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
+        ucapkan(jawaban, suara);
+        tulis({ jenis: 'selesai', tiket });
+        return;
+      }
+
+      // Penelepon menolak tawaran bantuan lagi: salam penutup tanpa memanggil AI, lalu web mengakhiri panggilan.
+      const menutup = inginMenutup(transkrip, riwayat.jawabanTerakhir(id));
+      // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
+      const saring = menutup ? null : saringUcapan(transkrip, riwayat.diLuarTopik(id));
+      if (menutup || saring) {
+        tulis({ jenis: 'transkrip', transkrip });
+        if (menutup) {
+          riwayat.tambah(id, 'user', transkrip);
+          riwayat.tambah(id, 'assistant', PESAN_PENUTUP);
+          ucapkan(PESAN_PENUTUP, '/voice/statis/penutup');
+        } else {
+          riwayat.catatDiLuarTopik(id);
+          ucapkan(PESAN_DI_LUAR_TOPIK, '/voice/statis/di-luar-topik');
+        }
+        console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: Date.now() - mulai, saring, menutup, token: 0 }));
+        tulis({ jenis: 'selesai', akhiri: menutup });
+        return;
+      }
+
+      riwayat.tambah(id, 'user', transkrip);
+      tulis({ jenis: 'transkrip', transkrip, jeda: true });
+      const kutipan = korpus ? korpus.cari(transkrip, KUTIPAN_MAKS) : [];
+      const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
+      const pemecah = new PemecahKalimat();
+      const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
+      let tKalimat1 = 0;
+      const proses = (kalimat) => {
+        for (const k of kalimat) {
+          const ucap = susunan.tambah(k);
+          if (!ucap) continue;
+          if (!tKalimat1) tKalimat1 = Date.now() - mulai;
+          ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
+        }
+      };
+      try {
+        for await (const potongan of aliranHermes(id, pesanKutipan(kutipan), hasil)) proses(pemecah.tambah(potongan));
+        proses(pemecah.akhiri());
+      } finally {
+        hasil.token = tokenTerpakai(hasil);
+        anggaranAi.catat(ip, id, hasil.token - cadangan);
+        cadangan = 0;
+      }
+
+      let jawaban = susunan.teks;
+      const diLuarTopik = susunan.khusus === 'di_luar_topik';
+      // Jawaban baku baru dikenali setelah kalimat isi terkirim: panel membuang audio yang belum diputar dan teksnya.
+      if (susunan.khusus && susunan.isi.length) tulis({ jenis: 'ganti' });
+      if (diLuarTopik) {
+        jawaban = PESAN_DI_LUAR_TOPIK;
+        riwayat.catatDiLuarTopik(id);
+        ucapkan(jawaban, '/voice/statis/di-luar-topik');
+      } else if (susunan.khusus === 'butuh_petugas') {
+        // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
+        jawaban = PESAN_BUTUH_PETUGAS;
+        riwayat.mulaiEskalasi(id, transkrip);
+        ucapkan(jawaban, '/voice/statis/butuh-petugas');
+      } else if (!susunan.isi.length) {
+        jawaban = 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+        ucapkan(jawaban, terbitkanTokenSuara(jawaban, ip));
+      } else if (susunan.tawaran) {
+        ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
       }
       riwayat.tambah(id, 'assistant', jawaban);
-      console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
-      return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber: [], suara, tiket });
+      console.info(JSON.stringify({
+        ev: 'giliran', stt_ms: tStt, kalimat1_ms: tKalimat1, total_ms: Date.now() - mulai, ucapan_kar: transkrip.length,
+        jawaban_kar: jawaban.length, kalimat: susunan.isi.length, kutipan: kutipan.length, di_luar_topik: diLuarTopik,
+        token: hasil.token, token_hari_ini: anggaranAi.total,
+      }));
+      const sumber = susunan.khusus ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+      tulis({ jenis: 'selesai', sumber });
+    } catch (e) {
+      if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
+      tulis({ jenis: 'galat', message: e instanceof ErrorGateway ? e.message : PESAN_GANGGUAN });
+    } finally {
+      res.end();
     }
-
-    // Penelepon menolak tawaran bantuan lagi: salam penutup tanpa memanggil AI, lalu web mengakhiri panggilan.
-    const menutup = inginMenutup(transkrip, riwayat.jawabanTerakhir(id));
-    // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
-    const saring = menutup ? null : saringUcapan(transkrip, riwayat.diLuarTopik(id));
-    let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
-    if (menutup) {
-      riwayat.tambah(id, 'user', transkrip);
-      jawaban = PESAN_PENUTUP;
-    } else if (!saring) {
-      riwayat.tambah(id, 'user', transkrip);
-      kutipan = korpus ? korpus.cari(transkrip) : [];
-      const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
-      token = hasil.token;
-      anggaranAi.catat(ip, id, token - cadangan);
-      cadangan = 0;
-      jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
-      // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
-      if (jawaban.includes(PESAN_BUTUH_PETUGAS)) {
-        jawaban = PESAN_BUTUH_PETUGAS;
-        riwayat.mulaiEskalasi(id, transkrip);
-      }
-    }
-    const diLuarTopik = !menutup && (Boolean(saring) || jawabanDiLuarTopik(jawaban));
-    if (diLuarTopik) {
-      jawaban = PESAN_DI_LUAR_TOPIK;
-      kutipan = [];
-      riwayat.catatDiLuarTopik(id);
-    }
-    if (!saring) riwayat.tambah(id, 'assistant', jawaban);
-    const tTotal = Date.now() - mulai;
-    console.info(JSON.stringify({
-      ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
-      saring, di_luar_topik: diLuarTopik, menutup, token, token_hari_ini: anggaranAi.total - cadangan,
-    }));
-    const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
-    const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
-    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup });
   } finally {
     // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
     if (cadangan) anggaranAi.catat(ip, id, -cadangan);
@@ -316,7 +410,9 @@ async function suara(res, token) {
   tokenSuara.delete(token);
   const aliran = await entri.render;
   res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'no-store' });
-  Readable.fromWeb(aliran).pipe(res);
+  // pipeline menutup aliran TTS bila browser memutus koneksi (misalnya panggilan diakhiri saat audio diputar).
+  // Dengan pipe() aliran itu dibiarkan menggantung lalu galat batas waktunya tidak tertangani dan proses gateway berhenti.
+  await pipeline(Readable.fromWeb(aliran), res).catch(() => {});
 }
 
 // Promise disimpan agar permintaan bersamaan berbagi satu render; dibuang hanya bila render gagal.
@@ -355,7 +451,7 @@ const server = createServer(async (req, res) => {
     if (e instanceof ErrorGateway) return kirim(res, e.kode, 'error', e.message);
     // PROJECT_RULES 5.10: log hanya jenis galat, tanpa transkrip atau kunci.
     console.error(JSON.stringify({ ev: 'galat', path, jenis: e instanceof Error ? e.message : 'unknown' }));
-    return kirim(res, 502, 'error', 'Layanan suara sedang gangguan. Silakan coba lagi.');
+    return kirim(res, 502, 'error', PESAN_GANGGUAN);
   }
 });
 
