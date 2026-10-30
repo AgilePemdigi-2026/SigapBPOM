@@ -46,6 +46,37 @@ test('t_f5_1_02 tanpa data, ringkasan tetap jalan dengan angka nol', async () =>
   assert.deepEqual(r.kasus, []);
 });
 
+test('t_f5_2_01 REQ-4.2 daftar berubah saat panggilan mulai dan berakhir', async () => {
+  const data: DataPemantauan = { percakapan: [], tiket: [], logTool: [] };
+  const c = pantau(data);
+  assert.deepEqual(await c.panggilanBerjalan(), []);
+
+  data.percakapan.push({ id: 'a', noTelp: '0812****7890', namaPelapor: null, waktuMulai: '2026-10-30T02:58:00Z', jenisInteraksi: 'pengaduan', status: 'berjalan', tahapAi: 'menjawab', topik: 'Kosmetik' });
+  assert.deepEqual(await c.panggilanBerjalan(), [
+    { id: 'a', noTelp: '0812****7890', jenis: 'Pengaduan', topik: 'Kosmetik', waktuMulai: '2026-10-30T02:58:00Z', tahap: 'Menjawab' },
+  ]);
+
+  data.percakapan[0].status = 'tiket_terbit';
+  assert.deepEqual(await c.panggilanBerjalan(), []);
+});
+
+test('t_f5_2_01 REQ-4.2 pesan kosong persis kamus pesan', () => {
+  assert.equal(PESAN_PEMANTAUAN.tidakAdaPanggilan, 'Tidak ada panggilan berjalan saat ini.');
+});
+
+test('t_f5_2_01 NFR-13 nomor telepon utuh tidak pernah diteruskan ke halaman', async () => {
+  const data = contohPemantauan(SEKARANG);
+  data.percakapan[0].noTelp = '081234567890';
+  const [p] = await pantau(data).panggilanBerjalan();
+  assert.equal(p.noTelp, '—');
+});
+
+test('t_f5_2_01 kartu ringkasan panggilan: aktif, rata-rata, terlama, pemakaian saluran', () => {
+  const p = (menit: number) => ({ id: String(menit), noTelp: '', jenis: '', topik: '', tahap: '', waktuMulai: new Date(SEKARANG.getTime() - menit * 60_000).toISOString() });
+  assert.deepEqual(ringkasPanggilan([p(1), p(3)], SEKARANG, 10), { aktif: 2, rataDurasiDetik: 120, terlamaDetik: 180, pemakaianSaluranPersen: 20 });
+  assert.deepEqual(ringkasPanggilan([], SEKARANG, 10), { aktif: 0, rataDurasiDetik: 0, terlamaDetik: 0, pemakaianSaluranPersen: 0 });
+});
+
 test('t_f5_1_02 adapter Supabase menghitung statistik lewat REST dengan token sesi petugas', async () => {
   const dipanggil: { url: URL; method: string; auth: string }[] = [];
   const fetchPalsu = (async (u: string, init: RequestInit) => {
