@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Korpus, akar, labelPeraturan, pesanKutipan, potong, tanggalIndonesia, token } from './pengetahuan.mjs';
+import { KatalogMateriSupabase, Korpus, akar, kunciMateri, labelPeraturan, pesanKutipan, potong, tanggalIndonesia, token } from './pengetahuan.mjs';
 import { RiwayatPanggilan } from './percakapan.mjs';
 
 const dok = (judul, nomor, tahun, badan) => `---
@@ -97,4 +97,50 @@ Pasal 1 Keamanan pangan adalah kondisi dan upaya yang diperlukan untuk mencegah 
   assert.equal(new Set(k.potongan.map((p) => p.sumber)).size, 1);
   const pesan = pesanKutipan(k.cari('cemaran kimia pada pangan', 3, 1));
   assert.match(pesan, /UU Nomor 18 Tahun 2012 tentang Pangan \(catatan: sebagian pasal telah diubah/);
+});
+
+test('t_f2_3_02 materi nonaktif di katalog tidak dipakai, materi baru dari katalog ikut dicari', () => {
+  const akarKorpus = mkdtempSync(join(tmpdir(), 'korpus-'));
+  mkdirSync(join(akarKorpus, 'regulasi-bpom'));
+  writeFileSync(join(akarKorpus, 'regulasi-bpom', 'manifest.json'), JSON.stringify({
+    dokumen: [
+      { file: 'obat.md', title: 'Pengawasan Obat yang Sering Disalahgunakan', bentuk: 'Peraturan BPOM', nomor: '12', tahun: '2025' },
+      { file: 'gizi.md', title: 'Label Gizi Pangan Olahan', bentuk: 'Peraturan BPOM', nomor: '26', tahun: '2021' },
+    ],
+  }));
+  writeFileSync(join(akarKorpus, 'regulasi-bpom', 'gizi.md'), dok('Label Gizi Pangan Olahan', '26', '2021',
+    'Pasal 1 Informasi nilai gizi wajib dicantumkan pada label pangan olahan.'));
+  writeFileSync(join(akarKorpus, 'regulasi-bpom', 'obat.md'), dok('Pengawasan Obat yang Sering Disalahgunakan', '12', '2025',
+    'Pasal 1 Obat yang sering disalahgunakan meliputi tramadol, triheksifenidil, dan dekstrometorfan.'));
+  const k = Korpus.muat(akarKorpus);
+  assert.equal(k.potongan.find((p) => p.judul.startsWith('Pengawasan')).kunci, kunciMateri('Pengawasan Obat yang Sering Disalahgunakan', 'Peraturan BPOM No. 12 Tahun 2025'));
+  assert.equal(k.cari('tramadol disalahgunakan', 3, 1).length, 1);
+
+  const ringkasan = k.terapkanKatalog([
+    { judul: 'Pengawasan Obat yang Sering Disalahgunakan', rujukan_sumber: 'Peraturan BPOM No. 12 Tahun 2025', status: 'tidak_aktif', isi: '' },
+    { judul: 'Bahaya Krim Pemutih Merkuri', rujukan_sumber: 'Penjelasan Publik BPOM', status: 'aktif', isi: 'Krim pemutih bermerkuri merusak ginjal dan kulit. Pasal 1 Jangan memakai kosmetik tanpa izin edar.' },
+  ]);
+  assert.deepEqual(ringkasan, { nonaktif: 1, tambahan: 1 });
+  assert.deepEqual(k.cari('tramadol disalahgunakan', 3, 1), []);
+  assert.equal(k.cari('krim pemutih merkuri', 3, 1)[0].judul, 'Bahaya Krim Pemutih Merkuri');
+
+  k.terapkanKatalog([]);
+  assert.equal(k.cari('tramadol disalahgunakan', 3, 1).length, 1, 'katalog kosong memakai semua berkas lagi');
+});
+
+test('katalog Supabase dibaca per halaman dengan kunci layanan', async () => {
+  const minta = [];
+  const fetch = async (url, opsi) => {
+    minta.push({ url, opsi });
+    const offset = Number(new URL(url).searchParams.get('offset'));
+    return new Response(JSON.stringify(offset === 0 ? [{ judul: 'A' }, { judul: 'B' }] : [{ judul: 'C' }]), { status: 200 });
+  };
+  const baris = await new KatalogMateriSupabase({ url: 'https://contoh.supabase.co/', kunci: 'rahasia', fetch, ukuranHalaman: 2 }).ambil();
+  assert.deepEqual(baris.map((b) => b.judul), ['A', 'B', 'C']);
+  assert.equal(minta.length, 2);
+  assert.match(minta[0].url, /^https:\/\/contoh\.supabase\.co\/rest\/v1\/materi_pengetahuan\?/);
+  assert.equal(minta[0].opsi.headers.Authorization, 'Bearer rahasia');
+
+  const gagal = async () => new Response('{}', { status: 401 });
+  await assert.rejects(new KatalogMateriSupabase({ url: 'https://x', kunci: 'k', fetch: gagal }).ambil(), /Supabase 401/);
 });
