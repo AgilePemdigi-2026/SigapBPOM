@@ -208,7 +208,7 @@ export class Korpus {
 
 /**
  * Katalog materi_pengetahuan di Supabase, sumber yang sama dengan halaman Basis Pengetahuan dan Graf Pengetahuan.
- * Dibaca dengan kunci service_role karena RLS hanya mengizinkan petugas; kunci itu hanya ada di env Voice Gateway.
+ * Dibaca lewat Edge Function katalog-materi dengan kunci internal, jadi gateway tidak memegang kunci service_role.
  */
 export class KatalogMateriSupabase {
   constructor({ url, kunci, fetch = globalThis.fetch, ukuranHalaman = 1000 }) {
@@ -221,15 +221,16 @@ export class KatalogMateriSupabase {
   async ambil() {
     const semua = [];
     for (let offset = 0; ; offset += this.ukuranHalaman) {
-      const p = new URLSearchParams({ select: 'judul,rujukan_sumber,status,isi', order: 'id', offset: String(offset), limit: String(this.ukuranHalaman) });
-      const res = await this.fetch(`${this.url}/rest/v1/materi_pengetahuan?${p}`, {
-        headers: { apikey: this.kunci, Authorization: `Bearer ${this.kunci}` },
+      const res = await this.fetch(`${this.url}/functions/v1/katalog-materi`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-sigap-kunci': this.kunci },
+        body: JSON.stringify({ offset, batas: this.ukuranHalaman }),
         signal: AbortSignal.timeout(15_000),
       });
-      if (!res.ok) throw new Error(`Supabase ${res.status}`);
-      const baris = await res.json();
-      semua.push(...baris);
-      if (baris.length < this.ukuranHalaman) return semua;
+      const d = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(d?.data?.materi)) throw new Error(`katalog ${res.status}`);
+      semua.push(...d.data.materi);
+      if (d.data.materi.length < this.ukuranHalaman) return semua;
     }
   }
 }

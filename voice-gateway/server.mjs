@@ -52,8 +52,7 @@ const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
-// ikut menentukan kutipan CS AI. Tanpa kunci service_role, semua berkas korpus dipakai seperti sebelumnya.
-const SUPABASE_KUNCI_LAYANAN = env('SUPABASE_SERVICE_ROLE_KEY', '');
+// ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
 const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
@@ -79,11 +78,11 @@ try {
 } catch (e) {
   console.error(JSON.stringify({ ev: 'korpus_gagal', jenis: e instanceof Error ? e.code ?? e.message : 'unknown' }));
 }
-let katalog = { status: SUPABASE_URL && SUPABASE_KUNCI_LAYANAN ? 'menunggu' : 'tidak_dikonfigurasi' };
+let katalog = { status: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? 'menunggu' : 'tidak_dikonfigurasi' };
 async function sinkronKatalog() {
   if (!korpus || katalog.status === 'tidak_dikonfigurasi') return;
   try {
-    const baris = await new KatalogMateriSupabase({ url: SUPABASE_URL, kunci: SUPABASE_KUNCI_LAYANAN }).ambil();
+    const baris = await new KatalogMateriSupabase({ url: SUPABASE_URL, kunci: SIGAP_KUNCI_INTERNAL }).ambil();
     const hasil = korpus.terapkanKatalog(baris);
     katalog = { status: baris.length ? 'aktif' : 'kosong', materi: baris.length, ...hasil, waktu: new Date().toISOString() };
     console.info(JSON.stringify({ ev: 'katalog', ...katalog }));

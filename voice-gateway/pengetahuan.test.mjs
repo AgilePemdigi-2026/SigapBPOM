@@ -128,19 +128,21 @@ test('t_f2_3_02 materi nonaktif di katalog tidak dipakai, materi baru dari katal
   assert.equal(k.cari('tramadol disalahgunakan', 3, 1).length, 1, 'katalog kosong memakai semua berkas lagi');
 });
 
-test('katalog Supabase dibaca per halaman dengan kunci layanan', async () => {
+test('katalog dibaca per halaman lewat Edge Function dengan kunci internal', async () => {
   const minta = [];
   const fetch = async (url, opsi) => {
     minta.push({ url, opsi });
-    const offset = Number(new URL(url).searchParams.get('offset'));
-    return new Response(JSON.stringify(offset === 0 ? [{ judul: 'A' }, { judul: 'B' }] : [{ judul: 'C' }]), { status: 200 });
+    const { offset } = JSON.parse(opsi.body);
+    const materi = offset === 0 ? [{ judul: 'A' }, { judul: 'B' }] : [{ judul: 'C' }];
+    return new Response(JSON.stringify({ status: 'success', data: { materi } }), { status: 200 });
   };
   const baris = await new KatalogMateriSupabase({ url: 'https://contoh.supabase.co/', kunci: 'rahasia', fetch, ukuranHalaman: 2 }).ambil();
   assert.deepEqual(baris.map((b) => b.judul), ['A', 'B', 'C']);
   assert.equal(minta.length, 2);
-  assert.match(minta[0].url, /^https:\/\/contoh\.supabase\.co\/rest\/v1\/materi_pengetahuan\?/);
-  assert.equal(minta[0].opsi.headers.Authorization, 'Bearer rahasia');
+  assert.equal(minta[0].url, 'https://contoh.supabase.co/functions/v1/katalog-materi');
+  assert.equal(minta[0].opsi.headers['x-sigap-kunci'], 'rahasia');
+  assert.equal(minta[0].opsi.headers.Authorization, undefined, 'kunci service_role tidak dikirim dari gateway');
 
-  const gagal = async () => new Response('{}', { status: 401 });
-  await assert.rejects(new KatalogMateriSupabase({ url: 'https://x', kunci: 'k', fetch: gagal }).ambil(), /Supabase 401/);
+  const gagal = async () => new Response('{"status":"error"}', { status: 401 });
+  await assert.rejects(new KatalogMateriSupabase({ url: 'https://x', kunci: 'k', fetch: gagal }).ambil(), /katalog 401/);
 });
