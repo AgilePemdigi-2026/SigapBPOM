@@ -1,0 +1,88 @@
+---
+// Boundary UC-04 Memantau Layanan, halaman Pantau AI Agent (F5.4, T-F5.4-01): kesehatan komponen, latensi,
+// dan log tool terbaru. Argumen tool tidak dibaca maupun ditampilkan karena bisa memuat data pribadi.
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { pemantauanLayanan } from '../lib/pemantauan';
+
+const pantau = await pemantauanLayanan().pantauAgent();
+const { komponen, log } = pantau;
+const gangguan = komponen.filter((k) => k.status === 'Gangguan').length;
+const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString('id-ID')} ms`);
+---
+<DashboardLayout title="Pantau AI Agent">
+  <div class="page">
+    <section class="panel head">
+      <div class="head-title">
+        <h1>Pantau AI Agent</h1>
+        <span>Kesehatan komponen, latensi jawaban, dan log tool terbaru</span>
+      </div>
+      <span class:list={['pill', 'pill-flat', 'ringkas', { buruk: gangguan }]}>
+        <span class="dot"></span>{gangguan ? `${gangguan} komponen gangguan` : 'Semua komponen normal'}
+      </span>
+      <button class="pill" onclick="location.reload()"><i class="icon-refresh-cw"></i>Muat ulang</button>
+    </section>
+
+    <div class="komponen" data-name="KesehatanKomponen">
+      {komponen.map((k) => (
+        <div class:list={['panel', 'kom', { gangguan: k.status === 'Gangguan' }]} data-komponen={k.nama}>
+          <div class="kom-head"><span class="kom-nama">{k.nama}</span><span class="chip status">{k.status}</span></div>
+          <span class="kom-lat"><span>Latensi</span><span class="mono">{fmtMs(k.latensiMs)}</span></span>
+        </div>
+      ))}
+    </div>
+
+    <section class="panel log" data-name="LogTool">
+      <div class="log-head">
+        <h2>Log Tool Terbaru</h2>
+        <span>Rata-rata latensi tool <span class="mono">{fmtMs(pantau.rataLatensiToolMs)}</span></span>
+      </div>
+      <div class="row-grid cols-head" aria-hidden="true"><span>WAKTU</span><span>TOOL</span><span>DURASI</span><span>HASIL</span></div>
+      {log.length === 0 && <div class="empty"><i class="icon-list"></i><span>Belum ada pemanggilan tool.</span></div>}
+      <ol class="rows">
+        {log.map((l) => (
+          <li class="row-grid tile row">
+            <span class="mono">{l.waktu}</span>
+            <span class="mono">{l.namaTool}</span>
+            <span class="mono">{fmtMs(l.durasiMs)}</span>
+            <span class:list={['chip', l.hasil === 'Berhasil' ? 'ok' : 'gagal']}>{l.hasil}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+</DashboardLayout>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .head { padding: 22px 28px; display: flex; align-items: center; gap: 12px; }
+  .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.02em; }
+  .head-title span { font-size: 15px; color: var(--muted); }
+  .ringkas .dot { width: 10px; height: 10px; border-radius: 9px; background: #22c55e; }
+  .ringkas.buruk { color: var(--danger); }
+  .ringkas.buruk .dot { background: #ef4444; }
+
+  .komponen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  .kom { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .kom-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .kom-nama { font-size: 20px; font-weight: 500; }
+  .status { background: #dcf5e6; color: #15803d; }
+  .kom.gangguan { border-color: #f9c9c4; }
+  .kom.gangguan .status { background: #fde8e7; color: var(--danger); }
+  .kom-lat { display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); }
+  .kom-lat .mono { color: var(--ink); }
+
+  .log { flex: 1; min-height: 0; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+  .log-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 4px 6px; }
+  .log-head h2 { margin: 0; font-size: 24px; font-weight: 400; }
+  .log-head > span { font-size: 15px; color: var(--muted); }
+  .row-grid { display: grid; grid-template-columns: .8fr 1.6fr .8fr .7fr; gap: 14px; align-items: center; padding: 0 18px; }
+  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
+  .rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .row { min-height: 52px; border-radius: 16px; font-size: 14.5px; }
+  .row .chip { justify-self: start; }
+  .chip.ok { background: #dcf5e6; color: #15803d; }
+  .chip.gagal { background: #fde8e7; color: var(--danger); }
+  .empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; }
+  .empty i { font-size: 26px; color: var(--muted-2); }
+</style>
