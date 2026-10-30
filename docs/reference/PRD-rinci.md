@@ -413,6 +413,8 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 03 | Kredensial salah | Login gagal. Email atau password Anda salah. |
 | 03 | Gagal tiga kali | Akses dikunci sementara. Hubungi administrator. |
 | 04 | Tidak ada panggilan aktif | Tidak ada panggilan berjalan saat ini. |
+| 04 | Tiket tidak ditemukan | Tiket tidak ditemukan. |
+| 04 | Detail pengaduan gagal dimuat | Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 05 | Catatan tersimpan | Catatan pemeriksaan tersimpan. |
 | 05 | Catatan kosong | Catatan pemeriksaan wajib diisi. |
 | 06 | Telaah tersimpan | Hasil telaah tersimpan. |
