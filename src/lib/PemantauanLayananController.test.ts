@@ -77,6 +77,43 @@ test('t_f5_2_01 kartu ringkasan panggilan: aktif, rata-rata, terlama, pemakaian 
   assert.deepEqual(ringkasPanggilan([], SEKARANG, 10), { aktif: 0, rataDurasiDetik: 0, terlamaDetik: 0, pemakaianSaluranPersen: 0 });
 });
 
+test('t_f5_4_01 komponen down tampil sebagai gangguan', async () => {
+  const r = await pantau().pantauAgent();
+  assert.deepEqual(r.komponen.map((k) => [k.nama, k.status]), [
+    ['Voice Gateway', 'Normal'],
+    ['Hermes', 'Normal'],
+    ['STT/TTS', 'Normal'],
+    ['cekbpom', 'Gangguan'],
+  ]);
+});
+
+test('t_f5_4_01 gateway tidak terjangkau membuat semua komponen gangguan', async () => {
+  const mati = { periksa: async () => { throw new Error('ECONNREFUSED'); } };
+  const r = await pantau(undefined, mati as unknown as PemeriksaKesehatanTiruan).pantauAgent();
+  assert.ok(r.komponen.length === 4 && r.komponen.every((k) => k.status === 'Gangguan'));
+});
+
+test('t_f5_4_01 log tool terbaru tampil berurutan tanpa argumen tool', async () => {
+  const data = contohPemantauan(SEKARANG);
+  data.logTool.reverse();
+  const r = await pantau(data).pantauAgent();
+  assert.deepEqual(r.log.map((l) => l.id), [4, 3, 2, 1]);
+  assert.deepEqual(Object.keys(r.log[0]).sort(), ['durasiMs', 'hasil', 'id', 'namaTool', 'waktu']);
+  assert.equal(r.log[3].hasil, 'Gagal');
+  assert.equal(r.rataLatensiToolMs, Math.round((640 + 1820 + 410 + 5000) / 4));
+});
+
+test('t_f5_4_01 adapter gateway membaca endpoint health', async () => {
+  const dipanggil: string[] = [];
+  const fetchPalsu = (async (url: string) => {
+    dipanggil.push(url);
+    return Response.json({ status: 'success', message: 'OK', data: { komponen: [{ nama: 'Hermes', sehat: false, latensiMs: 'x' }, { bukan: 1 }] } });
+  }) as unknown as typeof fetch;
+  const hasil = await new PemeriksaKesehatanGateway({ url: 'http://gw:8787/', fetch: fetchPalsu }).periksa();
+  assert.deepEqual(dipanggil, ['http://gw:8787/health']);
+  assert.deepEqual(hasil, [{ nama: 'Hermes', sehat: false, latensiMs: null }]);
+});
+
 test('t_f5_1_02 adapter Supabase menghitung statistik lewat REST dengan token sesi petugas', async () => {
   const dipanggil: { url: URL; method: string; auth: string }[] = [];
   const fetchPalsu = (async (u: string, init: RequestInit) => {
