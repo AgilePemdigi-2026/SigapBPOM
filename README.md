@@ -373,6 +373,8 @@ npm run dev
 | `npm run build` | Build produksi ke folder `dist/`. Servernya dijalankan dengan `node dist/server/entry.mjs` |
 | `npm run preview` | Menjalankan hasil build secara lokal |
 | `npm test` | Unit test lapisan control |
+| `npm run test:bdd` | Uji penerimaan Gherkin di `features/` (cekbpom tiruan) |
+| `npm run test:bdd:live` | Skenario `@live`: scraping cekbpom.pom.go.id asli |
 
 Astro berjalan dalam mode server (adapter Node), dan `src/middleware.ts` memeriksa sesi petugas sebelum halaman dashboard dikirim. Membuka halaman dashboard tanpa login mengarah ke `/login`. Penyedia autentikasinya masih tiruan, dengan satu akun demo yang tertera di halaman login, sampai Supabase Auth terpasang (T-F3.1-03). Data dashboard juga masih kosong. Variabel environment (Supabase, ElevenLabs, model GPT) akan dicatat di `.env.example` begitu dibutuhkan. Berkas `.env` tidak pernah di-commit.
 

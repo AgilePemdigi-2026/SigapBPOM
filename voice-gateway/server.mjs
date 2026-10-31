@@ -10,6 +10,7 @@ import {
   teksUntukSuara,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { CekBpom, cekRegistrasi } from './cekbpom.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -53,6 +54,8 @@ const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
 // ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
+// REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; CEKBPOM_AKTIF=0 mematikannya.
+const cekBpom = env('CEKBPOM_AKTIF', '1') === '0' ? null : new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') });
 const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
@@ -288,14 +291,26 @@ async function giliran(req, res, url) {
     const menutup = inginMenutup(transkrip, riwayat.jawabanTerakhir(id));
     // REQ-1.8: ucapan yang tersaring tidak dikirim ke AI dan tidak masuk riwayat, agar tidak memengaruhi giliran berikutnya.
     const saring = menutup ? null : saringUcapan(transkrip, riwayat.diLuarTopik(id));
-    let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0;
+    let jawaban = PESAN_DI_LUAR_TOPIK, kutipan = [], token = 0, produk;
     if (menutup) {
       riwayat.tambah(id, 'user', transkrip);
       jawaban = PESAN_PENUTUP;
     } else if (!saring) {
       riwayat.tambah(id, 'user', transkrip);
-      kutipan = korpus ? korpus.cari(transkrip) : [];
-      const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
+      // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari kutipan korpus.
+      const tCek = Date.now();
+      const cek = cekBpom ? await cekRegistrasi(cekBpom, transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1) : null;
+      let konteks;
+      if (cek) {
+        if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
+        console.info(JSON.stringify({ ev: 'cekbpom', jenis: cek.kueri.nomor ? 'nomor' : 'nama', hasil: cek.data?.total ?? null, ms: Date.now() - tCek }));
+        produk = cek.produk;
+        konteks = cek.konteks;
+      } else {
+        kutipan = korpus ? korpus.cari(transkrip) : [];
+        konteks = pesanKutipan(kutipan);
+      }
+      const hasil = await tanyaHermes(id, konteks);
       token = hasil.token;
       anggaranAi.catat(ip, id, token - cadangan);
       cadangan = 0;
@@ -310,6 +325,7 @@ async function giliran(req, res, url) {
     if (diLuarTopik) {
       jawaban = PESAN_DI_LUAR_TOPIK;
       kutipan = [];
+      produk = undefined;
       riwayat.catatDiLuarTopik(id);
     }
     if (!saring) riwayat.tambah(id, 'assistant', jawaban);
@@ -318,10 +334,11 @@ async function giliran(req, res, url) {
       ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
       saring, di_luar_topik: diLuarTopik, menutup, token, token_hari_ini: anggaranAi.total - cadangan,
     }));
-    // Jawaban baku soal registrasi produk (NFR-7) tidak memakai kutipan, jadi chip sumber tidak ditampilkan.
-    const sumber = /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+    // Hasil cekbpom tampil sebagai kartu produk, dan jawaban yang merujuk ke cekbpom tidak memakai kutipan,
+    // jadi keduanya tanpa chip sumber.
+    const sumber = produk || /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
     const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
-    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup });
+    return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup, produk });
   } finally {
     // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
     if (cadangan) anggaranAi.catat(ip, id, -cadangan);
