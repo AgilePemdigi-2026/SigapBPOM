@@ -179,3 +179,15 @@ Tidak ada produk yang cocok. Sampaikan bahwa produk tidak ditemukan pada data re
 ${daftar}
 ${arahan} Sebutkan hanya data di atas, jangan menambah data lain, dan jangan menilai aman tidaknya produk.`;
 }
+
+/**
+ * Satu giliran cek registrasi: kenali kueri dari ucapan, cari di cekbpom, lalu siapkan kartu dan pesan untuk AI.
+ * Mengembalikan null bila ucapan bukan pertanyaan registrasi. Bila cekbpom gagal, `produk` kosong dan `galat` terisi.
+ */
+export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false) {
+  const kueri = kueriProduk(ucapan, setelahMenu1);
+  if (!kueri) return null;
+  let data = null, galat = null;
+  try { data = await cekBpom.cari(kueri); } catch (e) { galat = e instanceof Error ? e.message : 'unknown'; }
+  return { kueri, data, galat, produk: data ? hasilProduk(data) : undefined, konteks: pesanCekBpom(kueri, data) };
+}

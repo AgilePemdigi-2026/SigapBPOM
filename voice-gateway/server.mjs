@@ -10,7 +10,7 @@ import {
   teksUntukSuara,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
-import { CekBpom, hasilProduk, kueriProduk, pesanCekBpom } from './cekbpom.mjs';
+import { CekBpom, cekRegistrasi } from './cekbpom.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -298,17 +298,14 @@ async function giliran(req, res, url) {
     } else if (!saring) {
       riwayat.tambah(id, 'user', transkrip);
       // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari kutipan korpus.
-      const kueri = cekBpom ? kueriProduk(transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1) : null;
+      const tCek = Date.now();
+      const cek = cekBpom ? await cekRegistrasi(cekBpom, transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1) : null;
       let konteks;
-      if (kueri) {
-        const tCek = Date.now();
-        const data = await cekBpom.cari(kueri).catch((e) => {
-          console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: e instanceof Error ? e.message : 'unknown' }));
-          return null;
-        });
-        if (data) produk = hasilProduk(data);
-        konteks = pesanCekBpom(kueri, data);
-        console.info(JSON.stringify({ ev: 'cekbpom', jenis: kueri.nomor ? 'nomor' : 'nama', hasil: data?.total ?? null, ms: Date.now() - tCek }));
+      if (cek) {
+        if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
+        console.info(JSON.stringify({ ev: 'cekbpom', jenis: cek.kueri.nomor ? 'nomor' : 'nama', hasil: cek.data?.total ?? null, ms: Date.now() - tCek }));
+        produk = cek.produk;
+        konteks = cek.konteks;
       } else {
         kutipan = korpus ? korpus.cari(transkrip) : [];
         konteks = pesanKutipan(kutipan);
