@@ -71,8 +71,16 @@ export class CekBpom {
     this.berjalan = new Map();
   }
 
-  async ambilSesi() {
-    if (this.sesi && this.now() < this.sesi.kedaluwarsa) return this.sesi;
+  // Promise sesi dibagi agar pencarian nama dan merek yang serentak hanya membuka satu sesi.
+  ambilSesi() {
+    if (this.sesi && this.now() < this.sesi.kedaluwarsa) return this.sesi.janji;
+    const janji = this.bukaSesi();
+    this.sesi = { janji, kedaluwarsa: this.now() + TTL_SESI_MS };
+    janji.catch(() => { if (this.sesi?.janji === janji) this.sesi = null; });
+    return janji;
+  }
+
+  async bukaSesi() {
     const res = await this.fetch(`${this.baseUrl}/all-produk`, {
       headers: { 'user-agent': AGEN, accept: 'text/html' }, signal: AbortSignal.timeout(BATAS_WAKTU_MS),
     });
@@ -81,8 +89,7 @@ export class CekBpom {
     const html = await res.text();
     const token = (html.match(/csrf-token["']?\s+content=["']([^"']+)/i) || html.match(/content=["']([^"']+)["']\s+name=["']csrf-token/i))?.[1];
     if (!token) throw new Error('cekbpom tanpa token');
-    this.sesi = { cookie, token, kedaluwarsa: this.now() + TTL_SESI_MS };
-    return this.sesi;
+    return { cookie, token };
   }
 
   /** Mengembalikan `{ total, produk }`; `produk` paling banyak 10 baris teratas. */
@@ -99,11 +106,22 @@ export class CekBpom {
     return hasil;
   }
 
-  async kirim(kueri, ulangi = true) {
+  // Nama dicari di kolom nama produk dan merek sekaligus: "Indomie goreng" tercatat sebagai merek Indomie, nama Mi Instan Goreng.
+  async kirim(kueri) {
+    if (kueri.nomor) return this.kirimKolom({ product_register: kueri.nomor });
+    const [nama, merek] = await Promise.all([
+      this.kirimKolom({ product_name: kueri.nama }),
+      this.kirimKolom({ product_brand: kueri.nama.split(' ')[0] }).then((h) => saring(h, kueri.nama)),
+    ]);
+    const unik = new Map([...merek.produk, ...nama.produk].map((p) => [p.nomorIzinEdar, p]));
+    return { total: Math.max(nama.total, merek.total, unik.size), produk: [...unik.values()].slice(0, 10) };
+  }
+
+  async kirimKolom(cari, ulangi = true) {
     const { cookie, token } = await this.ambilSesi();
     const kolom = {
       draw: '1', start: '0', length: '10', 'search[value]': '', 'search[regex]': 'false',
-      product_name: kueri.nama ?? '', product_register: kueri.nomor ?? '', product_brand: '', product_package: '', product_form: '',
+      product_name: '', product_register: '', product_brand: '', product_package: '', product_form: '',
       ingredients: '', submit_date_start: '', submit_date_end: '', product_date_start: '', product_date_end: '', expire_date_start: '',
       expire_date_end: '', manufacturer_name: '', status: '', release_date: '', query: '', manufacturer: '', registrar: '',
     };
@@ -113,16 +131,24 @@ export class CekBpom {
         'user-agent': AGEN, 'x-csrf-token': token, 'x-requested-with': 'XMLHttpRequest', referer: `${this.baseUrl}/all-produk`,
         accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded; charset=UTF-8', ...(cookie ? { cookie } : {}),
       },
-      body: new URLSearchParams(kolom).toString(),
+      body: new URLSearchParams({ ...kolom, ...cari }).toString(),
       signal: AbortSignal.timeout(BATAS_WAKTU_MS),
     });
     // 419: token CSRF kedaluwarsa, buka sesi baru sekali.
-    if (res.status === 419 && ulangi) { this.sesi = null; return this.kirim(kueri, false); }
+    if (res.status === 419 && ulangi) { this.sesi = null; return this.kirimKolom(cari, false); }
     if (!res.ok) throw new Error(`cekbpom cari ${res.status}`);
     const d = await res.json();
     const baris = Array.isArray(d?.data) ? d.data : [];
     return { total: Number(d?.recordsFiltered) || baris.length, produk: baris.map(produkDariBaris) };
   }
+}
+
+/** Hasil cari per merek hanya dipakai bila nama produknya memuat sisa kata yang diucapkan ("goreng" untuk "indomie goreng"). */
+function saring(hasil, nama) {
+  const sisa = nama.split(' ').slice(1);
+  if (!sisa.length) return hasil;
+  const produk = hasil.produk.filter((p) => sisa.every((k) => p.nama.toLowerCase().includes(k)));
+  return { total: produk.length, produk };
 }
 
 /** HasilProduk untuk kartu di panel suara (src/lib/kartuPanggilan.ts). */

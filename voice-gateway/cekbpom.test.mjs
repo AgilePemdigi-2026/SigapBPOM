@@ -35,12 +35,27 @@ test('req_1_3 pencarian memakai sesi CSRF, merapikan teks, dan memakai cache', a
   const hasil = await cek.cari({ nama: 'produk' });
   assert.equal(hasil.total, 2);
   assert.equal(hasil.produk[0].pendaftar, 'PT & Co');
-  const cari = log.find((l) => l.url.endsWith('/produk-dt/all'));
-  assert.equal(cari.opsi.headers['x-csrf-token'], 'tok123');
-  assert.equal(cari.opsi.headers.cookie, 'sesi=abc');
-  assert.match(cari.opsi.body, /product_name=produk/);
+  const cari = log.filter((l) => l.url.endsWith('/produk-dt/all'));
+  assert.equal(cari[0].opsi.headers['x-csrf-token'], 'tok123');
+  assert.equal(cari[0].opsi.headers.cookie, 'sesi=abc');
+  assert.ok(cari.some((c) => /product_name=produk&/.test(c.opsi.body)), 'dicari per nama produk');
+  assert.ok(cari.some((c) => /product_brand=produk&/.test(c.opsi.body)), 'dicari per merek');
   await cek.cari({ nama: 'Produk' });
-  assert.equal(log.length, 2, 'kueri sama tidak memanggil cekbpom lagi');
+  assert.equal(log.length, 3, 'kueri sama tidak memanggil cekbpom lagi');
+});
+
+test('req_1_3 hasil per merek disaring dengan sisa kata nama produk', async () => {
+  const cek = new CekBpom({
+    fetch: async (url, opsi) => {
+      if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="t">');
+      if (/product_brand=indomie&/.test(opsi.body)) {
+        return Response.json({ recordsFiltered: 2, data: [{ PRODUCT_NAME: 'Mi Instan Goreng', PRODUCT_REGISTER: 'MD 1' }, { PRODUCT_NAME: 'Mi Instan Soto', PRODUCT_REGISTER: 'MD 2' }] });
+      }
+      return Response.json({ recordsFiltered: 0, data: [] });
+    },
+  });
+  const hasil = await cek.cari({ nama: 'indomie goreng' });
+  assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 1']);
 });
 
 test('req_1_3 token kedaluwarsa (419) membuka sesi baru sekali', async () => {
