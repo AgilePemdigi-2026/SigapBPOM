@@ -10,9 +10,19 @@ const ALAMAT_PRIVAT = /^(::ffff:)?(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])
  * (pola sama dengan voice-gateway/server.mjs). Klien yang tersambung langsung memakai alamat soketnya.
  */
 export function ipKlien(headers: Headers, alamatSoket: string): string {
-  if (!ALAMAT_PRIVAT.test(alamatSoket)) return alamatSoket;
+  if (!ALAMAT_PRIVAT.test(alamatSoket)) return kunciAlamat(alamatSoket);
   const xff = (headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  return xff.at(-1) ?? alamatSoket;
+  return kunciAlamat(xff.at(-1) ?? alamatSoket);
+}
+
+/** IPv6 dihitung per blok /64 (satu pelanggan biasanya memegang satu blok), agar tabel tidak mudah dipenuhi. */
+export function kunciAlamat(ip: string): string {
+  if (!ip.includes(':') || ip.startsWith('::ffff:')) return ip;
+  const [kepala, ekor = ''] = ip.split('::');
+  const depan = kepala ? kepala.split(':') : [];
+  const belakang = ekor ? ekor.split(':') : [];
+  const penuh = ip.includes('::') ? [...depan, ...Array(8 - depan.length - belakang.length).fill('0'), ...belakang] : depan;
+  return `${penuh.slice(0, 4).map((b) => b.toLowerCase().replace(/^0+(?=.)/, '')).join(':')}::/64`;
 }
 
 export class PembatasLaju {

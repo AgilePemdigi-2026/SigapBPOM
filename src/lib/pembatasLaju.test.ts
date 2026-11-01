@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PembatasLaju, ipKlien } from './pembatasLaju.ts';
+import { PembatasLaju, ipKlien, kunciAlamat } from './pembatasLaju.ts';
 
 test('percobaan melewati batas ditolak per kunci lalu pulih setelah jendela berlalu', () => {
   let t = 0;
@@ -35,4 +35,11 @@ test('tabel penuh tidak membuang kunci yang sedang diblokir', () => {
   for (let i = 0; i < 6000; i++) p.izinkan(`ip-${i}`);
   assert.ok(p.percobaan.size <= 5000);
   assert.equal(p.izinkan('penyerang'), false);
+});
+
+test('IPv6 dihitung per blok /64, IPv4 apa adanya', () => {
+  assert.equal(kunciAlamat('2001:db8:1:2:aaaa::1'), '2001:db8:1:2::/64');
+  assert.equal(kunciAlamat('2001:db8:1:2:bbbb:cccc:dddd:eeee'), '2001:db8:1:2::/64');
+  assert.equal(kunciAlamat('2001:db8::5'), '2001:db8:0:0::/64');
+  assert.equal(kunciAlamat('203.0.113.9'), '203.0.113.9');
 });
