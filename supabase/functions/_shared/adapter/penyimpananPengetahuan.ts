@@ -1,5 +1,5 @@
 // Adapter penyimpanan materi dan potongan ke Supabase Postgres.
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.49.4';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.49.4';
 import type { MateriPengetahuan, MateriPotongan } from '../entity/materi.ts';
 
 export interface PenyimpananPengetahuan {
@@ -11,12 +11,9 @@ export interface PenyimpananPengetahuan {
 export class PenyimpananPengetahuanSupabase implements PenyimpananPengetahuan {
   db: SupabaseClient;
 
-  constructor(client?: SupabaseClient) {
-    this.db = client ?? createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } },
-    );
+  /** Klien harus membawa token sesi petugas agar RLS is_petugas() berlaku; jangan isi dengan service_role. */
+  constructor(client: SupabaseClient) {
+    this.db = client;
   }
 
   async simpanMateri(materi: Omit<MateriPengetahuan, 'id'>): Promise<MateriPengetahuan> {
