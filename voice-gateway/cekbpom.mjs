@@ -169,6 +169,24 @@ export function hasilProduk({ produk }) {
   return { jenis: 'kandidat', produk: produk.slice(0, KANDIDAT_MAKS).map(bentuk) };
 }
 
+/** Teks kueri yang ditampilkan di panel Cari Produk halaman publik. */
+export const labelKueri = (kueri) => kueri.nomor ?? kueri.nama;
+
+/**
+ * Baris `cek` untuk panel Cari Produk di halaman publik: tabel hasil cekbpom yang sama dengan yang dibacakan AI.
+ * `dibaca` = jumlah baris teratas yang disebut AI (BR-7). `galat` true bila pengecekan gagal.
+ */
+export function tabelCek(kueri, data) {
+  const produk = data?.produk ?? [];
+  return {
+    kueri: labelKueri(kueri),
+    total: data?.total ?? 0,
+    dibaca: Math.min(produk.length, KANDIDAT_MAKS),
+    galat: !data,
+    baris: produk.map((p) => ({ nama: p.nama, merek: p.merek, nomorIzinEdar: p.nomorIzinEdar, status: p.status, pendaftar: p.pendaftar })),
+  };
+}
+
 /** Pesan sistem berisi hasil cekbpom untuk AI. `hasil` null berarti pengecekan gagal. */
 export function pesanCekBpom(kueri, hasil) {
   const dicari = kueri.nomor ? `nomor izin edar ${kueri.nomor}` : `nama produk "${kueri.nama}"`;
@@ -194,9 +212,10 @@ ${arahan} Sebutkan hanya data di atas, jangan menambah data lain, dan jangan men
  * Satu giliran cek registrasi: kenali kueri dari ucapan, cari di cekbpom, lalu siapkan kartu dan pesan untuk AI.
  * Mengembalikan null bila ucapan bukan pertanyaan registrasi. Bila cekbpom gagal, `produk` kosong dan `galat` terisi.
  */
-export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false) {
+export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false, saatMencari = () => {}) {
   const kueri = kueriProduk(ucapan, setelahMenu1);
   if (!kueri) return null;
+  saatMencari(kueri);
   let data = null, galat = null;
   try { data = await cekBpom.cari(kueri); } catch (e) { galat = e instanceof Error ? e.message : 'unknown'; }
   return { kueri, data, galat, produk: data ? hasilProduk(data) : undefined, konteks: pesanCekBpom(kueri, data) };

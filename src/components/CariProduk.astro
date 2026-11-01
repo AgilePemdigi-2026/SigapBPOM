@@ -1,0 +1,191 @@
+---
+// Boundary UC-01 (REQ-1.3, BR-7): panel Cari Produk yang menggantikan isi hero halaman publik selama layanan 1.
+// CS AI terlihat mengetik kueri saat Voice Gateway mulai mencari di cekbpom, lalu tabel hasil tampil sebelum jawaban dibacakan.
+---
+<div class="cp" data-cari hidden>
+  <div class="cp-top">
+    <span class="cp-tag"><span></span>CEK PRODUK · DIBANTU CS AI</span>
+    <span class="cp-src"><i class="icon-database" aria-hidden="true"></i>Sumber data: cekbpom.pom.go.id</span>
+  </div>
+  <h2>Cari Produk</h2>
+  <div class="cp-bar">
+    <div class="cp-input" role="search" aria-label="Kueri yang dicari CS AI">
+      <i class="icon-search" aria-hidden="true"></i>
+      <span class="cp-teks" data-ketik></span><span class="cp-caret" aria-hidden="true"></span>
+      <span class="cp-ph" data-ph>Sebutkan nama produk, merek, atau nomor izin edar kepada CS AI</span>
+    </div>
+    <span class="btn-primary cp-btn" data-tombol aria-hidden="true">Cari</span>
+    <span class="cp-kursor" data-kursor aria-hidden="true"><i class="icon-mouse-pointer-2"></i><span>CS AI</span></span>
+  </div>
+  <div class="cp-status" data-status role="status" aria-live="polite"></div>
+  <div class="cp-tabel">
+    <table data-tabel hidden>
+      <thead><tr><th>Nomor Registrasi</th><th>Nama Produk</th><th>Pendaftar</th><th>Status</th></tr></thead>
+      <tbody data-baris></tbody>
+    </table>
+    <div class="cp-kosong" data-kosong>
+      <span class="cp-kosong-ic"><i class="icon-mic" aria-hidden="true"></i></span>
+      <span>Hasil pencarian data registrasi BPOM akan tampil di sini saat CS AI mencari produk yang Anda sebutkan.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { NAMA_PERISTIWA, htmlBarisCek, ringkasanCek, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
+
+  const root = document.querySelector<HTMLElement>('[data-cari]');
+  const hero = root?.closest<HTMLElement>('.hero');
+  if (root && hero) {
+    const $ = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const ketik = $('[data-ketik]'), ph = $('[data-ph]'), kursor = $('[data-kursor]'), tombol = $('[data-tombol]');
+    const status = $('[data-status]'), tabel = $('[data-tabel]'), baris = $('[data-baris]'), kosong = $('[data-kosong]');
+    const hemat = matchMedia('(prefers-reduced-motion: reduce)');
+    // Animasi mengetik dibatasi agar tabel tidak menunggu lama: pencarian cekbpom biasanya 0,2–1 detik.
+    const KETIK_MAKS_MS = 900;
+    let putaran = 0;
+    let ketikSelesai: Promise<void> = Promise.resolve();
+
+    const tidur = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const posisi = (p: '' | 'di-input' | 'di-tombol') => { kursor.className = `cp-kursor ${p}`.trim(); };
+
+    function setStatus(jenis: '' | 'mencari' | 'ok' | 'kosong' | 'galat', teks: string) {
+      status.className = `cp-status ${jenis}`.trim();
+      const ikon = { mencari: 'icon-loader-circle', ok: 'icon-circle-check', kosong: 'icon-search-x', galat: 'icon-triangle-alert', '': '' }[jenis];
+      status.innerHTML = teks ? `${ikon ? `<i class="${ikon}" aria-hidden="true"></i>` : ''}<span></span>` : '';
+      status.querySelector('span')?.replaceChildren(teks);
+    }
+
+    function kosongkan() {
+      putaran++;
+      ketik.textContent = '';
+      ph.hidden = false;
+      root!.classList.remove('mengetik');
+      posisi('');
+      tombol.classList.remove('ditekan');
+      tabel.hidden = true;
+      baris.innerHTML = '';
+      kosong.hidden = false;
+      setStatus('', '');
+    }
+
+    async function cari(kueri: string) {
+      kosongkan();
+      const ini = putaran;
+      ph.hidden = true;
+      setStatus('mencari', 'Mencari di data registrasi BPOM…');
+      ketikSelesai = (async () => {
+        if (hemat.matches) { ketik.textContent = kueri; return; }
+        root!.classList.add('mengetik');
+        posisi('di-input');
+        await tidur(260);
+        const jeda = Math.min(55, KETIK_MAKS_MS / Math.max(kueri.length, 1));
+        for (let i = 1; i <= kueri.length; i++) {
+          if (ini !== putaran) return;
+          ketik.textContent = kueri.slice(0, i);
+          await tidur(jeda);
+        }
+        root!.classList.remove('mengetik');
+        posisi('di-tombol');
+        await tidur(240);
+        tombol.classList.add('ditekan');
+        await tidur(160);
+        tombol.classList.remove('ditekan');
+      })();
+    }
+
+    async function hasil(t: TabelCek) {
+      const ini = putaran;
+      // Kueri tidak dikenali dari sinyal cari (mis. gateway lama): tampilkan langsung tanpa animasi mengetik.
+      if (!ketik.textContent) { ph.hidden = true; ketik.textContent = t.kueri; }
+      await ketikSelesai;
+      if (ini !== putaran) return;
+      posisi('');
+      const r = ringkasanCek(t);
+      setStatus(r.jenis, r.teks);
+      baris.innerHTML = htmlBarisCek(t);
+      tabel.hidden = !t.baris.length;
+      kosong.hidden = Boolean(t.baris.length);
+    }
+
+    function tampil(aktif: boolean) {
+      hero!.classList.toggle('cari', aktif);
+      root!.hidden = !aktif;
+      if (!aktif) kosongkan();
+    }
+
+    window.addEventListener(NAMA_PERISTIWA, (e) => {
+      const p = (e as CustomEvent<PeristiwaCari>).detail;
+      if (p.tahap === 'layanan') tampil(p.layanan === 1);
+      else if (p.tahap === 'cari') { tampil(true); cari(p.kueri); }
+      else if (p.tahap === 'hasil') { tampil(true); hasil(p.tabel); }
+      else tampil(false);
+    });
+  }
+</script>
+
+<style>
+  .cp { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; gap: 16px; padding: 36px 48px; background: var(--panel); border-radius: inherit; animation: cpMasuk .35s ease-out; }
+  .cp[hidden] { display: none; }
+  @keyframes cpMasuk { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .cp-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .cp-tag { display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--blue-ink); }
+  .cp-tag span { width: 8px; height: 8px; border-radius: 9px; background: #22c55e; animation: sgPulse 1.6s ease-out infinite; }
+  .cp-src { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--muted); }
+  .cp-src i { color: var(--blue); }
+  .cp h2 { margin: 0; font-size: 40px; line-height: 1.1; font-weight: 500; letter-spacing: -.02em; }
+
+  .cp-bar { position: relative; display: flex; gap: 12px; }
+  .cp-input { flex: 1; min-width: 0; height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 22px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); font-size: 19px; }
+  .cp-input > i { font-size: 20px; color: var(--muted-2); }
+  .cp-teks { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .cp-caret { width: 2px; height: 26px; margin-left: -10px; background: var(--blue); opacity: 0; }
+  .mengetik .cp-caret { opacity: 1; animation: cpKedip .9s steps(1) infinite; }
+  @keyframes cpKedip { 50% { opacity: 0; } }
+  .cp-ph { color: var(--muted-2); font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cp-ph[hidden] { display: none; }
+  .cp-btn { height: 64px; padding: 0 34px; font-size: 18px; transition: transform .12s ease, filter .12s ease; }
+  .cp-btn.ditekan { transform: scale(.94); filter: brightness(.92); }
+
+  /* Kursor CS AI: bergerak ke kolom cari, mengetik, lalu menekan tombol Cari. */
+  .cp-kursor { position: absolute; left: 100%; top: 120%; z-index: 3; display: flex; align-items: flex-start; gap: 2px; opacity: 0; pointer-events: none; transition: left .45s cubic-bezier(.3, .7, .2, 1), top .45s cubic-bezier(.3, .7, .2, 1), opacity .25s; }
+  .cp-kursor i { font-size: 26px; color: var(--blue); filter: drop-shadow(0 3px 6px rgba(47, 107, 245, .35)); }
+  .cp-kursor span { margin-top: 18px; padding: 3px 10px; border-radius: 999px; background: var(--grad-blue); color: #fff; font-size: 12.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 4px 10px rgba(47, 107, 245, .3); }
+  .cp-kursor.di-input { left: 42%; top: 34px; opacity: 1; }
+  .cp-kursor.di-tombol { left: calc(100% - 64px); top: 34px; opacity: 1; }
+
+  .cp-status { min-height: 24px; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--muted); }
+  .cp-status i { font-size: 18px; }
+  .cp-status.mencari i { color: var(--blue); animation: cpPutar 1s linear infinite; }
+  .cp-status.ok { color: #15803d; }
+  .cp-status.kosong { color: #7a4b00; }
+  .cp-status.galat { color: #b42318; }
+  @keyframes cpPutar { to { transform: rotate(360deg); } }
+
+  .cp-tabel { flex: 1; min-height: 0; overflow-y: auto; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); }
+  .cp-tabel table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+  .cp-tabel table[hidden] { display: none; }
+  .cp-tabel th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); text-align: left; padding: 14px 18px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line-2); }
+  .cp-tabel td { padding: 12px 18px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .cp-tabel :global(tr) { animation: cpBaris .3s ease-out both; animation-delay: calc(var(--i, 0) * 45ms); }
+  @keyframes cpBaris { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .cp-tabel :global(tr.dibaca) { background: #f1f5ff; }
+  .cp-tabel :global(.cp-nie) { white-space: nowrap; font-weight: 600; }
+  .cp-tabel :global(.cp-nie), .cp-tabel :global(.cp-nama) { display: flex; flex-direction: column; gap: 3px; }
+  .cp-tabel :global(.cp-dibaca) { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #2152c9; }
+  .cp-tabel :global(.cp-nama > span:first-child) { font-weight: 500; }
+  .cp-tabel :global(.cp-merek) { font-size: 13.5px; color: var(--muted); }
+  .cp-tabel :global(.cp-daftar) { color: var(--ink-3); }
+  .cp-tabel :global(.k-status) { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .cp-tabel :global(.k-status.ok) { background: #e8f7ee; color: #15803d; }
+  .cp-tabel :global(.k-status.no) { background: #fdecec; color: #b42318; }
+
+  .cp-kosong { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; font-size: 16.5px; line-height: 1.5; color: var(--muted); }
+  .cp-kosong[hidden] { display: none; }
+  .cp-kosong span:last-child { max-width: 520px; }
+  .cp-kosong-ic { width: 56px; height: 56px; border-radius: 18px; background: #e3ecff; color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cp-kursor { display: none; }
+  }
+</style>

@@ -11,7 +11,7 @@ import {
   pesanLayanan, saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
-import { CekBpom, cekRegistrasi } from './cekbpom.mjs';
+import { CekBpom, cekRegistrasi, labelKueri, tabelCek } from './cekbpom.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -366,9 +366,13 @@ async function giliran(req, res, url) {
       // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari kutipan korpus.
       // Suara jeda sudah diputar panel selama pencarian ini berlangsung.
       const tCek = Date.now();
-      const cek = cekBpom ? await cekRegistrasi(cekBpom, transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1) : null;
+      // Panel Cari Produk di halaman publik mulai mengetik kueri saat pencarian dimulai, lalu menampilkan tabel sebelum AI menjawab.
+      const cek = cekBpom
+        ? await cekRegistrasi(cekBpom, transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1, (k) => tulis({ jenis: 'cari', kueri: labelKueri(k) }))
+        : null;
       let kutipan = [], konteks, produk;
       if (cek) {
+        tulis({ jenis: 'cek', ...tabelCek(cek.kueri, cek.data) });
         if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
         console.info(JSON.stringify({ ev: 'cekbpom', jenis: cek.kueri.nomor ? 'nomor' : 'nama', hasil: cek.data?.total ?? null, ms: Date.now() - tCek }));
         produk = cek.produk;

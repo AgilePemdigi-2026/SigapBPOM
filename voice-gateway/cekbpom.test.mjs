@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CekBpom, hasilProduk, kueriProduk, pesanCekBpom } from './cekbpom.mjs';
+import { CekBpom, cekRegistrasi, hasilProduk, kueriProduk, labelKueri, pesanCekBpom, tabelCek } from './cekbpom.mjs';
 
 test('req_1_3 kueri produk dikenali dari pertanyaan status registrasi', () => {
   assert.deepEqual(kueriProduk('Apakah Indomie goreng sudah terdaftar di BPOM?'), { nama: 'indomie goreng' });
@@ -76,6 +76,24 @@ test('req_1_3 merek di kata mana pun: "susu greenfield" ditemukan lewat merek Gr
   });
   const hasil = await cek.cari(kueriProduk('Apakah susu Greenfield sudah terdaftar di BPOM?'));
   assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 400213330621']);
+});
+
+test('req_1_3 panel Cari Produk: sinyal mencari lalu tabel maksimal 10 baris dengan tiga baris dibacakan', async () => {
+  const data = Array.from({ length: 12 }, (_, i) => baris(i + 1));
+  const cek = new CekBpom({ fetch: fetchTiruan(data) });
+  const dicari = [];
+  const hasil = await cekRegistrasi(cek, 'cek bpom sabun wangi', false, (k) => dicari.push(labelKueri(k)));
+  assert.deepEqual(dicari, ['sabun wangi']);
+  const tabel = tabelCek(hasil.kueri, hasil.data);
+  assert.equal(tabel.kueri, 'sabun wangi');
+  assert.equal(tabel.total, 12);
+  assert.equal(tabel.baris.length, 10);
+  assert.equal(tabel.dibaca, 3);
+  assert.equal(tabel.galat, false);
+  assert.deepEqual(Object.keys(tabel.baris[0]), ['nama', 'merek', 'nomorIzinEdar', 'status', 'pendaftar']);
+  assert.deepEqual(tabelCek({ nomor: 'MD 1' }, null), { kueri: 'MD 1', total: 0, dibaca: 0, galat: true, baris: [] });
+  assert.equal(await cekRegistrasi(cek, 'bagaimana cara cek nomor registrasi?', false, () => dicari.push('x')), null);
+  assert.deepEqual(dicari, ['sabun wangi'], 'pertanyaan edukasi tidak memicu sinyal mencari');
 });
 
 test('req_1_3 token kedaluwarsa (419) membuka sesi baru sekali', async () => {
