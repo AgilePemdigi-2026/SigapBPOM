@@ -1,19 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { AutentikasiEdgeController, type PenyimpananPetugas } from "../_shared/control/AutentikasiController.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// 1. ENTITY LAYER
-class PetugasEntity {
-  constructor(private supabase: any) {}
+// 1. ENTITY LAYER (akses data petugas; penghitung gagal diubah atomik lewat RPC)
+class PetugasEntity implements PenyimpananPetugas {
+  supabase: any;
+  constructor(supabase: any) {
+    this.supabase = supabase;
+  }
 
   async dapatkanUserByEmail(email: string) {
     const { data: { users }, error } = await this.supabase.auth.admin.listUsers();
     if (error) throw error;
-    
+
     const user = users.find((u: any) => u.email === email);
     if (!user) return null;
 
@@ -22,81 +26,26 @@ class PetugasEntity {
       .select('*')
       .eq('id', user.id)
       .single();
-      
+
     return { authUser: user, petugasData: petugas };
   }
 
-  async perbaruiGagalLogin(id: string, jumlahGagal: number, terkunciSampai: string | null) {
-    await this.supabase
-      .from('petugas')
-      .update({ gagal_login: jumlahGagal, terkunci_sampai: terkunciSampai })
-      .eq('id', id);
+  async catatGagalLogin(id: string) {
+    const { data, error } = await this.supabase.rpc('catat_gagal_login', { p_id: id });
+    if (error) throw error;
+    const baris = Array.isArray(data) ? data[0] : data;
+    if (!baris) return null;
+    return { gagalLogin: baris.gagal_login_baru, terkunciSampai: baris.terkunci_sampai_baru };
+  }
+
+  async resetGagalLogin(id: string) {
+    const { data, error } = await this.supabase.rpc('reset_gagal_login', { p_id: id });
+    if (error) throw error;
+    return data === true;
   }
 }
 
-// 2. CONTROL LAYER
-class AutentikasiEdgeController {
-  private DURASI_KUNCI_MENIT = 15;
-  
-  constructor(private entity: PetugasEntity, private supabase: any) {}
-
-  async masuk(email: string, kataSandi: string) {
-    // Validasi isian kosong
-    if (!email || !kataSandi) {
-      return { sukses: false, pesan: "Login gagal. Semua field harus diisi!" };
-    }
-
-    const user = await this.entity.dapatkanUserByEmail(email);
-    
-    // Validasi kredensial salah (email tidak terdaftar)
-    if (!user || !user.petugasData) {
-        return { sukses: false, pesan: "Login gagal. Email atau password Anda salah." }; 
-    }
-
-    const { petugasData } = user;
-
-    // Cek status kunci (gagal tiga kali)
-    if (petugasData.terkunci_sampai) {
-      const waktuTerkunci = new Date(petugasData.terkunci_sampai);
-      const waktuSekarang = new Date();
-      
-      if (waktuSekarang < waktuTerkunci) {
-        return { sukses: false, pesan: "Akses dikunci sementara. Hubungi administrator." };
-      }
-    }
-
-    // Lakukan autentikasi
-    const { data: authData, error: authError } = await this.supabase.auth.signInWithPassword({
-      email: email,
-      password: kataSandi,
-    });
-
-    // Logika jika kredensial salah (password salah)
-    if (authError) {
-      const gagalBaru = (petugasData.gagal_login || 0) + 1;
-      let waktuKunciBaru = null;
-
-      if (gagalBaru >= 3) {
-        const waktuKunci = new Date();
-        waktuKunci.setMinutes(waktuKunci.getMinutes() + this.DURASI_KUNCI_MENIT);
-        waktuKunciBaru = waktuKunci.toISOString();
-      }
-
-      await this.entity.perbaruiGagalLogin(petugasData.id, gagalBaru, waktuKunciBaru);
-      return { sukses: false, pesan: "Login gagal. Email atau password Anda salah." }; 
-    }
-
-    // Logika jika sukses login
-    await this.entity.perbaruiGagalLogin(petugasData.id, 0, null);
-    
-    return { 
-      sukses: true, 
-      pesan: "Login berhasil!", 
-      sesi: authData.session, 
-      petugas: { id: petugasData.id, nama: petugasData.nama } 
-    };
-  }
-}
+// 2. CONTROL LAYER ada di _shared/control/AutentikasiController.ts
 
 // 3. BOUNDARY LAYER
 serve(async (req) => {
@@ -113,7 +62,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const entity = new PetugasEntity(supabase);
-    const control = new AutentikasiEdgeController(entity, supabase);
+    const autentikator = {
+      async masukDenganPassword(email: string, kataSandi: string) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: kataSandi });
+        return { sesi: data?.session ?? null, galat: error };
+      },
+    };
+    const control = new AutentikasiEdgeController(entity, autentikator);
 
     const hasil = await control.masuk(email, password);
 
