@@ -1,7 +1,23 @@
 // Boundary UC-03 Melakukan Login Dashboard: memeriksa isian login di server dan membentuk sesi (REQ-3.2).
+// Kredensial diperiksa oleh Supabase Auth lewat Edge Function login; pesan penolakannya diteruskan ke browser.
 import type { APIRoute } from 'astro';
+import { PembatasLaju } from '../../lib/pembatasLaju';
 
-export const POST: APIRoute = async ({ request, locals, cookies }) => {
+// PROJECT_RULES 5.2: batas laju login per IP. Pesannya memakai kamus pesan UC-03.
+const pembatas = new PembatasLaju();
+const PESAN_DIBATASI = 'Akses dikunci sementara. Hubungi administrator.';
+
+export const POST: APIRoute = async ({ request, locals, cookies, clientAddress }) => {
+  let ip = 'tak-dikenal';
+  try {
+    ip = clientAddress || ip;
+  } catch {
+    // Alamat klien tidak tersedia di semua mode; semua permintaan tanpa alamat berbagi satu jatah.
+  }
+  if (!pembatas.izinkan(ip)) {
+    return Response.json({ status: 'error', message: PESAN_DIBATASI, data: null }, { status: 429 });
+  }
+
   const body: unknown = await request.json().catch(() => null);
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return Response.json({ status: 'error', message: 'Permintaan tidak valid.', data: null }, { status: 400 });
