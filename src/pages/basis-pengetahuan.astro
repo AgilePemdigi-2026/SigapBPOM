@@ -221,18 +221,21 @@ const data = {
 
     saveBtn.setAttribute('aria-disabled', 'true');
     try {
+      // ponytail: simpan-materi hanya menerima token sesi petugas (Authorization: Bearer). Sesi dashboard masih tiruan
+      // sampai T-F3.1-03, jadi permintaan ini ditolak 401 dan materi disimpan lokal lewat jalur fallback di bawah.
       const respon = await fetch(D.simpanMateriUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ judul, rujukan, kategori, isi }),
       });
       const hasil = await respon.json().catch(() => null);
-      if (!respon.ok || hasil?.status === 'error') {
+      if (respon.status === 422) {
         err.textContent = hasil?.message || 'Rujukan sumber wajib diisi.';
         err.hidden = false;
         field('rujukan').classList.add('invalid');
         return;
       }
+      if (!respon.ok || hasil?.status === 'error') throw new Error('simpan-materi tidak tersedia');
       const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
       materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl, aktif: true });
       st.added++;
@@ -244,7 +247,7 @@ const data = {
       dialog.close();
       toast(hasil?.message || 'Materi siap digunakan sistem.');
     } catch {
-      // Fallback bila Edge Function offline saat demo lokal
+      // Fallback bila Edge Function offline atau sesi belum membawa token Supabase
       const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
       materi.unshift({ id: Date.now(), judul, kategori, rujukan, tgl, aktif: true });
       st.added++;
