@@ -1,8 +1,9 @@
 // Adapter penyimpanan ke Postgres Supabase memakai service role (hanya di sisi server).
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 import { ErrorSigap, type LogTool, type PenyimpananLayanan, type PotonganPengetahuan } from '../control/InformasiProdukController.ts';
+import type { PenyimpananPengaduan } from '../control/PengaduanController.ts';
 
-export class PenyimpananSupabase implements PenyimpananLayanan {
+export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPengaduan {
   db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
   });
@@ -42,5 +43,27 @@ export class PenyimpananSupabase implements PenyimpananLayanan {
       rujukanSumber: b.rujukan_sumber,
       skor: Number(b.skor),
     }));
+  }
+
+  async terbitkanTiketPengaduan(data: {
+    percakapanId: string;
+    namaProduk: string;
+    kronologi: string;
+    namaPelapor: string;
+    nomorTelepon: string;
+    ringkasan?: string;
+  }) {
+    const { data: nomorTiket, error } = await this.db.rpc('terbitkan_tiket_pengaduan', {
+      p_percakapan_id: data.percakapanId,
+      p_nama_produk: data.namaProduk,
+      p_kronologi: data.kronologi,
+      p_nama_pelapor: data.namaPelapor,
+      p_no_telp: data.nomorTelepon,
+      p_ringkasan: data.ringkasan ?? null,
+    });
+    if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    if (error?.code === '23505') throw new ErrorSigap(422, 'Tiket untuk percakapan ini sudah diterbitkan.');
+    if (error) throw error;
+    return nomorTiket as string;
   }
 }
