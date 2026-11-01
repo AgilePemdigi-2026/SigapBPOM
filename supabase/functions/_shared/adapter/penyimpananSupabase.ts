@@ -66,4 +66,23 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
     if (error) throw error;
     return nomorTiket as string;
   }
+
+  async simpanPengaduanTidakLengkap(data: {
+    percakapanId: string;
+    namaProduk?: string;
+    kronologi?: string;
+    namaPelapor?: string;
+    nomorTelepon?: string;
+  }) {
+    const { data: id, error } = await this.db.rpc('simpan_pengaduan_tidak_lengkap', {
+      p_percakapan_id: data.percakapanId,
+      p_nama_produk: data.namaProduk ?? null,
+      p_kronologi: data.kronologi ?? null,
+      p_nama_pelapor: data.namaPelapor ?? null,
+      p_no_telp: data.nomorTelepon ?? null,
+    });
+    if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    if (error) throw error;
+    return id as string;
+  }
 }
