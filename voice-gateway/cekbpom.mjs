@@ -6,6 +6,8 @@ export const KANDIDAT_MAKS = 3;
 const TTL_CACHE_MS = 3 * 60 * 1000;
 const TTL_SESI_MS = 30 * 60 * 1000;
 const BATAS_WAKTU_MS = 8000;
+// Kata dari ucapan yang dicoba sebagai merek; membatasi jumlah permintaan ke cekbpom per pertanyaan.
+const KATA_MEREK_MAKS = 3;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
 // Pola nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
@@ -17,7 +19,7 @@ const POLA_TANYA = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|berapa|s
 // Kata yang dibuang dari ucapan agar tersisa nama produk.
 const KATA_ISI = new Set(`apakah apa ya yah yang itu ini tuh sudah udah belum blm terdaftar daftar di ke dari bpom badan pom pengawas obat
   makanan izin edar nomor no registrasi produk cek cekin cekkan cekbpom coba tolong mohon bisa minta mau ingin tanya saya aku gw legal resmi
-  aman asli ada punya kah nya dong deh sih kak bang bu ibu pak bapak mas mbak halo terima kasih makasih nama merek merk namanya kalau kalo gak
+  aman asli ada punya kah nya dong deh sih cari carikan cariin kak bang bu ibu pak bapak mas mbak halo terima kasih makasih nama merek merk namanya kalau kalo gak
   nggak enggak tidak ga apa-apa status statusnya sekarang masih dan atau dengan untuk`.split(/\s+/));
 
 /**
@@ -107,14 +109,16 @@ export class CekBpom {
   }
 
   // Nama dicari di kolom nama produk dan merek sekaligus: "Indomie goreng" tercatat sebagai merek Indomie, nama Mi Instan Goreng.
+  // Merek bisa di kata mana saja ("susu Greenfield" bermerek Greenfields), jadi tiap kata dicoba sebagai merek.
   async kirim(kueri) {
     if (kueri.nomor) return this.kirimKolom({ product_register: kueri.nomor });
-    const [nama, merek] = await Promise.all([
+    const kataMerek = [...new Set(kueri.nama.split(' ').filter((k) => k.length >= 3))].slice(0, KATA_MEREK_MAKS);
+    const [nama, ...merek] = await Promise.all([
       this.kirimKolom({ product_name: kueri.nama }),
-      this.kirimKolom({ product_brand: kueri.nama.split(' ')[0] }).then((h) => saring(h, kueri.nama)),
+      ...kataMerek.map((k) => this.kirimKolom({ product_brand: k }).then((h) => saring(h, kueri.nama, k))),
     ]);
-    const unik = new Map([...merek.produk, ...nama.produk].map((p) => [p.nomorIzinEdar, p]));
-    return { total: Math.max(nama.total, merek.total, unik.size), produk: [...unik.values()].slice(0, 10) };
+    const unik = new Map([...merek.flatMap((h) => h.produk), ...nama.produk].map((p) => [p.nomorIzinEdar, p]));
+    return { total: Math.max(nama.total, ...merek.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
   }
 
   async kirimKolom(cari, ulangi = true) {
@@ -143,11 +147,17 @@ export class CekBpom {
   }
 }
 
-/** Hasil cari per merek hanya dipakai bila nama produknya memuat sisa kata yang diucapkan ("goreng" untuk "indomie goreng"). */
-function saring(hasil, nama) {
-  const sisa = nama.split(' ').slice(1);
-  if (!sisa.length) return hasil;
-  const produk = hasil.produk.filter((p) => sisa.every((k) => p.nama.toLowerCase().includes(k)));
+/**
+ * Hasil cari per merek hanya dipakai bila nama dan mereknya memuat sisa kata yang diucapkan ("goreng" untuk "indomie goreng",
+ * "susu" untuk merek Greenfields). Kata yang dicari sebagai merek sudah dicocokkan cekbpom, jadi tidak dicek lagi.
+ */
+function saring(hasil, nama, kataMerek) {
+  const kata = nama.split(' ').filter((k) => k !== kataMerek);
+  if (!kata.length) return hasil;
+  const produk = hasil.produk.filter((p) => {
+    const teks = `${p.nama} ${p.merek}`.toLowerCase();
+    return kata.every((k) => teks.includes(k));
+  });
   return { total: produk.length, produk };
 }
 

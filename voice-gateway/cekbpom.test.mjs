@@ -58,6 +58,26 @@ test('req_1_3 hasil per merek disaring dengan sisa kata nama produk', async () =
   assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 1']);
 });
 
+test('req_1_3 merek di kata mana pun: "susu greenfield" ditemukan lewat merek Greenfields', async () => {
+  const cek = new CekBpom({
+    fetch: async (url, opsi) => {
+      if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="t">');
+      if (/product_brand=greenfield&/.test(opsi.body)) {
+        return Response.json({ recordsFiltered: 209, data: [
+          { PRODUCT_NAME: 'Susu UHT Full Cream', PRODUCT_BRANDS: 'Greenfields', PRODUCT_REGISTER: 'MD 400213330621' },
+          { PRODUCT_NAME: 'Krim Whipping', PRODUCT_BRANDS: 'Greenfields', PRODUCT_REGISTER: 'MD 402513022621' },
+        ] });
+      }
+      if (/product_brand=susu&/.test(opsi.body)) {
+        return Response.json({ recordsFiltered: 117, data: [{ PRODUCT_NAME: 'Susu Lemak Penuh', PRODUCT_BRANDS: 'SUKASUSU', PRODUCT_REGISTER: 'MD 9' }] });
+      }
+      return Response.json({ recordsFiltered: 0, data: [] });
+    },
+  });
+  const hasil = await cek.cari(kueriProduk('Apakah susu Greenfield sudah terdaftar di BPOM?'));
+  assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 400213330621']);
+});
+
 test('req_1_3 token kedaluwarsa (419) membuka sesi baru sekali', async () => {
   let panggil = 0;
   const cek = new CekBpom({
