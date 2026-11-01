@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BasisPengetahuanController, PESAN_MATERI, UKURAN_HALAMAN_MAKS, susunGraf, type MateriTersimpan, type PenyimpananMateri } from './BasisPengetahuanController.ts';
 import { PenyimpananMateriTiruan } from './mock/materiTiruan.ts';
+import { PenyimpananMateriSupabase } from './penyimpananMateriSupabase.ts';
 
 const materi = (id: string, judul: string, kategori: string, rujukanSumber: string, status: MateriTersimpan['status'] = 'aktif'): MateriTersimpan =>
   ({ id, judul, kategori, rujukanSumber, status, diperbaruiPada: `2026-10-${id.padStart(2, '0')}T00:00:00+07:00` });
@@ -40,13 +41,13 @@ test('t_f2_1_03 filter status, pencarian judul atau rujukan, dan paginasi', asyn
 
 test('t_f2_1_03 kueri tidak sah dinormalkan, bukan diteruskan apa adanya', async () => {
   const dicatat: unknown[] = [];
-  const penyimpanan: PenyimpananMateri = { daftar: async (k) => (dicatat.push(k), { baris: [], total: 0 }), potongan: async () => ({}) };
+  const penyimpanan: PenyimpananMateri = { daftar: async (k) => (dicatat.push(k), { baris: [], total: 0 }), potongan: async () => ({}), nonaktifkan: async () => false };
   await new BasisPengetahuanController(penyimpanan).daftarMateri({ status: 'hapus', halaman: -3, ukuran: 99999, cari: 'x'.repeat(500) });
   assert.deepEqual(dicatat[0], { status: undefined, cari: 'x'.repeat(100), offset: 0, batas: UKURAN_HALAMAN_MAKS });
 });
 
 test('t_f2_1_03 error jaringan menghasilkan pesan gagal memuat dari kamus', async () => {
-  const rusak: PenyimpananMateri = { daftar: async () => { throw new Error('fetch failed'); }, potongan: async () => ({}) };
+  const rusak: PenyimpananMateri = { daftar: async () => { throw new Error('fetch failed'); }, potongan: async () => ({}), nonaktifkan: async () => false };
   const kb = new BasisPengetahuanController(rusak);
   assert.deepEqual(await kb.daftarMateri(), { gagal: PESAN_MATERI.gagalDimuat });
   assert.deepEqual(await kb.grafPengetahuan(), { gagal: PESAN_MATERI.gagalDimuat });
@@ -74,3 +75,48 @@ test('t_f2_4_02 detail simpul memuat potongan terindeks dan menghitung keterkait
   assert.equal(kosmetik.links, 2, 'tersambung ke kategori dan materi dengan rujukan yang sama');
   assert.ok(graf.sisi.some(([a, b]) => a === '3' && b === '5'));
 });
+
+test('req_7_3 nonaktifkan materi mengubah status tanpa menghapus dan mengeluarkannya dari graf', async () => {
+  const kb = new BasisPengetahuanController(new PenyimpananMateriTiruan(CONTOH.map((m) => ({ ...m }))));
+  assert.deepEqual(await kb.nonaktifkanMateri(' 3 '), { berhasil: true, pesan: PESAN_MATERI.dinonaktifkan });
+
+  const tidakAktif = await kb.daftarMateri({ status: 'tidak_aktif' });
+  assert.ok('materi' in tidakAktif);
+  assert.deepEqual(tidakAktif.materi.map((m) => m.id).sort(), ['3', '4'], 'materi tetap ada di filter Tidak aktif (BR-5)');
+  const semua = await kb.daftarMateri();
+  assert.ok('materi' in semua);
+  assert.equal(semua.total, 4);
+
+  const graf = await kb.grafPengetahuan();
+  assert.ok('simpul' in graf);
+  assert.ok(!graf.simpul.some((n) => n.id === '3'), 'materi tidak aktif tidak lagi dipakai sebagai sumber');
+});
+
+test('req_7_3 id kosong, terlalu panjang, tidak dikenal, atau galat penyimpanan memberi pesan gagal', async () => {
+  const kb = new BasisPengetahuanController(new PenyimpananMateriTiruan(CONTOH.map((m) => ({ ...m }))));
+  const gagal = { berhasil: false, pesan: PESAN_MATERI.gagalDinonaktifkan };
+  assert.deepEqual(await kb.nonaktifkanMateri(''), gagal);
+  assert.deepEqual(await kb.nonaktifkanMateri(undefined), gagal);
+  assert.deepEqual(await kb.nonaktifkanMateri('x'.repeat(65)), gagal);
+  assert.deepEqual(await kb.nonaktifkanMateri('tidak-ada'), gagal);
+  const rusak: PenyimpananMateri = { daftar: async () => ({ baris: [], total: 0 }), potongan: async () => ({}), nonaktifkan: async () => { throw new Error('fetch failed'); } };
+  assert.deepEqual(await new BasisPengetahuanController(rusak).nonaktifkanMateri('1'), gagal);
+});
+
+test('req_7_3 adapter Supabase mengirim PATCH status lewat token sesi, tanpa DELETE dan tanpa isian pengubah', async () => {
+  const dicatat: { url: string; init: RequestInit }[] = [];
+  const fetchTiruan = (async (url: string, init: RequestInit) => {
+    dicatat.push({ url, init });
+    return new Response(JSON.stringify(url.includes('tidak-ada') ? [] : [{ id: 'a' }]), { status: 200 });
+  }) as unknown as typeof fetch;
+  const supa = new PenyimpananMateriSupabase({ url: 'https://contoh.supabase.co/', kunciPublik: 'publik', tokenAkses: 'token-petugas', fetch: fetchTiruan });
+
+  assert.equal(await supa.nonaktifkan('a'), true);
+  assert.equal(await supa.nonaktifkan('tidak-ada'), false);
+  const { url, init } = dicatat[0];
+  assert.equal(init.method, 'PATCH');
+  assert.equal(url, 'https://contoh.supabase.co/rest/v1/materi_pengetahuan?id=eq.a&select=id');
+  assert.equal((init.headers as Record<string, string>).Authorization, 'Bearer token-petugas');
+  assert.deepEqual(JSON.parse(init.body as string), { status: 'tidak_aktif' });
+});
+

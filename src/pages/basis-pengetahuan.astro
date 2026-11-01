@@ -147,15 +147,22 @@ const data = { materi: MATERI, total: KB_TOTAL, gagal, simpul: SIMPUL, chipAktif
   (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; showView('list'); render(); });
 
   // REQ-7.3, BR-5: nonaktifkan, tidak menghapus permanen.
-  rowsEl.addEventListener('click', (e) => {
+  rowsEl.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('.hapus');
     if (!btn) return;
     const m = materi.find((x) => x.id === btn.dataset.id)!;
     if (!confirm(`Tandai "${m.judul}" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban.`)) return;
+    btn.setAttribute('aria-disabled', 'true');
+    const res = await fetch(`/api/materi/${encodeURIComponent(m.id)}/nonaktifkan`, { method: 'POST' }).catch(() => null);
+    const hasil = await res?.json().catch(() => null);
+    if (!res?.ok) {
+      btn.removeAttribute('aria-disabled');
+      return toast(hasil?.message || 'Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi.');
+    }
     m.aktif = false;
     st.deact++;
     render();
-    toast('Materi ditandai tidak aktif.');
+    toast(hasil.message);
   });
 
   function showView(v: 'list' | 'graph') {

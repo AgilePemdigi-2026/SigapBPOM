@@ -57,6 +57,23 @@ export class PenyimpananMateriSupabase implements PenyimpananMateri {
     };
   }
 
+  // diperbarui_oleh dan diperbarui_pada diisi trigger dari auth.uid() token sesi, jadi petugas tidak bisa dipalsukan.
+  async nonaktifkan(materiId: string) {
+    const p = new URLSearchParams({ id: `eq.${materiId}`, select: 'id' });
+    const res = await this.fetch(`${this.url}/rest/v1/materi_pengetahuan?${p}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: this.kunciPublik,
+        Authorization: `Bearer ${this.tokenAkses}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({ status: 'tidak_aktif' }),
+    });
+    if (!res.ok) throw new Error(`Supabase ${res.status} pada materi_pengetahuan`);
+    return ((await res.json()) as unknown[]).length > 0;
+  }
+
   async potongan(materiIds: string[]) {
     if (!materiIds.length) return {};
     const p = new URLSearchParams({ select: 'materi_id,teks', materi_id: `in.(${materiIds.join(',')})`, order: 'id' });
