@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PenyediaEmbeddingMock, type PenyediaEmbedding } from '../adapter/embedding.ts';
+import { PenyediaEmbeddingTiruan, type PenyediaEmbedding } from '../adapter/embedding.ts';
 import type { PenyimpananPengetahuan } from '../adapter/penyimpananPengetahuan.ts';
 import type { MateriPengetahuan, MateriPotongan } from '../entity/materi.ts';
 import {
@@ -37,7 +37,7 @@ function penyimpananPengetahuanTiruan() {
   return { penyimpanan, materiList, potonganList };
 }
 
-const buat = (penyedia: PenyediaEmbedding = new PenyediaEmbeddingMock()) => {
+const buat = (penyedia: PenyediaEmbedding = new PenyediaEmbeddingTiruan()) => {
   const db = penyimpananPengetahuanTiruan();
   return { ...db, c: new BasisPengetahuanController(penyedia, db.penyimpanan) };
 };
