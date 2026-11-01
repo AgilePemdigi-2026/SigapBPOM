@@ -21,13 +21,18 @@ test('percobaan yang ditolak tidak memperpanjang hukuman', () => {
   assert.equal(p.izinkan('a'), true);
 });
 
-test('ipKlien memakai entri terakhir X-Forwarded-For dari Caddy, bukan entri yang bisa dipalsukan', () => {
+test('ipKlien memakai entri terakhir X-Forwarded-For hanya dari proxy internal', () => {
   assert.equal(ipKlien(new Headers({ 'x-forwarded-for': '1.1.1.1, 203.0.113.9' }), '172.18.0.2'), '203.0.113.9');
   assert.equal(ipKlien(new Headers(), '172.18.0.2'), '172.18.0.2');
+  // Klien publik yang tersambung langsung tidak bisa memalsukan alamat lewat header.
+  assert.equal(ipKlien(new Headers({ 'x-forwarded-for': '9.9.9.9' }), '198.51.100.7'), '198.51.100.7');
 });
 
-test('jumlah kunci dibatasi walau banyak alamat aktif', () => {
-  const p = new PembatasLaju({ now: () => 0 });
+test('tabel penuh tidak membuang kunci yang sedang diblokir', () => {
+  const p = new PembatasLaju({ maks: 1, now: () => 0 });
+  p.izinkan('penyerang');
+  assert.equal(p.izinkan('penyerang'), false);
   for (let i = 0; i < 6000; i++) p.izinkan(`ip-${i}`);
-  assert.ok(p.percobaan.size <= 5001);
+  assert.ok(p.percobaan.size <= 5000);
+  assert.equal(p.izinkan('penyerang'), false);
 });
