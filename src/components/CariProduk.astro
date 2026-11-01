@@ -28,10 +28,23 @@
       <span>Hasil pencarian data registrasi BPOM akan tampil di sini saat CS AI mencari produk yang Anda sebutkan.</span>
     </div>
   </div>
+  <dialog class="dp" data-dp aria-labelledby="dp-judul">
+    <div class="dp-kotak">
+      <div class="dp-atas">
+        <h3 id="dp-judul">Detail Produk</h3>
+        <button type="button" class="dp-x" data-dp-tutup aria-label="Tutup"><i class="icon-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="dp-isi" data-dp-isi></div>
+      <div class="dp-bawah">
+        <a class="dp-tautan" href="https://cekbpom.pom.go.id/all-produk" target="_blank" rel="noopener noreferrer">Buka di cekbpom.pom.go.id<i class="icon-external-link" aria-hidden="true"></i></a>
+        <button type="button" class="dp-tutup" data-dp-tutup>Close</button>
+      </div>
+    </div>
+  </dialog>
 </div>
 
 <script>
-  import { NAMA_PERISTIWA, htmlBarisCek, ringkasanCek, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
+  import { NAMA_PERISTIWA, htmlBarisCek, htmlDetailProduk, ringkasanCek, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
 
   const root = document.querySelector<HTMLElement>('[data-cari]');
   const hero = root?.closest<HTMLElement>('.hero');
@@ -42,7 +55,9 @@
     const hemat = matchMedia('(prefers-reduced-motion: reduce)');
     // Animasi mengetik dibatasi agar tabel tidak menunggu lama: pencarian cekbpom biasanya 0,2–1 detik.
     const KETIK_MAKS_MS = 900;
+    const dp = $<HTMLDialogElement>('[data-dp]'), dpIsi = $('[data-dp-isi]');
     let putaran = 0;
+    let barisKini: TabelCek['baris'] = [];
     let ketikSelesai: Promise<void> = Promise.resolve();
 
     const tidur = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -55,8 +70,26 @@
       status.querySelector('span')?.replaceChildren(teks);
     }
 
+    function bukaDetail(i: number) {
+      const b = barisKini[i];
+      if (!b) return;
+      dpIsi.innerHTML = htmlDetailProduk(b);
+      dpIsi.scrollTop = 0;
+      if (!dp.open) dp.showModal();
+    }
+    // Tombol nama adalah target keyboard (Enter/Spasi); klik di mana pun pada baris juga membuka detail.
+    baris.addEventListener('click', (e) => {
+      const tr = (e.target as HTMLElement).closest('tr');
+      if (!tr || (e.target as HTMLElement).closest('a')) return;
+      bukaDetail(Number(tr.querySelector<HTMLElement>('[data-detail]')?.dataset.detail));
+    });
+    dp.addEventListener('click', (e) => { if (e.target === dp) dp.close(); });
+    dp.querySelectorAll('[data-dp-tutup]').forEach((t) => t.addEventListener('click', () => dp.close()));
+
     function kosongkan() {
       putaran++;
+      if (dp.open) dp.close();
+      barisKini = [];
       ketik.textContent = '';
       ph.hidden = false;
       root!.classList.remove('mengetik');
@@ -102,6 +135,7 @@
       posisi('');
       const r = ringkasanCek(t);
       setStatus(r.jenis, r.teks);
+      barisKini = t.baris;
       baris.innerHTML = htmlBarisCek(t);
       tabel.hidden = !t.baris.length;
       kosong.hidden = Boolean(t.baris.length);
@@ -174,6 +208,11 @@
   .cp-tabel :global(.cp-nie), .cp-tabel :global(.cp-nama) { display: flex; flex-direction: column; gap: 3px; }
   .cp-tabel :global(.cp-dibaca) { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #2152c9; }
   .cp-tabel :global(.cp-nama > span:first-child) { font-weight: 500; }
+  .cp-tabel :global(tr) { cursor: pointer; }
+  .cp-tabel :global(tr:hover) { background: #f1f5ff; }
+  .cp-tabel :global(.cp-buka) { all: unset; box-sizing: border-box; cursor: pointer; font-weight: 500; color: var(--blue-ink); border-radius: 6px; }
+  .cp-tabel :global(.cp-buka:hover) { text-decoration: underline; }
+  .cp-tabel :global(.cp-buka:focus-visible) { outline: 2px solid var(--blue); outline-offset: 3px; }
   .cp-tabel :global(.cp-merek) { font-size: 13.5px; color: var(--muted); }
   .cp-tabel :global(.cp-daftar) { color: var(--ink-3); }
   .cp-tabel :global(.k-status) { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; white-space: nowrap; }
@@ -185,7 +224,50 @@
   .cp-kosong span:last-child { max-width: 520px; }
   .cp-kosong-ic { width: 56px; height: 56px; border-radius: 18px; background: #e3ecff; color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 24px; }
 
+  /* Modal Detail Produk: <dialog> modal berada di top layer, jadi tidak ikut diskalakan kanvas 1920x1080; ukuran memakai vw/vh. */
+  .dp { padding: 0; border: 1px solid var(--line-2); border-radius: 24px; background: var(--surface); color: var(--ink); box-shadow: 0 40px 90px rgba(20, 30, 60, .3); width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); font-family: inherit; overflow: hidden; }
+  .dp[open] { animation: dpMasuk .2s ease-out; }
+  .dp::backdrop { background: rgba(20, 28, 48, .45); backdrop-filter: blur(2px); }
+  @keyframes dpMasuk { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+  .dp-kotak { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+  .dp-atas { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--line-2); }
+  .dp-atas h3 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+  .dp-x { all: unset; box-sizing: border-box; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; color: var(--muted); font-size: 20px; }
+  .dp-x:hover { background: var(--surface-2); color: var(--ink); }
+  .dp-x:focus-visible, .dp-tutup:focus-visible, .dp-tautan:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .dp-isi { padding: 20px 22px; overflow-y: auto; min-height: 0; }
+  .dp-bawah { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 22px; border-top: 1px solid var(--line-2); background: var(--surface-2); }
+  .dp-tautan { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--blue-ink); text-decoration: none; }
+  .dp-tautan:hover { text-decoration: underline; }
+  .dp-tutup { all: unset; box-sizing: border-box; cursor: pointer; height: 44px; padding: 0 26px; display: inline-flex; align-items: center; border-radius: 999px; background: var(--ink-2); color: #fff; font-size: 15.5px; font-weight: 500; }
+  .dp-tutup:hover { filter: brightness(1.2); }
+  .dp-isi :global(.dp-kepala) { padding: 16px 18px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 4px; }
+  .dp-isi :global(.dp-kepala p) { margin: 0; overflow-wrap: anywhere; }
+  .dp-isi :global(.dp-baris) { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+  .dp-isi :global(.dp-lencana) { display: inline-flex; align-items: center; padding: 2px 12px; border-radius: 999px; background: #e3ecff; color: var(--blue-ink); font-size: 13.5px; font-weight: 600; }
+  .dp-isi :global(.dp-nama) { font-size: 19px; font-weight: 600; }
+  .dp-isi :global(.dp-merek) { font-size: 15.5px; color: var(--ink-3); }
+  .dp-isi :global(.dp-nie) { font-size: 15.5px; font-weight: 600; color: var(--blue-ink); }
+  .dp-isi :global(.k-status) { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px; font-size: 13.5px; font-weight: 600; }
+  .dp-isi :global(.k-status.ok) { background: #e8f7ee; color: #15803d; }
+  .dp-isi :global(.k-status.no) { background: #fdecec; color: #b42318; }
+  .dp-isi :global(.dp-grid) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 0; }
+  .dp-isi :global(.dp-f) { margin: 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface); min-width: 0; }
+  .dp-isi :global(.dp-f.lebar) { grid-column: 1 / -1; }
+  .dp-isi :global(dt) { font-size: 12.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .dp-isi :global(dd) { margin: 0; font-size: 15.5px; line-height: 1.45; overflow-wrap: anywhere; }
+  .dp-isi :global(.dp-sub) { display: block; margin-top: 3px; font-size: 14px; color: var(--muted); }
+  @media (max-width: 560px) {
+    .dp-isi :global(.dp-grid) { grid-template-columns: 1fr; }
+    .dp-atas, .dp-isi, .dp-bawah { padding-left: 16px; padding-right: 16px; }
+    .dp-bawah { flex-direction: column-reverse; align-items: stretch; }
+    .dp-tutup { justify-content: center; }
+    .dp-tautan { justify-content: center; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .cp-kursor { display: none; }
+    .dp[open] { animation: none; }
+    .dp::backdrop { backdrop-filter: none; }
   }
 </style>

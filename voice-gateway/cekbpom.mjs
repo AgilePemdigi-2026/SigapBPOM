@@ -49,6 +49,27 @@ function statusIzin(s) {
   return 'Berlaku';
 }
 
+const KOMPOSISI_MAKS = 300;
+const potong = (t, maks) => (t.length > maks ? `${t.slice(0, maks - 1).trimEnd()}…` : t);
+const gabung = (...bagian) => bersihkan(bagian.filter((x) => bersihkan(x)).join(', '));
+
+/**
+ * Bidang untuk modal "Detail Produk" di panel Cari Produk. Semuanya sudah ada pada baris `/produk-dt/all`
+ * (halaman `/produk/{PRODUCT_ID}/{APPLICATION_ID}/detail` cekbpom hanya menampilkan ulang data yang sama), jadi tidak perlu
+ * permintaan kedua. Hanya data publik registrasi; komposisi dipotong agar payload `cek` tetap kecil.
+ */
+export function detailDariBaris(b) {
+  const komposisi = bersihkan(b.INGREDIENTS);
+  return {
+    kategori: bersihkan(b.CATEGORY),
+    terbit: bersihkan(b.PRODUCT_DATE),
+    komposisi: potong(komposisi, KOMPOSISI_MAKS),
+    kemasan: bersihkan(b.PRODUCT_PACKAGE),
+    alamatPendaftar: gabung(b.REGISTRAR_ADD, b.REGISTRAR_PROV || gabung(b.REGISTRAR_DISTRICT_DETAIL, b.REGISTRAR_PROVINCE_DETAIL)),
+    diterbitkanOleh: gabung(b.APPLICATION, b.DEPARTMENT),
+  };
+}
+
 /** Bentuk sama dengan `Produk` di src/lib/kartuPanggilan.ts, plus merek dan tanggal berlaku untuk konteks AI. */
 export function produkDariBaris(b) {
   return {
@@ -58,6 +79,7 @@ export function produkDariBaris(b) {
     status: statusIzin(b.STATUS),
     pendaftar: bersihkan(b.REGISTRAR || b.MANUFACTURER_NAME),
     berlakuSampai: bersihkan(b.PRODUCT_EXPIRED),
+    detail: detailDariBaris(b),
     sumber: 'cekbpom.pom.go.id',
   };
 }
@@ -183,7 +205,10 @@ export function tabelCek(kueri, data) {
     total: data?.total ?? 0,
     dibaca: Math.min(produk.length, KANDIDAT_MAKS),
     galat: !data,
-    baris: produk.map((p) => ({ nama: p.nama, merek: p.merek, nomorIzinEdar: p.nomorIzinEdar, status: p.status, pendaftar: p.pendaftar })),
+    baris: produk.map((p) => ({
+      nama: p.nama, merek: p.merek, nomorIzinEdar: p.nomorIzinEdar, status: p.status, pendaftar: p.pendaftar,
+      berlakuSampai: p.berlakuSampai, ...p.detail,
+    })),
   };
 }
 
