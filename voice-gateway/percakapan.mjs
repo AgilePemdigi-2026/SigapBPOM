@@ -24,6 +24,8 @@ export const PESAN_BATAS_AI = {
 };
 
 export const PANJANG_MAKS_UCAPAN = 1000;
+/** Panjang maksimum pesan yang diketik penelepon, dalam karakter setelah dirapikan. */
+export const PANJANG_MAKS_KETIKAN = 500;
 const GILIRAN_RIWAYAT_MAKS = 12;
 const SESI_KEDALUWARSA_MS = 15 * 60 * 1000;
 const SESI_MAKS = 200;
@@ -335,3 +337,19 @@ export class PembatasLaju {
 
 const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const idPanggilanSah = (id) => typeof id === 'string' && POLA_UUID.test(id);
+
+/**
+ * Urai badan JSON POST /voice/giliran. Dua bentuk: {id, pilih} untuk tombol menu, dan {id, teks} untuk pesan yang diketik
+ * (melewati STT, selebihnya sama dengan ucapan). Fungsi murni: mengembalikan {jenis, id, ...} atau {galat: {kode, pesan}}.
+ */
+export function uraiGiliranJson(body) {
+  const galat = (kode, pesan) => ({ galat: { kode, pesan } });
+  if (!body || typeof body !== 'object' || Array.isArray(body) || !idPanggilanSah(body.id)) return galat(400, 'Permintaan tidak valid.');
+  if (!('teks' in body)) return { jenis: 'pilih', id: body.id, pilih: Number(body.pilih) };
+  if (typeof body.teks !== 'string') return galat(400, 'Permintaan tidak valid.');
+  // Karakter kontrol dibuang dan spasi beruntun dirapikan, supaya pesan yang diketik berbentuk sama dengan hasil STT.
+  const teks = body.teks.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!teks) return galat(422, 'Pesan kosong. Silakan ketik pertanyaan Anda.');
+  if (teks.length > PANJANG_MAKS_KETIKAN) return galat(422, `Pesan terlalu panjang. Maksimal ${PANJANG_MAKS_KETIKAN} karakter.`);
+  return { jenis: 'teks', id: body.id, teks };
+}

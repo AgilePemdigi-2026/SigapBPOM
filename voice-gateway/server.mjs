@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup,
-  pesanLayanan, saringUcapan, teksUntukSuara,
+  pesanLayanan, saringUcapan, uraiGiliranJson, teksUntukSuara,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
 import { CekBpom, cekRegistrasi, labelKueri, tabelCek } from './cekbpom.mjs';
@@ -248,27 +248,35 @@ async function ttsElevenLabs(teks) {
   return r.body;
 }
 
-/** POST /voice/giliran: JSON {id, pilih} untuk tombol menu, atau audio mentah (?id=) untuk ucapan. */
+/** POST /voice/giliran: JSON {id, pilih} untuk tombol menu, JSON {id, teks} untuk pesan diketik, atau audio mentah (?id=) untuk ucapan. */
 async function giliran(req, res, url) {
   if (!lajuGiliran.izinkan(ipKlien(req))) throw new ErrorGateway(429, 'Terlalu banyak permintaan. Coba lagi sebentar lagi.');
   const tipe = String(req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
 
+  let ketik = null;
+  let id;
   if (tipe === 'application/json') {
     let body;
     try { body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8')); } catch { throw new ErrorGateway(400, 'Permintaan tidak valid.'); }
-    if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
-    const jawaban = pesanLayanan(Number(body.pilih));
-    if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
-    riwayat.pilihLayanan(body.id, Number(body.pilih));
-    riwayat.selesaiEskalasi(body.id);
-    riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
-    riwayat.tambah(body.id, 'assistant', jawaban);
-    return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${Number(body.pilih)}` });
+    const urai = uraiGiliranJson(body);
+    if (urai.galat) throw new ErrorGateway(urai.galat.kode, urai.galat.pesan);
+    id = urai.id;
+    if (urai.jenis === 'pilih') {
+      const jawaban = pesanLayanan(urai.pilih);
+      if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+      riwayat.pilihLayanan(id, urai.pilih);
+      riwayat.selesaiEskalasi(id);
+      riwayat.tambah(id, 'user', `Saya memilih layanan ${urai.pilih}.`);
+      riwayat.tambah(id, 'assistant', jawaban);
+      return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${urai.pilih}` });
+    }
+    // Pesan yang diketik: tanpa STT, selebihnya sama dengan giliran suara.
+    ketik = urai.teks;
+  } else {
+    if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
+    id = url.searchParams.get('id');
+    if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
   }
-
-  if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
-  const id = url.searchParams.get('id');
-  if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
   const ip = ipKlien(req);
   // Sebelum STT: batasi giliran serentak dan cadangkan token, supaya permintaan paralel ikut terhitung
   // dan panggilan yang anggarannya habis tidak ikut memakai kuota ElevenLabs.
@@ -278,11 +286,14 @@ async function giliran(req, res, url) {
   giliranAktif.set(ip, (giliranAktif.get(ip) ?? 0) + 1);
   let cadangan = PERKIRAAN_TOKEN_GILIRAN;
   try {
-    const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
-    if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+    let audio = null;
+    if (ketik === null) {
+      audio = await bacaBody(req, AUDIO_MAKS_BYTE);
+      if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+    }
 
     const mulai = Date.now();
-    const transkrip = await sttElevenLabs(audio, tipe);
+    const transkrip = ketik ?? await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
 
     // Jawaban dikirim sebagai NDJSON: transkrip lebih dulu (dengan tanda putar kalimat jeda bila AI dipanggil),
