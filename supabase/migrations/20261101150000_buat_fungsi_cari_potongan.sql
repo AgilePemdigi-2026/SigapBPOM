@@ -3,7 +3,7 @@
 -- Hasil di bawah ambang kemiripan tidak dikembalikan (menghasilkan tabel kosong).
 
 create or replace function public.cari_potongan(
-  embedding vector,
+  embedding public.vector,
   ambang float default 0.7,
   batas int default 5
 )
@@ -26,15 +26,14 @@ as $$
     p.teks,
     m.judul,
     m.rujukan_sumber,
-    (1 - (p.embedding <=> embedding))::double precision as skor
+    (1 - (p.embedding OPERATOR(public.<=>) embedding))::double precision as skor
   from public.materi_potongan p
   join public.materi_pengetahuan m on m.id = p.materi_id
   where m.status = 'aktif'
-    and (1 - (p.embedding <=> embedding)) >= ambang
-  order by p.embedding <=> embedding asc
+    and (1 - (p.embedding OPERATOR(public.<=>) embedding)) >= ambang
+  order by p.embedding OPERATOR(public.<=>) embedding asc
   limit batas;
 $$;
 
-revoke execute on function public.cari_potongan(vector, float, int) from public, anon;
-grant execute on function public.cari_potongan(vector, float, int) to authenticated, service_role;
-
+revoke execute on function public.cari_potongan(public.vector, float, int) from public, anon;
+grant execute on function public.cari_potongan(public.vector, float, int) to authenticated, service_role;
