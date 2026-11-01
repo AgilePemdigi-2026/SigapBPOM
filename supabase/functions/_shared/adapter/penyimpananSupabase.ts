@@ -1,6 +1,6 @@
 // Adapter penyimpanan ke Postgres Supabase memakai service role (hanya di sisi server).
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
-import { ErrorSigap, type LogTool, type PenyimpananLayanan } from '../control/InformasiProdukController.ts';
+import { ErrorSigap, type LogTool, type PenyimpananLayanan, type PotonganPengetahuan } from '../control/InformasiProdukController.ts';
 
 export class PenyimpananSupabase implements PenyimpananLayanan {
   db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -27,5 +27,20 @@ export class PenyimpananSupabase implements PenyimpananLayanan {
     if (error?.code === '23505') throw new ErrorSigap(422, 'Tiket untuk percakapan ini sudah diterbitkan.');
     if (error) throw error;
     return nomorTiket as string;
+  }
+
+  async cariPotongan(embedding: number[], ambang: number, batas: number): Promise<PotonganPengetahuan[]> {
+    const { data, error } = await this.db.rpc('cari_potongan', {
+      embedding: JSON.stringify(embedding),
+      ambang,
+      batas,
+    });
+    if (error) throw error;
+    return (data ?? []).map((b: { teks: string; judul: string; rujukan_sumber: string; skor: number }) => ({
+      teks: b.teks,
+      judul: b.judul,
+      rujukanSumber: b.rujukan_sumber,
+      skor: Number(b.skor),
+    }));
   }
 }
