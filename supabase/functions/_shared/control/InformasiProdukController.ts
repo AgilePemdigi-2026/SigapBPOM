@@ -1,6 +1,7 @@
-// Control UC-01 Menanyakan Informasi Produk: cek registrasi (F1.2) dan tiket eskalasi (F1.4).
+// Control UC-01 Menanyakan Informasi Produk: cek registrasi (F1.2), jawab edukasi (F1.3), dan tiket eskalasi (F1.4).
 // Tidak memakai API khusus Deno agar bisa diuji dengan `node --test` tanpa basis data.
 import type { AdapterCekBpom } from '../adapter/cekbpom.ts';
+import { PenyediaEmbeddingTiruan, type PenyediaEmbedding } from '../adapter/embedding.ts';
 import type { Produk } from '../entity/produk.ts';
 import { normalkanNomorTelepon } from '../entity/penelepon.ts';
 
@@ -10,15 +11,27 @@ const PANJANG_MAKS_NAMA_PRODUK = 200;
 const PANJANG_MAKS_PERTANYAAN = 2000;
 const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Ambang kemiripan kosinus minimal untuk pencarian basis pengetahuan (F1.3). */
+export const AMBANG_KEMIRIPAN_BAWAAN = 0.7;
+export const BATAS_POTONGAN_BAWAAN = 5;
+
 /** Kamus pesan PRD-rinci Lampiran A (UC-02 "Data kurang"), dipakai agen untuk meminta ulang nomor. */
 export const PESAN_MINTA_NOMOR_TELEPON = 'Mohon sebutkan nomor telepon Anda.';
 
 export type LogTool = { percakapanId: string | null; namaTool: string; durasiMs: number; berhasil: boolean };
 
+export type PotonganPengetahuan = {
+  teks: string;
+  judul: string;
+  rujukanSumber: string;
+  skor: number;
+};
+
 export interface PenyimpananLayanan {
   catatLogTool(log: LogTool): Promise<void>;
   /** Mengembalikan nomor tiket ESK-YYYYMMDD-NNNN; melempar ErrorSigap 404 bila percakapan tidak ada. */
   terbitkanTiketEskalasi(data: { percakapanId: string; nomorTelepon: string; ringkasan: string }): Promise<string>;
+  cariPotongan(embedding: number[], ambang: number, batas: number): Promise<PotonganPengetahuan[]>;
 }
 
 /** Error terkendali: `status` kode HTTP, `message` aman ditampilkan ke klien. */
@@ -34,11 +47,18 @@ export class InformasiProdukController {
   adapter: AdapterCekBpom;
   penyimpanan: PenyimpananLayanan;
   batasWaktuMs: number;
+  penyediaEmbedding: PenyediaEmbedding;
 
-  constructor(adapter: AdapterCekBpom, penyimpanan: PenyimpananLayanan, batasWaktuMs = BATAS_WAKTU_CEK_REGISTRASI_MS) {
+  constructor(
+    adapter: AdapterCekBpom,
+    penyimpanan: PenyimpananLayanan,
+    batasWaktuMs = BATAS_WAKTU_CEK_REGISTRASI_MS,
+    penyediaEmbedding: PenyediaEmbedding = new PenyediaEmbeddingTiruan(),
+  ) {
     this.adapter = adapter;
     this.penyimpanan = penyimpanan;
     this.batasWaktuMs = batasWaktuMs;
+    this.penyediaEmbedding = penyediaEmbedding;
   }
 
   /**
@@ -60,6 +80,54 @@ export class InformasiProdukController {
     } finally {
       await this.catat({ percakapanId, namaTool: 'cek_registrasi_bpom', durasiMs: Date.now() - mulai, berhasil });
     }
+  }
+
+  /**
+   * REQ-1.4, F1.3: Pencarian vektor basis pengetahuan edukasi bersumber.
+   * Input: { pertanyaan, ambang?, batas?, percakapanId? }
+   * Membuat embedding lewat PenyediaEmbedding, memanggil penyimpanan.cariPotongan().
+   * Mengembalikan { potongan: PotonganPengetahuan[] }.
+   * Hasil di bawah ambang kemiripan dikembalikan berupa array kosong [].
+   */
+  async cariPengetahuan(input: {
+    pertanyaan?: unknown;
+    ambang?: unknown;
+    batas?: unknown;
+    percakapanId?: unknown;
+  }): Promise<{ potongan: PotonganPengetahuan[] }> {
+    const pertanyaan = typeof input.pertanyaan === 'string' ? input.pertanyaan.trim() : '';
+    if (!pertanyaan || pertanyaan.length > PANJANG_MAKS_PERTANYAAN) {
+      throw new ErrorSigap(422, 'Pertanyaan wajib diisi.');
+    }
+    const percakapanId = this.percakapanIdOpsional(input.percakapanId);
+    const ambang = typeof input.ambang === 'number' && !Number.isNaN(input.ambang)
+      ? input.ambang
+      : AMBANG_KEMIRIPAN_BAWAAN;
+    const batas = typeof input.batas === 'number' && !Number.isNaN(input.batas)
+      ? Math.max(1, Math.trunc(input.batas))
+      : BATAS_POTONGAN_BAWAAN;
+
+    const mulai = Date.now();
+    let berhasil = false;
+    try {
+      const embedding = await this.penyediaEmbedding.buatEmbedding(pertanyaan);
+      const hasil = await this.penyimpanan.cariPotongan(embedding, ambang, batas);
+      const potongan = (hasil ?? []).filter((p) => p.skor >= ambang);
+      berhasil = true;
+      return { potongan };
+    } finally {
+      await this.catat({
+        percakapanId,
+        namaTool: 'cari_basis_pengetahuan',
+        durasiMs: Date.now() - mulai,
+        berhasil,
+      });
+    }
+  }
+
+  /** Alias sesuai Class Diagram SRS: +cariJawaban(pertanyaan) */
+  cariJawaban(input: { pertanyaan?: unknown; ambang?: unknown; batas?: unknown; percakapanId?: unknown }) {
+    return this.cariPengetahuan(input);
   }
 
   /** REQ-1.7, NFR-6: pertanyaan yang butuh petugas diterbitkan tiket ESK berstatus belum ditelaah. */

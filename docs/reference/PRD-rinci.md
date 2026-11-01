@@ -424,6 +424,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 07 | Materi tersimpan | Materi siap digunakan sistem. |
 | 07 | Materi dinonaktifkan | Materi ditandai tidak aktif. |
 | 07 | Rujukan kosong | Rujukan sumber wajib diisi. |
+| 07 | Materi gagal dimuat | Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 08 | Periode kosong | Data tidak tersedia pada periode tersebut. |
 | 08 | Unduh sukses | Laporan berhasil diunduh. |
 | 08 | Tanpa hak ekspor | Anda tidak memiliki hak akses ekspor data. |
