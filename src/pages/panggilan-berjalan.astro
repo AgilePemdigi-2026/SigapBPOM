@@ -1,0 +1,140 @@
+---
+// Boundary UC-04 Memantau Layanan, halaman Panggilan Berjalan (REQ-4.2, T-F5.2-01).
+// Daftar diperbarui otomatis lewat polling /api/panggilan-berjalan; durasi dihitung ulang tiap detik di browser.
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { pemantauanLayanan } from '../lib/pemantauan';
+import { KAPASITAS_SALURAN_BAWAAN, PESAN_PEMANTAUAN, type Panggilan } from '../lib/PemantauanLayananController';
+
+const panggilan: Panggilan[] = await pemantauanLayanan().panggilanBerjalan().catch(() => []);
+const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
+---
+<DashboardLayout title="Panggilan Berjalan">
+  <div class="page">
+    <section class="panel head">
+      <div class="head-title">
+        <h1>Panggilan Berjalan</h1>
+        <span>Panggilan aktif ke CS AI HaloBPOM, diperbarui otomatis</span>
+      </div>
+      <span class="live" id="live"><span class="live-dot"></span>LIVE</span>
+    </section>
+
+    <div class="sum" data-name="RingkasanPanggilanBerjalan">
+      <div class="panel sum-card"><span>Panggilan aktif</span><span class="v" id="s-aktif">0</span></div>
+      <div class="panel sum-card"><span>Rata-rata durasi</span><span class="v mono" id="s-rata">00:00</span></div>
+      <div class="panel sum-card"><span>Panggilan terlama</span><span class="v mono" id="s-terlama">00:00</span></div>
+      <div class="panel sum-card"><span>Pemakaian saluran</span><span class="v" id="s-saluran">0%</span><div class="track"><div id="s-saluran-bar"></div></div></div>
+    </div>
+
+    <section class="panel list" data-name="DaftarPanggilanBerjalan">
+      <div class="row-grid cols-head" aria-hidden="true"><span>NOMOR</span><span>JENIS LAYANAN</span><span>TOPIK</span><span>MULAI</span><span>DURASI</span><span>TAHAP AI</span></div>
+      <div id="rows" role="list" aria-label="Panggilan aktif"></div>
+      <div class="empty" id="empty" hidden><i class="icon-phone-off"></i><span>{PESAN_PEMANTAUAN.tidakAdaPanggilan}</span></div>
+    </section>
+  </div>
+  <script type="application/json" id="data-panggilan" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
+</DashboardLayout>
+
+<script>
+  import { ringkasPanggilan, type Panggilan } from '../lib/PemantauanLayananController';
+
+  // REQ-4.2: panggilan baru dan yang berakhir muncul atau hilang tanpa memuat ulang halaman.
+  const JEDA_POLLING_MS = 5000;
+  const awal = JSON.parse(document.getElementById('data-panggilan')!.textContent!) as { panggilan: Panggilan[]; kapasitas: number };
+  let panggilan = awal.panggilan;
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const durasi = (detik: number) => {
+    const j = Math.floor(detik / 3600), m = Math.floor((detik % 3600) / 60), d = detik % 60;
+    const dua = (n: number) => String(n).padStart(2, '0');
+    return j ? `${j}:${dua(m)}:${dua(d)}` : `${dua(m)}:${dua(d)}`;
+  };
+  const detikSejak = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  const jam = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  function sel(teks: string, cls = '') {
+    const s = document.createElement('span');
+    s.textContent = teks;
+    if (cls) s.className = cls;
+    return s;
+  }
+
+  function render() {
+    const rows = $('rows');
+    rows.replaceChildren(...panggilan.map((p) => {
+      const r = document.createElement('div');
+      r.className = 'row-grid row tile';
+      r.setAttribute('role', 'listitem');
+      r.dataset.id = p.id;
+      const tahap = sel(p.tahap, 'chip tahap');
+      tahap.dataset.tahap = p.tahap;
+      r.append(sel(p.noTelp, 'mono'), sel(p.jenis), sel(p.topik, 'topik'), sel(jam.format(new Date(p.waktuMulai)).replace(/\./g, ':'), 'mono'), sel('', 'mono durasi'), tahap);
+      return r;
+    }));
+    $('empty').hidden = panggilan.length > 0;
+    tick();
+  }
+
+  function tick() {
+    document.querySelectorAll<HTMLElement>('#rows .row').forEach((r, i) => {
+      r.querySelector('.durasi')!.textContent = durasi(detikSejak(panggilan[i].waktuMulai));
+    });
+    const s = ringkasPanggilan(panggilan, new Date(), awal.kapasitas);
+    $('s-aktif').textContent = String(s.aktif);
+    $('s-rata').textContent = durasi(s.rataDurasiDetik);
+    $('s-terlama').textContent = durasi(s.terlamaDetik);
+    $('s-saluran').textContent = `${s.pemakaianSaluranPersen}%`;
+    $('s-saluran-bar').style.width = `${s.pemakaianSaluranPersen}%`;
+  }
+
+  async function perbarui() {
+    try {
+      const r = await fetch('/api/panggilan-berjalan', { cache: 'no-store' });
+      if (r.status === 401) return location.replace('/login');
+      if (!r.ok) throw new Error(String(r.status));
+      panggilan = (await r.json()).data.panggilan;
+      $('live').classList.remove('putus');
+      render();
+    } catch {
+      // Data terakhir tetap tampil; label LIVE meredup sampai polling berikutnya berhasil.
+      $('live').classList.add('putus');
+    }
+  }
+
+  render();
+  setInterval(tick, 1000);
+  setInterval(perbarui, JEDA_POLLING_MS);
+</script>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  [hidden] { display: none !important; }
+  .head { padding: 22px 28px; display: flex; align-items: center; gap: 16px; }
+  .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.02em; }
+  .head-title span { font-size: 15px; color: var(--muted); }
+  .live { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: #fde8e7; color: var(--danger); font-size: 14px; font-weight: 700; letter-spacing: .12em; }
+  .live-dot { width: 9px; height: 9px; border-radius: 9px; background: #ef4444; animation: denyut 1.6s ease-in-out infinite; }
+  .live.putus { background: #e9ebef; color: var(--muted); }
+  .live.putus .live-dot { background: #9aa1ad; animation: none; }
+  @keyframes denyut { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+  .sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  .sum-card { padding: 20px 24px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--muted); }
+  .sum-card .v { font-size: 34px; font-weight: 500; letter-spacing: -.02em; color: var(--ink); }
+  .track { height: 10px; border-radius: 99px; background: #e4e7ec; overflow: hidden; }
+  .track div { height: 100%; width: 0; border-radius: 99px; background: var(--blue); transition: width .3s; }
+
+  .list { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+  /* Baris dibuat ulang oleh skrip, jadi tidak membawa atribut scope Astro. */
+  .row-grid, #rows :global(.row-grid) { display: grid; grid-template-columns: 1.1fr 1fr 1.4fr .8fr .8fr .9fr; gap: 14px; align-items: center; padding: 0 18px; }
+  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); padding-bottom: 4px; }
+  #rows { display: flex; flex-direction: column; gap: 8px; }
+  :global(#rows .row) { min-height: 58px; border-radius: 18px; font-size: 15px; }
+  :global(#rows .topik) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :global(#rows .tahap) { justify-self: start; background: #e3ecff; color: #2152c9; }
+  :global(#rows .tahap[data-tahap='Mendengar']) { background: #dcf5e6; color: #15803d; }
+  :global(#rows .tahap[data-tahap='Menjawab']) { background: #ece7fe; color: #5b3fc4; }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; min-height: 220px; }
+  .empty i { font-size: 28px; color: var(--muted-2); }
+</style>

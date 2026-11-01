@@ -1,0 +1,77 @@
+---
+// Boundary UC-04, halaman Detail Pengaduan yang dibuka tombol "Buka Kasus" (REQ-4.4, T-F5.3-03).
+// Read-only: telaah, tanggapan, dan tutup tiket menyusul di Sprint 3 (UC-06). Data pribadi sudah tersamar (NFR-13).
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { chip } from '../../lib/data';
+import { pengaduan } from '../../lib/pemantauan';
+
+const hasil = await pengaduan().detailPengaduan(Astro.url.searchParams.get('tiket'));
+const gagal = 'gagal' in hasil ? hasil.gagal : '';
+const d = 'gagal' in hasil ? null : hasil;
+if (!d) Astro.response.status = 404;
+const warna = d ? chip(d.labelStatus) : null;
+---
+<DashboardLayout title={d ? `Detail Pengaduan ${d.noTiket}` : 'Detail Pengaduan'}>
+  <div class="page">
+    <a href="/ringkasan" class="pill back"><i class="icon-arrow-left"></i>Kembali ke Ringkasan Layanan</a>
+    {d ? (
+      <>
+        <section class="panel head" data-name="DetailPengaduan">
+          <div class="head-title">
+            <span class="eyebrow">{d.jenis.toUpperCase()}</span>
+            <h1 class="mono">{d.noTiket}</h1>
+          </div>
+          <span class="chip big" style={`background:${warna!.bg};color:${warna!.fg}`}>{d.labelStatus}</span>
+        </section>
+
+        <div class="grid">
+          <section class="panel card">
+            <h2>Data Pengaduan</h2>
+            <p class="ringkasan">{d.ringkasan}</p>
+            <dl>
+              <div><dt>Waktu masuk</dt><dd>{d.tglTerbit}</dd></div>
+              <div><dt>Jenis layanan</dt><dd>{d.jenisLayanan}</dd></div>
+              <div><dt>Topik</dt><dd>{d.topik}</dd></div>
+              <div><dt>Status</dt><dd>{d.labelStatus}</dd></div>
+            </dl>
+          </section>
+
+          <section class="panel card">
+            <h2>Pelapor dan Percakapan</h2>
+            <dl>
+              <div><dt>Nama pelapor</dt><dd>{d.namaPelapor}</dd></div>
+              <div><dt>Nomor telepon</dt><dd class="mono">{d.noTelp}</dd></div>
+              <div><dt>Waktu panggilan</dt><dd>{d.waktuPanggilan}</dd></div>
+            </dl>
+            <span class="grow"></span>
+            <a href={d.tautanTranskrip} class="btn-primary transkrip"><i class="icon-file-text"></i>Lihat Transkrip</a>
+          </section>
+        </div>
+      </>
+    ) : (
+      <section class="panel empty" role="alert"><i class="icon-file-x"></i><span>{gagal}</span></section>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .grow { flex: 1; }
+  .back { align-self: flex-start; }
+  .head { padding: 22px 28px; display: flex; align-items: center; gap: 16px; }
+  .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+  .head h1 { margin: 0; font-size: 32px; font-weight: 500; letter-spacing: -.01em; }
+  .chip.big { font-size: 15px; padding: 8px 16px; }
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+  .card { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
+  .card h2 { margin: 0; font-size: 24px; font-weight: 400; letter-spacing: -.01em; }
+  .ringkasan { margin: 0; font-size: 18px; line-height: 1.5; text-wrap: pretty; }
+  dl { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  dl div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 500; text-align: right; }
+  .transkrip { height: 50px; padding: 0 22px; font-size: 15px; align-self: flex-start; }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 18px; color: var(--ink-3); }
+  .empty i { font-size: 32px; color: var(--muted-2); }
+</style>
