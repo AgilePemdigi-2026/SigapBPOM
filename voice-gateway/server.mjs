@@ -9,7 +9,8 @@ import {
   PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan,
   teksUntukSuara,
 } from './percakapan.mjs';
-import { Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { Korpus } from './pengetahuan.mjs';
+import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -51,6 +52,8 @@ const SUARA_STATIS = {
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+// Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function; tanpa konfigurasi dipakai korpus lokal.
+const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
   perIpHarian: Number(env('TIKET_HARIAN_PER_IP', '5')),
@@ -275,8 +278,9 @@ async function giliran(req, res, url) {
       jawaban = PESAN_PENUTUP;
     } else if (!saring) {
       riwayat.tambah(id, 'user', transkrip);
-      kutipan = korpus ? korpus.cari(transkrip) : [];
-      const hasil = await tanyaHermes(id, pesanKutipan(kutipan));
+      const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
+      kutipan = basis.kutipan;
+      const hasil = await tanyaHermes(id, pesanBasisPengetahuan(kutipan));
       token = hasil.token;
       anggaranAi.catat(ip, id, token - cadangan);
       cadangan = 0;
@@ -299,7 +303,7 @@ async function giliran(req, res, url) {
       ev: 'giliran', stt_ms: tStt, total_ms: tTotal, ucapan_kar: transkrip.length, jawaban_kar: jawaban.length, kutipan: kutipan.length,
       saring, di_luar_topik: diLuarTopik, menutup, token, token_hari_ini: anggaranAi.total - cadangan,
     }));
-    const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+    const sumber = sumberUntukPanel(kutipan);
     const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
     return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup });
   } finally {
