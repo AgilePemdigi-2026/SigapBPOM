@@ -1,4 +1,5 @@
-// Control UC-07 Mengelola Basis Pengetahuan: daftar materi (T-F2.1-03) dan graf pengetahuan (REQ-7.4, T-F2.4-02).
+// Control UC-07 Mengelola Basis Pengetahuan: daftar materi (T-F2.1-03), nonaktifkan materi (REQ-7.3, T-F2.3-02)
+// dan graf pengetahuan (REQ-7.4, T-F2.4-02).
 
 export type StatusMateri = 'aktif' | 'tidak_aktif';
 
@@ -20,6 +21,8 @@ export interface PenyimpananMateri {
   daftar(kueri: KueriPenyimpanan): Promise<{ baris: MateriTersimpan[]; total: number }>;
   /** Potongan teks terindeks per materi, untuk detail simpul graf. */
   potongan(materiIds: string[]): Promise<Record<string, string[]>>;
+  /** Menandai materi tidak aktif dan memperbarui waktunya; tidak pernah DELETE (BR-5). False bila materi tidak ada. */
+  nonaktifkan(materiId: string): Promise<boolean>;
 }
 
 /** Bentuk baris tabel di halaman Basis Pengetahuan. */
@@ -32,13 +35,18 @@ export type Graf = { simpul: Simpul[]; sisi: [string, string][] };
 export type KueriMateri = { status?: unknown; cari?: unknown; halaman?: unknown; ukuran?: unknown };
 
 /** Kamus pesan PRD-rinci Lampiran A, UC-07. */
-export const PESAN_MATERI = { gagalDimuat: 'Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi.' } as const;
+export const PESAN_MATERI = {
+  gagalDimuat: 'Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
+  dinonaktifkan: 'Materi ditandai tidak aktif.',
+  gagalDinonaktifkan: 'Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi.',
+} as const;
 
 export const UKURAN_HALAMAN_BAWAAN = 25;
 // ponytail: halaman dan graf membaca paling banyak 1000 materi sekaligus; tambah paginasi di UI bila korpus melewatinya.
 export const UKURAN_HALAMAN_MAKS = 1000;
 // PROJECT_RULES 5.6: panjang isian dibatasi sebelum diteruskan ke basis data.
 const PANJANG_CARI_MAKS = 100;
+const PANJANG_ID_MAKS = 64;
 
 // Graf dibatasi agar tetap terbaca di kanvas: simpul kategori sebagai pusat, beberapa materi terbaru di sekelilingnya.
 const MATERI_PER_KATEGORI = 5;
@@ -144,6 +152,18 @@ export class BasisPengetahuanController {
       return susunGraf(baris, await this.penyimpanan.potongan(ids));
     } catch {
       return { gagal: PESAN_MATERI.gagalDimuat };
+    }
+  }
+
+  /** REQ-7.3, BR-5: materi usang ditandai tidak aktif, tidak dihapus, dan keluar dari graf serta katalog CS AI. */
+  async nonaktifkanMateri(materiId: unknown): Promise<{ berhasil: boolean; pesan: string }> {
+    const id = typeof materiId === 'string' ? materiId.trim() : '';
+    const gagal = { berhasil: false, pesan: PESAN_MATERI.gagalDinonaktifkan };
+    if (!id || id.length > PANJANG_ID_MAKS) return gagal;
+    try {
+      return (await this.penyimpanan.nonaktifkan(id)) ? { berhasil: true, pesan: PESAN_MATERI.dinonaktifkan } : gagal;
+    } catch {
+      return gagal;
     }
   }
 }

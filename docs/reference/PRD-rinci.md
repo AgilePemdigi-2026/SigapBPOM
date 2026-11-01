@@ -426,6 +426,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 06 | Tutup tanpa tanggapan | Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu. |
 | 07 | Materi tersimpan | Materi siap digunakan sistem. |
 | 07 | Materi dinonaktifkan | Materi ditandai tidak aktif. |
+| 07 | Gagal menonaktifkan | Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi. |
 | 07 | Rujukan kosong | Rujukan sumber wajib diisi. |
 | 07 | Materi gagal dimuat | Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 08 | Periode kosong | Data tidak tersedia pada periode tersebut. |
