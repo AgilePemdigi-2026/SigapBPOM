@@ -13,7 +13,7 @@
       "page": "Beranda Publik",
       "phase": 1,
       "dependsOn": [],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -30,7 +30,7 @@
       "dependsOn": [
         "T-F1.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -45,7 +45,7 @@
       "page": null,
       "phase": 1,
       "dependsOn": [],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -62,7 +62,7 @@
       "dependsOn": [
         "T-F1.1-03"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -80,7 +80,7 @@
         "T-F1.1-04",
         "T-F1.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -97,7 +97,7 @@
       "dependsOn": [
         "T-F1.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -114,7 +114,7 @@
       "dependsOn": [
         "T-F1.1-03"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -149,7 +149,7 @@
       "dependsOn": [
         "T-F1.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -166,7 +166,7 @@
       "dependsOn": [
         "T-F2.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -201,7 +201,7 @@
       "dependsOn": [
         "T-F1.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -218,7 +218,7 @@
       "dependsOn": [
         "T-F1.1-03"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -236,7 +236,7 @@
         "T-F1.4-02",
         "T-F1.1-04"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -253,7 +253,7 @@
       "dependsOn": [
         "T-F3.3-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -270,7 +270,7 @@
       "dependsOn": [
         "T-F3.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -288,7 +288,7 @@
         "T-F2.1-02",
         "T-F2.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -305,7 +305,7 @@
       "dependsOn": [
         "T-F2.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -340,7 +340,7 @@
       "dependsOn": [
         "T-F2.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -375,7 +375,7 @@
       "dependsOn": [
         "T-F2.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -393,7 +393,7 @@
         "T-F2.1-02",
         "T-F2.4-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -410,7 +410,7 @@
       "dependsOn": [
         "T-F3.3-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -425,7 +425,7 @@
       "page": null,
       "phase": 1,
       "dependsOn": [],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -460,7 +460,7 @@
       "dependsOn": [
         "T-F3.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -478,7 +478,7 @@
         "T-F3.1-02",
         "T-F3.2-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -495,7 +495,7 @@
       "dependsOn": [
         "T-F1.1-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -513,7 +513,7 @@
         "T-F3.1-03",
         "T-F3.3-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     }
   ]
