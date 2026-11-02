@@ -151,7 +151,8 @@ export class PemantauPanggilan {
   tik() {
     const sekarang = this.now();
     for (const [id, s] of this.sesi) {
-      if (sekarang - s.aktif > this.batas.diamMs) {
+      // Panggilan yang `tahan` (mis. pengaduan belum selesai) tidak ditutup karena diam; penutupnya oleh pemilik alur.
+      if (sekarang - s.aktif > this.batas.diamMs && !this.konteks(id)?.tahan) {
         this.akhiri(id);
       } else if (this.berubah(s) ? sekarang - s.kirimTerakhir >= this.batas.jedaMinMs : sekarang - s.kirimTerakhir >= this.batas.heartbeatMs) {
         this.kirim(id, s);

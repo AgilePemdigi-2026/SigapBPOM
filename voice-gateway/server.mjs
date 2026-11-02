@@ -86,7 +86,7 @@ const riwayat = new RiwayatPanggilan();
 // Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
 const pantau = new PemantauPanggilan({
   pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
-  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
+  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null, tahan: pengaduan.aktif(id) }),
   onGalat: (e) => console.error(JSON.stringify({ ev: 'pantau_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
 });
 pantau.mulai();
@@ -127,7 +127,8 @@ async function akhiriPengaduan(id) {
   return hasil && { pesan: hasil.pesan, tersimpan: hasil.tersimpan };
 }
 // Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
-riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}); };
+// Pengaduan disimpan lebih dulu: RPC hanya menerima percakapan yang masih berjalan, jadi panggilan aktif ditutup sesudahnya.
+riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)); };
 riwayat.dilindungi = (id) => pengaduan.aktif(id);
 setInterval(() => riwayat.bersihkan(), 60_000).unref();
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
@@ -549,9 +550,10 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && path === '/voice/akhiri') {
       const body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8') || '{}');
       if (!idPanggilanSah(body.id)) return kirim(res, 200, 'success', 'OK');
-      pantau.akhiri(body.id);
       // REQ-2.5: pengaduan yang belum bertiket disimpan sebagai pengaduan tidak lengkap; pesannya dikirim ke panel.
+      // Disimpan sebelum panggilan aktif ditutup, karena RPC hanya menerima percakapan yang masih berjalan.
       const akhir = await akhiriPengaduan(body.id);
+      await pantau.akhiri(body.id);
       riwayat.hapus(body.id);
       return kirim(res, 200, 'success', 'OK', akhir);
     }
