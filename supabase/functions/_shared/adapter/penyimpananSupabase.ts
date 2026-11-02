@@ -99,6 +99,7 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
     namaPelapor?: string;
     nomorTelepon?: string;
   }) {
+    await this.pastikanPercakapan(data.percakapanId);
     const { data: id, error } = await this.db.rpc('simpan_pengaduan_tidak_lengkap', {
       p_percakapan_id: data.percakapanId,
       p_nama_produk: data.namaProduk ?? null,

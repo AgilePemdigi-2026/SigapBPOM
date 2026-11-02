@@ -251,6 +251,29 @@ export class PengaduanController {
     s.data = {};
     return nomorTiket;
   }
+
+  /**
+   * REQ-2.5: panggilan berakhir atau terputus. Pengaduan yang belum bertiket disimpan sebagai `pengaduan_tidak_lengkap`
+   * dengan data yang sudah terkumpul, tanpa nomor tiket. Aman dipanggil berulang (akhiri manual lalu koneksi putus):
+   * status dibuang sebelum menunggu penyimpanan, jadi hanya panggilan pertama yang menyimpan.
+   * Mengembalikan `{ pesan, tersimpan }` untuk panel, atau null bila panggilan ini bukan pengaduan yang belum selesai.
+   */
+  async panggilanBerakhir(id) {
+    const s = this.sesi.get(id);
+    this.sesi.delete(id);
+    if (!s) return null;
+    // Penerbitan yang sedang berjalan diselesaikan dulu: bila berhasil, pengaduan sudah lengkap dan tidak disimpan sebagai tidak lengkap.
+    if (s.janji) await s.janji.catch(() => {});
+    if (s.tiket !== null) return null;
+    let tersimpan = false;
+    try {
+      await this.gerbang?.simpanTidakLengkap({ percakapanId: id, ...s.data });
+      tersimpan = Boolean(this.gerbang);
+    } catch {
+      // Galat penyimpanan dicatat pemanggil sebagai jenis saja; isi data pelapor tidak ikut.
+    }
+    return { pesan: PESAN_PENGADUAN_TIDAK_LENGKAP, tersimpan, lengkap: Object.keys(s.data).length };
+  }
 }
 
 /**

@@ -189,13 +189,19 @@ export class RiwayatPanggilan {
   constructor(now = () => Date.now()) {
     this.now = now;
     this.sesi = new Map();
+    // Dipanggil dengan id panggilan yang dibuang tanpa diakhiri penelepon (tidak aktif terlalu lama atau tergeser), mis. koneksi putus.
+    this.saatDibuang = null;
   }
 
   ambil(id) {
     this.bersihkan();
     let s = this.sesi.get(id);
     if (!s) {
-      if (this.sesi.size >= SESI_MAKS) this.sesi.delete(this.sesi.keys().next().value);
+      if (this.sesi.size >= SESI_MAKS) {
+        const tertua = this.sesi.keys().next().value;
+        this.sesi.delete(tertua);
+        this.saatDibuang?.(tertua);
+      }
       s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, jenisInteraksi: null, eskalasi: null };
       this.sesi.set(id, s);
     }
@@ -273,7 +279,11 @@ export class RiwayatPanggilan {
 
   bersihkan() {
     const batas = this.now() - SESI_KEDALUWARSA_MS;
-    for (const [id, s] of this.sesi) if (s.aktif < batas) this.sesi.delete(id);
+    for (const [id, s] of this.sesi) {
+      if (s.aktif >= batas) continue;
+      this.sesi.delete(id);
+      this.saatDibuang?.(id);
+    }
   }
 }
 

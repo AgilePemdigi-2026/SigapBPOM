@@ -138,15 +138,21 @@ export class PengaduanController {
     const namaPelapor = typeof input.namaPelapor === 'string' && input.namaPelapor.trim() ? input.namaPelapor.trim() : undefined;
     const nomorTelepon = typeof input.nomorTelepon === 'string' ? normalkanNomorTelepon(input.nomorTelepon) ?? undefined : undefined;
 
-    const id = await this.penyimpanan.simpanPengaduanTidakLengkap({
-      percakapanId,
-      namaProduk,
-      kronologi,
-      namaPelapor,
-      nomorTelepon,
-    });
-
-    return { id, status: 'pengaduan_tidak_lengkap' };
+    const mulai = Date.now();
+    let berhasil = false;
+    try {
+      const id = await this.penyimpanan.simpanPengaduanTidakLengkap({
+        percakapanId,
+        namaProduk,
+        kronologi,
+        namaPelapor,
+        nomorTelepon,
+      });
+      berhasil = true;
+      return { id, status: 'pengaduan_tidak_lengkap' };
+    } finally {
+      await this.catat({ percakapanId, namaTool: 'simpan_pengaduan_tidak_lengkap', durasiMs: Date.now() - mulai, berhasil });
+    }
   }
 
   // Gagal mencatat log tidak boleh menggagalkan penerbitan tiket. Log berisi nama tool dan hasil saja, tanpa data pelapor.

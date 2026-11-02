@@ -424,3 +424,6 @@ verify_jwt = false
 
 [functions.terbitkan-tiket-pengaduan]
 verify_jwt = false
+
+[functions.simpan-pengaduan-tidak-lengkap]
+verify_jwt = false

@@ -272,6 +272,18 @@ test('req_2_3 kegagalan mencatat log_tool tidak menggagalkan penerbitan tiket', 
   assert.match(res.nomorTiket, /^ADU-\d{8}-\d{4}$/);
 });
 
+test('req_2_5 simpan pengaduan tidak lengkap tercatat di log_tool dan tidak menerbitkan tiket', async () => {
+  const { p, log } = penyimpananPengaduanTiruan();
+  const c = new PengaduanController(p);
+
+  await c.simpanPengaduanTidakLengkap({ percakapanId: PERCAKAPAN, namaProduk: 'Kapsul Pelangsing' });
+
+  assert.equal(log.length, 1);
+  assert.equal(log[0].namaTool, 'simpan_pengaduan_tidak_lengkap');
+  assert.equal(log[0].berhasil, true);
+  assert.equal(await p.cariTiketPengaduan(PERCAKAPAN), null);
+});
+
 test('req_2_3 error validasi pengaduan adalah ErrorSigap agar boundary mengembalikan kodenya', async () => {
   const { p } = penyimpananPengaduanTiruan();
   const c = new PengaduanController(p);

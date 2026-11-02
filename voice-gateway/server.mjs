@@ -86,6 +86,16 @@ try {
 } catch (e) {
   console.error(JSON.stringify({ ev: 'korpus_gagal', jenis: e instanceof Error ? e.code ?? e.message : 'unknown' }));
 }
+// REQ-2.5: panggilan pengaduan yang berakhir sebelum data lengkap disimpan tanpa tiket. Log hanya memuat jumlah data, bukan isinya.
+async function akhiriPengaduan(id) {
+  const hasil = await pengaduan.panggilanBerakhir(id);
+  if (hasil) console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'tidak_lengkap', data_terkumpul: hasil.lengkap, tersimpan: hasil.tersimpan }));
+  return hasil && { pesan: hasil.pesan, tersimpan: hasil.tersimpan };
+}
+// Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
+riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}); };
+setInterval(() => riwayat.bersihkan(), 60_000).unref();
+
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
 const giliranAktif = new Map();
@@ -371,8 +381,11 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
     if (req.method === 'POST' && path === '/voice/akhiri') {
       const body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8') || '{}');
-      if (idPanggilanSah(body.id)) riwayat.hapus(body.id);
-      return kirim(res, 200, 'success', 'OK');
+      if (!idPanggilanSah(body.id)) return kirim(res, 200, 'success', 'OK');
+      // REQ-2.5: pengaduan yang belum bertiket disimpan sebagai pengaduan tidak lengkap; pesannya dikirim ke panel.
+      const akhir = await akhiriPengaduan(body.id);
+      riwayat.hapus(body.id);
+      return kirim(res, 200, 'success', 'OK', akhir);
     }
     return kirim(res, 404, 'error', 'Tidak ditemukan.');
   } catch (e) {

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BatasTiketTercapai, EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG, PengaduanController,
-  pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
+  PESAN_PENGADUAN_TIDAK_LENGKAP, pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
 } from './pengaduan.mjs';
 import { GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import { PembatasTiket } from './eskalasi.mjs';
@@ -230,6 +230,85 @@ test('req_2_3 batas penerbitan tiket per panggilan memicu BatasTiketTercapai tan
   pembatas.cadangkan(ID, '1.1.1.1', '081200000000');
   await assert.rejects(pengaduan.tangani(ID, UCAPAN_LENGKAP, { ip: '1.1.1.1' }), BatasTiketTercapai);
   assert.equal(gerbang.tiketPerPercakapan.size, 0);
+});
+
+// T-F4.3-01: panggilan berakhir sebelum data lengkap (REQ-2.5)
+
+test('req_2_5 pesan pengaduan tidak lengkap sama persis dengan kamus PRD Lampiran A', () => {
+  assert.equal(PESAN_PENGADUAN_TIDAK_LENGKAP, 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.');
+});
+
+test('req_2_5 akhiri panggilan dengan data sebagian menyimpan pengaduan_tidak_lengkap tanpa tiket', async () => {
+  const { gerbang, sms, pengaduan, riwayat } = rakitan();
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: 'Nama produknya Krim Glowing Ajaib. Atas nama Siti Aminah.', ip: '1.1.1.1' });
+  const hasil = await pengaduan.panggilanBerakhir(ID);
+  assert.equal(hasil.pesan, PESAN_PENGADUAN_TIDAK_LENGKAP);
+  assert.equal(hasil.tersimpan, true);
+  const simpan = gerbang.tidakLengkap.get(ID);
+  assert.equal(simpan.status, 'pengaduan_tidak_lengkap');
+  assert.equal(simpan.namaProduk, 'Krim Glowing Ajaib');
+  assert.equal(simpan.namaPelapor, 'Siti Aminah');
+  assert.equal(gerbang.tiketPerPercakapan.size, 0);
+  assert.equal(sms.terkirim.length, 0);
+  assert.ok(!pengaduan.aktif(ID));
+});
+
+test('req_2_5 akhiri panggilan tanpa data apa pun tetap disimpan sebagai tidak lengkap', async () => {
+  const { gerbang, pengaduan } = rakitan();
+  const hasil = await pengaduan.panggilanBerakhir(ID);
+  assert.equal(hasil.tersimpan, true);
+  assert.equal(gerbang.tidakLengkap.get(ID).status, 'pengaduan_tidak_lengkap');
+});
+
+test('req_2_5 akhiri berulang (tombol lalu koneksi putus) hanya menyimpan sekali', async () => {
+  const { gerbang, pengaduan } = rakitan();
+  let simpan = 0;
+  const asli = gerbang.simpanTidakLengkap.bind(gerbang);
+  gerbang.simpanTidakLengkap = async (d) => { simpan++; return asli(d); };
+  const [a, b] = await Promise.all([pengaduan.panggilanBerakhir(ID), pengaduan.panggilanBerakhir(ID)]);
+  assert.equal(simpan, 1);
+  assert.ok(a && b === null);
+});
+
+test('req_2_5 pengaduan yang sudah bertiket atau bukan pengaduan tidak disimpan sebagai tidak lengkap', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
+  assert.equal(await pengaduan.panggilanBerakhir(ID), null);
+  assert.equal(gerbang.tidakLengkap.size, 0);
+  assert.equal(await pengaduan.panggilanBerakhir('7f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b'), null);
+});
+
+test('req_2_5 galat penyimpanan tidak mengganggu penutupan panggilan', async () => {
+  const { gerbang, pengaduan } = rakitan();
+  gerbang.simpanTidakLengkap = async () => { throw new Error('down'); };
+  const hasil = await pengaduan.panggilanBerakhir(ID);
+  assert.equal(hasil.tersimpan, false);
+  assert.equal(hasil.pesan, PESAN_PENGADUAN_TIDAK_LENGKAP);
+});
+
+test('req_2_5 penerbitan yang sedang berjalan saat panggilan berakhir tidak berakhir sebagai tidak lengkap', async () => {
+  const { gerbang, pengaduan } = rakitan();
+  const asli = gerbang.terbitkanTiket.bind(gerbang);
+  gerbang.terbitkanTiket = async (d) => { await new Promise((r) => setTimeout(r, 20)); return asli(d); };
+  const lengkap = pengaduan.tangani(ID, UCAPAN_LENGKAP);
+  await new Promise((r) => setImmediate(r));
+  const akhir = pengaduan.panggilanBerakhir(ID);
+  assert.equal((await lengkap).tiket, 'ADU-20261102-0001');
+  assert.equal(await akhir, null);
+  assert.equal(gerbang.tidakLengkap.size, 0);
+});
+
+test('req_2_5 koneksi putus: sesi tidak aktif yang dibuang memicu penyimpanan pengaduan tidak lengkap', async () => {
+  let t = 0;
+  const riwayat = new RiwayatPanggilan(() => t);
+  const gerbang = new GerbangPengaduanTiruan();
+  const pengaduan = new PengaduanController({ gerbang });
+  riwayat.saatDibuang = (id) => { pengaduan.panggilanBerakhir(id); };
+  pilihMenu(riwayat, pengaduan, ID, 2);
+  t = 16 * 60 * 1000;
+  riwayat.bersihkan();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(gerbang.tidakLengkap.get(ID)?.status, 'pengaduan_tidak_lengkap');
 });
 
 test('req_2_3 gerbang tiruan: satu percakapan satu tiket, format ADU-YYYYMMDD-NNNN', async () => {
