@@ -14,6 +14,7 @@ import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
 } from './eskalasi.mjs';
+import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -67,6 +68,13 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
 
 const riwayat = new RiwayatPanggilan();
+// Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
+const pantau = new PemantauPanggilan({
+  pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
+  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
+  onGalat: (e) => console.error(JSON.stringify({ ev: 'pantau_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
+});
+pantau.mulai();
 let korpus = null;
 try {
   const mulai = Date.now();
@@ -197,6 +205,7 @@ async function giliran(req, res, url) {
     const jawaban = pesanLayanan(Number(body.pilih));
     if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
     riwayat.pilihLayanan(body.id, Number(body.pilih));
+    pantau.tahap(body.id, TAHAP.MENJAWAB);
     riwayat.selesaiEskalasi(body.id);
     riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
     riwayat.tambah(body.id, 'assistant', jawaban);
@@ -217,11 +226,13 @@ async function giliran(req, res, url) {
   try {
     const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
     if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+    pantau.tahap(id, TAHAP.MENDENGAR);
 
     const mulai = Date.now();
     const transkrip = await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
     if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
+    pantau.tahap(id, TAHAP.MEMPROSES);
 
     // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
     // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
@@ -262,6 +273,7 @@ async function giliran(req, res, url) {
       }
       riwayat.tambah(id, 'assistant', jawaban);
       console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
+      pantau.tahap(id, TAHAP.MENJAWAB);
       return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber: [], suara, tiket });
     }
 
@@ -301,6 +313,7 @@ async function giliran(req, res, url) {
     }));
     const sumber = kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
     const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
+    pantau.tahap(id, TAHAP.MENJAWAB);
     return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup });
   } finally {
     // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
@@ -346,7 +359,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
     if (req.method === 'POST' && path === '/voice/akhiri') {
       const body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8') || '{}');
-      if (idPanggilanSah(body.id)) riwayat.hapus(body.id);
+      if (idPanggilanSah(body.id)) { pantau.akhiri(body.id); riwayat.hapus(body.id); }
       return kirim(res, 200, 'success', 'OK');
     }
     return kirim(res, 404, 'error', 'Tidak ditemukan.');

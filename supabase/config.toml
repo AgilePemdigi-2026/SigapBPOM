@@ -421,3 +421,6 @@ verify_jwt = false
 
 [functions.terbitkan-tiket-eskalasi]
 verify_jwt = false
+
+[functions.laporkan-panggilan-aktif]
+verify_jwt = false
