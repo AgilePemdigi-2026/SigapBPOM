@@ -16,6 +16,7 @@ import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
 } from './eskalasi.mjs';
+import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -77,6 +78,13 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
 
 const riwayat = new RiwayatPanggilan();
+// Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
+const pantau = new PemantauPanggilan({
+  pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
+  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
+  onGalat: (e) => console.error(JSON.stringify({ ev: 'pantau_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
+});
+pantau.mulai();
 let korpus = null;
 try {
   const mulai = Date.now();
@@ -291,10 +299,12 @@ async function giliran(req, res, url) {
       audio = await bacaBody(req, AUDIO_MAKS_BYTE);
       if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
     }
+    pantau.tahap(id, TAHAP.MENDENGAR);
 
     const mulai = Date.now();
     const transkrip = ketik ?? await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
+    if (transkrip) pantau.tahap(id, TAHAP.MEMPROSES);
 
     // Jawaban dikirim sebagai NDJSON: transkrip lebih dulu (dengan tanda putar kalimat jeda bila AI dipanggil),
     // lalu tiap kalimat beserta suaranya begitu siap, terakhir sumber dan status panggilan.
@@ -349,6 +359,7 @@ async function giliran(req, res, url) {
         riwayat.tambah(id, 'assistant', jawaban);
         console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
         ucapkan(jawaban, suara);
+        pantau.tahap(id, TAHAP.MENJAWAB);
         tulis({ jenis: 'selesai', tiket });
         return;
       }
@@ -442,6 +453,7 @@ async function giliran(req, res, url) {
       // jadi keduanya tanpa chip sumber.
       if (susunan.khusus) produk = undefined;
       const sumber = susunan.khusus || produk || /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+      pantau.tahap(id, TAHAP.MENJAWAB);
       tulis({ jenis: 'selesai', sumber, produk });
     } catch (e) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
@@ -498,7 +510,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
     if (req.method === 'POST' && path === '/voice/akhiri') {
       const body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8') || '{}');
-      if (idPanggilanSah(body.id)) riwayat.hapus(body.id);
+      if (idPanggilanSah(body.id)) { pantau.akhiri(body.id); riwayat.hapus(body.id); }
       return kirim(res, 200, 'success', 'OK');
     }
     return kirim(res, 404, 'error', 'Tidak ditemukan.');

@@ -424,3 +424,6 @@ verify_jwt = false
 
 [functions.katalog-materi]
 verify_jwt = false
+
+[functions.laporkan-panggilan-aktif]
+verify_jwt = false
