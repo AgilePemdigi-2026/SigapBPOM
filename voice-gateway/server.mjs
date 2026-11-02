@@ -204,8 +204,9 @@ async function giliran(req, res, url) {
     if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
     const jawaban = pesanLayanan(Number(body.pilih));
     if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+    // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
+    // pertama yang sudah melewati kuota dan pembatas laju.
     riwayat.pilihLayanan(body.id, Number(body.pilih));
-    pantau.tahap(body.id, TAHAP.MENJAWAB);
     riwayat.selesaiEskalasi(body.id);
     riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
     riwayat.tambah(body.id, 'assistant', jawaban);
