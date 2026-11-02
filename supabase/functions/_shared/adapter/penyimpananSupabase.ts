@@ -63,6 +63,8 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
       p_ringkasan: data.ringkasan ?? null,
     });
     if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    // SG409: percakapan sudah ada dengan jenis atau status yang tidak boleh diubah (migrasi perketat_percakapan_pengaduan).
+    if (error?.code === 'SG409') throw new ErrorSigap(409, 'Percakapan tidak dapat diubah.');
     if (error?.code === '23505') {
       // Dua permintaan bersamaan untuk percakapan yang sama: yang kalah mengembalikan nomor tiket milik pemenang.
       const sudahAda = await this.cariTiketPengaduan(data.percakapanId);
@@ -108,6 +110,8 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
       p_no_telp: data.nomorTelepon ?? null,
     });
     if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    // SG409: percakapan sudah ada dengan jenis atau status yang tidak boleh diubah (migrasi perketat_percakapan_pengaduan).
+    if (error?.code === 'SG409') throw new ErrorSigap(409, 'Percakapan tidak dapat diubah.');
     if (error) throw error;
     return id as string;
   }

@@ -2,11 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BatasTiketTercapai, EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG, PengaduanController,
-  PESAN_PENGADUAN_TIDAK_LENGKAP, pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
+  PESAN_PENGADUAN_TIDAK_LENGKAP, PercakapanDitolak, pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
 } from './pengaduan.mjs';
-import { GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
+import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import { PembatasTiket } from './eskalasi.mjs';
-import { PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, pilihMenu } from './percakapan.mjs';
+import { PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, SesiPenuh, pilihMenu } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const ekstrak = (u, ditanya = null, data = {}) => new EkstraktorAturan().ekstrak(u, { ditanya, data });
@@ -309,6 +309,75 @@ test('req_2_5 koneksi putus: sesi tidak aktif yang dibuang memicu penyimpanan pe
   riwayat.bersihkan();
   await new Promise((r) => setImmediate(r));
   assert.equal(gerbang.tidakLengkap.get(ID)?.status, 'pengaduan_tidak_lengkap');
+});
+
+// Kapasitas sesi dan penolakan server
+
+const idKe = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+test('req_2_5 kapasitas penuh menggeser sesi tertua tanpa pengaduan dan tidak memicu penyimpanan tidak lengkap', async () => {
+  const riwayat = new RiwayatPanggilan();
+  const gerbang = new GerbangPengaduanTiruan();
+  const pengaduan = new PengaduanController({ gerbang });
+  const dibuang = [];
+  riwayat.saatDibuang = (id) => dibuang.push(id);
+  riwayat.dilindungi = (id) => pengaduan.aktif(id);
+  pilihMenu(riwayat, pengaduan, idKe(0), 2); // pengaduan berjalan, paling tua
+  for (let i = 1; i < 200; i++) riwayat.ambil(idKe(i));
+  riwayat.ambil(idKe(500)); // sesi ke-201: yang tergeser idKe(1), bukan pengaduan idKe(0)
+  assert.ok(pengaduan.aktif(idKe(0)));
+  assert.ok(riwayat.sesi.has(idKe(0)));
+  assert.ok(!riwayat.sesi.has(idKe(1)));
+  assert.deepEqual(dibuang, []);
+  assert.equal(gerbang.tidakLengkap.size, 0);
+});
+
+test('req_2_5 kapasitas penuh oleh pengaduan berjalan menolak sesi baru, bukan menggeser', () => {
+  const riwayat = new RiwayatPanggilan();
+  const pengaduan = new PengaduanController({ gerbang: new GerbangPengaduanTiruan() });
+  riwayat.dilindungi = (id) => pengaduan.aktif(id);
+  for (let i = 0; i < 200; i++) pilihMenu(riwayat, pengaduan, idKe(i), 2);
+  assert.throws(() => riwayat.ambil(idKe(900)), SesiPenuh);
+  assert.equal(riwayat.sesi.size, 200);
+  for (let i = 0; i < 200; i++) assert.ok(pengaduan.aktif(idKe(i)));
+});
+
+test('req_2_5 sesi tidak aktif tetap memicu saatDibuang lewat bersihkan', () => {
+  let t = 0;
+  const riwayat = new RiwayatPanggilan(() => t);
+  const dibuang = [];
+  riwayat.saatDibuang = (id) => dibuang.push(id);
+  riwayat.ambil(ID);
+  t = 16 * 60 * 1000;
+  riwayat.bersihkan();
+  assert.deepEqual(dibuang, [ID]);
+});
+
+test('req_2_3 server menolak percakapan (409): alur pengaduan dihentikan dan tidak diulang', async () => {
+  const gerbang = new GerbangPengaduanTiruan();
+  gerbang.terbitkanTiket = async () => { throw new PercakapanDitolak(); };
+  const { pengaduan } = rakitan({ gerbang });
+  await assert.rejects(pengaduan.tangani(ID, UCAPAN_LENGKAP), PercakapanDitolak);
+  assert.ok(!pengaduan.aktif(ID));
+});
+
+test('req_2_5 server menolak penyimpanan tidak lengkap (409): dianggap tidak tersimpan', async () => {
+  const gerbang = new GerbangPengaduanTiruan();
+  gerbang.simpanTidakLengkap = async () => { throw new PercakapanDitolak(); };
+  const { pengaduan } = rakitan({ gerbang });
+  const hasil = await pengaduan.panggilanBerakhir(ID);
+  assert.equal(hasil.tersimpan, false);
+});
+
+test('req_2_3 gerbang Supabase memetakan 409 menjadi PercakapanDitolak tanpa membocorkan isi respons', async () => {
+  const asli = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ status: 'error', message: 'x' }), { status: 409 });
+  try {
+    const g = new GerbangPengaduanSupabase('https://contoh.supabase.co', 'kunci-uji');
+    await assert.rejects(g.simpanTidakLengkap({ percakapanId: ID }), PercakapanDitolak);
+  } finally {
+    globalThis.fetch = asli;
+  }
 });
 
 test('req_2_3 gerbang tiruan: satu percakapan satu tiket, format ADU-YYYYMMDD-NNNN', async () => {

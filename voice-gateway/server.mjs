@@ -6,12 +6,12 @@ import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PANJANG_MAKS_UCAPAN, AnggaranToken,
-  PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pilihMenu, rapikanJawaban, saringUcapan,
+  PembatasLaju, RiwayatPanggilan, SesiPenuh, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pilihMenu, rapikanJawaban, saringUcapan,
   teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 import {
-  BatasTiketTercapai, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
+  BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
 } from './pengaduan.mjs';
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import {
@@ -94,6 +94,7 @@ async function akhiriPengaduan(id) {
 }
 // Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
 riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}); };
+riwayat.dilindungi = (id) => pengaduan.aktif(id);
 setInterval(() => riwayat.bersihkan(), 60_000).unref();
 
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
@@ -391,6 +392,8 @@ const server = createServer(async (req, res) => {
   } catch (e) {
     if (res.headersSent) { res.destroy(); return; }
     if (e instanceof ErrorGateway) return kirim(res, e.kode, 'error', e.message);
+    if (e instanceof SesiPenuh) return kirim(res, 503, 'error', 'Layanan sedang penuh. Coba lagi sebentar lagi.');
+    if (e instanceof PercakapanDitolak) return kirim(res, 409, 'error', 'Percakapan ini tidak dapat dilanjutkan. Silakan mulai panggilan baru.');
     // PROJECT_RULES 5.10: log hanya jenis galat, tanpa transkrip atau kunci.
     console.error(JSON.stringify({ ev: 'galat', path, jenis: e instanceof Error ? e.message : 'unknown' }));
     return kirim(res, 502, 'error', 'Layanan suara sedang gangguan. Silakan coba lagi.');

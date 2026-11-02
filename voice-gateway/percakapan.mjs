@@ -184,13 +184,20 @@ export class AnggaranToken {
   }
 }
 
+/** Kapasitas sesi penuh dan semuanya sedang mengumpulkan pengaduan. Boundary menjawabnya 503. */
+export class SesiPenuh extends Error {
+  constructor() { super('sesi penuh'); }
+}
+
 /** Riwayat percakapan per panggilan di memori. Hilang saat gateway dimulai ulang. */
 export class RiwayatPanggilan {
   constructor(now = () => Date.now()) {
     this.now = now;
     this.sesi = new Map();
-    // Dipanggil dengan id panggilan yang dibuang tanpa diakhiri penelepon (tidak aktif terlalu lama atau tergeser), mis. koneksi putus.
+    // Dipanggil dengan id panggilan yang dibuang karena tidak aktif terlalu lama (koneksi putus tanpa "Akhiri Panggilan").
     this.saatDibuang = null;
+    // Predikat id -> true bila sesi punya pengaduan berjalan; sesi seperti itu tidak boleh digeser saat kapasitas penuh.
+    this.dilindungi = null;
   }
 
   ambil(id) {
@@ -198,9 +205,11 @@ export class RiwayatPanggilan {
     let s = this.sesi.get(id);
     if (!s) {
       if (this.sesi.size >= SESI_MAKS) {
-        const tertua = this.sesi.keys().next().value;
-        this.sesi.delete(tertua);
-        this.saatDibuang?.(tertua);
+        // Penuh: yang tergeser adalah sesi tertua tanpa pengaduan berjalan, dan itu BUKAN pemutusan koneksi, jadi `saatDibuang`
+        // tidak dipanggil. Bila semua sesi sedang mengumpulkan pengaduan, sesi baru ditolak agar penelepon nyata tidak terdorong keluar.
+        const korban = [...this.sesi.keys()].find((k) => !this.dilindungi?.(k));
+        if (korban === undefined) throw new SesiPenuh();
+        this.sesi.delete(korban);
       }
       s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, jenisInteraksi: null, eskalasi: null };
       this.sesi.set(id, s);

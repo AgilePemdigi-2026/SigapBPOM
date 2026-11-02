@@ -165,6 +165,11 @@ export const pesanTiketPengaduan = (nomorTiket) => `Pengaduan Anda telah dicatat
 /** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
 export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
 
+/** Server menolak percakapan ini (409): sudah ada dengan jenis atau status yang tidak boleh diubah. Dianggap tidak tersimpan. */
+export class PercakapanDitolak extends Error {
+  constructor() { super('percakapan ditolak'); }
+}
+
 /** Batas penerbitan tiket tercapai. Dilempar ke boundary yang memetakannya menjadi 429. */
 export class BatasTiketTercapai extends Error {
   constructor(jenis) {
@@ -242,6 +247,8 @@ export class PengaduanController {
       nomorTiket = await this.gerbang.terbitkanTiket({ percakapanId: id, ...s.data });
     } catch (e) {
       this.pembatas?.batalkan(id, ip, nomorTelepon);
+      // Ditolak server: mengulang tidak akan pernah berhasil, jadi alur pengaduan ini dihentikan.
+      if (e instanceof PercakapanDitolak) this.sesi.delete(id);
       throw e;
     }
     s.tiket = nomorTiket;

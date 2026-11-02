@@ -4,6 +4,8 @@
 // Pengirim SMS: `kirim(nomorTelepon, teks) -> void`.
 // Gateway tidak pernah memegang service_role: gerbang Supabase memanggil Edge Function dengan kunci internal bersama.
 
+import { PercakapanDitolak } from './pengaduan.mjs';
+
 const BATAS_WAKTU_MS = 15_000;
 
 /** Implementasi lewat Edge Function `terbitkan-tiket-pengaduan` dan `simpan-pengaduan-tidak-lengkap` (supabase/README.md). */
@@ -22,6 +24,7 @@ export class GerbangPengaduanSupabase {
     });
     const d = await r.json().catch(() => null);
     // Galat hanya membawa kode status: isi respons dan data pelapor tidak ikut ke log.
+    if (r.status === 409) throw new PercakapanDitolak();
     if (!r.ok || d?.status !== 'success') throw new Error(`${fungsi} ${r.status}`);
     return d.data;
   }
