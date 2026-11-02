@@ -64,3 +64,19 @@ export function htmlKartuEskalasi(nomorTiket: string): string {
     <p class="k-sumber">Jawaban petugas akan dikirim melalui SMS.</p>
   </section>`;
 }
+
+/** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). */
+export const pesanTiketPengaduan = (nomorTiket: string) =>
+  `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Tindak lanjut akan dikirim melalui SMS.`;
+
+/** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
+export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
+
+/** Kartu tiket pengaduan (T-F4.2-02, REQ-2.3, REQ-2.4). Teks diambil dari potongan pesan kamus Lampiran A dan label "Nomor tiket". */
+export function htmlKartuPengaduan(nomorTiket: string): string {
+  return `<section class="k-pengaduan" aria-label="Tiket pengaduan">
+    <div class="k-pengaduan-judul"><i class="icon-clipboard-check" aria-hidden="true"></i>Pengaduan Anda telah dicatat</div>
+    <dl><dt>Nomor tiket</dt><dd>${esc(nomorTiket)}</dd></dl>
+    <p class="k-sumber">Tindak lanjut akan dikirim melalui SMS.</p>
+  </section>`;
+}

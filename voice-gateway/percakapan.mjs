@@ -1,6 +1,7 @@
 // Control UC-01/UC-02 Voice Gateway: aturan percakapan, riwayat per panggilan, dan pembatas laju.
 // Tanpa I/O agar bisa diuji dengan `node --test`.
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
+import { LAYANAN_PENGADUAN, jenisInteraksiDariMenu } from './pengaduan.mjs';
 
 /** Kamus pesan PRD-rinci Lampiran A (UC-01, UC-02 "Panggilan tersambung", REQ-1.1). */
 export const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.';
@@ -54,6 +55,35 @@ export function pesanLayanan(nomor) {
   if (nomor === 1) return PESAN_LAYANAN_1;
   if (nomor === 2) return PESAN_LAYANAN_2;
   return null;
+}
+
+/**
+ * Penelepon memilih menu dari panel (REQ-1.1, REQ-2.1). Memilih 2 menandai percakapan `pengaduan` dan memulai
+ * pengumpulan data; memilih 1 tetap alur UC-01 dan membuang alur pengaduan yang mungkin sedang berjalan.
+ * Mengembalikan pesan pembuka dan alamat suara statis (jalur TTS yang sudah ada), atau null bila pilihan tidak dikenal.
+ */
+export function pilihMenu(riwayat, pengaduan, id, nomor) {
+  const jawaban = pesanLayanan(nomor);
+  if (!jawaban) return null;
+  riwayat.pilihLayanan(id, nomor);
+  riwayat.selesaiEskalasi(id);
+  if (nomor === LAYANAN_PENGADUAN) pengaduan.mulai(id); else pengaduan.batal(id);
+  riwayat.tambah(id, 'user', `Saya memilih layanan ${nomor}.`);
+  riwayat.tambah(id, 'assistant', jawaban);
+  return { jawaban, suara: `/voice/statis/layanan-${nomor}` };
+}
+
+/** Bersihkan jawaban model agar layak dibacakan: buang markdown dan potong di batas kalimat. */
+export function rapikanJawaban(teks) {
+  let s = String(teks ?? '')
+    .replace(/[*_`#>]+/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (s.length <= PANJANG_MAKS_JAWABAN) return s;
+  s = s.slice(0, PANJANG_MAKS_JAWABAN);
+  const titik = Math.max(s.lastIndexOf('. '), s.lastIndexOf('? '), s.lastIndexOf('! '));
+  return titik > 80 ? s.slice(0, titik + 1) : `${s.trimEnd()}…`;
 }
 
 /** Teks khusus TTS (tampilan di web tetap apa adanya): alamat situs dibaca "titik" seperti lazimnya orang Indonesia. */
@@ -227,19 +257,34 @@ export class AnggaranToken {
   }
 }
 
+/** Kapasitas sesi penuh dan semuanya sedang mengumpulkan pengaduan. Boundary menjawabnya 503. */
+export class SesiPenuh extends Error {
+  constructor() { super('sesi penuh'); }
+}
+
 /** Riwayat percakapan per panggilan di memori. Hilang saat gateway dimulai ulang. */
 export class RiwayatPanggilan {
   constructor(now = () => Date.now()) {
     this.now = now;
     this.sesi = new Map();
+    // Dipanggil dengan id panggilan yang dibuang karena tidak aktif terlalu lama (koneksi putus tanpa "Akhiri Panggilan").
+    this.saatDibuang = null;
+    // Predikat id -> true bila sesi punya pengaduan berjalan; sesi seperti itu tidak boleh digeser saat kapasitas penuh.
+    this.dilindungi = null;
   }
 
   ambil(id) {
     this.bersihkan();
     let s = this.sesi.get(id);
     if (!s) {
-      if (this.sesi.size >= SESI_MAKS) this.sesi.delete(this.sesi.keys().next().value);
-      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, eskalasi: null };
+      if (this.sesi.size >= SESI_MAKS) {
+        // Penuh: yang tergeser adalah sesi tertua tanpa pengaduan berjalan, dan itu BUKAN pemutusan koneksi, jadi `saatDibuang`
+        // tidak dipanggil. Bila semua sesi sedang mengumpulkan pengaduan, sesi baru ditolak agar penelepon nyata tidak terdorong keluar.
+        const korban = [...this.sesi.keys()].find((k) => !this.dilindungi?.(k));
+        if (korban === undefined) throw new SesiPenuh();
+        this.sesi.delete(korban);
+      }
+      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, jenisInteraksi: null, eskalasi: null };
       this.sesi.set(id, s);
     }
     s.aktif = this.now();
@@ -283,7 +328,15 @@ export class RiwayatPanggilan {
 
   pilihLayanan(id, nomor) {
     this.ambil(id);
-    this.sesi.get(id).layanan = nomor;
+    const s = this.sesi.get(id);
+    s.layanan = nomor;
+    s.jenisInteraksi = jenisInteraksiDariMenu(nomor);
+  }
+
+  /** Jenis interaksi percakapan (`informasi_produk` atau `pengaduan`) menurut menu yang dipilih, atau null. */
+  jenisInteraksi(id) {
+    this.ambil(id);
+    return this.sesi.get(id).jenisInteraksi;
   }
 
   /** Pertanyaan yang sedang menunggu nomor telepon untuk tiket eskalasi, atau null. */
@@ -308,7 +361,11 @@ export class RiwayatPanggilan {
 
   bersihkan() {
     const batas = this.now() - SESI_KEDALUWARSA_MS;
-    for (const [id, s] of this.sesi) if (s.aktif < batas) this.sesi.delete(id);
+    for (const [id, s] of this.sesi) {
+      if (s.aktif >= batas) continue;
+      this.sesi.delete(id);
+      this.saatDibuang?.(id);
+    }
   }
 }
 
