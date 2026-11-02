@@ -1,4 +1,4 @@
-// Control UC-04 Memantau Layanan: ringkasan layanan (REQ-4.1, T-F5.1-01).
+// Control UC-04 Memantau Layanan: ringkasan layanan (REQ-4.1), antrean tiket (REQ-4.3), dan detail kasus (REQ-4.4).
 
 export type StatistikLayanan = {
   panggilanHariIni: number;
@@ -47,7 +47,28 @@ export interface TiketAntrean {
   ringkasan: string;
   status: string;
   waktuMasuk: string;
+  percakapanId?: string;
+  noTelpTersamar?: string;
+  namaPelaporTersamar?: string;
 }
+
+export type DetailKasusPengaduan = {
+  tiketId: string;
+  noTiket: string;
+  jenis: 'pengaduan' | 'eskalasi';
+  status: string;
+  ringkasan: string;
+  tglTerbit: string;
+  percakapanId: string;
+  pengaduanId?: string;
+  namaProduk?: string;
+  namaProdukDiadukan?: string;
+  kronologi?: string;
+  kelengkapan?: boolean;
+  tglPengaduan?: string;
+  namaPelaporTersamar?: string;
+  noTelpTersamar?: string;
+};
 
 /** Penyimpanan pemantauan layanan (PROJECT_RULES 4.3): Supabase via RPC/view atau implementasi tiruan (mock). */
 export interface PenyimpananPemantauan {
@@ -55,6 +76,7 @@ export interface PenyimpananPemantauan {
   ambilStatistik?(): Promise<StatistikLayanan>;
   ambilPanggilanAktif?(): Promise<PanggilanAktif[]>;
   ambilAntreanTiket?(): Promise<TiketAntrean[]>;
+  ambilDetailKasus?(noTiket: string): Promise<DetailKasusPengaduan | null>;
 }
 
 /** Implementasi mock untuk pengujian dan fallback lokal. */
@@ -62,11 +84,13 @@ export class PenyimpananPemantauanMock implements PenyimpananPemantauan {
   private data: DataRingkasanLayanan;
   private panggilanAktif: PanggilanAktif[];
   private antreanTiket: TiketAntrean[];
+  private detailKasus: Map<string, DetailKasusPengaduan>;
 
   constructor(opsi?: {
     ringkasan?: Partial<DataRingkasanLayanan>;
     panggilanAktif?: PanggilanAktif[];
     antreanTiket?: TiketAntrean[];
+    detailKasus?: DetailKasusPengaduan[];
   }) {
     this.data = {
       statistik: opsi?.ringkasan?.statistik ?? {
@@ -81,6 +105,7 @@ export class PenyimpananPemantauanMock implements PenyimpananPemantauan {
     };
     this.panggilanAktif = opsi?.panggilanAktif ?? [];
     this.antreanTiket = opsi?.antreanTiket ?? [];
+    this.detailKasus = new Map((opsi?.detailKasus ?? []).map((d) => [d.noTiket, d]));
   }
 
   async ambilRingkasan(): Promise<DataRingkasanLayanan> {
@@ -97,6 +122,10 @@ export class PenyimpananPemantauanMock implements PenyimpananPemantauan {
 
   async ambilAntreanTiket(): Promise<TiketAntrean[]> {
     return this.antreanTiket;
+  }
+
+  async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
+    return this.detailKasus.get(noTiket) ?? null;
   }
 }
 
@@ -132,11 +161,19 @@ export class PemantauanLayananController {
     return [];
   }
 
-  /** REQ-4.3: Menampilkan antrean tiket eskalasi. */
+  /** REQ-4.3: Menampilkan antrean tiket eskalasi dan pengaduan untuk ditindaklanjuti. */
   async ambilAntreanTiket(): Promise<TiketAntrean[]> {
     if (this.penyimpanan.ambilAntreanTiket) {
       return await this.penyimpanan.ambilAntreanTiket();
     }
     return [];
+  }
+
+  /** REQ-4.4: Membuka detail kasus pengaduan atau eskalasi per tiket. */
+  async bukaKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
+    if (this.penyimpanan.ambilDetailKasus) {
+      return await this.penyimpanan.ambilDetailKasus(noTiket);
+    }
+    return null;
   }
 }

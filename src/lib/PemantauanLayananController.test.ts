@@ -102,7 +102,7 @@ test('req_4_2 ambilPanggilanAktif mengembalikan daftar panggilan atau array koso
   assert.equal(panggilan[0].durasiDetik, 45);
 });
 
-test('req_4_3 ambilAntreanTiket mengembalikan daftar antrean tiket', async () => {
+test('req_4_3 ambilAntreanTiket mengembalikan daftar antrean tiket beserta data pribadi tersamar', async () => {
   const mockStorage = new PenyimpananPemantauanMock({
     antreanTiket: [
       {
@@ -112,6 +112,8 @@ test('req_4_3 ambilAntreanTiket mengembalikan daftar antrean tiket', async () =>
         ringkasan: 'Iritasi kulit',
         status: 'belum_ditelaah',
         waktuMasuk: '2026-11-02T13:10:00Z',
+        noTelpTersamar: '0812****7890',
+        namaPelaporTersamar: 'B***',
       },
     ],
   });
@@ -120,4 +122,39 @@ test('req_4_3 ambilAntreanTiket mengembalikan daftar antrean tiket', async () =>
   const antrean = await controller.ambilAntreanTiket();
   assert.equal(antrean.length, 1);
   assert.equal(antrean[0].noTiket, 'ADU-20261102-0001');
+  assert.equal(antrean[0].noTelpTersamar, '0812****7890');
+  assert.equal(antrean[0].namaPelaporTersamar, 'B***');
+});
+
+test('req_4_4 bukaKasus mengembalikan detail kasus pengaduan dengan data pribadi tersamar', async () => {
+  const mockStorage = new PenyimpananPemantauanMock({
+    detailKasus: [
+      {
+        tiketId: 'tiket-1',
+        noTiket: 'ADU-20261102-0088',
+        jenis: 'pengaduan',
+        status: 'belum_ditelaah',
+        ringkasan: 'Krim pemutih menyebabkan iritasi',
+        tglTerbit: '2026-11-02T10:00:00Z',
+        percakapanId: 'percakapan-1',
+        pengaduanId: 'pengaduan-1',
+        namaProduk: 'Krim Wajah Glowing',
+        kronologi: 'Kulit merah dan bengkak setelah pemakaian',
+        kelengkapan: true,
+        tglPengaduan: '2026-11-02T10:00:00Z',
+        namaPelaporTersamar: 'B***',
+        noTelpTersamar: '0812****7890',
+      },
+    ],
+  });
+  const controller = new PemantauanLayananController(mockStorage);
+
+  const detail = await controller.bukaKasus('ADU-20261102-0088');
+  assert.ok(detail);
+  assert.equal(detail.noTiket, 'ADU-20261102-0088');
+  assert.equal(detail.namaProduk, 'Krim Wajah Glowing');
+  assert.equal(detail.noTelpTersamar, '0812****7890');
+
+  const tidakAda = await controller.bukaKasus('ADU-99999999-9999');
+  assert.equal(tidakAda, null);
 });
