@@ -53,6 +53,7 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
     nomorTelepon: string;
     ringkasan?: string;
   }) {
+    await this.pastikanPercakapan(data.percakapanId);
     const { data: nomorTiket, error } = await this.db.rpc('terbitkan_tiket_pengaduan', {
       p_percakapan_id: data.percakapanId,
       p_nama_produk: data.namaProduk,
@@ -62,9 +63,33 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
       p_ringkasan: data.ringkasan ?? null,
     });
     if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
-    if (error?.code === '23505') throw new ErrorSigap(422, 'Tiket untuk percakapan ini sudah diterbitkan.');
+    if (error?.code === '23505') {
+      // Dua permintaan bersamaan untuk percakapan yang sama: yang kalah mengembalikan nomor tiket milik pemenang.
+      const sudahAda = await this.cariTiketPengaduan(data.percakapanId);
+      if (sudahAda) return sudahAda;
+      throw new ErrorSigap(422, 'Tiket untuk percakapan ini sudah diterbitkan.');
+    }
     if (error) throw error;
     return nomorTiket as string;
+  }
+
+  async cariTiketPengaduan(percakapanId: string) {
+    const { data, error } = await this.db
+      .from('tiket')
+      .select('no_tiket')
+      .eq('percakapan_id', percakapanId)
+      .eq('jenis', 'pengaduan')
+      .maybeSingle();
+    if (error) throw error;
+    return (data?.no_tiket as string | undefined) ?? null;
+  }
+
+  // Percakapan dibuat saat panggilan dimulai di gateway tanpa menulis ke basis data; baris dibuat di sini bila belum ada.
+  async pastikanPercakapan(percakapanId: string) {
+    const { error } = await this.db
+      .from('percakapan')
+      .upsert({ id: percakapanId, jenis_interaksi: 'pengaduan' }, { onConflict: 'id', ignoreDuplicates: true });
+    if (error) throw error;
   }
 
   async simpanPengaduanTidakLengkap(data: {

@@ -1,8 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG, PengaduanController, validasiNomorTelepon,
+  BatasTiketTercapai, EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG, PengaduanController,
+  pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
 } from './pengaduan.mjs';
+import { GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
+import { PembatasTiket } from './eskalasi.mjs';
 import { PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, pilihMenu } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
@@ -134,4 +137,106 @@ test('req_2_2 ekstraktor lain bisa dipasang lewat interface', async () => {
   const h = await c.tangani(ID, 'apa saja');
   assert.equal(h.lengkap, true);
   assert.equal(h.data.nomorTelepon, '081234567890');
+});
+
+// T-F4.2-02: penerbitan tiket pengaduan (REQ-2.3, REQ-2.4, BR-1)
+
+const UCAPAN_LENGKAP = 'Nama produknya Sirup Batuk Sehat. Setelah diminum anak saya demam dan muncul ruam. Nama saya Ahmad Fauzi, nomor telepon saya 0812 3456 7890.';
+
+function rakitan(opsi = {}) {
+  const gerbang = new GerbangPengaduanTiruan(() => new Date('2026-11-02T03:00:00Z'));
+  const sms = new PengirimSmsTiruan();
+  const pengaduan = new PengaduanController({ gerbang, pengirimSms: sms, ...opsi });
+  const riwayat = new RiwayatPanggilan();
+  pilihMenu(riwayat, pengaduan, ID, 2);
+  return { gerbang, sms, pengaduan, riwayat };
+}
+
+test('req_2_3 pesan tiket pengaduan sama persis dengan kamus PRD Lampiran A', () => {
+  assert.equal(
+    pesanTiketPengaduan('ADU-20261102-0001'),
+    'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.',
+  );
+});
+
+test('req_2_3 pengaduan lengkap menghasilkan satu tiket ADU dan pesan tiket diucapkan', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
+  assert.equal(h.tiket, 'ADU-20261102-0001');
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.equal(gerbang.tiketPerPercakapan.size, 1);
+  assert.ok(!pengaduan.aktif(ID));
+});
+
+test('req_2_4 SMS tindak lanjut hanya lewat adapter tiruan, sekali per tiket', async () => {
+  const { sms, pengaduan, riwayat } = rakitan();
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
+  assert.equal(sms.terkirim.length, 1);
+  assert.equal(sms.terkirim[0].nomorTelepon, '081234567890');
+  assert.match(sms.terkirim[0].teks, /^Pengaduan Anda telah dicatat dengan nomor tiket ADU-\d{8}-\d{4}\./);
+});
+
+test('req_2_4 SMS gagal tidak membatalkan tiket', async () => {
+  const { pengaduan, riwayat } = rakitan({ pengirimSms: { kirim: async () => { throw new Error('sms down'); } } });
+  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
+  assert.equal(h.tiket, 'ADU-20261102-0001');
+});
+
+test('br_1 tiket tidak terbit sebelum keempat data lengkap', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: 'Nama produknya Sirup Batuk Sehat.', ip: '1.1.1.1' });
+  assert.equal(h.tiket, null);
+  assert.equal(h.tahap, 'tanya_ulang');
+  assert.equal(gerbang.tiketPerPercakapan.size, 0);
+});
+
+test('req_2_3 retry setelah gagal terbit tidak membuat tiket ganda', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  const asli = gerbang.terbitkanTiket.bind(gerbang);
+  let gagal = true;
+  gerbang.terbitkanTiket = async (d) => {
+    const nomor = await asli(d);
+    if (gagal) { gagal = false; throw new Error('jaringan putus setelah tiket tersimpan'); }
+    return nomor;
+  };
+  await assert.rejects(prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' }));
+  assert.ok(pengaduan.aktif(ID));
+  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: 'baik, terima kasih', ip: '1.1.1.1' });
+  assert.equal(h.tiket, 'ADU-20261102-0001');
+  assert.equal(gerbang.tiketPerPercakapan.size, 1);
+});
+
+test('req_2_3 giliran serentak berbagi satu penerbitan', async () => {
+  const { gerbang, pengaduan } = rakitan();
+  let panggilan = 0;
+  const asli = gerbang.terbitkanTiket.bind(gerbang);
+  gerbang.terbitkanTiket = async (d) => { panggilan++; return asli(d); };
+  const [a, b] = await Promise.all([pengaduan.tangani(ID, UCAPAN_LENGKAP), pengaduan.tangani(ID, UCAPAN_LENGKAP)]);
+  assert.equal(panggilan, 1);
+  assert.equal(a.tiket, b.tiket);
+});
+
+test('req_2_3 giliran pengaduan lengkap tidak memanggil AI dan ucapan mentah tidak masuk riwayat', async () => {
+  const { pengaduan, riwayat } = rakitan();
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
+  // prosesGiliranPengaduan tidak punya akses ke klien AI; yang bisa dibuktikan: apa pun yang akan dikirim ke model bersih dari data pelapor.
+  const kePrompt = JSON.stringify(riwayat.untukModel(ID));
+  for (const rahasia of ['Ahmad Fauzi', '0812', '081234567890', 'Sirup Batuk Sehat', 'demam dan muncul ruam']) assert.ok(!kePrompt.includes(rahasia), rahasia);
+});
+
+test('req_2_3 batas penerbitan tiket per panggilan memicu BatasTiketTercapai tanpa tiket', async () => {
+  const pembatas = new PembatasTiket({ perPanggilan: 1, perIpHarian: 5, perNomorHarian: 3 });
+  const { gerbang, pengaduan } = rakitan({ pembatas });
+  pembatas.cadangkan(ID, '1.1.1.1', '081200000000');
+  await assert.rejects(pengaduan.tangani(ID, UCAPAN_LENGKAP, { ip: '1.1.1.1' }), BatasTiketTercapai);
+  assert.equal(gerbang.tiketPerPercakapan.size, 0);
+});
+
+test('req_2_3 gerbang tiruan: satu percakapan satu tiket, format ADU-YYYYMMDD-NNNN', async () => {
+  const g = new GerbangPengaduanTiruan(() => new Date('2026-11-02T03:00:00Z'));
+  const d = { percakapanId: ID, namaProduk: 'A', kronologi: 'b c d', namaPelapor: 'E', nomorTelepon: '081234567890' };
+  assert.equal(await g.terbitkanTiket(d), 'ADU-20261102-0001');
+  assert.equal(await g.terbitkanTiket(d), 'ADU-20261102-0001');
+  assert.equal(await g.terbitkanTiket({ ...d, percakapanId: '7f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b' }), 'ADU-20261102-0002');
+  await assert.rejects(g.terbitkanTiket({ ...d, nomorTelepon: '' }));
 });

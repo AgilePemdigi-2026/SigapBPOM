@@ -159,9 +159,31 @@ export class EkstraktorAturan {
   }
 }
 
+/** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). Juga isi SMS tindak lanjut (REQ-2.4). */
+export const pesanTiketPengaduan = (nomorTiket) => `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Tindak lanjut akan dikirim melalui SMS.`;
+
+/** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
+export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
+
+/** Batas penerbitan tiket tercapai. Dilempar ke boundary yang memetakannya menjadi 429. */
+export class BatasTiketTercapai extends Error {
+  constructor(jenis) {
+    super('batas tiket');
+    this.jenis = jenis;
+  }
+}
+
+/**
+ * Control UC-02 di Voice Gateway. Gerbang (Edge Function) dan pengirim SMS dipasang lewat interface:
+ * `gerbang.terbitkanTiket(data) -> nomorTiket`, `gerbang.simpanTidakLengkap(data) -> void`, `pengirimSms.kirim(nomor, teks)`.
+ * Seluruh alur tanpa AI: data pelapor tidak pernah masuk riwayat atau prompt model.
+ */
 export class PengaduanController {
-  constructor({ ekstraktor = new EkstraktorAturan() } = {}) {
+  constructor({ ekstraktor = new EkstraktorAturan(), gerbang = null, pengirimSms = null, pembatas = null } = {}) {
     this.ekstraktor = ekstraktor;
+    this.gerbang = gerbang;
+    this.pengirimSms = pengirimSms;
+    this.pembatas = pembatas;
     // Status pengumpulan data per panggilan. Hanya ada selama pengaduan berjalan.
     this.sesi = new Map();
   }
@@ -170,7 +192,7 @@ export class PengaduanController {
   mulai(id) {
     this.sesi.delete(id);
     if (this.sesi.size >= SESI_PENGADUAN_MAKS) this.sesi.delete(this.sesi.keys().next().value);
-    this.sesi.set(id, { data: {}, ditanya: null, tiket: null });
+    this.sesi.set(id, { data: {}, ditanya: null, tiket: null, janji: null });
   }
 
   /** Penelepon kembali ke menu atau memilih layanan lain: alur pengaduan dibuang. */
@@ -185,10 +207,12 @@ export class PengaduanController {
   }
 
   /**
-   * REQ-2.2: serap data dari ucapan penelepon, lalu tanyakan hanya data yang masih kurang, satu per giliran.
-   * Mengembalikan `{ lengkap: false, kurang, jawaban, suara }`, atau `{ lengkap: true, data }` bila keempat data sudah ada.
+   * REQ-2.2, REQ-2.3: serap data dari ucapan, tanyakan hanya data yang kurang, dan begitu lengkap terbitkan tiket (BR-1).
+   * Mengembalikan `{ lengkap: false, kurang, jawaban, suara }` atau `{ lengkap: true, tiket, jawaban }`.
+   * Bila penerbitan gagal, data tetap tersimpan sehingga giliran berikutnya mengulang penerbitan; Edge Function
+   * mengembalikan nomor yang sama untuk percakapan yang sama, jadi retry tidak membuat tiket ganda.
    */
-  async tangani(id, ucapan) {
+  async tangani(id, ucapan, { ip = '' } = {}) {
     const s = this.sesi.get(id);
     if (!s) throw new Error('pengaduan belum dimulai');
     const diperoleh = await this.ekstraktor.ekstrak(ucapan, { ditanya: s.ditanya, data: { ...s.data } });
@@ -198,11 +222,48 @@ export class PengaduanController {
       if (nilai) s.data[f] = nilai;
     }
     const kurang = FIELD_PENGADUAN.filter((f) => s.data[f] === undefined);
-    if (kurang.length === 0) {
-      s.ditanya = null;
-      return { lengkap: true, data: { ...s.data } };
+    if (kurang.length > 0) {
+      s.ditanya = kurang[0];
+      return { lengkap: false, kurang, jawaban: PROMPT_DATA_KURANG[s.ditanya].pesan, suara: PROMPT_DATA_KURANG[s.ditanya].suara };
     }
-    s.ditanya = kurang[0];
-    return { lengkap: false, kurang, jawaban: PROMPT_DATA_KURANG[s.ditanya].pesan, suara: PROMPT_DATA_KURANG[s.ditanya].suara };
+    s.ditanya = null;
+    if (!this.gerbang) return { lengkap: true, data: { ...s.data } };
+    s.janji ??= this.terbitkan(id, s, ip).finally(() => { s.janji = null; });
+    const nomorTiket = await s.janji;
+    return { lengkap: true, tiket: nomorTiket, jawaban: pesanTiketPengaduan(nomorTiket) };
   }
+
+  async terbitkan(id, s, ip) {
+    const nomorTelepon = s.data.nomorTelepon;
+    const batas = this.pembatas?.cadangkan(id, ip, nomorTelepon);
+    if (batas) throw new BatasTiketTercapai(batas);
+    let nomorTiket;
+    try {
+      nomorTiket = await this.gerbang.terbitkanTiket({ percakapanId: id, ...s.data });
+    } catch (e) {
+      this.pembatas?.batalkan(id, ip, nomorTelepon);
+      throw e;
+    }
+    s.tiket = nomorTiket;
+    // REQ-2.4: SMS lewat adapter. Kegagalan SMS tidak membatalkan tiket yang sudah terbit.
+    try { await this.pengirimSms?.kirim(nomorTelepon, pesanTiketPengaduan(nomorTiket)); } catch { /* tiket tetap sah */ }
+    // Data pelapor tidak perlu disimpan lagi di memori gateway setelah tiket terbit.
+    s.data = {};
+    return nomorTiket;
+  }
+}
+
+/**
+ * Satu giliran penelepon dalam alur pengaduan, seluruhnya di dalam gateway tanpa memanggil AI. Ucapan mentah
+ * (nama, nomor telepon, kronologi) tidak pernah ditambahkan ke riwayat yang dikirim ke model.
+ */
+export async function prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan, ip }) {
+  const hasil = await pengaduan.tangani(id, ucapan, { ip });
+  riwayat.tambah(id, 'user', '(menyampaikan data pengaduan)');
+  if (hasil.lengkap && hasil.tiket) {
+    riwayat.tambah(id, 'assistant', hasil.jawaban);
+    return { jawaban: hasil.jawaban, tiket: hasil.tiket, suara: null, tahap: 'tiket' };
+  }
+  riwayat.tambah(id, 'assistant', hasil.jawaban ?? '');
+  return { jawaban: hasil.jawaban, tiket: null, suara: `/voice/statis/${hasil.suara}`, tahap: 'tanya_ulang', kurang: hasil.kurang?.length ?? 0 };
 }

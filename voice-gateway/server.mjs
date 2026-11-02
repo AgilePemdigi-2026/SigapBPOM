@@ -10,7 +10,10 @@ import {
   teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
-import { PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController } from './pengaduan.mjs';
+import {
+  BatasTiketTercapai, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
+} from './pengaduan.mjs';
+import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -69,7 +72,12 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
 
 const riwayat = new RiwayatPanggilan();
-const pengaduan = new PengaduanController();
+// Tiket pengaduan lewat Edge Function bila Supabase dikonfigurasi, selain itu tiruan di memori. SMS selalu lewat adapter tiruan (REQ-2.4).
+const pengaduan = new PengaduanController({
+  gerbang: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new GerbangPengaduanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new GerbangPengaduanTiruan(),
+  pengirimSms: new PengirimSmsTiruan(),
+  pembatas: pembatasTiket,
+});
 let korpus = null;
 try {
   const mulai = Date.now();
@@ -222,16 +230,22 @@ async function giliran(req, res, url) {
     const tStt = Date.now() - mulai;
     if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
 
-    // T-F4.1-02 (REQ-2.2): alur pengaduan mengumpulkan empat data wajib tanpa AI. Data yang kurang ditanyakan ulang satu per giliran;
-    // ucapan berisi nomor telepon dan nama tidak masuk riwayat yang dikirim ke AI.
+    // T-F4.1-02, T-F4.2-02 (REQ-2.2, REQ-2.3): alur pengaduan seluruhnya di gateway, tanpa AI. Data kurang ditanyakan ulang;
+    // begitu lengkap tiket terbit lewat Edge Function. Ucapan mentah tidak masuk riwayat dan tidak pernah sampai ke model.
     if (pengaduan.aktif(id)) {
-      const hasil = await pengaduan.tangani(id, transkrip);
-      riwayat.tambah(id, 'user', '(menyampaikan data pengaduan)');
-      if (!hasil.lengkap) {
-        riwayat.tambah(id, 'assistant', hasil.jawaban);
-        console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'tanya_ulang', kurang: hasil.kurang.length, stt_ms: tStt }));
-        return kirim(res, 200, 'success', 'OK', { transkrip, jawaban: hasil.jawaban, sumber: [], suara: `/voice/statis/${hasil.suara}` });
+      let hasil;
+      try {
+        hasil = await prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan: transkrip, ip });
+      } catch (e) {
+        if (e instanceof BatasTiketTercapai) {
+          console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'ditolak', batas: e.jenis }));
+          throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
+        }
+        throw e;
       }
+      const suara = hasil.tiket ? terbitkanTokenSuara(hasil.jawaban, ip) : hasil.suara;
+      console.info(JSON.stringify({ ev: 'pengaduan', tahap: hasil.tahap, kurang: hasil.kurang, stt_ms: tStt }));
+      return kirim(res, 200, 'success', 'OK', { transkrip, jawaban: hasil.jawaban, sumber: [], suara, pengaduan: hasil.tiket });
     }
 
     // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
