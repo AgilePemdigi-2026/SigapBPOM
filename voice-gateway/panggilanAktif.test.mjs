@@ -132,13 +132,23 @@ test('pelapor supabase memakai kunci internal bersama, tanpa service_role, dan h
 });
 
 test('req_4_2 panggilan yang ditahan (pengaduan belum selesai) tidak ditutup karena diam', async () => {
-  const { pelapor, pantau, maju, tunggu, atur } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000 });
-  atur({ layanan: 2, tahan: true });
+  let ditahan = true;
+  const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000, tahanMaksMs: 300_000, tahan: () => ditahan });
   pantau.tahap(ID, TAHAP.MENJAWAB);
   await tunggu();
   await maju(120_000);
   assert.equal(pelapor.daftarAktif().length, 1, 'tetap aktif selama ditahan');
-  atur({ layanan: 2, tahan: false });
+  ditahan = false;
   await maju(1_000);
   assert.deepEqual(pelapor.daftarAktif(), [], 'ditutup begitu tidak ditahan lagi');
+});
+
+test('req_4_2 panggilan yang ditahan tetap ditutup setelah batas atas tahan', async () => {
+  const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000, tahanMaksMs: 300_000, tahan: () => true });
+  pantau.tahap(ID, TAHAP.MENJAWAB);
+  await tunggu();
+  await maju(200_000);
+  assert.equal(pelapor.daftarAktif().length, 1, 'masih ditahan');
+  await maju(110_000);
+  assert.deepEqual(pelapor.daftarAktif(), [], 'ditutup setelah melewati batas atas');
 });

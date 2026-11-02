@@ -95,14 +95,16 @@ export class PelaporPanggilanSupabase {
  */
 export class PemantauPanggilan {
   constructor({
-    pelapor, konteks = () => ({}), now = () => Date.now(), onGalat = () => {},
-    heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, maks = 200,
+    pelapor, konteks = () => ({}), tahan = () => false, now = () => Date.now(), onGalat = () => {},
+    heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, tahanMaksMs = 16 * 60_000, maks = 200,
   }) {
     this.pelapor = pelapor;
     this.konteks = konteks;
+    // Predikat murni (tanpa efek samping): dipanggil dari tik, jadi tidak boleh memperbarui aktivitas sesi lain.
+    this.tahan = tahan;
     this.now = now;
     this.onGalat = onGalat;
-    this.batas = { heartbeatMs, jedaMinMs, diamMs, maks };
+    this.batas = { heartbeatMs, jedaMinMs, diamMs, tahanMaksMs, maks };
     this.sesi = new Map();
     this.timer = null;
   }
@@ -151,8 +153,12 @@ export class PemantauPanggilan {
   tik() {
     const sekarang = this.now();
     for (const [id, s] of this.sesi) {
-      // Panggilan yang `tahan` (mis. pengaduan belum selesai) tidak ditutup karena diam; penutupnya oleh pemilik alur.
-      if (sekarang - s.aktif > this.batas.diamMs && !this.konteks(id)?.tahan) {
+      // Panggilan yang ditahan (mis. pengaduan belum selesai) tidak ditutup karena diam; penutupnya oleh pemilik alur,
+      // tetapi tetap ada batas atas agar sesi yang ditinggalkan tidak tertahan selamanya.
+      const diam = sekarang - s.aktif;
+      let ditahan = false;
+      try { ditahan = diam <= this.batas.tahanMaksMs && Boolean(this.tahan(id)); } catch (e) { this.onGalat(e); }
+      if (diam > this.batas.diamMs && !ditahan) {
         this.akhiri(id);
       } else if (this.berubah(s) ? sekarang - s.kirimTerakhir >= this.batas.jedaMinMs : sekarang - s.kirimTerakhir >= this.batas.heartbeatMs) {
         this.kirim(id, s);

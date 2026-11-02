@@ -86,7 +86,9 @@ const riwayat = new RiwayatPanggilan();
 // Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
 const pantau = new PemantauPanggilan({
   pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
-  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null, tahan: pengaduan.aktif(id) }),
+  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
+  // Pengaduan yang belum selesai ditutup oleh alurnya sendiri (riwayat kedaluwarsa atau /voice/akhiri), bukan oleh tik.
+  tahan: (id) => pengaduan.aktif(id),
   onGalat: (e) => console.error(JSON.stringify({ ev: 'pantau_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
 });
 pantau.mulai();
