@@ -6,10 +6,11 @@ import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PANJANG_MAKS_UCAPAN, AnggaranToken,
-  PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan,
+  PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pilihMenu, rapikanJawaban, saringUcapan,
   teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { PengaduanController } from './pengaduan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -67,6 +68,7 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
 
 const riwayat = new RiwayatPanggilan();
+const pengaduan = new PengaduanController();
 let korpus = null;
 try {
   const mulai = Date.now();
@@ -194,13 +196,9 @@ async function giliran(req, res, url) {
     let body;
     try { body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8')); } catch { throw new ErrorGateway(400, 'Permintaan tidak valid.'); }
     if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
-    const jawaban = pesanLayanan(Number(body.pilih));
-    if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
-    riwayat.pilihLayanan(body.id, Number(body.pilih));
-    riwayat.selesaiEskalasi(body.id);
-    riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
-    riwayat.tambah(body.id, 'assistant', jawaban);
-    return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${Number(body.pilih)}` });
+    const menu = pilihMenu(riwayat, pengaduan, body.id, Number(body.pilih));
+    if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+    return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
   }
 
   if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
