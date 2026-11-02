@@ -10,7 +10,7 @@ import {
   teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
-import { PengaduanController } from './pengaduan.mjs';
+import { PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController } from './pengaduan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -47,6 +47,7 @@ const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
   'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON,
+  'minta-nama-produk': PESAN_MINTA_NAMA_PRODUK, 'minta-kronologi': PESAN_MINTA_KRONOLOGI, 'minta-nama': PESAN_MINTA_NAMA_PELAPOR,
 };
 // Tiket eskalasi lewat Edge Function bila Supabase dikonfigurasi, selain itu tiket tiruan di memori (#30).
 const SUPABASE_URL = env('SUPABASE_URL', '');
@@ -220,6 +221,18 @@ async function giliran(req, res, url) {
     const transkrip = await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
     if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
+
+    // T-F4.1-02 (REQ-2.2): alur pengaduan mengumpulkan empat data wajib tanpa AI. Data yang kurang ditanyakan ulang satu per giliran;
+    // ucapan berisi nomor telepon dan nama tidak masuk riwayat yang dikirim ke AI.
+    if (pengaduan.aktif(id)) {
+      const hasil = await pengaduan.tangani(id, transkrip);
+      riwayat.tambah(id, 'user', '(menyampaikan data pengaduan)');
+      if (!hasil.lengkap) {
+        riwayat.tambah(id, 'assistant', hasil.jawaban);
+        console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'tanya_ulang', kurang: hasil.kurang.length, stt_ms: tStt }));
+        return kirim(res, 200, 'success', 'OK', { transkrip, jawaban: hasil.jawaban, sumber: [], suara: `/voice/statis/${hasil.suara}` });
+      }
+    }
 
     // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
     // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
