@@ -103,6 +103,23 @@ test('req_4_2 galat pelapor tidak melempar dan dicoba lagi pada tik berikutnya',
   assert.ok(jam.t > 0);
 });
 
+test('req_4_2 akhiri menunggu laporan yang masih di jalan agar tidak ada baris berjalan baru setelah ditutup', async () => {
+  const { pantau, tunggu } = siapkan();
+  const urutan = [];
+  let lepas;
+  pantau.pelapor = {
+    laporkan: () => new Promise((r) => { lepas = () => { urutan.push('laporkan'); r(); }; }),
+    async akhiri() { urutan.push('akhiri'); },
+  };
+  pantau.tahap(ID, TAHAP.MENDENGAR);
+  const selesai = pantau.akhiri(ID);
+  await tunggu();
+  assert.deepEqual(urutan, [], 'akhiri belum dikirim selama laporan pertama belum selesai');
+  lepas();
+  await selesai;
+  assert.deepEqual(urutan, ['laporkan', 'akhiri']);
+});
+
 test('nfr_privasi jumlah panggilan terlacak dibatasi dan tidak ada data pribadi dalam laporan', async () => {
   const { pelapor, pantau, tunggu } = siapkan({ maks: 2 });
   pantau.tahap(ID, TAHAP.MENDENGAR);

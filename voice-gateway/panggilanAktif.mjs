@@ -139,8 +139,12 @@ export class PemantauPanggilan {
 
   /** Panggilan berakhir (penelepon menekan akhiri). Mengembalikan promise yang tidak pernah ditolak. */
   async akhiri(id) {
-    if (!this.sesi.delete(id)) return;
+    const s = this.sesi.get(id);
+    if (!s) return;
+    this.sesi.delete(id);
     try {
+      // Tunggu laporan yang masih di jalan agar tidak membuat baris `berjalan` baru setelah panggilan ditutup.
+      await s.kiriman;
       await this.pelapor.akhiri(id);
     } catch (e) {
       this.onGalat(e);
@@ -169,7 +173,7 @@ export class PemantauPanggilan {
     s.sedangKirim = true;
     s.kirimTerakhir = this.now();
     const data = { ...s.kini };
-    Promise.resolve()
+    s.kiriman = Promise.resolve()
       .then(() => this.pelapor.laporkan({ percakapanId: id, ...data }))
       .then(() => { s.terkirim = data; })
       .catch((e) => this.onGalat(e))
