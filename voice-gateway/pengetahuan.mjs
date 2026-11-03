@@ -148,9 +148,13 @@ export class Korpus {
   /**
    * Terapkan katalog materi_pengetahuan (UC-07): materi berstatus tidak_aktif tidak lagi dipakai sebagai kutipan,
    * dan materi aktif yang belum ada di berkas korpus diindeks dari kolom isi. Katalog kosong berarti semua berkas dipakai.
+   * `tanpaKatalog` menghitung berkas bermanifest yang kuncinya tidak ada di katalog: berkas itu tetap dikutip walau
+   * materinya sudah diubah atau dinonaktifkan di dashboard, jadi angka di atas nol menandakan seed dan manifest berbeda.
    */
   terapkanKatalog(baris) {
     const adaDiBerkas = new Set(this.potongan.map((p) => p.kunci));
+    const diKatalog = new Set(baris.map((b) => kunciMateri(b.judul, b.rujukan_sumber)));
+    const tanpaKatalog = [...adaDiBerkas].filter((k) => k && !diKatalog.has(k)).length;
     this.nonaktif = new Set(baris.filter((b) => b.status !== 'aktif').map((b) => kunciMateri(b.judul, b.rujukan_sumber)));
     const tambahan = new Korpus();
     let baru = 0;
@@ -161,7 +165,7 @@ export class Korpus {
       baru++;
     }
     this.tambahan = baru ? tambahan.selesai() : null;
-    return { nonaktif: this.nonaktif.size, tambahan: baru };
+    return { nonaktif: this.nonaktif.size, tambahan: baru, tanpaKatalog };
   }
 
   /** Potongan paling relevan (paling banyak satu per dokumen) dengan skor di atas `skorMinimal`. */
