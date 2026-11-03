@@ -1,5 +1,5 @@
-// ponytail: sesi tiruan di memori server sampai T-F3.1-03 memasang Supabase Auth. Satu akun demo,
-// sesi hilang saat server dimulai ulang dan tidak dibagi antarproses.
+// Sesi tiruan di memori server, hanya untuk pengembangan lokal (SIGAP_SESI=tiruan, tidak berlaku di build produksi).
+// Satu akun demo, sesi hilang saat server dimulai ulang dan tidak dibagi antarproses.
 import type { AstroCookies } from 'astro';
 import type { AdapterSesi, Petugas } from './AutentikasiController';
 
