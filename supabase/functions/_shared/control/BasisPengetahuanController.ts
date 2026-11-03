@@ -169,8 +169,9 @@ export class BasisPengetahuanController {
         materiTersimpan.terindeks = true;
       }
     } catch (galat) {
-      // Bila pengindeksan gagal, materi tetap tersimpan dengan terindeks = false
-      console.error('pengindeksan materi gagal, materi tetap tersimpan:', galat);
+      // Bila pengindeksan gagal, materi tetap tersimpan dengan terindeks = false.
+      // PROJECT_RULES 5.10: catat nama galat saja, bukan objek utuh yang bisa memuat detail query.
+      console.error('pengindeksan materi gagal:', galat instanceof Error ? galat.name : 'unknown');
       materiTersimpan.terindeks = false;
     }
 
