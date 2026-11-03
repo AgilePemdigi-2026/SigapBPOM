@@ -57,6 +57,8 @@ const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
+// T-F5.4-01: hasil pencarian cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada pencarian.
+let kondisiCekbpom = null;
 // Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
 // (embedding produksi belum ada); selain itu dipakai korpus lokal.
 const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
@@ -317,7 +319,9 @@ async function giliran(req, res, url) {
       if (cek) {
         if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
         const jenis = cek.kueri ? (cek.kueri.nomor ? 'nomor' : 'nama') : null;
-        console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms: Date.now() - tCek }));
+        const ms = Date.now() - tCek;
+        console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms }));
+        if (cek.kueri) kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
         produk = cek.produk;
         konteks = cek.konteks;
       } else {
@@ -403,6 +407,7 @@ const server = createServer(async (req, res) => {
           status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0,
           tanpaKatalog: katalog.tanpaKatalog ?? 0,
         },
+        cekbpom: { aktif: Boolean(cekBpom), ...(kondisiCekbpom ?? {}) },
       });
     }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
