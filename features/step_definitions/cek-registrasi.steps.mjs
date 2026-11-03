@@ -1,9 +1,10 @@
-// Langkah Gherkin UC-01 cek registrasi. cekbpom diganti server tiruan yang meniru antarmuka /all-produk dan
-// /produk-dt/all, kecuali skenario @live yang memakai situs asli.
+// Langkah Gherkin UC-01 cek registrasi dan tool cek_registrasi_bpom. cekbpom diganti server tiruan yang meniru antarmuka
+// /all-produk dan /produk-dt/all, kecuali skenario @live yang memakai situs asli.
 import assert from 'node:assert/strict';
 import { Given, When, Then, Before } from '@cucumber/cucumber';
 import { CekBpom, cekRegistrasi } from '../../voice-gateway/cekbpom.mjs';
-import { PESAN_LAYANAN_1 } from '../../voice-gateway/percakapan.mjs';
+import { cekRegistrasiBpom } from '../../voice-gateway/alatCekRegistrasi.mjs';
+import { PESAN_LAYANAN_1, PESAN_TAWARAN_PENUTUP } from '../../voice-gateway/percakapan.mjs';
 
 Before(function () {
   this.data = [];
@@ -11,6 +12,8 @@ Before(function () {
   this.gangguan = false;
   this.setelahMenu1 = false;
   this.asli = false;
+  // Keadaan tool cek_registrasi_bpom antargiliran, seperti yang disimpan RiwayatPanggilan di server.mjs.
+  this.agen = { ulangNama: 0, kandidat: null, jawabanTerakhir: '' };
 });
 
 // Meniru filter cekbpom: kolom yang diisi dicocokkan sebagai substring tanpa membedakan huruf besar.
@@ -37,7 +40,7 @@ Given('data registrasi cekbpom berisi:', function (tabel) {
 });
 Given('penelepon sudah memilih menu {int}', function (menu) {
   this.setelahMenu1 = menu === 1;
-  assert.ok(PESAN_LAYANAN_1);
+  if (menu === 1) this.agen.jawabanTerakhir = PESAN_LAYANAN_1;
 });
 Given('cekbpom sedang gangguan', function () {
   this.gangguan = true;
@@ -49,6 +52,29 @@ Given('cekbpom yang dipakai adalah situs asli', function () {
 When('penelepon berkata {string}', async function (ucapan) {
   const cek = this.asli ? new CekBpom() : new CekBpom({ fetch: cekbpomTiruan(this) });
   this.hasil = await cekRegistrasi(cek, ucapan, this.setelahMenu1);
+});
+
+When('penelepon menyebut {string} kepada agen', async function (ucapan) {
+  this.hasil = await cekRegistrasiBpom(new CekBpom({ fetch: cekbpomTiruan(this) }), ucapan, this.agen);
+  const keadaan = this.hasil?.keadaan ?? { ulangNama: this.agen.ulangNama, kandidat: null };
+  // Jawaban AI tiruan untuk giliran yang dijawab Hermes; isinya tidak dipakai tool.
+  this.agen = { ...keadaan, jawabanTerakhir: this.hasil?.jawaban ?? '(jawaban Hermes)' };
+});
+
+Then('agen menjawab tanpa AI {string}', function (teks) {
+  assert.equal(this.hasil?.jawaban, teks);
+  assert.equal(this.hasil.konteks, null, 'tidak ada pesan untuk AI');
+});
+Then('agen menjawab tanpa AI {string} lalu menawarkan bantuan lagi', function (teks) {
+  assert.equal(this.hasil?.jawaban, `${teks} ${PESAN_TAWARAN_PENUTUP}`);
+  assert.equal(this.hasil.konteks, null, 'tidak ada pesan untuk AI');
+});
+Then('agen tidak meminta ulang nama produk', function () {
+  assert.equal(this.hasil?.jawaban, null);
+  assert.match(this.hasil.konteks, /Jangan meminta nama produk lagi/);
+});
+Then('cekbpom tidak dicari sama sekali', function () {
+  assert.equal(this.pencarian.length, 0);
 });
 
 Then('cekbpom dicari dengan nama {string}', function (nama) {
@@ -85,6 +111,9 @@ Then('tidak ada kartu produk', function () {
 
 Then('pesan untuk AI memuat {string}', function (teks) {
   assert.ok(this.hasil.konteks.includes(teks), this.hasil.konteks);
+});
+Then('pesan untuk AI tidak memuat {string}', function (teks) {
+  assert.ok(!this.hasil.konteks.includes(teks), this.hasil.konteks);
 });
 Then('pesan untuk AI meminta nama yang lebih lengkap atau nomor izin edar', function () {
   assert.match(this.hasil.konteks, /nama yang lebih lengkap atau nomor izin edar/);

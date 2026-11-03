@@ -70,11 +70,15 @@ export function rapikanJawaban(teks) {
 /** Teks khusus TTS (tampilan di web tetap apa adanya): alamat situs dibaca "titik" seperti lazimnya orang Indonesia. */
 const EJAAN_ANGKA = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
 const eja = (digit) => [...digit].map((d) => EJAAN_ANGKA[d]).join(' ');
+// Kode nomor izin edar pangan (MD/ML), kosmetik (NA..NE), obat tradisional dan suplemen (TR..SL) diikuti angkanya.
+const POLA_NOMOR_IZIN_EDAR = /\b(MD|ML|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL)\s?(\d{6,16})\b/g;
 
 export function teksUntukSuara(teks) {
   return String(teks ?? '')
     // Nomor tiket dieja per digit agar mudah dicatat penelepon: ESK-20261019-0001 -> "E S K, dua nol dua enam ..., nol nol nol satu".
     .replace(/\b(ESK|ADU)-(\d{8})-(\d{4})\b/g, (_, jenis, tanggal, urut) => `${[...jenis].join(' ')}, ${eja(tanggal)}, ${eja(urut)}`)
+    // Nomor izin edar juga dieja per digit: MD 865009001234 -> "M D, delapan enam lima ...", bukan dibaca sebagai bilangan.
+    .replace(POLA_NOMOR_IZIN_EDAR, (_, kode, angka) => `${[...kode].join(' ')}, ${eja(angka)}`)
     .replace(/\b(?:[a-z0-9-]+\.)+(?:id|com|org|net)\b/gi, (alamat) =>
     alamat.replace(/cekbpom/gi, 'cek BPOM').split('.').join(' titik '));
 }
@@ -179,7 +183,7 @@ export class RiwayatPanggilan {
     let s = this.sesi.get(id);
     if (!s) {
       if (this.sesi.size >= SESI_MAKS) this.sesi.delete(this.sesi.keys().next().value);
-      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, eskalasi: null };
+      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, eskalasi: null, cekRegistrasi: { ulangNama: 0, kandidat: null } };
       this.sesi.set(id, s);
     }
     s.aktif = this.now();
@@ -240,6 +244,17 @@ export class RiwayatPanggilan {
   selesaiEskalasi(id) {
     this.ambil(id);
     this.sesi.get(id).eskalasi = null;
+  }
+
+  /** Keadaan tool cek_registrasi_bpom: jumlah permintaan ulang nama (BR-6) dan kandidat hasil ganda yang menunggu pilihan (REQ-1.5). */
+  cekRegistrasi(id) {
+    this.ambil(id);
+    return this.sesi.get(id).cekRegistrasi;
+  }
+
+  aturCekRegistrasi(id, keadaan) {
+    this.ambil(id);
+    this.sesi.get(id).cekRegistrasi = keadaan;
   }
 
   hapus(id) {

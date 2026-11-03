@@ -8,7 +8,7 @@ export const PRODUK_TIRUAN: Produk[] = [
   { nama: 'Paracetamol Kaplet Forte', nomorIzinEdar: 'DBL1234567904A1', status: 'Tidak Berlaku', pendaftar: 'PT Medika Prima', sumber: 'Data tiruan cekbpom' },
 ];
 
-export type GiliranTiruan = { ucapan: string; jawaban: string; produk?: HasilProduk; tiket?: string };
+export type GiliranTiruan = { ucapan: string; jawaban: string; produk?: HasilProduk; tiket?: string; pengaduan?: string };
 
 /** Transkrip tiruan per jalur, dibuka lewat `?demo=<nama>` di dev server. */
 export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
@@ -30,5 +30,24 @@ export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
   eskalasi: [
     { ucapan: 'Apakah obat batuk ini aman untuk ibu hamil?', jawaban: 'Pertanyaan Anda akan diteruskan kepada petugas. Mohon sebutkan nomor telepon Anda.' },
     { ucapan: 'Nol delapan satu dua tiga empat lima enam tujuh delapan sembilan nol.', jawaban: 'Nomor tiket Anda ESK-20261019-0001. Jawaban petugas akan dikirim melalui SMS.', tiket: 'ESK-20261019-0001' },
+  ],
+  // T-F4.1-03: Alur pengaduan produk dan tanya ulang data pengaduan (REQ-2.1, REQ-2.2, REQ-2.4).
+  pengaduan: [
+    {
+      ucapan: 'Saya mau melaporkan Krim Glowing Ajaib. Kulit saya merah dan gatal. Nama saya Siti.',
+      jawaban: 'Mohon sebutkan nomor telepon Anda.',
+    },
+    {
+      ucapan: 'Nol delapan satu dua tiga empat lima enam tujuh delapan sembilan nol.',
+      jawaban: 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.',
+      pengaduan: 'ADU-20261102-0001',
+      tiket: 'ADU-20261102-0001',
+    },
+  ],
+  'pengaduan-tanya-ulang': [
+    {
+      ucapan: 'Saya ingin mengadu produk obat herbal yang membuat perut kembung.',
+      jawaban: 'Mohon sebutkan nomor telepon Anda.',
+    },
   ],
 };
