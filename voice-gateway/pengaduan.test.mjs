@@ -347,6 +347,20 @@ test('req_2_5 kapasitas penuh oleh pengaduan berjalan menolak sesi baru, bukan m
   for (let i = 0; i < 200; i++) assert.ok(pengaduan.aktif(idKe(i)));
 });
 
+test('req_2_5 kapasitas sesi pengaduan penuh menggeser sesi bertiket dulu, bukan pengaduan berjalan', async () => {
+  const lengkap = { namaProduk: 'A', kronologi: 'b c d', namaPelapor: 'E', nomorTelepon: '081234567890' };
+  const pengaduan = new PengaduanController({ gerbang: new GerbangPengaduanTiruan(), ekstraktor: { ekstrak: () => lengkap } });
+  pengaduan.mulai(idKe(0)); // pengaduan berjalan, paling tua
+  for (let i = 1; i < 500; i++) {
+    pengaduan.mulai(idKe(i));
+    await pengaduan.tangani(idKe(i), 'data lengkap');
+  }
+  pengaduan.mulai(idKe(900));
+  assert.ok(pengaduan.aktif(idKe(0)));
+  assert.ok(!pengaduan.sesi.has(idKe(1)));
+  assert.equal(pengaduan.sesi.size, 500);
+});
+
 test('req_2_5 sesi tidak aktif tetap memicu saatDibuang lewat bersihkan', () => {
   let t = 0;
   const riwayat = new RiwayatPanggilan(() => t);

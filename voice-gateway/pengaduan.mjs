@@ -196,7 +196,11 @@ export class PengaduanController {
   /** Penelepon menekan 2: mulai pengumpulan data pengaduan pada panggilan ini. */
   mulai(id) {
     this.sesi.delete(id);
-    if (this.sesi.size >= SESI_PENGADUAN_MAKS) this.sesi.delete(this.sesi.keys().next().value);
+    if (this.sesi.size >= SESI_PENGADUAN_MAKS) {
+      // Geser dulu sesi yang sudah bertiket; pengaduan berjalan hanya tergeser bila semuanya masih berjalan.
+      const korban = [...this.sesi].find(([, v]) => v.tiket !== null)?.[0] ?? this.sesi.keys().next().value;
+      this.sesi.delete(korban);
+    }
     this.sesi.set(id, { data: {}, ditanya: null, tiket: null, janji: null });
   }
 
