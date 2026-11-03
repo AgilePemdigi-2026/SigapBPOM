@@ -12,8 +12,10 @@ import {
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, labelKueri, tabelCek } from './cekbpom.mjs';
-import { PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
-import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
+import { NAMA_TOOL as TOOL_CEK_REGISTRASI, PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
+import {
+  NAMA_TOOL as TOOL_PENGETAHUAN, PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel,
+} from './alatPengetahuan.mjs';
 import {
   BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
 } from './pengaduan.mjs';
@@ -23,6 +25,7 @@ import {
   pesanTiketEskalasi,
 } from './eskalasi.mjs';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
+import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -97,9 +100,16 @@ const pengaduan = new PengaduanController({
   pengirimSms: new PengirimSmsTiruan(),
   pembatas: pembatasTiket,
 });
+// NFR-20: transkrip dan log tool gateway tersimpan di register layanan lewat Edge Function, selain itu tiruan di memori.
+const pencatat = new PencatatTranskrip({
+  pengirim: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PengirimTranskripSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PengirimTranskripTiruan(),
+  onGalat: (e) => console.error(JSON.stringify({ ev: 'transkrip_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
+});
 // Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
 const pantau = new PemantauPanggilan({
   pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
+  // Laporan pertama membuat baris percakapan; transkrip baru ditulis setelahnya.
+  saatTercatat: (id) => pencatat.tercatat(id),
   konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
   // Panggilan yang sedang mengumpulkan pengaduan tidak ditutup selama jeda bicara; batas atasnya ada di PemantauPanggilan.
   tahan: (id) => pengaduan.aktif(id),
@@ -121,7 +131,7 @@ async function akhiriPengaduan(id) {
   return hasil && { pesan: hasil.pesan, tersimpan: hasil.tersimpan };
 }
 // Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
-riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)); };
+riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)).finally(() => pencatat.akhiri(id)); };
 riwayat.dilindungi = (id) => pengaduan.aktif(id);
 setInterval(() => riwayat.bersihkan(), 60_000).unref();
 
@@ -303,6 +313,9 @@ async function giliran(req, res, url) {
       // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
       // pertama yang sudah melewati kuota dan pembatas laju.
       riwayat.aturCekRegistrasi(id, { ulangNama: 0, kandidat: null });
+      // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
+      pencatat.giliran(id, null, PESAN_MENU);
+      pencatat.giliran(id, null, menu.jawaban);
       return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
     }
     // Pesan yang diketik: tanpa STT, selebihnya sama dengan giliran suara.
@@ -341,7 +354,9 @@ async function giliran(req, res, url) {
     // lalu tiap kalimat beserta suaranya begitu siap, terakhir sumber dan status panggilan.
     res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' });
     const tulis = (baris) => res.write(`${JSON.stringify(baris)}\n`);
-    const ucapkan = (teks, suara) => tulis({ jenis: 'kalimat', teks, suara });
+    // NFR-20: kalimat yang diucapkan ke penelepon dikumpulkan lalu dicatat bersama ucapannya di finally, satu titik untuk semua jalur.
+    const terucap = [];
+    const ucapkan = (teks, suara) => { terucap.push(teks); tulis({ jenis: 'kalimat', teks, suara }); };
     try {
       if (!transkrip) {
         tulis({ jenis: 'transkrip', transkrip: '' });
@@ -370,27 +385,6 @@ async function giliran(req, res, url) {
         pantau.tahap(id, TAHAP.MENJAWAB);
         ucapkan(hasil.jawaban, suara);
         tulis({ jenis: 'selesai', sumber: [], pengaduan: hasil.tiket });
-        return;
-      }
-
-      // T-F4.1-02, T-F4.2-02 (REQ-2.2, REQ-2.3): alur pengaduan seluruhnya di gateway, tanpa AI. Data kurang ditanyakan ulang;
-      // begitu lengkap tiket terbit lewat Edge Function. Ucapan mentah tidak masuk riwayat dan tidak pernah sampai ke model.
-      if (pengaduan.aktif(id)) {
-        tulis({ jenis: 'transkrip', transkrip });
-        let hasil;
-        try {
-          hasil = await prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan: transkrip, ip });
-        } catch (e) {
-          if (e instanceof BatasTiketTercapai) {
-            console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'ditolak', batas: e.jenis }));
-            throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
-          }
-          throw e;
-        }
-        console.info(JSON.stringify({ ev: 'pengaduan', tahap: hasil.tahap, kurang: hasil.kurang, stt_ms: tStt }));
-        pantau.tahap(id, TAHAP.MENJAWAB);
-        ucapkan(hasil.jawaban, hasil.tiket ? terbitkanTokenSuara(hasil.jawaban, ip) : hasil.suara);
-        tulis({ jenis: 'selesai', pengaduan: hasil.tiket });
         return;
       }
 
@@ -480,10 +474,16 @@ async function giliran(req, res, url) {
         const jenis = cek.kueri ? (cek.kueri.nomor ? 'nomor' : 'nama') : null;
         const ms = Date.now() - tCek;
         console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms }));
-        if (cek.kueri) kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
+        if (cek.kueri) {
+          kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
+          pencatat.tool(id, TOOL_CEK_REGISTRASI, ms, !cek.galat);
+        }
         konteks = cek.konteks;
       } else {
-        const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
+        const basis = await cariBasisPengetahuan({
+          pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)),
+          saatLokal: (ms, berhasil) => pencatat.tool(id, TOOL_PENGETAHUAN, ms, berhasil),
+        });
         kutipan = basis.kutipan.slice(0, KUTIPAN_MAKS);
         konteks = pesanBasisPengetahuan(kutipan, basis.mode);
       }
@@ -527,7 +527,10 @@ async function giliran(req, res, url) {
       let jawaban = susunan.teks;
       const diLuarTopik = susunan.khusus === 'di_luar_topik';
       // Jawaban baku baru dikenali setelah kalimat isi terkirim: panel membuang audio yang belum diputar dan teksnya.
-      if (susunan.khusus && susunan.isi.length) tulis({ jenis: 'ganti' });
+      if (susunan.khusus && susunan.isi.length) {
+        tulis({ jenis: 'ganti' });
+        terucap.length = 0;
+      }
       if (diLuarTopik) {
         jawaban = PESAN_DI_LUAR_TOPIK;
         riwayat.catatDiLuarTopik(id);
@@ -559,6 +562,7 @@ async function giliran(req, res, url) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
       tulis({ jenis: 'galat', message: e instanceof ErrorGateway ? e.message : PESAN_GANGGUAN });
     } finally {
+      pencatat.giliran(id, transkrip, terucap.join(' '));
       res.end();
     }
   } finally {

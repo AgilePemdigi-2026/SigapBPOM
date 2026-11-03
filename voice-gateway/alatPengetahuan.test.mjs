@@ -69,6 +69,17 @@ test('t_f1_3_03 fallback ke korpus lokal bila Edge Function gagal, dan log tanpa
   assert.ok(!JSON.stringify(catatan).includes('rahasia'));
 });
 
+test('t_f5_4_01 hanya pencarian BM25 lokal yang dilaporkan untuk log_tool; jalur vektor dicatat Edge Function', async () => {
+  const lokal = [];
+  const saatLokal = (ms, berhasil) => lokal.push(berhasil);
+  const korpus = { cari: () => [] };
+  await cariBasisPengetahuan({ pencari: { cari: async () => [POTONGAN] }, korpus, pertanyaan: 'q', saatLokal });
+  assert.deepEqual(lokal, [], 'pencarian vektor tidak dicatat gateway');
+  await cariBasisPengetahuan({ pencari: { cari: async () => { throw new Error('cari-pengetahuan 503'); } }, korpus, pertanyaan: 'q', saatLokal });
+  await cariBasisPengetahuan({ pencari: null, korpus: null, pertanyaan: 'q', saatLokal });
+  assert.deepEqual(lokal, [true, false], 'BM25 sesudah vektor gagal tercatat; tanpa korpus tercatat gagal');
+});
+
 test('t_f1_3_03 tanpa pencari dikonfigurasi dipakai korpus lokal; tanpa keduanya kosong', async () => {
   const lokal = [{ judul: 'Lokal', label: 'L', sumber: '', teks: 'isi' }];
   assert.deepEqual(await cariBasisPengetahuan({ pencari: null, korpus: { cari: () => lokal }, pertanyaan: 'q' }), { mode: 'lokal', kutipan: lokal });

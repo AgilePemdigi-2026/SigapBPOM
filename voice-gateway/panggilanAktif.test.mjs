@@ -137,6 +137,19 @@ test('req_4_2 galat pelapor tidak melempar dan dicoba lagi pada tik berikutnya',
   assert.ok(jam.t > 0);
 });
 
+test('nfr_20 saatTercatat hanya dipanggil setelah laporan berhasil, yaitu setelah baris percakapan ada', async () => {
+  const tercatat = [];
+  const { pantau, tunggu, maju } = siapkan({ saatTercatat: (id) => tercatat.push(id) });
+  let gagal = true;
+  pantau.pelapor = { async laporkan() { if (gagal) throw new Error('jaringan'); }, async akhiri() {} };
+  pantau.tahap(ID, TAHAP.MENDENGAR);
+  await tunggu();
+  assert.deepEqual(tercatat, [], 'laporan gagal: baris percakapan belum tentu ada');
+  gagal = false;
+  await maju(2_100);
+  assert.deepEqual(tercatat, [ID]);
+});
+
 test('req_4_2 akhiri menunggu laporan yang masih di jalan agar tidak ada baris berjalan baru setelah ditutup', async () => {
   const { pantau, tunggu } = siapkan();
   const urutan = [];
