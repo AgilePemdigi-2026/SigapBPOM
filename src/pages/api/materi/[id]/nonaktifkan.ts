@@ -7,5 +7,5 @@ import { PenyimpananMateriTiruan } from '../../../../lib/mock/materiTiruan';
 export const POST: APIRoute = async ({ params }) => {
   const basis = new BasisPengetahuanController(new PenyimpananMateriTiruan());
   const hasil = await basis.nonaktifkanMateri(params.id);
-  return Response.json({ status: hasil.berhasil ? 'success' : 'error', message: hasil.pesan, data: null }, { status: hasil.berhasil ? 200 : 404 });
+  return Response.json({ status: hasil.kode === 200 ? 'success' : 'error', message: hasil.pesan, data: null }, { status: hasil.kode });
 };
