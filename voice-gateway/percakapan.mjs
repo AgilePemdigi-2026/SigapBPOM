@@ -15,6 +15,8 @@ export const PESAN_DI_LUAR_TOPIK = 'Pertanyaan tersebut berada di luar cakupan l
 export const PESAN_TAWARAN_PENUTUP = 'Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup.';
 /** Salam penutup sebelum panggilan diakhiri otomatis. Belum ada di kamus PRD Lampiran A. */
 export const PESAN_PENUTUP = 'Terima kasih sudah menghubungi HaloBPOM. Percakapan ini saya tutup ya.';
+/** Diputar segera setelah penelepon selesai bicara, selama AI menyusun jawaban. */
+export const PESAN_JEDA = 'Baik, sebentar saya cek ya.';
 /** Pesan saat anggaran token AI habis. Tidak ada di kamus PRD, jadi dikirim sebagai galat 429 seperti batas laju. */
 export const PESAN_BATAS_AI = {
   harian: 'Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok.',
@@ -23,8 +25,8 @@ export const PESAN_BATAS_AI = {
 };
 
 export const PANJANG_MAKS_UCAPAN = 1000;
-// Jawaban dibacakan TTS; dibatasi agar hemat kuota karakter ElevenLabs dan tetap singkat untuk telinga.
-export const PANJANG_MAKS_JAWABAN = 450;
+/** Panjang maksimum pesan yang diketik penelepon, dalam karakter setelah dirapikan. */
+export const PANJANG_MAKS_KETIKAN = 500;
 const GILIRAN_RIWAYAT_MAKS = 12;
 const SESI_KEDALUWARSA_MS = 15 * 60 * 1000;
 const SESI_MAKS = 200;
@@ -33,7 +35,7 @@ const SESI_MAKS = 200;
 export const PROMPT_SISTEM = `Anda adalah CS AI HaloBPOM, asisten suara resmi layanan HaloBPOM (Badan Pengawas Obat dan Makanan).
 Anda berbicara lewat telepon, jadi tulis jawaban persis seperti petugas call center yang ramah sedang bicara, bukan seperti menulis artikel:
 - Pakai bahasa Indonesia lisan yang sopan dan luwes, seperti mengobrol, bukan membacakan teks. Hindari kata Anda; bila perlu menyapa, pakai Bapak atau Ibu tanpa menebak salah satunya.
-- Paling banyak dua kalimat pendek, masing-masing kira-kira lima belas kata, belum termasuk kalimat penutup. Jangan pakai titik koma, tanda kurung, garis miring, atau kata kaku seperti berupa, serta, adapun, dan tersebut. Jangan mengawali setiap jawaban dengan kata yang sama.
+- Paling banyak dua kalimat pendek, masing-masing kira-kira lima belas kata, belum termasuk kalimat penutup. Kalimat pertama langsung menjawab inti pertanyaan. Jangan pakai titik koma, tanda kurung, garis miring, atau kata kaku seperti berupa, serta, adapun, dan tersebut. Jangan mengawali setiap jawaban dengan kata yang sama.
 - Contoh gaya yang diharapkan: "BPOM itu lembaga yang mengawasi obat, makanan, dan kosmetik di Indonesia. Tugasnya memastikan produk yang beredar aman dipakai."
 - Jangan pakai markdown, daftar, emoji, atau tautan panjang. Tulis angka seperti diucapkan.
 Layanan 1, informasi produk: cek status registrasi produk dan jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM.
@@ -71,19 +73,6 @@ export function pilihMenu(riwayat, pengaduan, id, nomor) {
   return { jawaban, suara: `/voice/statis/layanan-${nomor}` };
 }
 
-/** Bersihkan jawaban model agar layak dibacakan: buang markdown dan potong di batas kalimat. */
-export function rapikanJawaban(teks) {
-  let s = String(teks ?? '')
-    .replace(/[*_`#>]+/g, '')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (s.length <= PANJANG_MAKS_JAWABAN) return s;
-  s = s.slice(0, PANJANG_MAKS_JAWABAN);
-  const titik = Math.max(s.lastIndexOf('. '), s.lastIndexOf('? '), s.lastIndexOf('! '));
-  return titik > 80 ? s.slice(0, titik + 1) : `${s.trimEnd()}…`;
-}
-
 /** Teks khusus TTS (tampilan di web tetap apa adanya): alamat situs dibaca "titik" seperti lazimnya orang Indonesia. */
 const EJAAN_ANGKA = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
 const eja = (digit) => [...digit].map((d) => EJAAN_ANGKA[d]).join(' ');
@@ -119,8 +108,107 @@ export function saringUcapan(ucapan, jumlahDiLuarTopik = 0) {
   return null;
 }
 
+/** Jawaban AI dipotong di kode menjadi paling banyak sekian kalimat isi, di luar kalimat tawaran penutup. */
+export const KALIMAT_JAWABAN_MAKS = 2;
+const KALIMAT_MAKS_KAR = 220;
+// Batas kalimat diabaikan bila potongan masih terlalu pendek, misalnya singkatan "No." atau "dr.".
+const KALIMAT_MIN_KAR = 25;
+
+/** Memecah teks yang datang bertahap dari AI menjadi kalimat utuh, agar tiap kalimat bisa langsung diubah menjadi suara. */
+export class PemecahKalimat {
+  constructor() { this.sisa = ''; }
+
+  tambah(potongan) {
+    this.sisa += potongan;
+    const kalimat = [];
+    const pola = /[.!?](?=\s+\S)/g;
+    let m, awal = 0;
+    while ((m = pola.exec(this.sisa))) {
+      if (m.index + 1 - awal < KALIMAT_MIN_KAR) continue;
+      kalimat.push(this.sisa.slice(awal, m.index + 1));
+      awal = m.index + 1;
+    }
+    this.sisa = this.sisa.slice(awal);
+    return kalimat.map((k) => k.trim()).filter(Boolean);
+  }
+
+  akhiri() {
+    const k = this.sisa.trim();
+    this.sisa = '';
+    return k ? [k] : [];
+  }
+}
+
 const sederhanakan = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 /** Jawaban AI yang memuat pesan baku di luar topik, beserta variasi tanda baca atau huruf besarnya. */
+/**
+ * Menyusun jawaban dari kalimat AI satu per satu. Kalimat isi dibatasi KALIMAT_JAWABAN_MAKS; kalimat tawaran penutup
+ * dan jawaban baku (di luar topik, butuh petugas) dikenali agar diganti audio statis yang sudah dirender.
+ */
+export class SusunanJawaban {
+  constructor(pesanButuhPetugas, maks = KALIMAT_JAWABAN_MAKS) {
+    this.pesanButuhPetugas = pesanButuhPetugas;
+    this.maks = maks;
+    this.isi = [];
+    this.tawaran = false;
+    /** 'di_luar_topik' | 'butuh_petugas' | null */
+    this.khusus = null;
+  }
+
+  /**
+   * Mengembalikan kalimat yang boleh langsung diucapkan, atau null bila kalimat ini tidak diucapkan.
+   * Setiap kalimat diperiksa terhadap jawaban baku, bukan hanya kalimat pertama: bila jawaban baku muncul setelah
+   * kalimat isi, `khusus` terisi dan pemanggil wajib membatalkan kalimat yang sudah dikirim.
+   */
+  tambah(kalimatMentah) {
+    if (this.khusus || this.tawaran) return null;
+    let k = String(kalimatMentah ?? '').replace(/[*_`#>]+/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\s+/g, ' ').trim();
+    if (!k) return null;
+    const ringkas = sederhanakan(k);
+    if (jawabanDiLuarTopik(k)) { this.khusus = 'di_luar_topik'; return null; }
+    if (ringkas.includes('diteruskan kepada petugas')
+      || (ringkas.length >= 20 && sederhanakan(this.pesanButuhPetugas).startsWith(ringkas))) { this.khusus = 'butuh_petugas'; return null; }
+    if (POLA_TAWARAN.test(ringkas)) { this.tawaran = true; return null; }
+    if (this.isi.length >= this.maks) return null;
+    if (k.length > KALIMAT_MAKS_KAR) k = `${k.slice(0, KALIMAT_MAKS_KAR).replace(/\s+\S*$/, '')}…`;
+    this.isi.push(k);
+    return k;
+  }
+
+  /** Teks yang benar-benar diucapkan, untuk riwayat dan log. */
+  get teks() {
+    return [...this.isi, ...(this.tawaran ? [PESAN_TAWARAN_PENUTUP] : [])].join(' ');
+  }
+}
+
+/**
+ * Mengalirkan potongan jawaban AI menjadi kalimat yang langsung diucapkan lewat `ucapkan`.
+ * Setelah tawaran penutup atau jawaban baku dikenali tidak ada kalimat lain yang diucapkan, jadi loop berhenti dan
+ * `return()` iterator menutup stream AI (Hermes mengabaikan max_tokens, sisa jawabannya hanya membuang token).
+ * Begitu `sinyal` dibatalkan (penelepon memutus panggilan), tidak ada kalimat lagi yang diteruskan ke `ucapkan` (TTS)
+ * dan fungsi selesai normal; pemanggil memeriksa `sinyal.aborted` untuk melewati jawaban pengganti.
+ */
+export async function alirkanJawaban(aliran, susunan, ucapkan, sinyal) {
+  const pemecah = new PemecahKalimat();
+  const proses = (kalimat) => {
+    for (const k of kalimat) {
+      if (sinyal?.aborted) return;
+      const ucap = susunan.tambah(k);
+      if (ucap) ucapkan(ucap);
+    }
+  };
+  try {
+    for await (const potongan of aliran) {
+      proses(pemecah.tambah(potongan));
+      if (susunan.tawaran || susunan.khusus || sinyal?.aborted) break;
+    }
+  } catch (e) {
+    // Stream yang putus karena pembatalan itu sendiri (AbortError dari fetch Hermes) bukan galat; galat lain diteruskan.
+    if (!sinyal?.aborted) throw e;
+  }
+  proses(pemecah.akhiri());
+}
+
 export const jawabanDiLuarTopik = (jawaban) => sederhanakan(jawaban).includes(sederhanakan(PESAN_DI_LUAR_TOPIK));
 
 const POLA_TAWARAN = /ada (lagi )?yang bisa saya bantu/;
@@ -187,6 +275,18 @@ export class AnggaranToken {
     for (const m of [this.perIp, this.perPanggilan]) if (m.size > 5000) m.delete(m.keys().next().value);
   }
 }
+
+// Perkiraan kasar karakter per token, dipakai bila Hermes tidak mengirim `usage`.
+const KARAKTER_PER_TOKEN = 3;
+
+/**
+ * Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
+ * datang (termasuk saat stream putus di tengah). Permintaan yang gagal sebelum menghasilkan keluaran dikembalikan.
+ * Permintaan yang dibatalkan penelepon tetap dibebankan prompt-nya karena Hermes sudah memprosesnya; tanpa itu klien
+ * bisa melewati anggaran dengan memutus koneksi sebelum token pertama.
+ */
+export const tokenTerpakai = (hasil, dibatalkan = false) => hasil.token
+  || (hasil.karKeluaran || dibatalkan ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / KARAKTER_PER_TOKEN) : 0);
 
 /** Kapasitas sesi penuh dan semuanya sedang mengumpulkan pengaduan. Boundary menjawabnya 503. */
 export class SesiPenuh extends Error {
@@ -336,3 +436,19 @@ export class PembatasLaju {
 
 const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const idPanggilanSah = (id) => typeof id === 'string' && POLA_UUID.test(id);
+
+/**
+ * Urai badan JSON POST /voice/giliran. Dua bentuk: {id, pilih} untuk tombol menu, dan {id, teks} untuk pesan yang diketik
+ * (melewati STT, selebihnya sama dengan ucapan). Fungsi murni: mengembalikan {jenis, id, ...} atau {galat: {kode, pesan}}.
+ */
+export function uraiGiliranJson(body) {
+  const galat = (kode, pesan) => ({ galat: { kode, pesan } });
+  if (!body || typeof body !== 'object' || Array.isArray(body) || !idPanggilanSah(body.id)) return galat(400, 'Permintaan tidak valid.');
+  if (!('teks' in body)) return { jenis: 'pilih', id: body.id, pilih: Number(body.pilih) };
+  if (typeof body.teks !== 'string') return galat(400, 'Permintaan tidak valid.');
+  // Karakter kontrol dibuang dan spasi beruntun dirapikan, supaya pesan yang diketik berbentuk sama dengan hasil STT.
+  const teks = body.teks.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!teks) return galat(422, 'Pesan kosong. Silakan ketik pertanyaan Anda.');
+  if (teks.length > PANJANG_MAKS_KETIKAN) return galat(422, `Pesan terlalu panjang. Maksimal ${PANJANG_MAKS_KETIKAN} karakter.`);
+  return { jenis: 'teks', id: body.id, teks };
+}

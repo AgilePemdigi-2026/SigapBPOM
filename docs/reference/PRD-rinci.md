@@ -399,6 +399,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 01 | Produk tidak ditemukan | Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan. |
 | 01 | Di luar topik | Pertanyaan tersebut berada di luar cakupan layanan HaloBPOM. |
 | 01 | Nama tidak jelas | Maaf, nama produk kurang jelas. Mohon sebutkan kembali. |
+| 01, 02 | Penelepon selesai bicara, AI menyusun jawaban | Baik, sebentar saya cek ya. |
 | 01, 02 | Pertanyaan selesai dijawab | Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup. |
 | 01, 02 | Penelepon tidak butuh bantuan lagi | Terima kasih sudah menghubungi HaloBPOM. Percakapan ini saya tutup ya. |
 | 01, 02 | Batas pemakaian AI harian tercapai | Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok. |

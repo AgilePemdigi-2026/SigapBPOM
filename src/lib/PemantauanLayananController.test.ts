@@ -336,6 +336,60 @@ test('t_f5_3_03 adapter Supabase membaca detail lewat RPC; tiket tidak ada menja
   assert.deepEqual(await new PemantauanLayananController(rusak.penyimpanan).detailKasus('ESK-20261030-0001'), { gagal: PESAN_PEMANTAUAN.detailGagalDimuat });
 });
 
+test('t_f5_3_02 REQ-4.3 antrean memuat kolom tabel, belum ditelaah di urutan teratas, dan tautan Buka Kasus', async () => {
+  const penyimpanan = new PenyimpananPemantauanMock({
+    antreanTiket: [
+      { id: 't3', noTiket: 'ADU-20261030-0003', jenis: 'pengaduan', ringkasan: 'Krim iritasi', status: 'selesai', waktuMasuk: '2026-10-30T02:50:00Z', percakapanId: 'c3' },
+      { id: 't1', noTiket: 'ESK-20261030-0001', jenis: 'eskalasi', ringkasan: '', status: 'belum_ditelaah', waktuMasuk: '2026-10-30T01:00:00Z' },
+      { id: 't2', noTiket: 'ADU-20261030-0002', jenis: 'pengaduan', ringkasan: 'Keripik tanpa izin edar', status: 'belum_ditelaah', waktuMasuk: '2026-10-30T02:00:00Z', percakapanId: 'c2' },
+    ],
+  });
+  const r = await new PemantauanLayananController(penyimpanan).antreanTiket();
+  assert.ok('tiket' in r);
+  assert.deepEqual(r.tiket.map((t) => [t.noTiket, t.labelStatus]), [
+    ['ADU-20261030-0002', 'Belum Ditelaah'],
+    ['ESK-20261030-0001', 'Belum Ditelaah'],
+    ['ADU-20261030-0003', 'Selesai'],
+  ]);
+  const { waktuMasuk, ...kolom } = r.tiket[0];
+  assert.match(waktuMasuk, /^30 Okt 2026,? 09:00 WIB$/);
+  assert.deepEqual(kolom, {
+    noTiket: 'ADU-20261030-0002',
+    ringkasan: 'Keripik tanpa izin edar',
+    jenis: 'Pengaduan',
+    labelStatus: 'Belum Ditelaah',
+    tautanKasus: '/pengaduan/detail?tiket=ADU-20261030-0002',
+    tautanTranskrip: '/riwayat-percakapan/detail?id=c2',
+  });
+  assert.equal(r.tiket[1].jenis, 'Eskalasi AI');
+  assert.equal(r.tiket[1].ringkasan, '—');
+  assert.equal(r.tiket[1].tautanTranskrip, null);
+  // Adapter tiruan untuk pengembangan lokal mengisi antrean dari tiket contoh.
+  const tiruan = await pantau().antreanTiket();
+  assert.ok('tiket' in tiruan);
+  assert.deepEqual(tiruan.tiket.map((t) => t.noTiket), ['ADU-20261030-0001', 'ESK-20261030-0001', 'ADU-20261027-0003']);
+});
+
+test('t_f5_3_02 antrean kosong dan penyimpanan gagal dibedakan', async () => {
+  assert.deepEqual(await new PemantauanLayananController(new PenyimpananPemantauanMock()).antreanTiket(), { tiket: [] });
+  const rusak = supabasePalsu(() => new Response('bad gateway', { status: 502 }));
+  assert.deepEqual(await new PemantauanLayananController(rusak.penyimpanan).antreanTiket(), { gagal: PESAN_PEMANTAUAN.detailGagalDimuat });
+});
+
+test('t_f5_3_02 adapter Supabase membaca antrean_tiket_petugas tanpa kolom data pribadi', async () => {
+  const { dipanggil, penyimpanan } = supabasePalsu(() =>
+    Response.json([
+      { tiket_id: 't1', no_tiket: 'ESK-20261030-0001', jenis_tiket: 'eskalasi', ringkasan: null, status_tiket: 'sedang_ditelaah', waktu_masuk: '2026-10-30T01:30:00+00:00', percakapan_id: 'c1' },
+    ]),
+  );
+  assert.deepEqual(await penyimpanan.ambilAntreanTiket(), [
+    { id: 't1', noTiket: 'ESK-20261030-0001', jenis: 'eskalasi', ringkasan: '', status: 'sedang_ditelaah', waktuMasuk: '2026-10-30T01:30:00+00:00', percakapanId: 'c1' },
+  ]);
+  assert.equal(dipanggil[0].url.pathname, '/rest/v1/antrean_tiket_petugas');
+  assert.equal(dipanggil[0].url.searchParams.get('select'), 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id');
+  assert.equal((dipanggil[0].init.headers as Record<string, string>).Authorization, 'Bearer tok');
+});
+
 test('t_f5_4_01 komponen down tampil sebagai gangguan', async () => {
   const r = await pantau().pantauAgent();
   assert.deepEqual(r.komponen.map((k) => [k.nama, k.status]), [

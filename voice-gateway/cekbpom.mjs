@@ -67,6 +67,27 @@ function statusIzin(s) {
   throw new Error('cekbpom status tidak dikenal');
 }
 
+const KOMPOSISI_MAKS = 300;
+const potong = (t, maks) => (t.length > maks ? `${t.slice(0, maks - 1).trimEnd()}…` : t);
+const gabung = (...bagian) => bersihkan(bagian.filter((x) => bersihkan(x)).join(', '));
+
+/**
+ * Bidang untuk modal "Detail Produk" di panel Cari Produk. Semuanya sudah ada pada baris `/produk-dt/all`
+ * (halaman `/produk/{PRODUCT_ID}/{APPLICATION_ID}/detail` cekbpom hanya menampilkan ulang data yang sama), jadi tidak perlu
+ * permintaan kedua. Hanya data publik registrasi; komposisi dipotong agar payload `cek` tetap kecil.
+ */
+export function detailDariBaris(b) {
+  const komposisi = bersihkan(b.INGREDIENTS);
+  return {
+    kategori: bersihkan(b.CATEGORY),
+    terbit: bersihkan(b.PRODUCT_DATE),
+    komposisi: potong(komposisi, KOMPOSISI_MAKS),
+    kemasan: bersihkan(b.PRODUCT_PACKAGE),
+    alamatPendaftar: gabung(b.REGISTRAR_ADD, b.REGISTRAR_PROV || gabung(b.REGISTRAR_DISTRICT_DETAIL, b.REGISTRAR_PROVINCE_DETAIL)),
+    diterbitkanOleh: gabung(b.APPLICATION, b.DEPARTMENT),
+  };
+}
+
 /** Bentuk sama dengan `Produk` di src/lib/kartuPanggilan.ts, plus merek dan tanggal berlaku untuk konteks AI. */
 export function produkDariBaris(b) {
   return {
@@ -76,6 +97,7 @@ export function produkDariBaris(b) {
     status: statusIzin(b.STATUS),
     pendaftar: bersihkan(b.REGISTRAR || b.MANUFACTURER_NAME),
     berlakuSampai: bersihkan(b.PRODUCT_EXPIRED),
+    detail: detailDariBaris(b),
     sumber: 'cekbpom.pom.go.id',
   };
 }
@@ -190,6 +212,27 @@ export function hasilProduk({ produk }) {
   return { jenis: 'kandidat', produk: produk.slice(0, KANDIDAT_MAKS).map(bentuk) };
 }
 
+/** Teks kueri yang ditampilkan di panel Cari Produk halaman publik. */
+export const labelKueri = (kueri) => kueri.nomor ?? kueri.nama;
+
+/**
+ * Baris `cek` untuk panel Cari Produk di halaman publik: tabel hasil cekbpom yang sama dengan yang dibacakan AI.
+ * `dibaca` = jumlah baris teratas yang disebut AI (BR-7). `galat` true bila pengecekan gagal.
+ */
+export function tabelCek(kueri, data) {
+  const produk = data?.produk ?? [];
+  return {
+    kueri: labelKueri(kueri),
+    total: data?.total ?? 0,
+    dibaca: Math.min(produk.length, KANDIDAT_MAKS),
+    galat: !data,
+    baris: produk.map((p) => ({
+      nama: p.nama, merek: p.merek, nomorIzinEdar: p.nomorIzinEdar, status: p.status, pendaftar: p.pendaftar,
+      berlakuSampai: p.berlakuSampai, ...p.detail,
+    })),
+  };
+}
+
 /** Pesan sistem berisi hasil cekbpom untuk AI. `hasil` null berarti pengecekan gagal. */
 export function pesanCekBpom(kueri, hasil) {
   const dicari = kueri.nomor ? `nomor izin edar ${kueri.nomor}` : `nama produk "${kueri.nama}"`;
@@ -215,9 +258,10 @@ ${arahan} Sebutkan hanya data di atas, jangan menambah data lain, dan jangan men
  * Satu giliran cek registrasi: kenali kueri dari ucapan, cari di cekbpom, lalu siapkan kartu dan pesan untuk AI.
  * Mengembalikan null bila ucapan bukan pertanyaan registrasi. Bila cekbpom gagal, `produk` kosong dan `galat` terisi.
  */
-export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false) {
+export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false, saatMencari = () => {}) {
   const kueri = kueriProduk(ucapan, setelahMenu1);
   if (!kueri) return null;
+  saatMencari(kueri);
   let data = null, galat = null, batas;
   // NFR-2: satu giliran cek registrasi paling lama BATAS_WAKTU_MS, termasuk buka sesi dan ulang 419.
   const habis = new Promise((_, tolak) => { batas = setTimeout(() => tolak(new Error('cekbpom batas waktu')), BATAS_WAKTU_MS); });

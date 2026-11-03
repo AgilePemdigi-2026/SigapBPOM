@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(19);
 
 -- 1. Hak akses: anon ditolak mengakses RPC dan view
 set local role anon;
@@ -37,6 +37,12 @@ select throws_ok(
   '42501',
   null,
   'Pengguna anon tidak boleh membaca view kasus_perlu_tindak_lanjut'
+);
+
+reset role;
+select ok(
+  not has_table_privilege('authenticated', 'public.kasus_perlu_tindak_lanjut', 'INSERT, UPDATE, DELETE, TRUNCATE'),
+  'Petugas tidak boleh menulis tiket lewat view kasus_perlu_tindak_lanjut'
 );
 
 -- 2. Siapkan akun petugas uji dengan role bawaan tes, seperti seed.sql: service_role tidak boleh menulis auth.users

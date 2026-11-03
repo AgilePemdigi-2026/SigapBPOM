@@ -1,6 +1,6 @@
 // Data tiruan pemantauan layanan (UC-04) untuk pengembangan lokal, test, dan demo (PROJECT_RULES 4.3).
 // Bentuknya mengikuti tabel percakapan, tiket, pengaduan, log_tool, dan view penelepon_tersamar; hitungannya
-// mengikuti RPC ambil_ringkasan_layanan dan ambil_detail_pengaduan_tiket.
+// mengikuti RPC ambil_ringkasan_layanan dan ambil_detail_pengaduan_tiket serta view antrean_tiket_petugas.
 import type {
   DataRingkasanLayanan,
   DetailKasusPengaduan,
@@ -11,6 +11,7 @@ import type {
   PemeriksaKesehatanAgent,
   PenyimpananPemantauan,
   StatusTiket,
+  TiketAntrean,
 } from '../PemantauanLayananController.ts';
 
 export type PercakapanTiruan = {
@@ -138,6 +139,10 @@ export class PenyimpananPemantauanTiruan implements PenyimpananPemantauan {
         durasiDetik: Math.max(0, Math.floor((kini - Date.parse(p.waktuMulai)) / 1000)),
         tahapAi: p.tahapAi,
       }));
+  }
+
+  async ambilAntreanTiket(): Promise<TiketAntrean[]> {
+    return this.data.tiket.map((t) => ({ id: t.id, noTiket: t.noTiket, jenis: t.jenis, ringkasan: t.ringkasan, status: t.status, waktuMasuk: t.tglTerbit, percakapanId: t.percakapanId }));
   }
 
   async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {

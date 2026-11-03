@@ -99,7 +99,7 @@ export class PelaporPanggilanSupabase {
  */
 export class PemantauPanggilan {
   constructor({
-    pelapor, konteks = () => ({}), tahan = () => false, now = () => Date.now(), onGalat = () => {},
+    pelapor, konteks = () => ({}), tahan = () => false, now = () => Date.now(), onGalat = () => {}, saatTercatat = () => {},
     heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, lupaMs = diamMs + 10 * 60_000, tahanMaksMs = 16 * 60_000, maks = 200,
   }) {
     this.pelapor = pelapor;
@@ -108,6 +108,8 @@ export class PemantauPanggilan {
     this.tahan = tahan;
     this.now = now;
     this.onGalat = onGalat;
+    // Dipanggil dengan id setiap laporan berhasil: baris percakapan sudah ada, jadi transkrip boleh ditulis (transkrip.mjs).
+    this.saatTercatat = saatTercatat;
     this.batas = { heartbeatMs, jedaMinMs, diamMs, lupaMs, tahanMaksMs, maks };
     this.sesi = new Map();
     this.timer = null;
@@ -188,7 +190,7 @@ export class PemantauPanggilan {
     const data = { ...s.kini };
     s.kiriman = Promise.resolve()
       .then(() => this.pelapor.laporkan({ percakapanId: id, ...data }))
-      .then(() => { s.terkirim = data; })
+      .then(() => { s.terkirim = data; this.saatTercatat(id); })
       .catch((e) => this.onGalat(e))
       .finally(() => { s.sedangKirim = false; });
   }
