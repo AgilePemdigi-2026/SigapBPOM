@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
   AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
-  pesanLayanan, saringUcapan, teksUntukSuara,
+  pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai,
 } from './percakapan.mjs';
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
 
@@ -91,6 +91,13 @@ test('cadangan token membuat giliran serentak tidak lolos bersamaan, lalu dikore
   assert.equal(a.total, 3_100);
   a.catat('ip1', 'p1', -10_000);
   assert.equal(a.total, 0);
+});
+
+test('nfr_1 token giliran yang dibatalkan penelepon sebelum token pertama tetap dibebankan, galat sebelum keluaran dikembalikan', () => {
+  assert.equal(tokenTerpakai({ token: 3_500, karPrompt: 9_000, karKeluaran: 0 }, true), 3_500);
+  assert.equal(tokenTerpakai({ token: 0, karPrompt: 9_000, karKeluaran: 300 }), 3_100);
+  assert.equal(tokenTerpakai({ token: 0, karPrompt: 9_000, karKeluaran: 0 }, true), 3_000);
+  assert.equal(tokenTerpakai({ token: 0, karPrompt: 9_000, karKeluaran: 0 }), 0);
 });
 
 test('penelepon yang menolak tawaran bantuan lagi mengakhiri panggilan', () => {

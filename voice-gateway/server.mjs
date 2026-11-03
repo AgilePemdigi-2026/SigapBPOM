@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
-  pesanLayanan, saringUcapan, teksUntukSuara,
+  pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
 import {
@@ -208,10 +208,6 @@ async function* aliranHermes(id, kutipan, hasil, sinyal) {
 /** Pemberitahuan internal Hermes (misalnya "⚠️ No reply: every provider ... failed"), bukan jawaban model. */
 const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
 
-// Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
-// datang (termasuk saat stream putus di tengah). Hanya permintaan yang belum menghasilkan keluaran yang dikembalikan.
-const tokenTerpakai = (hasil) => hasil.token || (hasil.karKeluaran ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / 3) : 0);
-
 async function ttsElevenLabs(teks) {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
   const r = await fetch(url, {
@@ -265,6 +261,8 @@ async function giliran(req, res, url) {
     const mulai = Date.now();
     const transkrip = await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
+    // Penelepon sudah memutus panggilan: Hermes belum dipanggil, jadi cadangan token dikembalikan di finally luar.
+    if (batal.signal.aborted) return;
 
     // Jawaban dikirim sebagai NDJSON: transkrip lebih dulu (dengan tanda putar kalimat jeda bila AI dipanggil),
     // lalu tiap kalimat beserta suaranya begitu siap, terakhir sumber dan status panggilan.
@@ -357,7 +355,7 @@ async function giliran(req, res, url) {
       } catch (e) {
         if (!batal.signal.aborted) throw e;
       } finally {
-        hasil.token = tokenTerpakai(hasil);
+        hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
         cadangan = 0;
       }

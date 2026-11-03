@@ -247,6 +247,18 @@ export class AnggaranToken {
   }
 }
 
+// Perkiraan kasar karakter per token, dipakai bila Hermes tidak mengirim `usage`.
+const KARAKTER_PER_TOKEN = 3;
+
+/**
+ * Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
+ * datang (termasuk saat stream putus di tengah). Permintaan yang gagal sebelum menghasilkan keluaran dikembalikan.
+ * Permintaan yang dibatalkan penelepon tetap dibebankan prompt-nya karena Hermes sudah memprosesnya; tanpa itu klien
+ * bisa melewati anggaran dengan memutus koneksi sebelum token pertama.
+ */
+export const tokenTerpakai = (hasil, dibatalkan = false) => hasil.token
+  || (hasil.karKeluaran || dibatalkan ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / KARAKTER_PER_TOKEN) : 0);
+
 /** Riwayat percakapan per panggilan di memori. Hilang saat gateway dimulai ulang. */
 export class RiwayatPanggilan {
   constructor(now = () => Date.now()) {
