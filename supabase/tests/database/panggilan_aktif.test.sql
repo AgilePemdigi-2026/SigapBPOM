@@ -1,6 +1,6 @@
 -- T-F5.2-02 (REQ-4.2): panggilan aktif tercatat dengan tahap terbaru, hilang setelah berakhir atau heartbeat berhenti.
 begin;
-select plan(20);
+select plan(18);
 
 -- 1. Hak akses: anon dan authenticated tidak boleh memanggil RPC; anon dan service_role tidak boleh membaca view
 set local role anon;
@@ -28,14 +28,16 @@ select throws_ok(
   '42501', null, 'service_role tidak boleh membaca view panggilan_berjalan'
 );
 
--- 2. Siapkan petugas dan penelepon (data uji)
+-- 2. Siapkan petugas dan penelepon (data uji) dengan role bawaan tes, seperti seed.sql: service_role tidak boleh menulis auth.users
+reset role;
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000077', 'petugas.panggilan@halobpom.go.id')
 on conflict (id) do nothing;
-insert into public.petugas (id, nama, email) values ('00000000-0000-0000-0000-000000000077', 'Petugas Panggilan', 'petugas.panggilan@halobpom.go.id')
+insert into public.petugas (id, nama) values ('00000000-0000-0000-0000-000000000077', 'Petugas Panggilan')
 on conflict (id) do nothing;
 insert into public.penelepon (id, no_telp, nama_pelapor) values ('88888888-0000-0000-0000-000000000001', '081234567890', 'Budi Santoso');
 
--- 3. Panggilan baru tercatat dengan tahap pertama
+-- 3. Panggilan baru tercatat dengan tahap pertama (gateway lewat service_role)
+set local role service_role;
 select public.laporkan_panggilan_aktif('77777777-0000-0000-0000-000000000001'::uuid, null, null, 'mendengar');
 select is(
   (select tahap_ai from public.percakapan where id = '77777777-0000-0000-0000-000000000001'),
