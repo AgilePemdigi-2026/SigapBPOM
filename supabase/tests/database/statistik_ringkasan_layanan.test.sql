@@ -39,18 +39,18 @@ select throws_ok(
   'Pengguna anon tidak boleh membaca view kasus_perlu_tindak_lanjut'
 );
 
--- 2. Siapkan data dummy dengan service_role
+-- 2. Siapkan akun petugas uji dengan role bawaan tes, seperti seed.sql: service_role tidak boleh menulis auth.users
 reset role;
-set local role service_role;
-
--- Siapkan akun petugas uji
 insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-000000000099', 'petugas.ringkasan@halobpom.go.id')
 on conflict (id) do nothing;
 
-insert into public.petugas (id, nama, email)
-values ('00000000-0000-0000-0000-000000000099', 'Petugas Ringkasan', 'petugas.ringkasan@halobpom.go.id')
+insert into public.petugas (id, nama)
+values ('00000000-0000-0000-0000-000000000099', 'Petugas Ringkasan')
 on conflict (id) do nothing;
+
+-- Siapkan data dummy dengan service_role
+set local role service_role;
 
 -- Siapkan percakapan dummy
 -- Hari ini (Asia/Jakarta):
