@@ -120,11 +120,11 @@ test('t_f2_3_02 materi nonaktif di katalog tidak dipakai, materi baru dari katal
     { judul: 'Pengawasan Obat yang Sering Disalahgunakan', rujukan_sumber: 'Peraturan BPOM No. 12 Tahun 2025', status: 'tidak_aktif', isi: '' },
     { judul: 'Bahaya Krim Pemutih Merkuri', rujukan_sumber: 'Penjelasan Publik BPOM', status: 'aktif', isi: 'Krim pemutih bermerkuri merusak ginjal dan kulit. Pasal 1 Jangan memakai kosmetik tanpa izin edar.' },
   ]);
-  assert.deepEqual(ringkasan, { nonaktif: 1, tambahan: 1 });
+  assert.deepEqual(ringkasan, { nonaktif: 1, tambahan: 1, tanpaKatalog: 1 }, 'gizi.md bermanifest tapi tidak ada di katalog');
   assert.deepEqual(k.cari('tramadol disalahgunakan', 3, 1), []);
   assert.equal(k.cari('krim pemutih merkuri', 3, 1)[0].judul, 'Bahaya Krim Pemutih Merkuri');
 
-  k.terapkanKatalog([]);
+  assert.equal(k.terapkanKatalog([]).tanpaKatalog, 2);
   assert.equal(k.cari('tramadol disalahgunakan', 3, 1).length, 1, 'katalog kosong memakai semua berkas lagi');
 });
 

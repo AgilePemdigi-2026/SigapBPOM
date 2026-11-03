@@ -360,7 +360,10 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && path === '/voice/kesehatan') {
       return kirim(res, 200, 'success', 'OK', {
         siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0,
-        katalog: { status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0 },
+        katalog: {
+          status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0,
+          tanpaKatalog: katalog.tanpaKatalog ?? 0,
+        },
       });
     }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
