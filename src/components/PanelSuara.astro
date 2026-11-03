@@ -9,7 +9,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 ---
 <div class:list={['panel-wrap', mode]} data-panel={mode} hidden>
   {mode === 'desktop' && <div class="dim" data-close></div>}
-  <section class="panel-suara" role="dialog" aria-modal="true" aria-label="Panel percakapan suara CS AI HaloBPOM">
+  <section class="panel-suara" data-name="PanelPercakapanSuara" role="dialog" aria-modal="true" aria-label="Panel percakapan suara CS AI HaloBPOM">
     <div class="ps-head">
       <div class="ps-orb" aria-hidden="true"></div>
       <div class="ps-id"><div class="ps-name">CS AI HaloBPOM</div><div class="ps-sub">Asisten suara resmi · SIGAP</div></div>
@@ -32,7 +32,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       <span>TRANSKRIP LANGSUNG</span>
       <span class="ps-saved"><i class="icon-check"></i>{mode === 'mobile' ? 'tersimpan' : 'tersimpan di register layanan'}</span>
     </div>
-    <div class="ps-tr" data-tr role="log" aria-live="polite" aria-label="Transkrip langsung"></div>
+    <div class="ps-tr" data-tr data-name="TranskripPercakapan" role="log" aria-live="polite" aria-label="Transkrip langsung"></div>
     <form class="ps-ketik" data-ketik autocomplete="off">
       <button type="button" class="ps-suara" data-suara role="switch" aria-checked="true" title="Matikan suara jawaban">
         <i class="icon-volume-2" data-suara-ikon aria-hidden="true"></i>

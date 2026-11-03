@@ -25,8 +25,8 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
       <div class="panel sum-card"><span>Pemakaian saluran</span><span class="v" id="s-saluran">0%</span><div class="track"><div id="s-saluran-bar"></div></div></div>
     </div>
 
-    <section class="panel list" data-name="DaftarPanggilanBerjalan">
-      <div class="row-grid cols-head" aria-hidden="true"><span>NOMOR</span><span>JENIS LAYANAN</span><span>TOPIK</span><span>MULAI</span><span>DURASI</span><span>TAHAP AI</span></div>
+    <section class="panel list" data-name="DaftarPanggilanAktif">
+      <div class="row-grid cols-head" aria-hidden="true"><span>Nomor</span><span>Jenis Layanan</span><span>Topik</span><span>Mulai</span><span>Durasi</span><span>Tahap AI</span></div>
       <div id="rows" role="list" aria-label="Panggilan aktif"></div>
       <div class="empty" id="empty" hidden><i class="icon-phone-off"></i><span>{PESAN_PEMANTAUAN.tidakAdaPanggilan}</span></div>
     </section>
@@ -128,7 +128,7 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
   .list { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
   /* Baris dibuat ulang oleh skrip, jadi tidak membawa atribut scope Astro. */
   .row-grid, #rows :global(.row-grid) { display: grid; grid-template-columns: 1.1fr 1fr 1.4fr .8fr .8fr .9fr; gap: 14px; align-items: center; padding: 0 18px; }
-  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); padding-bottom: 4px; }
+  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-bottom: 4px; }
   #rows { display: flex; flex-direction: column; gap: 8px; }
   :global(#rows .row) { min-height: 58px; border-radius: 18px; font-size: 15px; }
   :global(#rows .topik) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

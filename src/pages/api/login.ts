@@ -3,8 +3,9 @@
 import type { APIRoute } from 'astro';
 import { PembatasLaju, ipKlien } from '../../lib/pembatasLaju';
 
-// PROJECT_RULES 5.2: batas laju login per IP. Pesannya memakai kamus pesan UC-03.
-const pembatas = new PembatasLaju();
+// PROJECT_RULES 5.2: batas laju login per IP. Pesannya memakai kamus pesan UC-03. LOGIN_PERCOBAAN_MAKS hanya untuk uji
+// penerimaan lokal (`npm run test:bdd:ui`), yang login berkali-kali dari satu IP; bawaannya tetap 20 per 15 menit.
+const pembatas = new PembatasLaju({ maks: Number(process.env.LOGIN_PERCOBAAN_MAKS) || undefined });
 const PESAN_DIBATASI = 'Akses dikunci sementara. Hubungi administrator.';
 
 export const POST: APIRoute = async ({ request, locals, cookies, clientAddress }) => {

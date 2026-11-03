@@ -7,4 +7,7 @@ export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   redirects: { '/': '/homepage' },
+  // Hanya dev server: /voice/* diteruskan ke Voice Gateway lokal, seperti Caddy di VPS, agar panel suara bisa dipakai
+  // dan diuji di `npm run dev`.
+  vite: { server: { proxy: { '/voice': process.env.VOICE_GATEWAY_URL || 'http://127.0.0.1:8090' } } },
 });

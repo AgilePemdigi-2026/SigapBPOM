@@ -1,6 +1,6 @@
 # ADR 0002: Kerangka Uji Penerimaan Gherkin
 
-Status: Diusulkan, 31 Oktober 2026. Menyelesaikan PRD Bagian 15 butir 9 dan PROJECT_RULES 6.1 lapisan Penerimaan.
+Status: Diusulkan, 31 Oktober 2026 (diperbarui 3 November 2026). Menyelesaikan PRD Bagian 15 butir 9 dan PROJECT_RULES 6.1 lapisan Penerimaan.
 
 ## Konteks
 
@@ -15,7 +15,7 @@ PROJECT_RULES 6.1 mewajibkan skenario Gherkin per UC dijalankan otomatis. SRS me
 
 ## Alternatif
 
-- Playwright dengan playwright-bdd: cocok untuk skenario yang menyentuh UI dashboard. Bisa ditambahkan nanti untuk UC dashboard dengan berkas `.feature` yang sama.
+- playwright-bdd (runner Playwright Test): tidak dipilih untuk skenario UI agar semua skenario tetap memakai satu runner, Cucumber.js. Playwright dipakai sebagai pustaka browser di langkah `@ui` (lihat Pembaruan).
 - Hanya `node:test` dengan nama test berkode REQ: tidak memenuhi syarat skenario Gherkin yang bisa dibaca pemangku kepentingan.
 
 ## Konsekuensi
@@ -23,3 +23,10 @@ PROJECT_RULES 6.1 mewajibkan skenario Gherkin per UC dijalankan otomatis. SRS me
 - Menambah satu dev dependency.
 - Skenario UC lain menyusul per sprint mengikuti kriteria penerimaan PRD-rinci.
 - Skenario `@live` bisa gagal karena gangguan situs luar, jadi tidak dijadikan syarat CI.
+
+## Pembaruan 3 November 2026: skenario UI
+
+- Skenario SRS Lampiran F ditambahkan dengan tag `@ui` (`features/uc-XX-*.ui.feature`) dan dijalankan lewat browser terhadap aplikasi yang sedang berjalan, setara Behat dengan Mink, dengan `npm run test:bdd:ui`.
+- Skenario `@ui` memakai teks SRS apa adanya (bahasa Inggris, gaya langkah Mink) agar bisa ditelusuri langsung ke Tabel B.2 sampai B.9. Skenario control tetap berbahasa Indonesia.
+- Browser dijalankan dengan pustaka `playwright`. Elemen dicari lewat atribut `data-name` sesuai Lampiran B.
+- Skenario `@ui` tidak ikut `npm run test:bdd` karena butuh Supabase lokal, Edge Functions, Voice Gateway, dan dev server. Cara menjalankannya ada di `features/README.md`.
