@@ -210,6 +210,16 @@ export type DetailKasus = {
   tautanTranskrip: string;
 };
 
+export type BarisAntrean = {
+  noTiket: string;
+  ringkasan: string;
+  jenis: string;
+  labelStatus: string;
+  waktuMasuk: string;
+  tautanKasus: string;
+  tautanTranskrip: string | null;
+};
+
 export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan'; latensiMs: number | null };
 
 export type LogTool = { id: number; namaTool: string; durasiMs: number; hasil: 'Berhasil' | 'Gagal'; waktu: string };
@@ -227,6 +237,9 @@ const waktuTampil = (iso: string) =>
 
 // NFR-13: hanya nilai yang sudah tersamar yang boleh tampil.
 const tersamar = (s: string | null | undefined) => (s && s.includes('*') ? s : '—');
+
+// Halaman tujuan milik UC-05 (Sprint 3); sampai saat itu tautan berakhir di placeholder.
+const tautanTranskrip = (percakapanId: string) => `/riwayat-percakapan/detail?id=${encodeURIComponent(percakapanId)}`;
 
 /** Lama menunggu sejak tiket terbit, dibulatkan ke satuan terbesar. */
 export function lamaMenunggu(iso: string, sekarang: Date): string {
@@ -352,7 +365,32 @@ export class PemantauanLayananController {
       kelengkapan: d.kelengkapan === undefined ? '—' : d.kelengkapan ? 'Lengkap' : 'Tidak lengkap',
       namaPelapor: tersamar(d.namaPelaporTersamar),
       noTelp: tersamar(d.noTelpTersamar),
-      tautanTranskrip: `/riwayat-percakapan/detail?id=${encodeURIComponent(d.percakapanId)}`,
+      tautanTranskrip: tautanTranskrip(d.percakapanId),
+    };
+  }
+
+  /** REQ-4.3, T-F5.3-02: antrean siap tampil; tiket belum ditelaah di urutan teratas, lalu yang terbaru. */
+  async antreanTiket(): Promise<{ tiket: BarisAntrean[] } | { gagal: string }> {
+    let baris: TiketAntrean[];
+    try {
+      baris = await this.ambilAntreanTiket();
+    } catch {
+      // Kamus belum punya pesan khusus antrean; dipakai pesan gagal muat terdekat (UC-04).
+      return { gagal: PESAN_PEMANTAUAN.detailGagalDimuat };
+    }
+    const belum = (t: TiketAntrean) => (t.status === 'belum_ditelaah' ? 0 : 1);
+    return {
+      tiket: [...baris]
+        .sort((a, b) => belum(a) - belum(b) || Date.parse(b.waktuMasuk) - Date.parse(a.waktuMasuk))
+        .map((t) => ({
+          noTiket: t.noTiket,
+          ringkasan: t.ringkasan || '—',
+          jenis: LABEL_JENIS_TIKET[t.jenis],
+          labelStatus: label(LABEL_STATUS_TIKET, t.status) ?? t.status,
+          waktuMasuk: waktuTampil(t.waktuMasuk),
+          tautanKasus: `/pengaduan/detail?tiket=${encodeURIComponent(t.noTiket)}`,
+          tautanTranskrip: t.percakapanId ? tautanTranskrip(t.percakapanId) : null,
+        })),
     };
   }
 

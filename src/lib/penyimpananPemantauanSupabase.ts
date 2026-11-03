@@ -1,6 +1,7 @@
 // Adapter produksi PenyimpananPemantauan: membaca Supabase lewat REST dengan token sesi petugas, sehingga RLS dan
-// pemeriksaan is_petugas() berlaku (T-F5.1-02, T-F5.2-01, T-F5.3-03, T-F5.4-01). Ringkasan dan detail kasus memakai
-// RPC dari T-F5.1-01 dan T-F5.3-01; struktur view-nya tidak diubah di sini. Token sesi datang dari T-F3.1-03.
+// pemeriksaan is_petugas() berlaku (T-F5.1-02, T-F5.2-01, T-F5.3-02, T-F5.3-03, T-F5.4-01). Ringkasan dan detail kasus
+// memakai RPC dari T-F5.1-01 dan T-F5.3-01, antrean memakai view antrean_tiket_petugas; struktur view-nya tidak diubah
+// di sini. Token sesi datang dari T-F3.1-03.
 import type {
   DataRingkasanLayanan,
   DetailKasusPengaduan,
@@ -8,6 +9,7 @@ import type {
   LogToolTersimpan,
   PanggilanAktif,
   PenyimpananPemantauan,
+  TiketAntrean,
 } from './PemantauanLayananController.ts';
 
 type BarisKasus = { id: string; no_tiket: string; jenis: KasusPerluTindakLanjut['jenis']; ringkasan: string | null; status: string; tgl_terbit: string; percakapan_id: string | null };
@@ -119,6 +121,23 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
       waktuMulai: b.waktu_mulai,
       durasiDetik: Math.max(0, Math.floor((kini - Date.parse(b.waktu_mulai)) / 1000)),
       tahapAi: b.tahap_ai,
+    }));
+  }
+
+  async ambilAntreanTiket(): Promise<TiketAntrean[]> {
+    // Kolom data pribadi tersamar tidak diminta karena antrean tidak menampilkannya. Urutan akhir ditetapkan control.
+    const p = new URLSearchParams({ select: 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id' });
+    const baris = await this.json<
+      { tiket_id: string; no_tiket: string; jenis_tiket: TiketAntrean['jenis']; ringkasan: string | null; status_tiket: string; waktu_masuk: string; percakapan_id: string | null }[]
+    >(`antrean_tiket_petugas?${p}`);
+    return baris.map((b) => ({
+      id: b.tiket_id,
+      noTiket: b.no_tiket,
+      jenis: b.jenis_tiket,
+      ringkasan: b.ringkasan ?? '',
+      status: b.status_tiket,
+      waktuMasuk: b.waktu_masuk,
+      percakapanId: opsional(b.percakapan_id),
     }));
   }
 
