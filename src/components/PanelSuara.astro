@@ -54,7 +54,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 </div>
 
 <script>
-  import { esc, htmlKartuEskalasi, htmlKartuPengaduan, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
+  import { PESAN_PENGADUAN_TIDAK_LENGKAP, esc, htmlKartuEskalasi, htmlKartuPengaduan, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
   import { NAMA_PERISTIWA, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
 
   type Sumber = { peraturan: string; judul: string; url: string };
@@ -249,7 +249,9 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
             antrean = [];
             ganti = true;
           } else if (b.jenis === 'selesai') {
-            if (jawaban) { jawaban.sumber = b.sumber; jawaban.tiket = b.tiket ?? undefined; jawaban.produk = b.produk; paint(); }
+            // REQ-2.3: tiket pengaduan datang pada baris selesai; panggilan yang sudah bertiket tidak lagi dianggap pengaduan belum lengkap.
+            if (b.pengaduan || b.tiket?.startsWith('ADU-')) tiketPengaduan = true;
+            if (jawaban) { jawaban.sumber = b.sumber; jawaban.tiket = b.tiket ?? undefined; jawaban.pengaduan = b.pengaduan ?? undefined; jawaban.produk = b.produk; paint(); }
             akhiri = Boolean(b.akhiri);
           } else if (b.jenis === 'galat') {
             throw new Error(b.message);
@@ -411,7 +413,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       sibuk = true;
       berhentiRekam();
       pemutar.pause();
-      phase = 'flow'; service = n;
+      phase = 'flow'; service = n; tiketPengaduan = false;
       kabari({ tahap: 'layanan', layanan: n });
       msgs = msgs.filter((m) => m.kind !== 'menu');
       setMode('memproses');
@@ -433,10 +435,16 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       lepasMic();
       antrean = [];
       pemutar.pause();
-      if (idPanggilan) fetch(`${GATEWAY}/akhiri`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) }).catch(() => {});
-      // REQ-2.5: pengaduan lewat suara belum menerbitkan nomor tiket.
+      // REQ-2.5: gateway menyimpan pengaduan yang belum lengkap dan membalas dengan pesan akhir panggilan untuk ditampilkan.
+      if (idPanggilan) {
+        fetch(`${GATEWAY}/akhiri`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) })
+          .then((r) => r.json())
+          .then((d) => { if (typeof d?.data?.pesan === 'string') msgs = msgs.map((m) => (m.kind === 'ended' ? { ...m, text: d.data.pesan } : m)), paint(); })
+          .catch(() => {});
+      }
+      // REQ-2.5: pengaduan yang belum bertiket saat panggilan berakhir tidak diberi nomor tiket.
       const text = service === 2 && !tiketPengaduan
-        ? 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.'
+        ? PESAN_PENGADUAN_TIDAK_LENGKAP
         : 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
       phase = 'ended';
       msgs = msgs.filter((m) => m.kind !== 'processing' && m.kind !== 'menu');
@@ -459,6 +467,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (t.closest('[data-end]')) return end();
       if (t.closest('[data-restart]')) return start();
       if (t.closest('[data-ganti]') && phase === 'flow') { phase = 'menu'; service = null; kabari({ tahap: 'layanan', layanan: null }); say(PESAN_MENU); push({ kind: 'menu' }); }
+    });
+    // Tab ditutup atau halaman ditinggalkan saat panggilan berjalan: beri tahu gateway agar pengaduan yang belum lengkap tersimpan.
+    window.addEventListener('pagehide', () => {
+      if (phase === 'ended' || phase === 'connecting' || !idPanggilan) return;
+      navigator.sendBeacon(`${GATEWAY}/akhiri`, new Blob([JSON.stringify({ id: idPanggilan })], { type: 'application/json' }));
     });
     // Tombol 1 dan 2 memilih layanan, kecuali saat pengguna sedang mengetik di kolom pesan.
     root.addEventListener('keydown', (e) => {
