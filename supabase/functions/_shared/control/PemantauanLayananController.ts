@@ -21,18 +21,9 @@ export class PemantauanLayananController {
     this.penyimpanan = penyimpanan;
   }
 
-  /** { aksi: 'laporkan' | 'akhiri', percakapanId, jenisLayanan?, topik?, tahap? } -> { tersimpan } atau { ditutup } */
-  async proses(input: Record<string, unknown>): Promise<{ tersimpan: true } | { ditutup: boolean }> {
-    if (typeof input.percakapanId !== 'string' || !POLA_UUID.test(input.percakapanId)) {
-      throw new ErrorSigap(422, 'Percakapan tidak valid.');
-    }
-    const percakapanId = input.percakapanId.toLowerCase();
-
-    if (input.aksi === 'akhiri') {
-      return { ditutup: await this.penyimpanan.akhiriPanggilanAktif(percakapanId) };
-    }
-    if (input.aksi !== 'laporkan') throw new ErrorSigap(422, 'Aksi tidak dikenal.');
-
+  /** { percakapanId, jenisLayanan?, topik?, tahap? } -> { tersimpan }. Membuat atau memperbarui panggilan berjalan. */
+  async laporkanPanggilanAktif(input: Record<string, unknown>): Promise<{ tersimpan: true }> {
+    const percakapanId = percakapanIdSah(input);
     const tahap = input.tahap ?? null;
     if (tahap !== null && !TAHAP_AI.includes(tahap as TahapAi)) throw new ErrorSigap(422, 'Tahap tidak valid.');
     const jenisLayanan = input.jenisLayanan ?? null;
@@ -53,4 +44,16 @@ export class PemantauanLayananController {
     });
     return { tersimpan: true };
   }
+
+  /** { percakapanId } -> { ditutup }. `ditutup` false bila panggilan tidak dikenal atau sudah selesai. */
+  async akhiriPanggilanAktif(input: Record<string, unknown>): Promise<{ ditutup: boolean }> {
+    return { ditutup: await this.penyimpanan.akhiriPanggilanAktif(percakapanIdSah(input)) };
+  }
+}
+
+function percakapanIdSah(input: Record<string, unknown>): string {
+  if (typeof input.percakapanId !== 'string' || !POLA_UUID.test(input.percakapanId)) {
+    throw new ErrorSigap(422, 'Percakapan tidak valid.');
+  }
+  return input.percakapanId.toLowerCase();
 }
