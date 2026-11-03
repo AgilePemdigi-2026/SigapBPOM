@@ -86,3 +86,15 @@ export function htmlKartuTiket(e: { tiket?: string; pengaduan?: string | null })
   if (e.tiket) return e.tiket.startsWith('ADU-') ? htmlKartuPengaduan(e.tiket) : htmlKartuEskalasi(e.tiket);
   return e.pengaduan ? htmlKartuPengaduan(e.pengaduan) : '';
 }
+
+/** Pesan akhir panggilan selain pengaduan tidak lengkap. */
+export const PESAN_PANGGILAN_BERAKHIR = 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
+
+/**
+ * Status akhir panggilan di panel (T-F4.3-03, REQ-2.5). Layanan pengaduan yang belum bertiket memakai pesan kamus
+ * "Panggilan putus, data kurang"; balasan /voice/akhiri, bila memuat pesan, menggantikannya.
+ */
+export function pesanAkhirPanggilan(a: { layanan: 1 | 2 | null; tiketPengaduan: boolean; akhir?: { pesan?: unknown } | null }): string {
+  if (typeof a.akhir?.pesan === 'string') return a.akhir.pesan;
+  return a.layanan === 2 && !a.tiketPengaduan ? PESAN_PENGADUAN_TIDAK_LENGKAP : PESAN_PANGGILAN_BERAKHIR;
+}
