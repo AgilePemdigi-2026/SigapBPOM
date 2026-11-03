@@ -8,7 +8,17 @@ import { ErrorSigap } from './InformasiProdukController.ts';
 /** Kamus pesan PRD-rinci Lampiran A (UC-07). */
 export const PESAN_RUJUKAN_KOSONG = 'Rujukan sumber wajib diisi.';
 export const PESAN_MATERI_TERSIMPAN = 'Materi siap digunakan sistem.';
-export const PESAN_JUDUL_KOSONG = 'Judul materi wajib diisi.';
+/** Pesan API internal (PRD-rinci, pengecualian di bawah Lampiran A); UI tidak menampilkannya. */
+export const PESAN_PERMINTAAN_TIDAK_VALID = 'Permintaan tidak valid.';
+
+/**
+ * PROJECT_RULES 5.6: batas panjang isian, divalidasi di server sebelum disimpan dan diindeks.
+ * ponytail: isi maks 20.000 karakter (~50 potongan) agar Edge Function tidak timeout; naikkan bila embedding dibuat batch.
+ */
+export const PANJANG_JUDUL_MAKS = 200;
+export const PANJANG_RUJUKAN_MAKS = 300;
+export const PANJANG_KATEGORI_MAKS = 100;
+export const PANJANG_ISI_MAKS = 20_000;
 
 const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -93,7 +103,8 @@ export class BasisPengetahuanController {
   async tambahMateri(input: InputTambahMateri): Promise<MateriPengetahuan> {
     const judul = typeof input.judul === 'string' ? input.judul.trim() : '';
     if (!judul) {
-      throw new ErrorSigap(422, PESAN_JUDUL_KOSONG);
+      // "Judul materi wajib diisi." belum ada di kamus; tombol Simpan di UI nonaktif selama judul kosong.
+      throw new ErrorSigap(400, PESAN_PERMINTAAN_TIDAK_VALID);
     }
 
     // Mendukung beberapa nama field rujukan sumber untuk kemudahan formulir
@@ -106,6 +117,15 @@ export class BasisPengetahuanController {
 
     const kategori = typeof input.kategori === 'string' && input.kategori.trim() ? input.kategori.trim() : null;
     const isi = typeof input.isi === 'string' ? input.isi.trim() : '';
+
+    if (
+      judul.length > PANJANG_JUDUL_MAKS ||
+      rujukan.length > PANJANG_RUJUKAN_MAKS ||
+      (kategori?.length ?? 0) > PANJANG_KATEGORI_MAKS ||
+      isi.length > PANJANG_ISI_MAKS
+    ) {
+      throw new ErrorSigap(400, PESAN_PERMINTAAN_TIDAK_VALID);
+    }
 
     const diperbaruiOlehMentah = input.diperbarui_oleh ?? input.diperbaruiOleh;
     const diperbaruiOleh = typeof diperbaruiOlehMentah === 'string' && POLA_UUID.test(diperbaruiOlehMentah)
@@ -149,8 +169,9 @@ export class BasisPengetahuanController {
         materiTersimpan.terindeks = true;
       }
     } catch (galat) {
-      // Bila pengindeksan gagal, materi tetap tersimpan dengan terindeks = false
-      console.error('pengindeksan materi gagal, materi tetap tersimpan:', galat);
+      // Bila pengindeksan gagal, materi tetap tersimpan dengan terindeks = false.
+      // PROJECT_RULES 5.10: catat nama galat saja, bukan objek utuh yang bisa memuat detail query.
+      console.error('pengindeksan materi gagal:', galat instanceof Error ? galat.name : 'unknown');
       materiTersimpan.terindeks = false;
     }
 

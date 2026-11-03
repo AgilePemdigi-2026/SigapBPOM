@@ -5,7 +5,11 @@ import type { PenyimpananPengetahuan } from '../adapter/penyimpananPengetahuan.t
 import type { MateriPengetahuan, MateriPotongan } from '../entity/materi.ts';
 import {
   BasisPengetahuanController,
-  PESAN_JUDUL_KOSONG,
+  PANJANG_ISI_MAKS,
+  PANJANG_JUDUL_MAKS,
+  PANJANG_KATEGORI_MAKS,
+  PANJANG_RUJUKAN_MAKS,
+  PESAN_PERMINTAAN_TIDAK_VALID,
   PESAN_RUJUKAN_KOSONG,
   potongTeks,
 } from './BasisPengetahuanController.ts';
@@ -55,13 +59,33 @@ test('req_7_2 br_4 materi tanpa rujukan sumber ditolak dengan pesan "Rujukan sum
   assert.equal(materiList.length, 0);
 });
 
-test('materi tanpa judul ditolak dengan status 422', async () => {
+test('req_7_1 materi tanpa judul ditolak 400 dengan pesan API internal', async () => {
   const { c, materiList } = buat();
   await assert.rejects(
     c.tambahMateri({ judul: '   ', rujukan: 'Peraturan BPOM No 17' }),
-    (e: unknown) => e instanceof ErrorSigap && e.status === 422 && e.message === PESAN_JUDUL_KOSONG,
+    (e: unknown) => e instanceof ErrorSigap && e.status === 400 && e.message === PESAN_PERMINTAAN_TIDAK_VALID,
   );
   assert.equal(materiList.length, 0);
+});
+
+test('PROJECT_RULES 5.6 isian terlalu panjang ditolak sebelum disimpan', async () => {
+  const { c, materiList } = buat();
+  const ditolak = (e: unknown) => e instanceof ErrorSigap && e.status === 400 && e.message === PESAN_PERMINTAAN_TIDAK_VALID;
+  await assert.rejects(c.tambahMateri({ judul: 'x'.repeat(PANJANG_JUDUL_MAKS + 1), rujukan: 'Peraturan BPOM No 17' }), ditolak);
+  await assert.rejects(c.tambahMateri({ judul: 'Label Pangan', rujukan: 'r'.repeat(PANJANG_RUJUKAN_MAKS + 1) }), ditolak);
+  await assert.rejects(
+    c.tambahMateri({ judul: 'Label Pangan', rujukan: 'Peraturan BPOM No 31', kategori: 'k'.repeat(PANJANG_KATEGORI_MAKS + 1) }),
+    ditolak,
+  );
+  await assert.rejects(
+    c.tambahMateri({ judul: 'Label Pangan', rujukan: 'Peraturan BPOM No 31', isi: 'a'.repeat(PANJANG_ISI_MAKS + 1) }),
+    ditolak,
+  );
+  assert.equal(materiList.length, 0);
+
+  // Tepat di batas masih diterima.
+  await c.tambahMateri({ judul: 'x'.repeat(PANJANG_JUDUL_MAKS), rujukan: 'Peraturan BPOM No 17' });
+  assert.equal(materiList.length, 1);
 });
 
 test('req_7_1 materi lengkap tersimpan dengan status aktif, terindeks true, dan potongan tersimpan', async () => {

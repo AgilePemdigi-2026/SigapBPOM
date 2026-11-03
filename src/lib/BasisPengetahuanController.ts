@@ -155,15 +155,15 @@ export class BasisPengetahuanController {
     }
   }
 
-  /** REQ-7.3, BR-5: materi usang ditandai tidak aktif, tidak dihapus, dan keluar dari graf serta katalog CS AI. */
-  async nonaktifkanMateri(materiId: unknown): Promise<{ berhasil: boolean; pesan: string }> {
+  /** REQ-7.3, BR-5: materi usang ditandai tidak aktif, tidak dihapus, dan keluar dari graf serta katalog CS AI. `kode` adalah kode HTTP (PROJECT_RULES 4.4). */
+  async nonaktifkanMateri(materiId: unknown): Promise<{ kode: 200 | 400 | 404 | 500; pesan: string }> {
     const id = typeof materiId === 'string' ? materiId.trim() : '';
-    const gagal = { berhasil: false, pesan: PESAN_MATERI.gagalDinonaktifkan };
-    if (!id || id.length > PANJANG_ID_MAKS) return gagal;
+    const pesan = PESAN_MATERI.gagalDinonaktifkan;
+    if (!id || id.length > PANJANG_ID_MAKS) return { kode: 400, pesan };
     try {
-      return (await this.penyimpanan.nonaktifkan(id)) ? { berhasil: true, pesan: PESAN_MATERI.dinonaktifkan } : gagal;
+      return (await this.penyimpanan.nonaktifkan(id)) ? { kode: 200, pesan: PESAN_MATERI.dinonaktifkan } : { kode: 404, pesan };
     } catch {
-      return gagal;
+      return { kode: 500, pesan };
     }
   }
 }

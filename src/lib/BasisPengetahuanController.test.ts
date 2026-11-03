@@ -78,7 +78,7 @@ test('t_f2_4_02 detail simpul memuat potongan terindeks dan menghitung keterkait
 
 test('req_7_3 nonaktifkan materi mengubah status tanpa menghapus dan mengeluarkannya dari graf', async () => {
   const kb = new BasisPengetahuanController(new PenyimpananMateriTiruan(CONTOH.map((m) => ({ ...m }))));
-  assert.deepEqual(await kb.nonaktifkanMateri(' 3 '), { berhasil: true, pesan: PESAN_MATERI.dinonaktifkan });
+  assert.deepEqual(await kb.nonaktifkanMateri(' 3 '), { kode: 200, pesan: PESAN_MATERI.dinonaktifkan });
 
   const tidakAktif = await kb.daftarMateri({ status: 'tidak_aktif' });
   assert.ok('materi' in tidakAktif);
@@ -92,15 +92,15 @@ test('req_7_3 nonaktifkan materi mengubah status tanpa menghapus dan mengeluarka
   assert.ok(!graf.simpul.some((n) => n.id === '3'), 'materi tidak aktif tidak lagi dipakai sebagai sumber');
 });
 
-test('req_7_3 id kosong, terlalu panjang, tidak dikenal, atau galat penyimpanan memberi pesan gagal', async () => {
+test('req_7_3 id tidak sah 400, tidak dikenal 404, galat penyimpanan 500, semuanya dengan pesan gagal', async () => {
   const kb = new BasisPengetahuanController(new PenyimpananMateriTiruan(CONTOH.map((m) => ({ ...m }))));
-  const gagal = { berhasil: false, pesan: PESAN_MATERI.gagalDinonaktifkan };
-  assert.deepEqual(await kb.nonaktifkanMateri(''), gagal);
-  assert.deepEqual(await kb.nonaktifkanMateri(undefined), gagal);
-  assert.deepEqual(await kb.nonaktifkanMateri('x'.repeat(65)), gagal);
-  assert.deepEqual(await kb.nonaktifkanMateri('tidak-ada'), gagal);
+  const pesan = PESAN_MATERI.gagalDinonaktifkan;
+  assert.deepEqual(await kb.nonaktifkanMateri(''), { kode: 400, pesan });
+  assert.deepEqual(await kb.nonaktifkanMateri(undefined), { kode: 400, pesan });
+  assert.deepEqual(await kb.nonaktifkanMateri('x'.repeat(65)), { kode: 400, pesan });
+  assert.deepEqual(await kb.nonaktifkanMateri('tidak-ada'), { kode: 404, pesan });
   const rusak: PenyimpananMateri = { daftar: async () => ({ baris: [], total: 0 }), potongan: async () => ({}), nonaktifkan: async () => { throw new Error('fetch failed'); } };
-  assert.deepEqual(await new BasisPengetahuanController(rusak).nonaktifkanMateri('1'), gagal);
+  assert.deepEqual(await new BasisPengetahuanController(rusak).nonaktifkanMateri('1'), { kode: 500, pesan });
 });
 
 test('req_7_3 adapter Supabase mengirim PATCH status lewat token sesi, tanpa DELETE dan tanpa isian pengubah', async () => {
