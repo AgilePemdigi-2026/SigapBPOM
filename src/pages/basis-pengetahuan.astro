@@ -25,7 +25,16 @@ const KB_TOTAL = { total: MATERI.length, aktif, nonaktif: MATERI.length - aktif 
 
 const awal = SIMPUL[0];
 const byId = Object.fromEntries(SIMPUL.map((n) => [n.id, n]));
-const data = { materi: MATERI, total: KB_TOTAL, gagal, simpul: SIMPUL, chipAktif: chip('Aktif'), chipNonaktif: chip('Tidak Aktif') };
+const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
+const data = {
+  materi: MATERI,
+  total: KB_TOTAL,
+  gagal,
+  simpul: SIMPUL,
+  chipAktif: chip('Aktif'),
+  chipNonaktif: chip('Tidak Aktif'),
+  simpanMateriUrl: `${SUPABASE_URL}/functions/v1/simpan-materi`,
+};
 ---
 <DashboardLayout title="Basis Pengetahuan">
   <div class="page">
@@ -115,7 +124,7 @@ const data = { materi: MATERI, total: KB_TOTAL, gagal, simpul: SIMPUL, chipAktif
 
 <script>
   // ponytail: perubahan materi hanya di memori browser sampai T-F2.2-02 / T-F2.3-02 menyimpan ke Supabase.
-  type Materi = { id: string; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
+  type Materi = { id: number | string; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
   type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
   const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
   const materi: Materi[] = D.materi;
@@ -201,22 +210,48 @@ const data = { materi: MATERI, total: KB_TOTAL, gagal, simpul: SIMPUL, chipAktif
   field('judul').addEventListener('input', () => saveBtn.setAttribute('aria-disabled', String(!field('judul').value.trim())));
   field('rujukan').addEventListener('input', () => { err.hidden = true; field('rujukan').classList.remove('invalid'); });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const judul = field('judul').value.trim();
     const rujukan = field('rujukan').value.trim();
     if (!judul) return field('judul').focus();
-    if (!rujukan) { err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
-    const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
-    materi.unshift({ id: String(Date.now()), judul, kategori: field('kategori').value, rujukan, tgl, aktif: true });
-    st.added++;
-    st.tab = 'Semua'; st.q = '';
-    (document.getElementById('kb-q') as HTMLInputElement).value = '';
-    pressGroup('data-tab', 'Semua');
-    showView('list');
-    render();
-    dialog.close();
-    toast('Materi siap digunakan sistem.');
+    if (!rujukan) { err.textContent = 'Rujukan sumber wajib diisi.'; err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
+    const kategori = field('kategori').value;
+    const isi = field('isi').value;
+
+    saveBtn.setAttribute('aria-disabled', 'true');
+    try {
+      // ponytail: simpan-materi hanya menerima token sesi petugas (Authorization: Bearer). Sesi dashboard masih tiruan
+      // sampai T-F3.1-03, jadi permintaan ini ditolak 401 dan materi belum bisa disimpan dari dashboard.
+      const respon = await fetch(D.simpanMateriUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ judul, rujukan, kategori, isi }),
+      });
+      const hasil = await respon.json().catch(() => null);
+      if (respon.status === 422) {
+        err.textContent = hasil?.message || 'Rujukan sumber wajib diisi.';
+        err.hidden = false;
+        field('rujukan').classList.add('invalid');
+        return;
+      }
+      if (!respon.ok || hasil?.status === 'error') throw new Error('simpan-materi tidak tersedia');
+      const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
+      materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl, aktif: true });
+      st.added++;
+      st.tab = 'Semua'; st.q = '';
+      (document.getElementById('kb-q') as HTMLInputElement).value = '';
+      pressGroup('data-tab', 'Semua');
+      showView('list');
+      render();
+      dialog.close();
+      toast(hasil?.message || 'Materi siap digunakan sistem.');
+    } catch {
+      // REQ-7.1: jangan tampilkan sukses bila server tidak menyimpan materi. Dialog tetap terbuka agar isian tidak hilang.
+      // ponytail: pesan gagal simpan belum ada di kamus PRD-rinci Lampiran A; tampilkan di #add-err setelah barisnya ditambahkan.
+    } finally {
+      saveBtn.removeAttribute('aria-disabled');
+    }
   });
 
   render();
