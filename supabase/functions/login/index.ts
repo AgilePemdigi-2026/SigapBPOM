@@ -45,14 +45,21 @@ class PetugasEntity implements PenyimpananPetugas {
 // 2. CONTROL LAYER ada di _shared/control/AutentikasiController.ts
 
 // 3. BOUNDARY LAYER
+const balas = (isi: unknown, status: number) =>
+  new Response(JSON.stringify(isi), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status });
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const body: unknown = await req.json().catch(() => null);
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return balas({ sukses: false, pesan: 'Permintaan tidak valid.' }, 400);
+  }
+
   try {
-    const body = await req.json();
-    const { email, password } = body;
+    const { email, password } = body as Record<string, string>;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -68,16 +75,11 @@ serve(async (req) => {
     const control = new AutentikasiEdgeController(entity, autentikator);
 
     const hasil = await control.masuk(email, password);
-
-    return new Response(JSON.stringify(hasil), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: hasil.sukses ? 200 : 401,
-    });
-
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    });
+    return balas(hasil, hasil.sukses ? 200 : 401);
+  } catch (e) {
+    // Detail galat (misalnya pesan PostgREST) hanya untuk log server, tidak dikirim ke pemanggil (PROJECT_RULES 4.4, 5.12).
+    // Galat PostgREST berupa objek biasa; kodenya (misalnya PGRST202 bila migrasi belum diterapkan) aman dicatat.
+    console.error('galat tak terduga', e instanceof Error ? e.name : (e as { code?: string } | null)?.code ?? 'unknown');
+    return balas({ sukses: false, pesan: 'Terjadi kesalahan pada sistem.' }, 500);
   }
 });
