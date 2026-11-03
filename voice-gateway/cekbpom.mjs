@@ -32,6 +32,17 @@ const KATA_ISI = new Set(`apakah apa ya yah yang itu ini tuh sudah udah belum bl
  * suatu produk, atau null. `setelahMenu1` true bila ucapan menjawab "Silakan sebutkan nama produk", sehingga nama saja cukup.
  */
 export function kueriProduk(ucapan, setelahMenu1 = false) {
+  const hasil = uraikanUcapan(ucapan, setelahMenu1);
+  return hasil?.kurangJelas ? null : hasil;
+}
+
+/**
+ * REQ-1.4: ucapan bermaksud cek registrasi, tetapi nama produknya tidak tertangkap, misalnya "apakah sudah terdaftar?"
+ * atau gumaman setelah diminta menyebut nama produk. Ucapan seperti ini diminta ulang.
+ */
+export const namaKurangJelas = (ucapan, setelahMenu1 = false) => Boolean(uraikanUcapan(ucapan, setelahMenu1)?.kurangJelas);
+
+function uraikanUcapan(ucapan, setelahMenu1) {
   const teks = String(ucapan ?? '');
   const nomor = teks.match(POLA_NOMOR);
   if (nomor) return { nomor: `${nomor[1].toUpperCase()} ${nomor[2].replace(/\s+/g, '')}` };
@@ -40,7 +51,7 @@ export function kueriProduk(ucapan, setelahMenu1 = false) {
   const niat = POLA_NIAT.test(teks) || (setelahMenu1 && kata.length <= 6 && !POLA_TANYA.test(teks));
   if (!niat) return null;
   const nama = kata.filter((k) => !KATA_ISI.has(k)).join(' ').trim();
-  return nama.length >= 3 ? { nama } : null;
+  return nama.length >= 3 ? { nama } : { kurangJelas: true };
 }
 
 const bersihkan = (t) => String(t ?? '')
@@ -193,7 +204,7 @@ Tidak ada produk yang cocok. Sampaikan bahwa produk tidak ditemukan pada data re
   const daftar = hasil.produk.slice(0, KANDIDAT_MAKS).map((p, i) =>
     `${i + 1}. ${p.nama}${p.merek && p.merek !== p.nama ? `, merek ${p.merek}` : ''}, nomor izin edar ${p.nomorIzinEdar}, status ${p.status}, pendaftar ${p.pendaftar}${p.berlakuSampai ? `, berlaku sampai ${p.berlakuSampai}` : ''}`).join('\n');
   const arahan = hasil.total > 1
-    ? `Ada ${hasil.total} produk yang cocok. Sebutkan jumlahnya dan paling banyak tiga teratas secara singkat, lalu minta penelepon menyebut nama yang lebih lengkap atau nomor izin edar di kemasan bila produknya belum ada.`
+    ? `Ada ${hasil.total} produk yang cocok. Sebutkan jumlahnya dan paling banyak tiga teratas secara singkat beserta nomor urutnya, lalu minta penelepon menyebut nomor pilihannya, atau nama yang lebih lengkap atau nomor izin edar di kemasan bila produknya belum ada.`
     : 'Sampaikan nama, nomor izin edar, dan status produk ini secara singkat.';
   return `${kepala}
 ${daftar}
