@@ -160,6 +160,22 @@ test('alamat situs dibaca "titik" untuk TTS, angka bertitik tidak tersentuh', ()
   assert.equal(teksUntukSuara('Ada 1.000 produk.'), 'Ada 1.000 produk.');
 });
 
+test('t_f1_2_03 nomor izin edar dieja per digit untuk TTS', () => {
+  assert.equal(
+    teksUntukSuara('Susu Formula Sehat terdaftar dengan nomor izin edar BPOM RI MD 865009001234, status izin Berlaku.'),
+    'Susu Formula Sehat terdaftar dengan nomor izin edar BPOM RI M D, delapan enam lima nol nol sembilan nol nol satu dua tiga empat, status izin Berlaku.',
+  );
+  assert.equal(teksUntukSuara('NA18201200555'), 'N A, satu delapan dua nol satu dua nol nol lima lima lima');
+});
+
+test('t_f1_2_03 riwayat menyimpan keadaan tool cek registrasi per panggilan', () => {
+  const r = new RiwayatPanggilan();
+  assert.deepEqual(r.cekRegistrasi(ID), { ulangNama: 0, kandidat: null });
+  r.aturCekRegistrasi(ID, { ulangNama: 1, kandidat: null });
+  assert.equal(r.cekRegistrasi(ID).ulangNama, 1);
+  assert.deepEqual(r.cekRegistrasi('lain'), { ulangNama: 0, kandidat: null });
+});
+
 test('riwayat panggilan menyimpan giliran, dibatasi, dan kedaluwarsa', () => {
   let t = 0;
   const r = new RiwayatPanggilan(() => t);

@@ -4,7 +4,7 @@
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { pemantauanLayanan } from '../lib/pemantauan';
 
-const pantau = await pemantauanLayanan().pantauAgent();
+const pantau = await pemantauanLayanan(Astro.locals.tokenAkses).pantauAgent();
 const { komponen, log } = pantau;
 const gangguan = komponen.filter((k) => k.status === 'Gangguan').length;
 const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString('id-ID')} ms`);

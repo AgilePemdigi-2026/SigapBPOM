@@ -70,10 +70,11 @@ export class AutentikasiController {
   }
 
   /**
-   * Pemilik sesi bila sesi sah dan belum idle melewati batas. Setiap pemeriksaan yang lolos dihitung sebagai aktivitas.
+   * Pemilik sesi bila sesi sah dan belum idle melewati batas. Setiap pemeriksaan yang lolos dihitung sebagai aktivitas,
+   * kecuali catatAktivitas false (request latar seperti polling) agar timeout idle NFR-12 tetap berlaku.
    * Gagal tertutup: sesi tanpa catatan aktivitas (misalnya catatannya sudah dibersihkan) dianggap kedaluwarsa.
    */
-  async sesiAktif(cookies: AstroCookies): Promise<Petugas | null> {
+  async sesiAktif(cookies: AstroCookies, { catatAktivitas = true } = {}): Promise<Petugas | null> {
     const petugas = await this.adapter.baca(cookies);
     const kunci = this.adapter.kunci(cookies);
     if (!petugas || !kunci) return null;
@@ -83,7 +84,7 @@ export class AutentikasiController {
       await this.keluar(cookies);
       return null;
     }
-    this.aktivitas.set(kunci, sekarang);
+    if (catatAktivitas) this.aktivitas.set(kunci, sekarang);
     if (this.aktivitas.size > 1000) {
       for (const [k, t] of this.aktivitas) if (sekarang - t > this.batasIdleMs) this.aktivitas.delete(k);
     }

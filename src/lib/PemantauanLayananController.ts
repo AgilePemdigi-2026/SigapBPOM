@@ -1,49 +1,89 @@
-// Control UC-04 Memantau Layanan: ringkasan layanan (REQ-4.1, T-F5.1-02), panggilan berjalan (REQ-4.2, T-F5.2-01),
-// dan pantau AI Agent (T-F5.4-01).
+// Control UC-04 Memantau Layanan: ringkasan layanan (REQ-4.1), panggilan berjalan (REQ-4.2), antrean tiket (REQ-4.3),
+// detail kasus (REQ-4.4), dan pantau AI Agent (T-F5.4-01).
 
-export type JenisInteraksi = 'informasi_produk' | 'pengaduan';
-export type JenisTiket = 'pengaduan' | 'eskalasi';
-export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
-/** Tahap pemrosesan AI yang dilaporkan Voice Gateway (T-F5.2-02). */
-export type TahapAi = 'mendengar' | 'memproses' | 'menjawab';
-
-/** Angka mentah ringkasan, dihitung di zona Asia/Jakarta. */
-export type StatistikTersimpan = {
+export type StatistikLayanan = {
   panggilanHariIni: number;
-  dijawabAi: number;
+  jawabanOtomatisAi: number;
   tiketEskalasiBaru: number;
-  tiketBelumDitelaah: number;
   pengaduanSelesai: number;
   panggilanBerjalan: number;
-  /** Jumlah pertanyaan per kategori tujuh hari terakhir. */
-  kategori: { kategori: string; jumlah: number }[];
 };
 
-/** Tiket yang belum ditelaah, untuk tabel Kasus Perlu Tindak Lanjut. tglTerbit berformat ISO 8601. */
-export type KasusTersimpan = { noTiket: string; jenis: JenisTiket; ringkasan: string; tglTerbit: string };
+export type PersentaseKategori = {
+  kategori: string;
+  jumlah: number;
+  persentase: number;
+};
+
+export type KasusPerluTindakLanjut = {
+  id: string;
+  noTiket: string;
+  jenis: 'pengaduan' | 'eskalasi';
+  ringkasan: string;
+  status: string;
+  tglTerbit: string;
+  percakapanId?: string;
+};
+
+export type DataRingkasanLayanan = {
+  statistik: StatistikLayanan;
+  kategori: PersentaseKategori[];
+  kasusPerluTindakLanjut: KasusPerluTindakLanjut[];
+};
 
 /** Percakapan berstatus berjalan. noTelp sudah disamarkan di server (NFR-13, view penelepon_tersamar). */
-export type PanggilanTersimpan = {
+export interface PanggilanAktif {
   id: string;
   noTelp: string | null;
-  jenisInteraksi: JenisInteraksi | null;
+  jenisLayanan: string | null;
   topik: string | null;
   waktuMulai: string;
+  durasiDetik: number;
   tahapAi: string | null;
+}
+
+export interface TiketAntrean {
+  id: string;
+  noTiket: string;
+  jenis: 'pengaduan' | 'eskalasi';
+  ringkasan: string;
+  status: string;
+  waktuMasuk: string;
+  percakapanId?: string;
+  noTelpTersamar?: string;
+  namaPelaporTersamar?: string;
+}
+
+export type DetailKasusPengaduan = {
+  tiketId: string;
+  noTiket: string;
+  jenis: 'pengaduan' | 'eskalasi';
+  status: string;
+  ringkasan: string;
+  tglTerbit: string;
+  percakapanId: string;
+  pengaduanId?: string;
+  namaProduk?: string;
+  namaProdukDiadukan?: string;
+  kronologi?: string;
+  kelengkapan?: boolean;
+  tglPengaduan?: string;
+  namaPelaporTersamar?: string;
+  noTelpTersamar?: string;
 };
 
 /** Baris log_tool. Argumen tool sengaja tidak dibaca karena bisa memuat data pribadi. */
 export type LogToolTersimpan = { id: number; namaTool: string; durasiMs: number; berhasil: boolean; waktu: string };
 
-/** Penyimpanan data pemantauan (PROJECT_RULES 4.3): Supabase lewat sesi petugas, atau tiruan. */
+/** Penyimpanan pemantauan layanan (PROJECT_RULES 4.3): Supabase via RPC/view atau implementasi tiruan (mock). */
 export interface PenyimpananPemantauan {
-  statistik(sekarang: Date): Promise<StatistikTersimpan>;
-  /** Tiket belum ditelaah, terbaru lebih dulu. */
-  kasusTindakLanjut(batas: number): Promise<KasusTersimpan[]>;
-  /** Percakapan berstatus berjalan, terlama lebih dulu. */
-  panggilanAktif(): Promise<PanggilanTersimpan[]>;
+  ambilRingkasan(): Promise<DataRingkasanLayanan>;
+  ambilStatistik?(): Promise<StatistikLayanan>;
+  ambilPanggilanAktif?(): Promise<PanggilanAktif[]>;
+  ambilAntreanTiket?(): Promise<TiketAntrean[]>;
+  ambilDetailKasus?(noTiket: string): Promise<DetailKasusPengaduan | null>;
   /** Log tool terbaru lebih dulu. */
-  logToolTerbaru(batas: number): Promise<LogToolTersimpan[]>;
+  ambilLogTool?(batas: number): Promise<LogToolTersimpan[]>;
 }
 
 /** Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. */
@@ -54,11 +94,69 @@ export interface PemeriksaKesehatanAgent {
   periksa(): Promise<KomponenTersimpan[]>;
 }
 
-/** Kamus pesan PRD-rinci Lampiran A, UC-04. */
-export const PESAN_PEMANTAUAN = { tidakAdaPanggilan: 'Tidak ada panggilan berjalan saat ini.' } as const;
+/** Implementasi mock untuk pengujian dan fallback lokal. */
+export class PenyimpananPemantauanMock implements PenyimpananPemantauan {
+  private data: DataRingkasanLayanan;
+  private panggilanAktif: PanggilanAktif[];
+  private antreanTiket: TiketAntrean[];
+  private detailKasus: Map<string, DetailKasusPengaduan>;
 
-export const LABEL_JENIS_INTERAKSI: Record<JenisInteraksi, string> = { informasi_produk: 'Informasi Produk', pengaduan: 'Pengaduan' };
-export const LABEL_JENIS_TIKET: Record<JenisTiket, string> = { pengaduan: 'Pengaduan', eskalasi: 'Eskalasi AI' };
+  constructor(opsi?: {
+    ringkasan?: Partial<DataRingkasanLayanan>;
+    panggilanAktif?: PanggilanAktif[];
+    antreanTiket?: TiketAntrean[];
+    detailKasus?: DetailKasusPengaduan[];
+  }) {
+    this.data = {
+      statistik: opsi?.ringkasan?.statistik ?? {
+        panggilanHariIni: 0,
+        jawabanOtomatisAi: 0,
+        tiketEskalasiBaru: 0,
+        pengaduanSelesai: 0,
+        panggilanBerjalan: 0,
+      },
+      kategori: opsi?.ringkasan?.kategori ?? [],
+      kasusPerluTindakLanjut: opsi?.ringkasan?.kasusPerluTindakLanjut ?? [],
+    };
+    this.panggilanAktif = opsi?.panggilanAktif ?? [];
+    this.antreanTiket = opsi?.antreanTiket ?? [];
+    this.detailKasus = new Map((opsi?.detailKasus ?? []).map((d) => [d.noTiket, d]));
+  }
+
+  async ambilRingkasan(): Promise<DataRingkasanLayanan> {
+    return this.data;
+  }
+
+  async ambilStatistik(): Promise<StatistikLayanan> {
+    return this.data.statistik;
+  }
+
+  async ambilPanggilanAktif(): Promise<PanggilanAktif[]> {
+    return this.panggilanAktif;
+  }
+
+  async ambilAntreanTiket(): Promise<TiketAntrean[]> {
+    return this.antreanTiket;
+  }
+
+  async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
+    return this.detailKasus.get(noTiket) ?? null;
+  }
+}
+
+/** Kamus pesan PRD-rinci Lampiran A, UC-04. */
+export const PESAN_PEMANTAUAN = {
+  tidakAdaPanggilan: 'Tidak ada panggilan berjalan saat ini.',
+  tiketTidakDitemukan: 'Tiket tidak ditemukan.',
+  detailGagalDimuat: 'Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
+} as const;
+
+export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
+/** Tahap pemrosesan AI yang dilaporkan Voice Gateway (T-F5.2-02). */
+export type TahapAi = 'mendengar' | 'memproses' | 'menjawab';
+
+export const LABEL_JENIS_INTERAKSI: Record<string, string> = { informasi_produk: 'Informasi Produk', pengaduan: 'Pengaduan' };
+export const LABEL_JENIS_TIKET: Record<KasusPerluTindakLanjut['jenis'], string> = { pengaduan: 'Pengaduan', eskalasi: 'Eskalasi AI' };
 export const LABEL_STATUS_TIKET: Record<StatusTiket, string> = {
   belum_ditelaah: 'Belum Ditelaah',
   sedang_ditelaah: 'Sedang Ditelaah',
@@ -68,40 +166,49 @@ export const LABEL_STATUS_TIKET: Record<StatusTiket, string> = {
   diteruskan: 'Diteruskan ke Instansi Lain',
 };
 const LABEL_TAHAP_AI: Record<TahapAi, string> = { mendengar: 'Mendengar', memproses: 'Memproses', menjawab: 'Menjawab' };
+const label = (kamus: Record<string, string>, kunci: string | null | undefined) => (kunci && Object.hasOwn(kamus, kunci) ? kamus[kunci] : undefined);
 
 /** Komponen yang selalu tampil di halaman pantau, meski gateway tidak melaporkannya (T-F5.4-01). */
 export const KOMPONEN_AGENT = ['Voice Gateway', 'Hermes', 'STT/TTS', 'cekbpom'] as const;
+/** Nama tool cek registrasi di log_tool (InformasiProdukController, REQ-1.3). */
+export const TOOL_CEK_REGISTRASI = 'cek_registrasi_bpom';
 
 // REQ-4.1: tabel Kasus Perlu Tindak Lanjut di ringkasan memuat beberapa tiket teratas saja.
 export const BATAS_KASUS_RINGKASAN = 3;
 export const BATAS_LOG_TOOL = 20;
 // Kartu "pemakaian saluran" membandingkan panggilan aktif dengan kapasitas saluran Voice Gateway.
 export const KAPASITAS_SALURAN_BAWAAN = 10;
+// Format nomor tiket mengikuti check constraint tabel tiket.
+const POLA_NO_TIKET = /^(ADU|ESK)-[0-9]{8}-[0-9]{4}$/;
 
 const DETIK = 1000;
-// REQ-4.1: persentase kategori dan pengaduan selesai dihitung atas tujuh hari terakhir.
-export const HARI_KATEGORI = 7;
-
-/** Awal hari ini di zona Asia/Jakarta, dalam ISO 8601. Statistik "hari ini" dihitung sejak titik ini. */
-export function awalHariWib(sekarang: Date): string {
-  const tgl = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(sekarang);
-  return `${tgl}T00:00:00+07:00`;
-}
-
-/** Awal hari WIB, mundur sejumlah hari; dipakai untuk jendela tujuh hari terakhir termasuk hari ini. */
-export function awalHariWibMundur(sekarang: Date, hari: number): string {
-  return new Date(new Date(awalHariWib(sekarang)).getTime() - (hari - 1) * 24 * 60 * 60 * DETIK).toISOString();
-}
 
 export type Ringkasan = {
-  statistik: StatistikTersimpan;
-  kategori: { label: string; persen: number }[];
+  statistik: StatistikLayanan;
+  tiketBelumDitelaah: number;
+  kategori: { label: string; jumlah: number; persen: number }[];
   kasus: { noTiket: string; ringkasan: string; jenis: string; waktu: string; menunggu: string }[];
 };
 
 export type Panggilan = { id: string; noTelp: string; jenis: string; topik: string; waktuMulai: string; tahap: string };
 
 export type RingkasanPanggilan = { aktif: number; rataDurasiDetik: number; terlamaDetik: number; pemakaianSaluranPersen: number };
+
+export type DetailKasus = {
+  noTiket: string;
+  jenis: string;
+  status: string;
+  labelStatus: string;
+  ringkasan: string;
+  tglTerbit: string;
+  namaProduk: string;
+  kronologi: string;
+  tglPengaduan: string;
+  kelengkapan: string;
+  namaPelapor: string;
+  noTelp: string;
+  tautanTranskrip: string;
+};
 
 export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan'; latensiMs: number | null };
 
@@ -112,21 +219,21 @@ export type PantauAgent = { komponen: StatusKomponen[]; rataLatensiToolMs: numbe
 const jamTampil = (iso: string) =>
   new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(iso)).replace(/\./g, ':');
 
+const waktuTampil = (iso: string) =>
+  new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    .format(new Date(iso))
+    .replace(/\./g, ':')
+    .concat(' WIB');
+
+// NFR-13: hanya nilai yang sudah tersamar yang boleh tampil.
+const tersamar = (s: string | null | undefined) => (s && s.includes('*') ? s : '—');
+
 /** Lama menunggu sejak tiket terbit, dibulatkan ke satuan terbesar. */
 export function lamaMenunggu(iso: string, sekarang: Date): string {
   const menit = Math.max(0, Math.floor((sekarang.getTime() - new Date(iso).getTime()) / (60 * DETIK)));
   if (menit < 60) return `${menit} menit`;
   if (menit < 24 * 60) return `${Math.floor(menit / 60)} jam`;
   return `${Math.floor(menit / (24 * 60))} hari`;
-}
-
-/** Persentase per kategori dibulatkan; urut dari yang terbanyak. */
-export function persenKategori(kategori: StatistikTersimpan['kategori']) {
-  const total = kategori.reduce((n, k) => n + k.jumlah, 0);
-  if (!total) return [];
-  return [...kategori]
-    .sort((a, b) => b.jumlah - a.jumlah || a.kategori.localeCompare(b.kategori, 'id'))
-    .map((k) => ({ label: k.kategori, persen: Math.round((k.jumlah / total) * 100) }));
 }
 
 export function ringkasPanggilan(panggilan: Panggilan[], sekarang: Date, kapasitas = KAPASITAS_SALURAN_BAWAAN): RingkasanPanggilan {
@@ -140,22 +247,65 @@ export function ringkasPanggilan(panggilan: Panggilan[], sekarang: Date, kapasit
   };
 }
 
+/**
+ * Control class PemantauanLayananController sesuai Class Diagram SRS (Lampiran B.2).
+ */
 export class PemantauanLayananController {
   penyimpanan: PenyimpananPemantauan;
-  kesehatan: PemeriksaKesehatanAgent;
+  kesehatan?: PemeriksaKesehatanAgent;
 
-  constructor(penyimpanan: PenyimpananPemantauan, kesehatan: PemeriksaKesehatanAgent) {
+  constructor(penyimpanan: PenyimpananPemantauan, kesehatan?: PemeriksaKesehatanAgent) {
     this.penyimpanan = penyimpanan;
     this.kesehatan = kesehatan;
   }
 
-  /** REQ-4.1: statistik hari ini, kasus perlu tindak lanjut, jumlah panggilan berjalan, kategori 7 hari terakhir. */
+  /** REQ-4.1: Menampilkan ringkasan layanan, kartu statistik, persentase kategori, dan kasus tindak lanjut. */
+  async ambilRingkasan(): Promise<DataRingkasanLayanan> {
+    return await this.penyimpanan.ambilRingkasan();
+  }
+
+  /** Mengambil 5 metrik utama statistik layanan hari ini (zona Asia/Jakarta). */
+  async ambilStatistik(): Promise<StatistikLayanan> {
+    if (this.penyimpanan.ambilStatistik) {
+      return await this.penyimpanan.ambilStatistik();
+    }
+    const res = await this.penyimpanan.ambilRingkasan();
+    return res.statistik;
+  }
+
+  /** REQ-4.2: Menampilkan daftar panggilan aktif beserta durasinya. */
+  async ambilPanggilanAktif(): Promise<PanggilanAktif[]> {
+    if (this.penyimpanan.ambilPanggilanAktif) {
+      return await this.penyimpanan.ambilPanggilanAktif();
+    }
+    return [];
+  }
+
+  /** REQ-4.3: Menampilkan antrean tiket eskalasi dan pengaduan untuk ditindaklanjuti. */
+  async ambilAntreanTiket(): Promise<TiketAntrean[]> {
+    if (this.penyimpanan.ambilAntreanTiket) {
+      return await this.penyimpanan.ambilAntreanTiket();
+    }
+    return [];
+  }
+
+  /** REQ-4.4: Membuka detail kasus pengaduan atau eskalasi per tiket. */
+  async bukaKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
+    if (this.penyimpanan.ambilDetailKasus) {
+      return await this.penyimpanan.ambilDetailKasus(noTiket);
+    }
+    return null;
+  }
+
+  /** REQ-4.1, T-F5.1-02: ringkasan siap tampil, dengan beberapa kasus teratas dan persentase bulat. */
   async ringkasanLayanan(sekarang = new Date()): Promise<Ringkasan> {
-    const [statistik, kasus] = await Promise.all([this.penyimpanan.statistik(sekarang), this.penyimpanan.kasusTindakLanjut(BATAS_KASUS_RINGKASAN)]);
+    const { statistik, kategori, kasusPerluTindakLanjut } = await this.ambilRingkasan();
     return {
       statistik,
-      kategori: persenKategori(statistik.kategori),
-      kasus: kasus.map((k) => ({
+      // Kasus perlu tindak lanjut berisi semua tiket belum ditelaah.
+      tiketBelumDitelaah: kasusPerluTindakLanjut.length,
+      kategori: kategori.map((k) => ({ label: k.kategori, jumlah: k.jumlah, persen: Math.round(k.persentase) })),
+      kasus: kasusPerluTindakLanjut.slice(0, BATAS_KASUS_RINGKASAN).map((k) => ({
         noTiket: k.noTiket,
         ringkasan: k.ringkasan,
         jenis: LABEL_JENIS_TIKET[k.jenis],
@@ -165,28 +315,62 @@ export class PemantauanLayananController {
     };
   }
 
-  /** REQ-4.2: panggilan aktif dengan nomor tersamar; nomor yang tidak tersamar tidak pernah diteruskan ke halaman. */
+  /** REQ-4.2, T-F5.2-01: panggilan aktif dengan nomor tersamar; nomor yang tidak tersamar tidak pernah diteruskan ke halaman. */
   async panggilanBerjalan(): Promise<Panggilan[]> {
-    const baris = await this.penyimpanan.panggilanAktif();
+    const baris = await this.ambilPanggilanAktif();
     return baris.map((p) => ({
       id: p.id,
-      noTelp: p.noTelp && p.noTelp.includes('*') ? p.noTelp : '—',
-      jenis: p.jenisInteraksi ? LABEL_JENIS_INTERAKSI[p.jenisInteraksi] : 'Memilih layanan',
+      noTelp: tersamar(p.noTelp),
+      jenis: label(LABEL_JENIS_INTERAKSI, p.jenisLayanan) ?? 'Memilih layanan',
       topik: p.topik ?? '—',
       waktuMulai: p.waktuMulai,
-      tahap: Object.hasOwn(LABEL_TAHAP_AI, p.tahapAi ?? '') ? LABEL_TAHAP_AI[p.tahapAi as TahapAi] : '—',
+      tahap: label(LABEL_TAHAP_AI, p.tahapAi) ?? '—',
     }));
+  }
+
+  /** REQ-4.4, T-F5.3-03: detail kasus siap tampil; nomor tiket divalidasi sebelum diteruskan ke penyimpanan. */
+  async detailKasus(noTiket: unknown): Promise<DetailKasus | { gagal: string }> {
+    const no = typeof noTiket === 'string' ? noTiket.trim().toUpperCase() : '';
+    if (!POLA_NO_TIKET.test(no)) return { gagal: PESAN_PEMANTAUAN.tiketTidakDitemukan };
+    let d: DetailKasusPengaduan | null;
+    try {
+      d = await this.bukaKasus(no);
+    } catch {
+      return { gagal: PESAN_PEMANTAUAN.detailGagalDimuat };
+    }
+    if (!d) return { gagal: PESAN_PEMANTAUAN.tiketTidakDitemukan };
+    return {
+      noTiket: d.noTiket,
+      jenis: LABEL_JENIS_TIKET[d.jenis],
+      status: d.status,
+      labelStatus: label(LABEL_STATUS_TIKET, d.status) ?? d.status,
+      ringkasan: d.ringkasan || '—',
+      tglTerbit: waktuTampil(d.tglTerbit),
+      namaProduk: d.namaProdukDiadukan || d.namaProduk || '—',
+      kronologi: d.kronologi || '—',
+      tglPengaduan: d.tglPengaduan ? waktuTampil(d.tglPengaduan) : '—',
+      kelengkapan: d.kelengkapan === undefined ? '—' : d.kelengkapan ? 'Lengkap' : 'Tidak lengkap',
+      namaPelapor: tersamar(d.namaPelaporTersamar),
+      noTelp: tersamar(d.noTelpTersamar),
+      tautanTranskrip: `/riwayat-percakapan/detail?id=${encodeURIComponent(d.percakapanId)}`,
+    };
   }
 
   /** T-F5.4-01: kesehatan komponen, rata-rata latensi tool, dan log tool terbaru. */
   async pantauAgent(): Promise<PantauAgent> {
     const [hasil, log] = await Promise.all([
       // Gateway tidak terjangkau berarti semua komponen di belakangnya tidak bisa dipastikan sehat.
-      this.kesehatan.periksa().catch((): KomponenTersimpan[] => []),
+      (this.kesehatan?.periksa() ?? Promise.resolve([])).catch((): KomponenTersimpan[] => []),
       // Log yang gagal dibaca tidak boleh menutupi status komponen.
-      this.penyimpanan.logToolTerbaru(BATAS_LOG_TOOL).catch((): LogToolTersimpan[] => []),
+      (this.penyimpanan.ambilLogTool?.(BATAS_LOG_TOOL) ?? Promise.resolve([])).catch((): LogToolTersimpan[] => []),
     ]);
     const perNama = new Map(hasil.map((k) => [k.nama, k]));
+    // cekbpom dipanggil lewat tool cek registrasi, jadi kondisinya diambil dari pemanggilan tool terakhir, selama
+    // gateway terjangkau dan belum melaporkannya sendiri.
+    const cekTerakhir = log.reduce<LogToolTersimpan | null>((t, l) => (l.namaTool === TOOL_CEK_REGISTRASI && (!t || l.waktu > t.waktu) ? l : t), null);
+    if (hasil.length && cekTerakhir && !perNama.has('cekbpom')) {
+      perNama.set('cekbpom', { nama: 'cekbpom', sehat: cekTerakhir.berhasil, latensiMs: cekTerakhir.durasiMs });
+    }
     const komponen = [...KOMPONEN_AGENT, ...hasil.map((k) => k.nama).filter((n) => !(KOMPONEN_AGENT as readonly string[]).includes(n))].map(
       (nama): StatusKomponen => {
         const k = perNama.get(nama);

@@ -5,6 +5,9 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Orb from '../components/Orb.astro';
 import { KB_TOTAL } from '../lib/data';
 import { pemantauanLayanan } from '../lib/pemantauan';
+import { BasisPengetahuanController } from '../lib/BasisPengetahuanController';
+import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
+import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
 
 const PERIODE = [
   ['harian', 'Harian', 'Panggilan masuk hari ini per jam'],
@@ -14,19 +17,30 @@ const PERIODE = [
 const AWAL = 'mingguan';
 
 const fmt = (n: number) => n.toLocaleString('id-ID');
-const ringkasan = await pemantauanLayanan().ringkasanLayanan().catch(() => null);
+const konfigurasi = bacaKonfigurasiSupabase();
+const token = Astro.locals.tokenAkses;
+// Jumlah materi dibaca dari Supabase dengan token petugas, sama seperti halaman Basis Pengetahuan; tanpa token memakai data tiruan.
+const materiTotal = async () => {
+  if (!konfigurasi || !token) return KB_TOTAL.total;
+  const hasil = await new BasisPengetahuanController(new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })).daftarMateri({ ukuran: 1 });
+  return 'total' in hasil ? hasil.total : null;
+};
+const [ringkasan, jumlahMateri] = await Promise.all([
+  pemantauanLayanan(token).ringkasanLayanan().catch(() => null),
+  materiTotal().catch(() => null),
+]);
 const st = ringkasan?.statistik;
 const urgent = ringkasan?.kasus ?? [];
 const KATEGORI = ringkasan?.kategori ?? [];
 const WARNA_KATEGORI = ['#2f6bf5', '#16a34a', '#f5b70f', '#6d4aff', '#0e9fb8', '#ef6b4a', '#8a919e'];
-const totalKategori = st?.kategori.reduce((n, k) => n + k.jumlah, 0) ?? 0;
+const totalKategori = KATEGORI.reduce((n, k) => n + k.jumlah, 0);
 const maxKategori = Math.max(1, ...KATEGORI.map((k) => k.persen));
 const berjalan = st?.panggilanBerjalan ?? 0;
 const STATISTIK = [
   { label: 'Panggilan Hari Ini', value: st?.panggilanHariIni, sub: st?.panggilanHariIni ? 'Sejak 00.00 WIB' : 'Belum ada panggilan', icon: 'icon-phone-incoming', bg: '#e3ecff', fg: '#2f6bf5' },
-  { label: 'Dijawab Otomatis AI', value: st?.dijawabAi, sub: st?.dijawabAi ? 'Selesai tanpa petugas' : 'Belum ada jawaban AI', icon: 'icon-bot', bg: '#dcf5e6', fg: '#16a34a' },
-  { label: 'Tiket Eskalasi Baru', value: st?.tiketEskalasiBaru, sub: `${fmt(st?.tiketBelumDitelaah ?? 0)} belum ditelaah`, icon: 'icon-ticket', bg: '#fdf0d3', fg: '#b26b00' },
-  { label: 'Pengaduan Selesai', value: st?.pengaduanSelesai, sub: '7 hari terakhir', icon: 'icon-circle-check', bg: '#ece7fe', fg: '#6d4aff' },
+  { label: 'Dijawab Otomatis AI', value: st?.jawabanOtomatisAi, sub: st?.jawabanOtomatisAi ? 'Selesai tanpa petugas' : 'Belum ada jawaban AI', icon: 'icon-bot', bg: '#dcf5e6', fg: '#16a34a' },
+  { label: 'Tiket Eskalasi Baru', value: st?.tiketEskalasiBaru, sub: `${fmt(ringkasan?.tiketBelumDitelaah ?? 0)} belum ditelaah`, icon: 'icon-ticket', bg: '#fdf0d3', fg: '#b26b00' },
+  { label: 'Pengaduan Selesai', value: st?.pengaduanSelesai, sub: 'Seluruh tiket pengaduan', icon: 'icon-circle-check', bg: '#ece7fe', fg: '#6d4aff' },
 ];
 const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 ---
@@ -133,7 +147,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         <span class="grow"></span>
         <a href="/pantau-ai-agent" class="tile agent">
           <span class="dot-idle"></span>
-          <span class="agent-text"><span>Pantau AI Agent</span><span>Basis pengetahuan · {fmt(KB_TOTAL.total)} materi</span></span>
+          <span class="agent-text"><span>Pantau AI Agent</span><span>Basis pengetahuan · {jumlahMateri === null ? '—' : fmt(jumlahMateri)} materi</span></span>
           <i class="icon-arrow-up-right"></i>
         </a>
       </section>
