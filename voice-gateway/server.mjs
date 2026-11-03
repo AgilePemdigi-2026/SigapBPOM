@@ -8,10 +8,10 @@ import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SesiPenuh, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
-  pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai,
+  pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
-import { CekBpom } from './cekbpom.mjs';
+import { CekBpom, labelKueri, tabelCek } from './cekbpom.mjs';
 import { PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
 import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
 import {
@@ -284,26 +284,34 @@ async function ttsElevenLabs(teks) {
   return r.body;
 }
 
-/** POST /voice/giliran: JSON {id, pilih} untuk tombol menu, atau audio mentah (?id=) untuk ucapan. */
+/** POST /voice/giliran: JSON {id, pilih} untuk tombol menu, JSON {id, teks} untuk pesan diketik, atau audio mentah (?id=) untuk ucapan. */
 async function giliran(req, res, url) {
   if (!lajuGiliran.izinkan(ipKlien(req))) throw new ErrorGateway(429, 'Terlalu banyak permintaan. Coba lagi sebentar lagi.');
   const tipe = String(req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
 
+  let ketik = null;
+  let id;
   if (tipe === 'application/json') {
     let body;
     try { body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8')); } catch { throw new ErrorGateway(400, 'Permintaan tidak valid.'); }
-    if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
-    const menu = pilihMenu(riwayat, pengaduan, body.id, Number(body.pilih));
-    if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
-    // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
-    // pertama yang sudah melewati kuota dan pembatas laju.
-    riwayat.aturCekRegistrasi(body.id, { ulangNama: 0, kandidat: null });
-    return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
+    const urai = uraiGiliranJson(body);
+    if (urai.galat) throw new ErrorGateway(urai.galat.kode, urai.galat.pesan);
+    id = urai.id;
+    if (urai.jenis === 'pilih') {
+      const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih);
+      if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+      // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
+      // pertama yang sudah melewati kuota dan pembatas laju.
+      riwayat.aturCekRegistrasi(id, { ulangNama: 0, kandidat: null });
+      return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
+    }
+    // Pesan yang diketik: tanpa STT, selebihnya sama dengan giliran suara.
+    ketik = urai.teks;
+  } else {
+    if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
+    id = url.searchParams.get('id');
+    if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
   }
-
-  if (!tipe.startsWith('audio/') && !tipe.startsWith('video/')) throw new ErrorGateway(415, 'Format rekaman tidak didukung.');
-  const id = url.searchParams.get('id');
-  if (!idPanggilanSah(id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
   const ip = ipKlien(req);
   // Sebelum STT: batasi giliran serentak dan cadangkan token, supaya permintaan paralel ikut terhitung
   // dan panggilan yang anggarannya habis tidak ikut memakai kuota ElevenLabs.
@@ -316,12 +324,15 @@ async function giliran(req, res, url) {
   const batal = new AbortController();
   res.on('close', () => { if (!res.writableFinished) batal.abort(); });
   try {
-    const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
-    if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
-    pantau.tahap(id, TAHAP.MENDENGAR);
+    let audio = null;
+    if (ketik === null) {
+      audio = await bacaBody(req, AUDIO_MAKS_BYTE);
+      if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+      pantau.tahap(id, TAHAP.MENDENGAR);
+    }
 
     const mulai = Date.now();
-    const transkrip = await sttElevenLabs(audio, tipe);
+    const transkrip = ketik ?? await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
     // Penelepon sudah memutus panggilan: Hermes belum dipanggil, jadi cadangan token dikembalikan di finally luar.
     if (batal.signal.aborted) return;
@@ -359,6 +370,27 @@ async function giliran(req, res, url) {
         pantau.tahap(id, TAHAP.MENJAWAB);
         ucapkan(hasil.jawaban, suara);
         tulis({ jenis: 'selesai', sumber: [], pengaduan: hasil.tiket });
+        return;
+      }
+
+      // T-F4.1-02, T-F4.2-02 (REQ-2.2, REQ-2.3): alur pengaduan seluruhnya di gateway, tanpa AI. Data kurang ditanyakan ulang;
+      // begitu lengkap tiket terbit lewat Edge Function. Ucapan mentah tidak masuk riwayat dan tidak pernah sampai ke model.
+      if (pengaduan.aktif(id)) {
+        tulis({ jenis: 'transkrip', transkrip });
+        let hasil;
+        try {
+          hasil = await prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan: transkrip, ip });
+        } catch (e) {
+          if (e instanceof BatasTiketTercapai) {
+            console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'ditolak', batas: e.jenis }));
+            throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
+          }
+          throw e;
+        }
+        console.info(JSON.stringify({ ev: 'pengaduan', tahap: hasil.tahap, kurang: hasil.kurang, stt_ms: tStt }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        ucapkan(hasil.jawaban, hasil.tiket ? terbitkanTokenSuara(hasil.jawaban, ip) : hasil.suara);
+        tulis({ jenis: 'selesai', pengaduan: hasil.tiket });
         return;
       }
 
@@ -435,13 +467,15 @@ async function giliran(req, res, url) {
       // Selama alur pengaduan (layanan 2) nama produk adalah data pengaduan, jadi tidak dicek di cekbpom.
       const tCek = Date.now();
       const keadaanCek = riwayat.cekRegistrasi(id);
+      // Panel Cari Produk di halaman publik mulai mengetik kueri saat pencarian dimulai, lalu menampilkan tabel sebelum AI menjawab.
       const cek = cekBpom && riwayat.layanan(id) !== 2
-        ? await cekRegistrasiBpom(cekBpom, transkrip, { ...keadaanCek, jawabanTerakhir: riwayat.jawabanTerakhir(id) })
+        ? await cekRegistrasiBpom(cekBpom, transkrip, { ...keadaanCek, jawabanTerakhir: riwayat.jawabanTerakhir(id), saatMencari: (k) => tulis({ jenis: 'cari', kueri: labelKueri(k) }) })
         : null;
       // Kandidat hasil ganda hanya berlaku untuk giliran tepat sesudahnya.
       riwayat.aturCekRegistrasi(id, cek?.keadaan ?? { ...keadaanCek, kandidat: null });
       let konteks, kutipan = [];
       if (cek) {
+        if (cek.kueri) tulis({ jenis: 'cek', ...tabelCek(cek.kueri, cek.data) });
         if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
         const jenis = cek.kueri ? (cek.kueri.nomor ? 'nomor' : 'nama') : null;
         const ms = Date.now() - tCek;

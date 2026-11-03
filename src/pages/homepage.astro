@@ -4,6 +4,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Orb from '../components/Orb.astro';
 import PanelSuara from '../components/PanelSuara.astro';
+import CariProduk from '../components/CariProduk.astro';
 
 const NAV = ['Beranda', 'Cek Produk', 'Pengaduan', 'Edukasi', 'Berita', 'Kontak'];
 const LAYANAN = [
@@ -49,6 +50,7 @@ const FITUR = [
           </div>
           <span class="note"><i class="icon-captions"></i>Transkrip tampil langsung di layar · tanpa login · dijawab dari data resmi BPOM</span>
         </div>
+        <CariProduk />
       </section>
 
       <section class="panel csai">
@@ -142,7 +144,9 @@ const FITUR = [
   .login { height: 52px; padding: 0 22px; font-size: 16px; font-weight: 500; color: var(--ink); }
 
   .hero-row { height: 610px; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 20px; }
-  .hero { padding: 40px 60px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  .hero { position: relative; padding: 40px 60px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  /* Selama layanan 1, hero berganti menjadi panel Cari Produk dan tetap terang di atas latar redup panel suara. */
+  .hero.cari { z-index: 21; }
   .tag { align-self: flex-start; display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--blue-ink); }
   .tag span { width: 8px; height: 8px; border-radius: 9px; background: #22c55e; }
   .hero h1 { font-size: 58px; line-height: 1.06; font-weight: 500; letter-spacing: -.03em; max-width: 980px; text-wrap: balance; }

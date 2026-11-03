@@ -66,13 +66,13 @@ function tunggal(produk, dasar) {
  * `{ jalur, jawaban, konteks, produk, keadaan }`: `jawaban` kalimat baku yang langsung dibacakan tanpa AI, atau `konteks`
  * pesan sistem untuk Hermes. `produk` adalah HasilProduk untuk kartu panel, dan `keadaan` disimpan untuk giliran berikutnya.
  */
-export async function cekRegistrasiBpom(cekBpom, ucapan, { jawabanTerakhir = '', ulangNama = 0, kandidat = null } = {}) {
+export async function cekRegistrasiBpom(cekBpom, ucapan, { jawabanTerakhir = '', ulangNama = 0, kandidat = null, saatMencari = () => {} } = {}) {
   const pilihan = kandidat?.length ? nomorPilihan(ucapan, kandidat.length) : null;
   if (pilihan) return tunggal(kandidat[pilihan - 1], { kueri: null, galat: null, total: 1 });
 
   // Setelah agen meminta nama produk (menu 1, nama tidak jelas, atau hasil ganda), nama saja sudah cukup.
   const setelahTanyaNama = jawabanTerakhir === PESAN_LAYANAN_1 || jawabanTerakhir === PESAN_NAMA_TIDAK_JELAS || Boolean(kandidat?.length);
-  const cek = await cekRegistrasi(cekBpom, ucapan, setelahTanyaNama);
+  const cek = await cekRegistrasi(cekBpom, ucapan, setelahTanyaNama, saatMencari);
   if (!cek) {
     if (!namaKurangJelas(ucapan, setelahTanyaNama)) return null;
     const dasar = { kueri: null, galat: null, total: null, produk: undefined };
@@ -82,7 +82,7 @@ export async function cekRegistrasiBpom(cekBpom, ucapan, { jawabanTerakhir = '',
     return { ...dasar, jalur: 'tidak_jelas', jawaban: PESAN_NAMA_TIDAK_JELAS, konteks: null, keadaan: { ulangNama: ulangNama + 1, kandidat: null } };
   }
 
-  const dasar = { kueri: cek.kueri, galat: cek.galat, total: cek.data?.total ?? null, produk: cek.produk, keadaan: KEADAAN_AWAL };
+  const dasar = { kueri: cek.kueri, data: cek.data, galat: cek.galat, total: cek.data?.total ?? null, produk: cek.produk, keadaan: KEADAAN_AWAL };
   // NFR-7: cekbpom gagal tidak pernah menjadi "tidak ditemukan"; Hermes diminta menyampaikan gangguan tanpa status apa pun.
   if (!cek.data) return { ...dasar, jalur: 'gagal', jawaban: null, konteks: cek.konteks };
   const { produk } = cek.data;

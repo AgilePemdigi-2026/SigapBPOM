@@ -2,6 +2,7 @@
 // Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.2, REQ-2.4, REQ-2.5, T-F4.1-03).
 // Dibuka lewat event `sigap:buka-panggilan`. Suara penelepon direkam di browser lalu dikirim ke
 // Voice Gateway (/voice) yang meneruskannya ke ElevenLabs STT, Hermes Agent, dan ElevenLabs TTS.
+// Penelepon juga bisa mengetik: pesan dikirim sebagai JSON {id, teks} ke endpoint yang sama, tanpa STT.
 interface Props { mode: 'desktop' | 'mobile' }
 const { mode } = Astro.props;
 const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
@@ -32,6 +33,18 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       <span class="ps-saved"><i class="icon-check"></i>{mode === 'mobile' ? 'tersimpan' : 'tersimpan di register layanan'}</span>
     </div>
     <div class="ps-tr" data-tr role="log" aria-live="polite" aria-label="Transkrip langsung"></div>
+    <form class="ps-ketik" data-ketik autocomplete="off">
+      <button type="button" class="ps-suara" data-suara role="switch" aria-checked="true" title="Matikan suara jawaban">
+        <i class="icon-volume-2" data-suara-ikon aria-hidden="true"></i>
+        <span class="ps-suara-label">Suara jawaban</span>
+        <span class="ps-suara-sw" aria-hidden="true"></span>
+      </button>
+      <div class="ps-ketik-baris">
+        <label class="sr-only" for={`ps-ketik-${mode}`}>Ketik pertanyaan untuk CS AI</label>
+        <input id={`ps-ketik-${mode}`} class="ps-input" data-input type="text" maxlength="500" placeholder="Ketik pertanyaan…" enterkeyhint="send" />
+        <button type="submit" class="btn-primary ps-kirim" data-kirim aria-label="Kirim pertanyaan" title="Kirim"><i class="icon-send"></i></button>
+      </div>
+    </form>
     <button class="ps-end" data-end><i class="icon-phone-off"></i>Akhiri Panggilan</button>
     <div class="ps-after" data-after hidden>
       <button class="ps-restart" data-restart><i class="icon-phone"></i>Telepon CS AI</button>
@@ -42,6 +55,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
 <script>
   import { PESAN_PENGADUAN_TIDAK_LENGKAP, esc, htmlKartuEskalasi, htmlKartuPengaduan, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
+  import { NAMA_PERISTIWA, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
 
   type Sumber = { peraturan: string; judul: string; url: string };
   type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string };
@@ -50,11 +64,15 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     | { jenis: 'transkrip'; transkrip: string; jeda?: boolean }
     | { jenis: 'kalimat'; teks: string; suara: string | null }
     | { jenis: 'ganti' }
+    | { jenis: 'cari'; kueri: string }
+    | ({ jenis: 'cek' } & TabelCek)
     | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null; produk?: HasilProduk; pengaduan?: string | null }
     | { jenis: 'galat'; message: string };
   type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string | null };
 
   const GATEWAY = '/voice';
+  // Panel Cari Produk di halaman publik mengikuti layanan dan pencarian cekbpom dalam panggilan ini.
+  const kabari = (p: PeristiwaCari) => window.dispatchEvent(new CustomEvent(NAMA_PERISTIWA, { detail: p }));
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
   // Deteksi giliran bicara sederhana dari kekuatan sinyal mikrofon.
   const AMBANG_SUARA = 0.025;
@@ -94,6 +112,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     let tick: number | undefined, idPanggilan = '';
     let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
     let pantau: number | undefined;
+    // Pesan diketik: `sibuk` selama satu giliran berjalan (input dikunci), `mengetik` selama ada draf di kolom
+    // (mikrofon berhenti merekam supaya suara latar tidak memotong ketikan), `suaraAktif` untuk audio jawaban.
+    let sibuk = false, mengetik = false, suaraAktif = true, fokusKetik = false;
+    let akhiriPutar: (() => void) | null = null;
+    const input = $<HTMLInputElement>('[data-input]'), kirimBtn = $<HTMLButtonElement>('[data-kirim]'), suaraBtn = $<HTMLButtonElement>('[data-suara]');
     const pemutar = new Audio();
     // Tempo bicara gaya CS. Model TTS v3 tidak punya pengaturan kecepatan, jadi audio dipercepat di sini
     // dengan nada tetap. defaultPlaybackRate dipakai karena mengganti src mengembalikan playbackRate ke nilai itu.
@@ -119,6 +142,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       }
       $('[data-end]').hidden = ended;
       $('[data-after]').hidden = !ended;
+      $('[data-ketik]').hidden = ended;
+      const kunci = phase === 'connecting' || ended || sibuk;
+      input.disabled = kunci;
+      kirimBtn.disabled = kunci || !input.value.trim();
+      if (!kunci && fokusKetik) { fokusKetik = false; input.focus(); }
     }
     const push = (m: Msg) => { msgs = msgs.filter((x) => x.kind !== 'processing').concat({ ...m, time: stamp() }); paint(); };
     const say = (text: string, sumber?: Sumber[], produk?: HasilProduk, tiket?: string, pengaduan?: string) => push({ kind: 'sys', text, sumber, produk, tiket, pengaduan });
@@ -126,12 +154,23 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     // Putar audio jawaban lalu kembali mendengarkan. Mikrofon tidak merekam selama agen berbicara.
     function putar(src: string) {
+      if (!suaraAktif) return Promise.resolve();
       return new Promise<void>((selesai) => {
         setMode('berbicara');
+        akhiriPutar = selesai;
         pemutar.src = src;
         pemutar.onended = pemutar.onerror = () => selesai();
         pemutar.play().catch(() => selesai());
       });
+    }
+
+    // Tombol "Suara jawaban": mematikan atau menyalakan audio. Audio yang sedang diputar dihentikan, giliran tetap berjalan sebagai teks.
+    function aturSuara(aktif: boolean) {
+      suaraAktif = aktif;
+      suaraBtn.setAttribute('aria-checked', String(aktif));
+      suaraBtn.title = aktif ? 'Matikan suara jawaban' : 'Nyalakan suara jawaban';
+      $('[data-suara-ikon]').className = aktif ? 'icon-volume-2' : 'icon-volume-x';
+      if (!aktif) { antrean = []; pemutar.pause(); akhiriPutar?.(); }
     }
 
     // Antrean audio: kalimat jeda lalu kalimat jawaban diputar berurutan begitu masing-masing siap.
@@ -140,6 +179,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     // Giliran ucapan yang sedang berjalan, dibatalkan saat panggilan diakhiri agar gateway berhenti memanggil AI dan TTS.
     let batalGiliran: AbortController | null = null;
     function antrekan(src: string) {
+      if (!suaraAktif) return;
       antrean.push(src);
       pemutaran ??= (async () => {
         while (antrean.length && phase !== 'ended') await putar(antrean.shift()!);
@@ -195,7 +235,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     }
 
     // Jawaban ucapan datang bertahap: kalimat jeda diputar segera, tiap kalimat jawaban diantrekan begitu tiba.
-    async function prosesAliran(r: Response) {
+    async function prosesAliran(r: Response, ketikan = false) {
       const sesi = sesiSuara;
       const pembaca = r.body!.getReader();
       const dekoder = new TextDecoder();
@@ -210,22 +250,26 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
           const b = JSON.parse(sisa.slice(0, n)) as Baris;
           sisa = sisa.slice(n + 1);
           if (b.jenis === 'transkrip') {
-            if (b.transkrip) push({ kind: 'user', text: b.transkrip });
+            // Pesan yang diketik sudah tampil sebagai gelembung pengguna begitu dikirim.
+            if (b.transkrip && !ketikan) push({ kind: 'user', text: b.transkrip });
             if (b.jeda) { antrekan(`${GATEWAY}/statis/jeda`); push({ kind: 'processing', text: 'Menyiapkan jawaban' }); }
           } else if (b.jenis === 'kalimat') {
             if (jawaban) { jawaban.text = ganti ? b.teks : `${jawaban.text} ${b.teks}`; ganti = false; paint(); }
             else { say(b.teks); jawaban = msgs[msgs.length - 1]; }
             if (b.suara) antrekan(b.suara);
+          } else if (b.jenis === 'cari') {
+            kabari({ tahap: 'cari', kueri: b.kueri });
+          } else if (b.jenis === 'cek') {
+            const { jenis: _, ...tabel } = b;
+            kabari({ tahap: 'hasil', tabel });
           } else if (b.jenis === 'ganti') {
             // Gateway menarik jawaban yang sudah dikirim (jawaban baku dikenali belakangan).
             antrean = [];
             ganti = true;
           } else if (b.jenis === 'selesai') {
+            // REQ-2.3: tiket pengaduan datang pada baris selesai; panggilan yang sudah bertiket tidak lagi dianggap pengaduan belum lengkap.
             if (b.pengaduan || b.tiket?.startsWith('ADU-')) tiketPengaduan = true;
-            if (jawaban) {
-              Object.assign(jawaban, { sumber: b.sumber, tiket: b.tiket ?? undefined, produk: b.produk, pengaduan: b.pengaduan ?? undefined });
-              paint();
-            }
+            if (jawaban) { jawaban.sumber = b.sumber; jawaban.tiket = b.tiket ?? undefined; jawaban.pengaduan = b.pengaduan ?? undefined; jawaban.produk = b.produk; paint(); }
             akhiri = Boolean(b.akhiri);
           } else if (b.jenis === 'galat') {
             throw new Error(b.message);
@@ -241,6 +285,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     async function giliranSuara(rekaman: Blob) {
       const sesi = sesiSuara;
+      sibuk = true;
       setMode('memproses');
       push({ kind: 'processing', text: 'Memproses ucapan Anda' });
       try {
@@ -249,15 +294,45 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
         const r = await fetch(`${GATEWAY}/giliran?id=${idPanggilan}`, {
           method: 'POST', headers: { 'content-type': rekaman.type || 'audio/webm' }, body: rekaman, signal: batalGiliran.signal,
         });
-        if (!r.ok || !r.headers.get('content-type')?.includes('ndjson')) {
-          const d = await r.json().catch(() => null);
-          throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
-        }
-        await prosesAliran(r);
+        await prosesAliran(await pastikanAliran(r));
       } catch (e) {
         await tungguAntrean();
         // Giliran dihentikan oleh pick() atau end(), termasuk AbortError dari fetch: alur baru yang melanjutkan.
         if (sesi !== sesiSuara) return;
+        gagal(e);
+      }
+    }
+
+    async function pastikanAliran(r: Response) {
+      if (!r.ok || !r.headers.get('content-type')?.includes('ndjson')) {
+        const d = await r.json().catch(() => null);
+        throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
+      }
+      return r;
+    }
+
+    // Pesan diketik: gelembung pengguna tampil langsung, lalu dikirim ke endpoint yang sama dan dibaca lewat prosesAliran
+    // yang sama, jadi kartu produk, panel Cari Produk, menu, dan eskalasi bekerja persis seperti pada suara.
+    async function giliranKetik(teks: string) {
+      if (phase === 'ended' || phase === 'connecting' || sibuk) return;
+      sibuk = true;
+      berhentiRekam();
+      antrean = [];
+      pemutar.pause();
+      push({ kind: 'user', text: teks });
+      setMode('memproses');
+      push({ kind: 'processing', text: 'Memproses pertanyaan Anda' });
+      try {
+        if (giliranTiruan) {
+          const h = giliranTiruan.shift() ?? { transkrip: null, jawaban: null, suara: null };
+          return await prosesHasil({ ...h, transkrip: null });
+        }
+        const r = await fetch(`${GATEWAY}/giliran`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan, teks }) });
+        await prosesAliran(await pastikanAliran(r), true);
+      } catch (e) {
+        await tungguAntrean();
+        // Kembalikan pesan ke kolom agar bisa dikirim ulang tanpa mengetik lagi.
+        if (!input.value) { input.value = teks; mengetik = true; }
         gagal(e);
       }
     }
@@ -278,7 +353,8 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     // Rekam satu ucapan: mulai saat sinyal melewati ambang, berhenti setelah jeda hening.
     function dengar() {
       berhentiRekam();
-      if (phase === 'ended' || phase === 'connecting' || !mic || !ctx || !analis) { setMode('diam'); return; }
+      sibuk = false;
+      if (phase === 'ended' || phase === 'connecting' || !mic || !ctx || !analis || mengetik) { setMode('diam'); return; }
       setMode('mendengar');
       ctx.resume().catch(() => {});
       const a = analis;
@@ -309,6 +385,8 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     async function start() {
       phase = 'connecting'; mode = 'diam'; service = null; tiketPengaduan = false; secs = 0; msgs = [];
+      sibuk = false; mengetik = false; fokusKetik = false; input.value = '';
+      kabari({ tahap: 'layanan', layanan: null });
       idPanggilan = crypto.randomUUID();
       giliranTiruan = null;
       const demo = import.meta.env.DEV && new URLSearchParams(location.search).get('demo');
@@ -326,31 +404,42 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       paint();
       clearInterval(tick);
       tick = window.setInterval(() => { if (phase !== 'ended') { secs++; $('[data-dur]').textContent = stamp(); } }, 1000);
+      // Izin mikrofon diminta di latar: menunya langsung tampil dan mengetik tetap bisa selagi dialog izin terbuka.
+      const mikrofon = siapkanMic();
+      phase = 'menu';
+      say(PESAN_MENU);
+      push({ kind: 'menu' });
+      const salam = putar(`${GATEWAY}/statis/menu`);
+      const ada = await mikrofon;
+      if (phase === 'ended') return lepasMic();
+      if (!ada) say('Mikrofon tidak tersedia atau izin ditolak. Anda tetap bisa mengetik pertanyaan di kolom bawah, atau izinkan mikrofon di browser untuk berbicara.');
+      await salam;
+      if (phase !== 'ended' && !sibuk) dengar();
+    }
+
+    async function siapkanMic() {
       try {
         mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
         ctx = new AudioContext();
         analis = ctx.createAnalyser();
         analis.fftSize = 1024;
         ctx.createMediaStreamSource(mic).connect(analis);
+        return true;
       } catch {
         mic = null;
+        return false;
       }
-      if (phase === 'ended') return lepasMic();
-      phase = 'menu';
-      say(PESAN_MENU);
-      push({ kind: 'menu' });
-      if (!mic) say('Izin mikrofon ditolak. Izinkan mikrofon di browser agar bisa berbicara dengan CS AI.');
-      const sesi = sesiSuara;
-      await putar(`${GATEWAY}/statis/menu`);
-      if (phase !== 'ended' && sesi === sesiSuara) dengar();
     }
 
     async function pick(n: 1 | 2) {
       if (phase === 'ended' || phase === 'connecting') return;
+      if (sibuk) return;
+      sibuk = true;
       berhentiRekam();
       // Menu, kalimat jeda, atau jawaban yang sedang diputar dihentikan, dan giliran ucapan yang masih berjalan dibatalkan.
       hentikanSuara();
       phase = 'flow'; service = n; tiketPengaduan = false;
+      kabari({ tahap: 'layanan', layanan: n });
       msgs = msgs.filter((m) => m.kind !== 'menu');
       setMode('memproses');
       try { await prosesHasil(await kirimGiliran({ pilih: n })); } catch (e) { gagal(e); }
@@ -367,6 +456,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     function end() {
       if (phase === 'ended') return;
+      sibuk = false;
       lepasMic();
       hentikanSuara();
       // REQ-2.5: gateway menyimpan pengaduan yang belum lengkap dan membalas dengan pesan akhir panggilan untuk ditampilkan.
@@ -387,6 +477,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     function close() {
       end();
+      kabari({ tahap: 'tutup' });
       clearInterval(tick);
       root.hidden = true;
       document.documentElement.classList.remove('panel-open');
@@ -399,21 +490,39 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (t.closest('[data-close]')) return close();
       if (t.closest('[data-end]')) return end();
       if (t.closest('[data-restart]')) return start();
-      if (t.closest('[data-ganti]') && phase === 'flow') { phase = 'menu'; service = null; say(PESAN_MENU); push({ kind: 'menu' }); }
+      if (t.closest('[data-ganti]') && phase === 'flow') { phase = 'menu'; service = null; kabari({ tahap: 'layanan', layanan: null }); say(PESAN_MENU); push({ kind: 'menu' }); }
     });
     // Tab ditutup atau halaman ditinggalkan saat panggilan berjalan: beri tahu gateway agar pengaduan yang belum lengkap tersimpan.
     window.addEventListener('pagehide', () => {
       if (phase === 'ended' || phase === 'connecting' || !idPanggilan) return;
       navigator.sendBeacon(`${GATEWAY}/akhiri`, new Blob([JSON.stringify({ id: idPanggilan })], { type: 'application/json' }));
     });
+    // Tombol 1 dan 2 memilih layanan, kecuali saat pengguna sedang mengetik di kolom pesan.
     root.addEventListener('keydown', (e) => {
-      if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2);
+      if ((e.key === '1' || e.key === '2') && !(e.target instanceof HTMLInputElement)) pick(Number(e.key) as 1 | 2);
       if (e.key === 'Escape') close();
     });
+    $('[data-ketik]').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const teks = input.value.replace(/\s+/g, ' ').trim();
+      if (!teks || sibuk) return;
+      input.value = '';
+      mengetik = false;
+      fokusKetik = true;
+      giliranKetik(teks);
+    });
+    input.addEventListener('input', () => {
+      mengetik = input.value.trim().length > 0;
+      if (mengetik && !sibuk) { berhentiRekam(); if (phase === 'menu' || phase === 'flow') setMode('diam'); }
+      else if (!mengetik && !sibuk && (phase === 'menu' || phase === 'flow') && mode === 'diam') dengar();
+      kirimBtn.disabled = input.disabled || !mengetik;
+    });
+    suaraBtn.addEventListener('click', () => aturSuara(!suaraAktif));
 
     return () => {
       root.hidden = false;
       document.documentElement.classList.add('panel-open');
+      aturSuara(true);
       start();
       $('[data-end]').focus();
     };
@@ -523,6 +632,28 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.m-proc i) { color: var(--blue); }
   .ps-tr :global(.m-ended) { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px; border-radius: 20px; background: #fff; text-align: center; font-size: 16px; font-weight: 600; line-height: 1.4; }
   .ps-tr :global(.m-ended i) { font-size: 24px; color: #6b7280; }
+
+  /* Ketik pertanyaan: alternatif dari berbicara. Selalu aktif walau mikrofon tidak diizinkan. */
+  .ps-ketik { display: flex; flex-direction: column; gap: 10px; flex: none; }
+  .ps-ketik[hidden] { display: none; }
+  .ps-ketik-baris { display: flex; align-items: center; gap: 10px; }
+  .ps-input { flex: 1; min-width: 0; height: 54px; padding: 0 20px; border-radius: 999px; border: 1px solid #fff; background: var(--surface); box-shadow: var(--shadow-row), inset 0 0 0 1px var(--line-2); font-family: Outfit, system-ui, sans-serif; font-size: 16px; color: var(--ink); transition: box-shadow .15s; }
+  .ps-input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .ps-input:disabled { opacity: .6; cursor: not-allowed; }
+  .ps-kirim { width: 54px; height: 54px; flex: none; padding: 0; font-size: 20px; border: 0; transition: opacity .15s, transform .15s; }
+  .ps-kirim:disabled { opacity: .45; box-shadow: none; cursor: not-allowed; }
+  .ps-kirim:not(:disabled):active { transform: scale(.94); }
+  .ps-suara { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 10px; border-radius: 999px; border: 1px solid #fff; background: var(--surface-2); box-shadow: var(--shadow-btn); font-size: 14px; font-weight: 500; color: var(--ink-3); }
+  .ps-suara i { font-size: 17px; color: var(--blue); }
+  .ps-suara[aria-checked='false'] i { color: var(--muted-2); }
+  .ps-suara-sw { position: relative; width: 30px; height: 18px; border-radius: 999px; background: var(--grad-blue); transition: background .15s; }
+  .ps-suara-sw::after { content: ''; position: absolute; top: 2px; left: 14px; width: 14px; height: 14px; border-radius: 99px; background: #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, .3); transition: left .15s; }
+  .ps-suara[aria-checked='false'] .ps-suara-sw { background: #cfd4dc; }
+  .ps-suara[aria-checked='false'] .ps-suara-sw::after { left: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    .ps-input, .ps-kirim, .ps-suara-sw, .ps-suara-sw::after { transition: none; }
+    .ps-kirim:not(:disabled):active { transform: none; }
+  }
 
   .ps-end { height: 60px; flex: none; border-radius: 999px; border: 0; background: linear-gradient(180deg, #ef4444, #d42020); color: #fff; font-weight: 600; font-size: 17px; letter-spacing: .06em; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(220, 38, 38, .3), inset 0 1px 0 rgba(255, 255, 255, .25); }
   .ps-end[hidden] { display: none; }

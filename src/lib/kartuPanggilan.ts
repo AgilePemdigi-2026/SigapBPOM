@@ -23,11 +23,15 @@ export const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&
 const IKON_STATUS: Record<StatusIzin, string> = { Berlaku: 'icon-circle-check', 'Tidak Berlaku': 'icon-circle-x', Dibatalkan: 'icon-ban' };
 const KELAS_STATUS: Record<StatusIzin, string> = { Berlaku: 'ok', 'Tidak Berlaku': 'no', Dibatalkan: 'no' };
 
+/** Lencana status izin edar, dipakai kartu transkrip dan tabel panel Cari Produk. */
+export const htmlStatus = (s: StatusIzin) =>
+  `<span class="k-status ${KELAS_STATUS[s] ?? 'no'}"><i class="${IKON_STATUS[s] ?? 'icon-circle-x'}" aria-hidden="true"></i>${esc(s)}</span>`;
+
 function barisProduk(p: Produk) {
   return `<div class="k-produk-nama">${esc(p.nama)}</div>
     <dl>
       <dt>Nomor izin edar</dt><dd>${esc(p.nomorIzinEdar)}</dd>
-      <dt>Status</dt><dd><span class="k-status ${KELAS_STATUS[p.status]}"><i class="${IKON_STATUS[p.status]}" aria-hidden="true"></i>${esc(p.status)}</span></dd>
+      <dt>Status</dt><dd>${htmlStatus(p.status)}</dd>
       <dt>Pendaftar</dt><dd>${esc(p.pendaftar)}</dd>
     </dl>`;
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CekBpom, cekRegistrasi, hasilProduk, kueriProduk, namaKurangJelas, pesanCekBpom } from './cekbpom.mjs';
+import { CekBpom, cekRegistrasi, detailDariBaris, hasilProduk, kueriProduk, labelKueri, namaKurangJelas, pesanCekBpom, tabelCek } from './cekbpom.mjs';
 
 test('req_1_3 kueri produk dikenali dari pertanyaan status registrasi', () => {
   assert.deepEqual(kueriProduk('Apakah Indomie goreng sudah terdaftar di BPOM?'), { nama: 'indomie goreng' });
@@ -93,6 +93,24 @@ test('req_1_3 merek di kata mana pun: "susu greenfield" ditemukan lewat merek Gr
   assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 400213330621']);
 });
 
+test('req_1_3 panel Cari Produk: sinyal mencari lalu tabel maksimal 10 baris dengan tiga baris dibacakan', async () => {
+  const data = Array.from({ length: 12 }, (_, i) => baris(i + 1));
+  const cek = new CekBpom({ fetch: fetchTiruan(data) });
+  const dicari = [];
+  const hasil = await cekRegistrasi(cek, 'cek bpom sabun wangi', false, (k) => dicari.push(labelKueri(k)));
+  assert.deepEqual(dicari, ['sabun wangi']);
+  const tabel = tabelCek(hasil.kueri, hasil.data);
+  assert.equal(tabel.kueri, 'sabun wangi');
+  assert.equal(tabel.total, 12);
+  assert.equal(tabel.baris.length, 10);
+  assert.equal(tabel.dibaca, 3);
+  assert.equal(tabel.galat, false);
+  assert.deepEqual(Object.keys(tabel.baris[0]), ['nama', 'merek', 'nomorIzinEdar', 'status', 'pendaftar', 'berlakuSampai', 'kategori', 'terbit', 'komposisi', 'kemasan', 'alamatPendaftar', 'diterbitkanOleh']);
+  assert.deepEqual(tabelCek({ nomor: 'MD 1' }, null), { kueri: 'MD 1', total: 0, dibaca: 0, galat: true, baris: [] });
+  assert.equal(await cekRegistrasi(cek, 'bagaimana cara cek nomor registrasi?', false, () => dicari.push('x')), null);
+  assert.deepEqual(dicari, ['sabun wangi'], 'pertanyaan edukasi tidak memicu sinyal mencari');
+});
+
 test('req_1_3 kueri merek yang gagal tidak menggagalkan hasil kueri lain', async () => {
   const cek = new CekBpom({
     fetch: async (url, opsi) => {
@@ -163,4 +181,35 @@ test('nfr_7 pesan ke AI hanya memuat data cekbpom dan tidak menyimpulkan ilegal'
   assert.match(pesanCekBpom({ nama: 'produk' }, { total: 1, produk: [p] }), /^Hasil pencarian data registrasi BPOM[\s\S]*MD 001, status Berlaku/);
   assert.match(pesanCekBpom({ nama: 'x' }, { total: 0, produk: [] }), /Jangan menyimpulkan produk itu ilegal/);
   assert.match(pesanCekBpom({ nama: 'x' }, null), /Jangan menyebut status atau nomor izin edar/);
+});
+
+// Baris rekaman `/produk-dt/all` (Pangan Olahan) yang sudah dipangkas ke bidang yang dipakai.
+const barisRekaman = {
+  PRODUCT_ID: 'ERBA3148366202600006', APPLICATION_ID: '02', CATEGORY: 'Pangan Olahan', PRODUCT_REGISTER: 'MD 021219000400429',
+  PRODUCT_NAME: 'Minyak Goreng Kelapa', PRODUCT_BRANDS: 'Minyak Goreng Kelapa HICO JOS',
+  PRODUCT_PACKAGE: 'Botol Plastik Bening dengan isi bersih 1 Liter', STATUS: 'Berlaku', PRODUCT_DATE: '2026-09-24', PRODUCT_EXPIRED: '2031-09-24',
+  REGISTRAR: 'KRAMBIL IDJO JOGJA SUKSES JAYA', REGISTRAR_ADD: 'Jl Siliwangi Ringroad Barat Salakan No 2', REGISTRAR_PROV: 'Kab. Sleman, Daerah Istimewa Yogyakarta',
+  REGISTRAR_NPWP: '1000000010172304', INGREDIENTS: '', APPLICATION: 'e-Registration Pangan Olahan', DEPARTMENT: 'Direktorat Registrasi Pangan Olahan',
+};
+
+test('req_1_3 detail produk diambil dari baris tabel, tanpa NPWP atau permintaan kedua', async () => {
+  const log = [];
+  const cek = new CekBpom({ fetch: fetchTiruan([barisRekaman], log) });
+  const hasil = await cek.cari({ nomor: 'MD 021219000400429' });
+  const [b] = tabelCek({ nomor: 'MD 021219000400429' }, hasil).baris;
+  assert.equal(b.kategori, 'Pangan Olahan');
+  assert.equal(b.terbit, '2026-09-24');
+  assert.equal(b.berlakuSampai, '2031-09-24');
+  assert.equal(b.kemasan, 'Botol Plastik Bening dengan isi bersih 1 Liter');
+  assert.equal(b.alamatPendaftar, 'Jl Siliwangi Ringroad Barat Salakan No 2, Kab. Sleman, Daerah Istimewa Yogyakarta');
+  assert.equal(b.diterbitkanOleh, 'e-Registration Pangan Olahan, Direktorat Registrasi Pangan Olahan');
+  assert.equal(b.komposisi, '');
+  assert.ok(!JSON.stringify(b).includes('1000000010172304'), 'NPWP tidak ikut');
+  assert.equal(log.filter((l) => !l.url.endsWith('/all-produk') && !l.url.endsWith('/produk-dt/all')).length, 0);
+});
+
+test('req_1_3 komposisi panjang dipotong agar payload cek kecil', () => {
+  const d = detailDariBaris({ INGREDIENTS: 'Garam, '.repeat(200), REGISTRAR_DISTRICT_DETAIL: 'Kab. A', REGISTRAR_PROVINCE_DETAIL: 'Prov B' });
+  assert.ok(d.komposisi.length <= 300 && d.komposisi.endsWith('…'));
+  assert.equal(d.alamatPendaftar, 'Kab. A, Prov B');
 });
