@@ -99,14 +99,16 @@ export class PelaporPanggilanSupabase {
  */
 export class PemantauPanggilan {
   constructor({
-    pelapor, konteks = () => ({}), now = () => Date.now(), onGalat = () => {},
-    heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, lupaMs = diamMs + 10 * 60_000, maks = 200,
+    pelapor, konteks = () => ({}), tahan = () => false, now = () => Date.now(), onGalat = () => {},
+    heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, lupaMs = diamMs + 10 * 60_000, tahanMaksMs = 16 * 60_000, maks = 200,
   }) {
     this.pelapor = pelapor;
     this.konteks = konteks;
+    // Predikat murni (tanpa efek samping): dipanggil dari tik, jadi tidak boleh memperbarui aktivitas sesi lain.
+    this.tahan = tahan;
     this.now = now;
     this.onGalat = onGalat;
-    this.batas = { heartbeatMs, jedaMinMs, diamMs, lupaMs, maks };
+    this.batas = { heartbeatMs, jedaMinMs, diamMs, lupaMs, tahanMaksMs, maks };
     this.sesi = new Map();
     this.timer = null;
   }
@@ -160,9 +162,13 @@ export class PemantauPanggilan {
     const sekarang = this.now();
     for (const [id, s] of this.sesi) {
       const diam = sekarang - s.aktif;
-      if (diam > this.batas.lupaMs) {
+      // Panggilan yang ditahan (mis. pengaduan belum selesai) tetap mengirim heartbeat selagi penelepon diam, supaya penyapu
+      // basis data tidak menutupnya sebelum pengaduan tersimpan. Ada batas atas agar sesi yang ditinggalkan tidak tertahan selamanya.
+      let ditahan = false;
+      try { ditahan = diam <= this.batas.tahanMaksMs && Boolean(this.tahan(id)); } catch (e) { this.onGalat(e); }
+      if (diam > this.batas.lupaMs && !ditahan) {
         this.sesi.delete(id);
-      } else if (diam > this.batas.diamMs) {
+      } else if (diam > this.batas.diamMs && !ditahan) {
         continue;
       } else if (this.berubah(s) ? sekarang - s.kirimTerakhir >= this.batas.jedaMinMs : sekarang - s.kirimTerakhir >= this.batas.heartbeatMs) {
         this.kirim(id, s);

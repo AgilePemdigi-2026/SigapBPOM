@@ -181,3 +181,23 @@ test('pelapor supabase memakai kunci internal bersama, tanpa service_role, dan h
   assert.deepEqual(JSON.parse(permintaan[0].init.body), { aksi: 'laporkan', percakapanId: ID, jenisLayanan: 'pengaduan', topik: 'Pengaduan produk', tahap: 'memproses' });
   assert.deepEqual(JSON.parse(permintaan[1].init.body), { aksi: 'akhiri', percakapanId: ID });
 });
+
+test('req_4_2 panggilan yang ditahan tetap mengirim heartbeat selagi penelepon diam, lalu dilepas setelah batas atas', async () => {
+  let ditahan = true;
+  const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000, lupaMs: 600_000, tahanMaksMs: 300_000, tahan: () => ditahan });
+  pantau.tahap(ID, TAHAP.MENJAWAB);
+  await tunggu();
+  for (let i = 0; i < 12; i++) await maju(15_000); // diam 180 detik, jauh melewati diamMs
+  assert.equal(pelapor.daftarAktif().length, 1, 'ditahan: heartbeat tidak berhenti walau diam');
+  ditahan = false;
+  for (let i = 0; i < 8; i++) await maju(15_000); // diam 300 detik, tanpa penahan heartbeat berhenti
+  assert.deepEqual(pelapor.daftarAktif(), [], 'tidak ditahan lagi: panggilan diam tersembunyi dari daftar aktif');
+});
+
+test('req_4_2 penahanan panggilan dibatasi tahanMaksMs agar sesi yang ditinggalkan tidak tertahan selamanya', async () => {
+  const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000, lupaMs: 600_000, tahanMaksMs: 300_000, tahan: () => true });
+  pantau.tahap(ID, TAHAP.MENJAWAB);
+  await tunggu();
+  for (let i = 0; i < 28; i++) await maju(15_000); // diam 420 detik, melewati tahanMaksMs
+  assert.deepEqual(pelapor.daftarAktif(), [], 'lewat batas atas penahanan, heartbeat berhenti');
+});

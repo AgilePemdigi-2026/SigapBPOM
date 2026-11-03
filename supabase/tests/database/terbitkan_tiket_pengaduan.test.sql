@@ -24,9 +24,9 @@ reset role;
 set local role service_role;
 
 -- Siapkan dua percakapan uji
-insert into public.percakapan (id) values
-  ('11111111-1111-1111-1111-111111111111'),
-  ('22222222-2222-2222-2222-222222222222');
+insert into public.percakapan (id, jenis_interaksi) values
+  ('11111111-1111-1111-1111-111111111111', 'pengaduan'),
+  ('22222222-2222-2222-2222-222222222222', 'pengaduan');
 
 -- 4. Validasi data: nama produk kosong ditolak (BR-1)
 select throws_ok(
@@ -89,7 +89,7 @@ select is(
   'Tiket pengaduan diterbitkan dengan status belum_ditelaah'
 );
 
--- 10. Satu percakapan paling banyak satu tiket: penerbitan kedua pada percakapan yang sama ditolak (23505)
+-- 10. Satu percakapan paling banyak satu tiket: penerbitan kedua pada percakapan yang sama ditolak (SG409, status sudah tiket_terbit)
 select throws_ok(
   $$ select public.terbitkan_tiket_pengaduan(
     '11111111-1111-1111-1111-111111111111'::uuid,
@@ -98,9 +98,9 @@ select throws_ok(
     'Ahmad Fauzi',
     '081234567890'
   ) $$,
-  '23505',
-  null,
-  'Satu percakapan paling banyak satu tiket (tiket_percakapan_id_key ditolak 23505)'
+  'SG409',
+  'percakapan tidak dapat diubah',
+  'Satu percakapan paling banyak satu tiket (penerbitan kedua ditolak SG409)'
 );
 
 -- 11. Dua penerbitan menghasilkan nomor berurutan unik

@@ -32,8 +32,8 @@ select throws_ok(
 );
 
 -- Siapkan percakapan uji
-insert into public.percakapan (id) values
-  ('55555555-5555-5555-5555-555555555555');
+insert into public.percakapan (id, jenis_interaksi) values
+  ('55555555-5555-5555-5555-555555555555', 'pengaduan');
 
 -- 5. Panggilan simpan_pengaduan_tidak_lengkap dengan data sebagian (hanya nama produk dan pelapor)
 create temporary table uji_tidak_lengkap (
