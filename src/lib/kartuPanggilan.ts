@@ -1,4 +1,4 @@
-// Boundary UC-01: kartu di transkrip panel suara. Menghasilkan HTML karena transkrip dirender di browser.
+// Boundary UC-01/UC-02: kartu di transkrip panel suara. Menghasilkan HTML karena transkrip dirender di browser.
 // Teks pesan mengikuti kamus pesan PRD-rinci Lampiran A.
 
 export type StatusIzin = 'Berlaku' | 'Tidak Berlaku' | 'Dibatalkan';
@@ -68,7 +68,7 @@ export const pesanTiketPengaduan = (nomorTiket: string) =>
 /** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
 export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
 
-/** Kartu tiket pengaduan (T-F4.2-02, REQ-2.3, REQ-2.4). Teks diambil dari potongan pesan kamus Lampiran A dan label "Nomor tiket". */
+/** Kartu tiket pengaduan (T-F4.1-03, T-F4.2-02, REQ-2.3, REQ-2.4). Teks diambil dari potongan pesan kamus Lampiran A dan label "Nomor tiket". */
 export function htmlKartuPengaduan(nomorTiket: string): string {
   return `<section class="k-pengaduan" aria-label="Tiket pengaduan">
     <div class="k-pengaduan-judul"><i class="icon-clipboard-check" aria-hidden="true"></i>Pengaduan Anda telah dicatat</div>

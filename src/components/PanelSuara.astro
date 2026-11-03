@@ -1,5 +1,5 @@
 ---
-// Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.4, REQ-2.5).
+// Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.2, REQ-2.4, REQ-2.5, T-F4.1-03).
 // Dibuka lewat event `sigap:buka-panggilan`. Suara penelepon direkam di browser lalu dikirim ke
 // Voice Gateway (/voice) yang meneruskannya ke ElevenLabs STT, Hermes Agent, dan ElevenLabs TTS.
 interface Props { mode: 'desktop' | 'mobile' }
@@ -67,13 +67,12 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   function render(m: Msg) {
     switch (m.kind) {
       case 'sys': return `<div class="m-sys"><span>CS AI · ${m.time}</span><div>${esc(m.text!)}</div>${
-        m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? htmlKartuEskalasi(m.tiket) : ''}${
-        m.pengaduan ? htmlKartuPengaduan(m.pengaduan) : ''}${
+        m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? (m.tiket.startsWith('ADU-') ? htmlKartuPengaduan(m.tiket) : htmlKartuEskalasi(m.tiket)) : (m.pengaduan ? htmlKartuPengaduan(m.pengaduan) : '')}${
         m.sumber?.length ? `<ul class="m-sumber" aria-label="Sumber rujukan">${m.sumber.map(chipSumber).join('')}</ul>` : ''}</div>`;
       case 'user': return `<div class="m-user"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
-      case 'menu': return `<div class="m-menu">
-        <button data-pick="1"><span class="no">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
-        <button data-pick="2"><span class="no purple">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
+      case 'menu': return `<div class="m-menu" role="group" aria-label="Pilihan menu layanan">
+        <button data-pick="1" type="button" aria-label="1: Informasi Produk - Izin edar dan edukasi obat &amp; makanan"><span class="no" aria-hidden="true">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
+        <button data-pick="2" type="button" aria-label="2: Pengaduan Produk - Laporkan produk yang bermasalah"><span class="no purple" aria-hidden="true">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
       case 'processing': return `<div class="m-proc"><i class="icon-loader-circle"></i>${esc(m.text!)}</div>`;
       case 'ended': return `<div class="m-ended"><i class="icon-phone-off"></i><span>${esc(m.text!)}</span></div>`;
     }
@@ -148,6 +147,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (phase === 'ended') return;
       if (h.transkrip) push({ kind: 'user', text: h.transkrip });
       if (h.pengaduan) tiketPengaduan = true;
+      else if (h.tiket?.startsWith('ADU-')) tiketPengaduan = true;
       if (h.jawaban) say(h.jawaban, h.sumber, h.produk, h.tiket, h.pengaduan ?? undefined);
       if (h.suara) await putar(h.suara);
       // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
@@ -215,7 +215,14 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       const demo = import.meta.env.DEV && new URLSearchParams(location.search).get('demo');
       if (demo) {
         const { TRANSKRIP_TIRUAN } = await import('../lib/mock/transkripTiruan');
-        giliranTiruan = (TRANSKRIP_TIRUAN[demo] ?? []).map((g) => ({ transkrip: g.ucapan, jawaban: g.jawaban, suara: null, produk: g.produk, tiket: g.tiket }));
+        giliranTiruan = (TRANSKRIP_TIRUAN[demo] ?? []).map((g) => ({
+          transkrip: g.ucapan,
+          jawaban: g.jawaban,
+          suara: null,
+          produk: g.produk,
+          tiket: g.tiket,
+          pengaduan: g.pengaduan,
+        }));
       }
       paint();
       clearInterval(tick);
@@ -298,7 +305,10 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (phase === 'ended' || phase === 'connecting' || !idPanggilan) return;
       navigator.sendBeacon(`${GATEWAY}/akhiri`, new Blob([JSON.stringify({ id: idPanggilan })], { type: 'application/json' }));
     });
-    root.addEventListener('keydown', (e) => { if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2); if (e.key === 'Escape') close(); });
+    root.addEventListener('keydown', (e) => {
+      if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2);
+      if (e.key === 'Escape') close();
+    });
 
     return () => {
       root.hidden = false;
@@ -401,7 +411,9 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.m-sys > div) { padding: 12px 15px; border-radius: 6px 18px 18px 18px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); font-size: 16px; line-height: 1.45; text-wrap: pretty; }
   .ps-tr :global(.m-user > div) { padding: 12px 15px; border-radius: 18px 6px 18px 18px; background: linear-gradient(180deg, #e7efff, #dce7fe); border: 1px solid #d3dff9; font-size: 16px; line-height: 1.45; color: #16295e; text-wrap: pretty; min-height: 1.45em; }
   .ps-tr :global(.m-menu) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); }
+  .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+  .ps-tr :global(.m-menu button:focus-visible) { outline: 3px solid #2f6bf5; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(47, 107, 245, 0.25); }
+  .ps-tr :global(.m-menu button:hover) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16, 24, 40, .1); }
   .ps-tr :global(.m-menu .no) { width: 38px; height: 38px; border-radius: 11px; background: var(--grad-blue); color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
   .ps-tr :global(.m-menu .no.purple) { background: linear-gradient(180deg, #a37bff, #7c4dff); }
   .ps-tr :global(.m-menu .t) { font-size: 16px; font-weight: 600; }

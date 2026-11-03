@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CekBpom, cekRegistrasi, hasilProduk, kueriProduk, pesanCekBpom } from './cekbpom.mjs';
+import { CekBpom, cekRegistrasi, hasilProduk, kueriProduk, namaKurangJelas, pesanCekBpom } from './cekbpom.mjs';
 
 test('req_1_3 kueri produk dikenali dari pertanyaan status registrasi', () => {
   assert.deepEqual(kueriProduk('Apakah Indomie goreng sudah terdaftar di BPOM?'), { nama: 'indomie goreng' });
@@ -15,6 +15,15 @@ test('req_1_3 pertanyaan edukasi tidak dicari di cekbpom', () => {
   assert.equal(kueriProduk('Bagaimana cara cek nomor registrasi kosmetik?'), null);
   assert.equal(kueriProduk('Apa itu BPOM?', true), null);
   assert.equal(kueriProduk('Apakah sudah terdaftar?'), null);
+});
+
+test('req_1_4 pertanyaan registrasi tanpa nama produk dikenali sebagai nama kurang jelas', () => {
+  assert.equal(namaKurangJelas('Apakah sudah terdaftar?'), true);
+  assert.equal(namaKurangJelas('eh itu', true), true);
+  assert.equal(namaKurangJelas('eh itu'), false, 'tanpa diminta nama, gumaman bukan pertanyaan registrasi');
+  assert.equal(namaKurangJelas('Apakah Indomie goreng sudah terdaftar?'), false);
+  assert.equal(namaKurangJelas('Bagaimana cara cek nomor registrasi?', true), false);
+  assert.equal(namaKurangJelas('saya mau lapor produk tidak terdaftar', true), false);
 });
 
 test('req_1_3 ucapan pengaduan atau keluhan tidak dicari di cekbpom', () => {

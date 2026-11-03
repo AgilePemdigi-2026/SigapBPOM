@@ -1,6 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { KANDIDAT_MAKS, PESAN_TIDAK_DITEMUKAN, PESAN_PENGADUAN_TIDAK_LENGKAP, htmlKartuEskalasi, htmlKartuPengaduan, htmlKartuProduk, pesanTiketEskalasi, pesanTiketPengaduan, type Produk } from './kartuPanggilan.ts';
+import {
+  KANDIDAT_MAKS,
+  PESAN_TIDAK_DITEMUKAN,
+  PESAN_PENGADUAN_TIDAK_LENGKAP,
+  htmlKartuEskalasi,
+  htmlKartuPengaduan,
+  htmlKartuProduk,
+  pesanTiketEskalasi,
+  pesanTiketPengaduan,
+  type Produk,
+} from './kartuPanggilan.ts';
 import { PRODUK_TIRUAN, TRANSKRIP_TIRUAN } from './mock/transkripTiruan.ts';
 
 const SUSU = PRODUK_TIRUAN[0];
@@ -45,7 +55,9 @@ test('t_f1_4_01 transkrip tiruan eskalasi memakai pesan baku kamus PRD', () => {
 
 test('req_2_3 kartu tiket pengaduan memuat nomor tiket ADU dan info SMS, nomor di-escape', () => {
   const html = htmlKartuPengaduan('ADU-20261102-0001');
-  for (const isi of ['Nomor tiket', 'ADU-20261102-0001', 'Tindak lanjut akan dikirim melalui SMS.']) assert.ok(html.includes(isi), isi);
+  for (const isi of ['Nomor tiket', 'ADU-20261102-0001', 'Tindak lanjut akan dikirim melalui SMS.']) {
+    assert.ok(html.includes(isi), isi);
+  }
   assert.ok(!htmlKartuPengaduan('<b>x</b>').includes('<b>'));
 });
 
@@ -54,5 +66,8 @@ test('req_2_3 pesan tiket pengaduan dan pengaduan tidak lengkap sama persis deng
     pesanTiketPengaduan('ADU-20261102-0001'),
     'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.',
   );
-  assert.equal(PESAN_PENGADUAN_TIDAK_LENGKAP, 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.');
+  assert.equal(
+    PESAN_PENGADUAN_TIDAK_LENGKAP,
+    'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.',
+  );
 });
