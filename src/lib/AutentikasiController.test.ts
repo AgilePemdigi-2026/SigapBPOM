@@ -70,6 +70,17 @@ test('nfr_12 sesi tetap aktif selama ada aktivitas sebelum batas idle', async ()
   }
 });
 
+test('nfr_12 request latar tanpa catatan aktivitas tidak memperpanjang sesi', async () => {
+  const { c, maju } = sesiIdle();
+  await c.masuk({ email: DEWI.email, password: 'x' }, COOKIES);
+  for (let i = 0; i < 12; i++) {
+    maju(5_000);
+    assert.deepEqual(await c.sesiAktif(COOKIES, { catatAktivitas: false }), DEWI);
+  }
+  maju(1);
+  assert.equal(await c.sesiAktif(COOKIES, { catatAktivitas: false }), null);
+});
+
 test('nfr_12 sesi yang idle melewati batas dihapus di server', async () => {
   const { c, keluar, maju } = sesiIdle();
   await c.masuk({ email: DEWI.email, password: 'x' }, COOKIES);

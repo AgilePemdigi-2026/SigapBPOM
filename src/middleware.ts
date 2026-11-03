@@ -18,13 +18,16 @@ function buatAdapter(): AdapterSesi {
 const idleMenit = Number(process.env.SESI_IDLE_MENIT);
 const autentikasi = new AutentikasiController(buatAdapter(), idleMenit > 0 ? { batasIdleMs: idleMenit * 60_000 } : {});
 const RUTE_PUBLIK = new Set(['/', '/homepage', '/login', '/api/login']);
+// Request latar (polling halaman Panggilan Berjalan) tetap diperiksa sesinya, tetapi tidak dihitung sebagai aktivitas,
+// supaya tab yang ditinggal terbuka tetap berakhir setelah batas idle (NFR-12).
+const RUTE_LATAR = new Set(['/api/panggilan-berjalan']);
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   ctx.locals.autentikasi = autentikasi;
   const path = ctx.url.pathname.replace(/\/+$/, '') || '/';
   if (ctx.isPrerendered || RUTE_PUBLIK.has(path)) return next();
 
-  const petugas = await autentikasi.sesiAktif(ctx.cookies);
+  const petugas = await autentikasi.sesiAktif(ctx.cookies, { catatAktivitas: !RUTE_LATAR.has(path) });
   if (!petugas) {
     if (path.startsWith('/api/')) return Response.json({ status: 'error', message: 'Akses ditolak.', data: null }, { status: 401 });
     return ctx.redirect('/login');

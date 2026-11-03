@@ -10,7 +10,10 @@ import {
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
   pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai,
 } from './percakapan.mjs';
-import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
+import { CekBpom } from './cekbpom.mjs';
+import { PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
+import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -47,6 +50,7 @@ const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
   'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON, 'tawaran-penutup': PESAN_TAWARAN_PENUTUP, jeda: PESAN_JEDA,
+  'tidak-ditemukan': PESAN_TIDAK_DITEMUKAN, 'nama-tidak-jelas': PESAN_NAMA_TIDAK_JELAS,
 };
 // Kutipan RAG yang dikirim ke AI. Lebih sedikit kutipan berarti prompt lebih pendek dan token pertama lebih cepat.
 const KUTIPAN_MAKS = 2;
@@ -55,6 +59,13 @@ const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+// REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
+const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
+// T-F5.4-01: hasil pencarian cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada pencarian.
+let kondisiCekbpom = null;
+// Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
+// (embedding produksi belum ada); selain itu dipakai korpus lokal.
+const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
 // Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
 // ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
 const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
@@ -254,6 +265,7 @@ async function giliran(req, res, url) {
     if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
     riwayat.pilihLayanan(body.id, Number(body.pilih));
     riwayat.selesaiEskalasi(body.id);
+    riwayat.aturCekRegistrasi(body.id, { ulangNama: 0, kandidat: null });
     riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
     riwayat.tambah(body.id, 'assistant', jawaban);
     return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${Number(body.pilih)}` });
@@ -361,8 +373,43 @@ async function giliran(req, res, url) {
       }
 
       riwayat.tambah(id, 'user', transkrip);
+      // Kalimat jeda juga menutupi waktu cek registrasi di cekbpom (paling lama 5 detik).
       tulis({ jenis: 'transkrip', transkrip, jeda: true });
-      const kutipan = korpus ? korpus.cari(transkrip, KUTIPAN_MAKS) : [];
+      // Pertanyaan status registrasi suatu produk dijawab tool cek_registrasi_bpom, selain itu tool cari_basis_pengetahuan.
+      // Selama alur pengaduan (layanan 2) nama produk adalah data pengaduan, jadi tidak dicek di cekbpom.
+      const tCek = Date.now();
+      const keadaanCek = riwayat.cekRegistrasi(id);
+      const cek = cekBpom && riwayat.layanan(id) !== 2
+        ? await cekRegistrasiBpom(cekBpom, transkrip, { ...keadaanCek, jawabanTerakhir: riwayat.jawabanTerakhir(id) })
+        : null;
+      // Kandidat hasil ganda hanya berlaku untuk giliran tepat sesudahnya.
+      riwayat.aturCekRegistrasi(id, cek?.keadaan ?? { ...keadaanCek, kandidat: null });
+      let konteks, kutipan = [];
+      if (cek) {
+        if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
+        const jenis = cek.kueri ? (cek.kueri.nomor ? 'nomor' : 'nama') : null;
+        const ms = Date.now() - tCek;
+        console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms }));
+        if (cek.kueri) kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
+        konteks = cek.konteks;
+      } else {
+        const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
+        kutipan = basis.kutipan.slice(0, KUTIPAN_MAKS);
+        konteks = pesanBasisPengetahuan(kutipan, basis.mode);
+      }
+      if (batal.signal.aborted) return;
+      if (cek?.jawaban) {
+        // NFR-7: hasil tunggal, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
+        // Tawaran penutup diucapkan terpisah agar memakai audio statisnya.
+        const isi = cek.jawaban.endsWith(PESAN_TAWARAN_PENUTUP) ? cek.jawaban.slice(0, -PESAN_TAWARAN_PENUTUP.length).trim() : cek.jawaban;
+        const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === isi);
+        ucapkan(isi, statis ? `/voice/statis/${statis}` : terbitkanTokenSuara(isi, ip));
+        if (isi !== cek.jawaban) ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
+        riwayat.tambah(id, 'assistant', cek.jawaban);
+        console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: Date.now() - mulai, jalur: cek.jalur, token: 0 }));
+        tulis({ jenis: 'selesai', sumber: [], produk: cek.produk });
+        return;
+      }
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
       let tKalimat1 = 0;
@@ -371,7 +418,7 @@ async function giliran(req, res, url) {
         ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
       };
       try {
-        await alirkanJawaban(aliranHermes(id, pesanKutipan(kutipan), hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
+        await alirkanJawaban(aliranHermes(id, konteks, hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
       } finally {
         hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
@@ -411,9 +458,11 @@ async function giliran(req, res, url) {
         jawaban_kar: jawaban.length, kalimat: susunan.isi.length, kutipan: kutipan.length, di_luar_topik: diLuarTopik,
         token: hasil.token, token_hari_ini: anggaranAi.total,
       }));
-      // Jawaban baku soal registrasi produk (NFR-7) tidak memakai kutipan, jadi chip sumber tidak ditampilkan.
-      const sumber = susunan.khusus || /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
-      tulis({ jenis: 'selesai', sumber });
+      // Hasil cekbpom tampil sebagai kartu produk, dan jawaban baku atau yang merujuk ke cekbpom tidak memakai kutipan,
+      // jadi semuanya tanpa chip sumber.
+      const produk = diLuarTopik ? undefined : cek?.produk;
+      const sumber = susunan.khusus || produk || /cekbpom/i.test(jawaban) ? [] : sumberUntukPanel(kutipan);
+      tulis({ jenis: 'selesai', sumber, produk });
     } catch (e) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
       tulis({ jenis: 'galat', message: e instanceof ErrorGateway ? e.message : PESAN_GANGGUAN });
@@ -464,6 +513,7 @@ const server = createServer(async (req, res) => {
           status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0,
           tanpaKatalog: katalog.tanpaKatalog ?? 0,
         },
+        cekbpom: { aktif: Boolean(cekBpom), ...(kondisiCekbpom ?? {}) },
       });
     }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');

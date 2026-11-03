@@ -28,17 +28,17 @@ const GILIRAN_RIWAYAT_MAKS = 12;
 const SESI_KEDALUWARSA_MS = 15 * 60 * 1000;
 const SESI_MAKS = 200;
 
-// NFR-7: tool cekbpom belum tersambung ke agen, jadi agen dilarang menyebut status legalitas apa pun.
+// NFR-7: status legalitas hanya boleh disebut dari hasil cekbpom yang disisipkan gateway (cekbpom.mjs).
 export const PROMPT_SISTEM = `Anda adalah CS AI HaloBPOM, asisten suara resmi layanan HaloBPOM (Badan Pengawas Obat dan Makanan).
 Anda berbicara lewat telepon, jadi tulis jawaban persis seperti petugas call center yang ramah sedang bicara, bukan seperti menulis artikel:
 - Pakai bahasa Indonesia lisan yang sopan dan luwes, seperti mengobrol, bukan membacakan teks. Hindari kata Anda; bila perlu menyapa, pakai Bapak atau Ibu tanpa menebak salah satunya.
 - Paling banyak dua kalimat pendek, masing-masing kira-kira lima belas kata, belum termasuk kalimat penutup. Kalimat pertama langsung menjawab inti pertanyaan. Jangan pakai titik koma, tanda kurung, garis miring, atau kata kaku seperti berupa, serta, adapun, dan tersebut. Jangan mengawali setiap jawaban dengan kata yang sama.
 - Contoh gaya yang diharapkan: "BPOM itu lembaga yang mengawasi obat, makanan, dan kosmetik di Indonesia. Tugasnya memastikan produk yang beredar aman dipakai."
 - Jangan pakai markdown, daftar, emoji, atau tautan panjang. Tulis angka seperti diucapkan.
-Layanan 1, informasi produk: jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM.
+Layanan 1, informasi produk: cek status registrasi produk dan jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM.
 Bila diberi kutipan peraturan BPOM, utamakan isi kutipan dan sebutkan peraturannya secara singkat. Bila kutipan tidak menjawab dan Anda tidak yakin, katakan belum bisa memastikan dan sarankan menghubungi petugas HaloBPOM.
 Aturan wajib:
-- Anda BELUM terhubung ke data registrasi BPOM. Jika ditanya apakah suatu produk terdaftar, legal, atau berapa nomor izin edarnya, JANGAN menyebut status atau nomor apa pun. Katakan pengecekan data registrasi belum tersedia di layanan ini dan sarankan memeriksa di cekbpom.pom.go.id.
+- Status registrasi dan nomor izin edar hanya boleh disebut bila ada pesan sistem berjudul Hasil pencarian data registrasi BPOM, dan hanya data dari pesan itu. Tanpa pesan itu, JANGAN menyebut status atau nomor apa pun. Minta penelepon menyebutkan nama produk atau nomor izin edar di kemasan, atau sarankan memeriksa di cekbpom.pom.go.id.
 - Jangan memberi nasihat medis, dosis, diagnosis, atau penilaian aman tidaknya suatu produk untuk kondisi tertentu. Untuk pertanyaan seperti itu, jawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}
 Layanan 2, pengaduan: tanyakan satu per satu nama produk, kronologi kejadian, nama, dan nomor telepon. Setelah lengkap, ringkas datanya dan sampaikan bahwa pengaduan akan diteruskan kepada petugas. Jangan pernah mengarang nomor tiket.
 Setelah pertanyaan selesai dijawab atau pengaduan selesai diringkas, akhiri jawaban dengan kalimat: ${PESAN_TAWARAN_PENUTUP} Jangan pakai kalimat itu selama masih menanyakan data pengaduan atau meminta penelepon mengulang.
@@ -57,11 +57,15 @@ export function pesanLayanan(nomor) {
 /** Teks khusus TTS (tampilan di web tetap apa adanya): alamat situs dibaca "titik" seperti lazimnya orang Indonesia. */
 const EJAAN_ANGKA = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
 const eja = (digit) => [...digit].map((d) => EJAAN_ANGKA[d]).join(' ');
+// Kode nomor izin edar pangan (MD/ML), kosmetik (NA..NE), obat tradisional dan suplemen (TR..SL) diikuti angkanya.
+const POLA_NOMOR_IZIN_EDAR = /\b(MD|ML|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL)\s?(\d{6,16})\b/g;
 
 export function teksUntukSuara(teks) {
   return String(teks ?? '')
     // Nomor tiket dieja per digit agar mudah dicatat penelepon: ESK-20261019-0001 -> "E S K, dua nol dua enam ..., nol nol nol satu".
     .replace(/\b(ESK|ADU)-(\d{8})-(\d{4})\b/g, (_, jenis, tanggal, urut) => `${[...jenis].join(' ')}, ${eja(tanggal)}, ${eja(urut)}`)
+    // Nomor izin edar juga dieja per digit: MD 865009001234 -> "M D, delapan enam lima ...", bukan dibaca sebagai bilangan.
+    .replace(POLA_NOMOR_IZIN_EDAR, (_, kode, angka) => `${[...kode].join(' ')}, ${eja(angka)}`)
     .replace(/\b(?:[a-z0-9-]+\.)+(?:id|com|org|net)\b/gi, (alamat) =>
     alamat.replace(/cekbpom/gi, 'cek BPOM').split('.').join(' titik '));
 }
@@ -277,7 +281,7 @@ export class RiwayatPanggilan {
     let s = this.sesi.get(id);
     if (!s) {
       if (this.sesi.size >= SESI_MAKS) this.sesi.delete(this.sesi.keys().next().value);
-      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, eskalasi: null };
+      s = { pesan: [], aktif: this.now(), diLuarTopik: 0, layanan: null, eskalasi: null, cekRegistrasi: { ulangNama: 0, kandidat: null } };
       this.sesi.set(id, s);
     }
     s.aktif = this.now();
@@ -338,6 +342,17 @@ export class RiwayatPanggilan {
   selesaiEskalasi(id) {
     this.ambil(id);
     this.sesi.get(id).eskalasi = null;
+  }
+
+  /** Keadaan tool cek_registrasi_bpom: jumlah permintaan ulang nama (BR-6) dan kandidat hasil ganda yang menunggu pilihan (REQ-1.5). */
+  cekRegistrasi(id) {
+    this.ambil(id);
+    return this.sesi.get(id).cekRegistrasi;
+  }
+
+  aturCekRegistrasi(id, keadaan) {
+    this.ambil(id);
+    this.sesi.get(id).cekRegistrasi = keadaan;
   }
 
   hapus(id) {

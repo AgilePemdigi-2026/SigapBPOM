@@ -1,5 +1,5 @@
 ---
-// Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.4, REQ-2.5).
+// Boundary UC-01/UC-02: panel percakapan suara "CS AI HaloBPOM" (REQ-1.1, REQ-1.2, REQ-2.1, REQ-2.2, REQ-2.4, REQ-2.5, T-F4.1-03).
 // Dibuka lewat event `sigap:buka-panggilan`. Suara penelepon direkam di browser lalu dikirim ke
 // Voice Gateway (/voice) yang meneruskannya ke ElevenLabs STT, Hermes Agent, dan ElevenLabs TTS.
 interface Props { mode: 'desktop' | 'mobile' }
@@ -41,18 +41,18 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 </div>
 
 <script>
-  import { esc, htmlKartuEskalasi, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
+  import { esc, htmlKartuEskalasi, htmlKartuPengaduan, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
 
   type Sumber = { peraturan: string; judul: string; url: string };
-  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string };
+  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string };
   // Baris NDJSON dari /voice/giliran untuk ucapan: transkrip, lalu kalimat demi kalimat, lalu selesai.
   type Baris =
     | { jenis: 'transkrip'; transkrip: string; jeda?: boolean }
     | { jenis: 'kalimat'; teks: string; suara: string | null }
     | { jenis: 'ganti' }
-    | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null }
+    | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null; produk?: HasilProduk; pengaduan?: string | null }
     | { jenis: 'galat'; message: string };
-  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string };
+  type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string | null };
 
   const GATEWAY = '/voice';
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
@@ -74,12 +74,12 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   function render(m: Msg) {
     switch (m.kind) {
       case 'sys': return `<div class="m-sys"><span>CS AI · ${m.time}</span><div>${esc(m.text!)}</div>${
-        m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? htmlKartuEskalasi(m.tiket) : ''}${
+        m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? (m.tiket.startsWith('ADU-') ? htmlKartuPengaduan(m.tiket) : htmlKartuEskalasi(m.tiket)) : (m.pengaduan ? htmlKartuPengaduan(m.pengaduan) : '')}${
         m.sumber?.length ? `<ul class="m-sumber" aria-label="Sumber rujukan">${m.sumber.map(chipSumber).join('')}</ul>` : ''}</div>`;
       case 'user': return `<div class="m-user"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
-      case 'menu': return `<div class="m-menu">
-        <button data-pick="1"><span class="no">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
-        <button data-pick="2"><span class="no purple">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
+      case 'menu': return `<div class="m-menu" role="group" aria-label="Pilihan menu layanan">
+        <button data-pick="1" type="button" aria-label="1: Informasi Produk - Izin edar dan edukasi obat &amp; makanan"><span class="no" aria-hidden="true">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
+        <button data-pick="2" type="button" aria-label="2: Pengaduan Produk - Laporkan produk yang bermasalah"><span class="no purple" aria-hidden="true">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
       case 'processing': return `<div class="m-proc"><i class="icon-loader-circle"></i>${esc(m.text!)}</div>`;
       case 'ended': return `<div class="m-ended"><i class="icon-phone-off"></i><span>${esc(m.text!)}</span></div>`;
     }
@@ -90,7 +90,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     const tr = $('[data-tr]');
     let phase: 'connecting' | 'menu' | 'flow' | 'ended' = 'connecting';
     let mode: 'diam' | 'mendengar' | 'memproses' | 'berbicara' = 'diam';
-    let service: 1 | 2 | null = null, secs = 0, msgs: Msg[] = [];
+    let service: 1 | 2 | null = null, tiketPengaduan = false, secs = 0, msgs: Msg[] = [];
     let tick: number | undefined, idPanggilan = '';
     let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
     let pantau: number | undefined;
@@ -121,7 +121,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       $('[data-after]').hidden = !ended;
     }
     const push = (m: Msg) => { msgs = msgs.filter((x) => x.kind !== 'processing').concat({ ...m, time: stamp() }); paint(); };
-    const say = (text: string, sumber?: Sumber[], produk?: HasilProduk, tiket?: string) => push({ kind: 'sys', text, sumber, produk, tiket });
+    const say = (text: string, sumber?: Sumber[], produk?: HasilProduk, tiket?: string, pengaduan?: string) => push({ kind: 'sys', text, sumber, produk, tiket, pengaduan });
     const setMode = (m: typeof mode) => { mode = m; paint(); };
 
     // Putar audio jawaban lalu kembali mendengarkan. Mikrofon tidak merekam selama agen berbicara.
@@ -182,7 +182,9 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (phase === 'ended') return;
       const sesi = sesiSuara;
       if (h.transkrip) push({ kind: 'user', text: h.transkrip });
-      if (h.jawaban) say(h.jawaban, h.sumber, h.produk, h.tiket);
+      if (h.pengaduan) tiketPengaduan = true;
+      else if (h.tiket?.startsWith('ADU-')) tiketPengaduan = true;
+      if (h.jawaban) say(h.jawaban, h.sumber, h.produk, h.tiket, h.pengaduan ?? undefined);
       if (h.suara) await putar(h.suara);
       if (sesi !== sesiSuara) return;
       // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
@@ -219,7 +221,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
             antrean = [];
             ganti = true;
           } else if (b.jenis === 'selesai') {
-            if (jawaban) { jawaban.sumber = b.sumber; jawaban.tiket = b.tiket ?? undefined; paint(); }
+            if (b.pengaduan || b.tiket?.startsWith('ADU-')) tiketPengaduan = true;
+            if (jawaban) {
+              Object.assign(jawaban, { sumber: b.sumber, tiket: b.tiket ?? undefined, produk: b.produk, pengaduan: b.pengaduan ?? undefined });
+              paint();
+            }
             akhiri = Boolean(b.akhiri);
           } else if (b.jenis === 'galat') {
             throw new Error(b.message);
@@ -302,13 +308,20 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     }
 
     async function start() {
-      phase = 'connecting'; mode = 'diam'; service = null; secs = 0; msgs = [];
+      phase = 'connecting'; mode = 'diam'; service = null; tiketPengaduan = false; secs = 0; msgs = [];
       idPanggilan = crypto.randomUUID();
       giliranTiruan = null;
       const demo = import.meta.env.DEV && new URLSearchParams(location.search).get('demo');
       if (demo) {
         const { TRANSKRIP_TIRUAN } = await import('../lib/mock/transkripTiruan');
-        giliranTiruan = (TRANSKRIP_TIRUAN[demo] ?? []).map((g) => ({ transkrip: g.ucapan, jawaban: g.jawaban, suara: null, produk: g.produk, tiket: g.tiket }));
+        giliranTiruan = (TRANSKRIP_TIRUAN[demo] ?? []).map((g) => ({
+          transkrip: g.ucapan,
+          jawaban: g.jawaban,
+          suara: null,
+          produk: g.produk,
+          tiket: g.tiket,
+          pengaduan: g.pengaduan,
+        }));
       }
       paint();
       clearInterval(tick);
@@ -358,7 +371,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       hentikanSuara();
       if (idPanggilan) fetch(`${GATEWAY}/akhiri`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) }).catch(() => {});
       // REQ-2.5: pengaduan lewat suara belum menerbitkan nomor tiket.
-      const text = service === 2
+      const text = service === 2 && !tiketPengaduan
         ? 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.'
         : 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
       phase = 'ended';
@@ -382,7 +395,10 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (t.closest('[data-restart]')) return start();
       if (t.closest('[data-ganti]') && phase === 'flow') { phase = 'menu'; service = null; say(PESAN_MENU); push({ kind: 'menu' }); }
     });
-    root.addEventListener('keydown', (e) => { if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2); if (e.key === 'Escape') close(); });
+    root.addEventListener('keydown', (e) => {
+      if (e.key === '1' || e.key === '2') pick(Number(e.key) as 1 | 2);
+      if (e.key === 'Escape') close();
+    });
 
     return () => {
       root.hidden = false;
@@ -452,7 +468,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.m-sumber a), .ps-tr :global(.m-sumber span) { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #eef3ff; border: 1px solid #d3dff9; color: #1d3f9e; font-size: 12.5px; font-weight: 600; text-decoration: none; }
   .ps-tr :global(.m-sumber a:hover), .ps-tr :global(.m-sumber a:focus-visible) { background: #dce7fe; text-decoration: underline; }
   /* T-F1.2-01: kartu hasil cek produk. Status selalu tampil sebagai ikon dan teks, tidak hanya warna. */
-  .ps-tr :global(.m-sys:has(.k-produk, .k-eskalasi)) { max-width: 100%; }
+  .ps-tr :global(.m-sys:has(.k-produk, .k-eskalasi, .k-pengaduan)) { max-width: 100%; }
   .ps-tr :global(.k-produk) { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid #dfe3ea; font-size: 14px; }
   .ps-tr :global(.k-produk-nama) { font-size: 15.5px; font-weight: 600; }
   .ps-tr :global(.k-produk dl) { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
@@ -475,10 +491,19 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.k-eskalasi dl) { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 0; }
   .ps-tr :global(.k-eskalasi dd) { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .02em; color: #2e2200; }
   .ps-tr :global(.k-eskalasi .k-sumber) { color: #7a5c00; }
+  /* T-F4.2-02: kartu tiket pengaduan hijau. Nomor tiket ADU tampil besar agar mudah dicatat. */
+  .ps-tr :global(.k-pengaduan) { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: #eefaf2; border: 1px solid #a9dcb9; color: #14532d; font-size: 14px; }
+  .ps-tr :global(.k-pengaduan-judul) { display: flex; align-items: center; gap: 8px; font-size: 15.5px; font-weight: 600; }
+  .ps-tr :global(.k-pengaduan-judul i) { font-size: 18px; }
+  .ps-tr :global(.k-pengaduan dl) { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 0; }
+  .ps-tr :global(.k-pengaduan dd) { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .02em; }
+  .ps-tr :global(.k-pengaduan .k-sumber) { color: #2f6b45; }
   .ps-tr :global(.m-sys > div) { padding: 12px 15px; border-radius: 6px 18px 18px 18px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); font-size: 16px; line-height: 1.45; text-wrap: pretty; }
   .ps-tr :global(.m-user > div) { padding: 12px 15px; border-radius: 18px 6px 18px 18px; background: linear-gradient(180deg, #e7efff, #dce7fe); border: 1px solid #d3dff9; font-size: 16px; line-height: 1.45; color: #16295e; text-wrap: pretty; min-height: 1.45em; }
   .ps-tr :global(.m-menu) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); }
+  .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+  .ps-tr :global(.m-menu button:focus-visible) { outline: 3px solid #2f6bf5; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(47, 107, 245, 0.25); }
+  .ps-tr :global(.m-menu button:hover) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16, 24, 40, .1); }
   .ps-tr :global(.m-menu .no) { width: 38px; height: 38px; border-radius: 11px; background: var(--grad-blue); color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
   .ps-tr :global(.m-menu .no.purple) { background: linear-gradient(180deg, #a37bff, #7c4dff); }
   .ps-tr :global(.m-menu .t) { font-size: 16px; font-weight: 600; }
