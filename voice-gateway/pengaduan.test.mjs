@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BatasTiketTercapai, EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG, PengaduanController,
-  PESAN_PENGADUAN_TIDAK_LENGKAP, PercakapanDitolak, pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
+  BatasTiketTercapai, EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_BATAS_PERCAKAPAN, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG,
+  PengaduanController, PESAN_PENGADUAN_TIDAK_LENGKAP, PercakapanDitolak, pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
 } from './pengaduan.mjs';
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import { PembatasTiket } from './eskalasi.mjs';
-import { PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, SesiPenuh, pilihMenu } from './percakapan.mjs';
+import { PESAN_BATAS_AI, PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, SesiPenuh, pilihMenu } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const ekstrak = (u, ditanya = null, data = {}) => new EkstraktorAturan().ekstrak(u, { ditanya, data });
@@ -101,6 +101,42 @@ test('req_2_2 kata keterangan waktu dan nama anggota keluarga tidak tertangkap s
   assert.equal(ekstrak('anak saya bernama Budi muntah setelah minum sirup obat batuk').namaPelapor, undefined);
 });
 
+// Kalimat persis SRS Tabel B.3 (Basic Path, Alternative Path 1, Exception Path 1).
+const SRS_BASIC = 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian. Nama saya Budi Santoso, nomor telepon 081234567890.';
+const SRS_ALTERNATIF = 'Krim Wajah Glowing membuat kulit saya iritasi. Nama saya Budi Santoso.';
+const SRS_EXCEPTION = 'Krim Wajah Glowing membuat kulit saya iritasi.';
+
+test('req_2_2 kalimat Basic Path SRS: nama produk di awal kalimat tertangkap dan kronologi tidak terpotong', () => {
+  assert.deepEqual(ekstrak(SRS_BASIC), {
+    namaProduk: 'Krim Wajah Glowing',
+    kronologi: 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
+    namaPelapor: 'Budi Santoso',
+    nomorTelepon: '081234567890',
+  });
+});
+
+test('req_2_2 kalimat Alternative Path dan Exception Path SRS hanya mengisi data yang disebutkan', () => {
+  assert.deepEqual(ekstrak(SRS_ALTERNATIF), {
+    namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing membuat kulit saya iritasi', namaPelapor: 'Budi Santoso',
+  });
+  assert.deepEqual(ekstrak(SRS_EXCEPTION), { namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing membuat kulit saya iritasi' });
+});
+
+test('req_2_2 kalimat akibat: anak kalimat dibuang, subjek kata ganti atau permintaan bukan nama produk', () => {
+  assert.equal(ekstrak('Krim Wajah Glowing yang saya beli membuat kulit saya iritasi.').namaProduk, 'Krim Wajah Glowing');
+  assert.equal(ekstrak('Nama saya Budi Santoso, Sabun Wangi bikin kulit anak saya gatal.').namaProduk, 'Sabun Wangi');
+  assert.equal(ekstrak('Setelah dua hari, Krim Wajah Glowing membuat kulit saya iritasi.').kronologi, 'Setelah dua hari, Krim Wajah Glowing membuat kulit saya iritasi');
+  assert.deepEqual(ekstrak('Krim Wajah Glowing yang membuat kulit saya iritasi.'), {
+    namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing yang membuat kulit saya iritasi',
+  });
+  // Produk dikenali lewat kata kerja: kalimatnya tetap utuh sebagai kronologi, keluhannya tidak hilang.
+  assert.deepEqual(ekstrak('Saya membeli Krim Wajah Glowing yang membuat kulit saya iritasi setelah dua hari pemakaian.'), {
+    namaProduk: 'Krim Wajah Glowing', kronologi: 'Saya membeli Krim Wajah Glowing yang membuat kulit saya iritasi setelah dua hari pemakaian',
+  });
+  assert.deepEqual(ekstrak('Saya mau membuat pengaduan produk'), {});
+  assert.deepEqual(ekstrak('Krim ini membuat kulit saya gatal'), {});
+});
+
 test('req_2_2 prompt tanya ulang per data, nomor telepon persis kamus Lampiran A', () => {
   assert.equal(PESAN_MINTA_NOMOR_TELEPON, 'Mohon sebutkan nomor telepon Anda.');
   assert.equal(PROMPT_DATA_KURANG.nomorTelepon.pesan, 'Mohon sebutkan nomor telepon Anda.');
@@ -170,7 +206,8 @@ test('req_2_3 pengaduan lengkap menghasilkan satu tiket ADU dan pesan tiket diuc
   assert.equal(h.tiket, 'ADU-20261102-0001');
   assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
   assert.equal(gerbang.tiketPerPercakapan.size, 1);
-  assert.ok(!pengaduan.aktif(ID));
+  // Masih di layanan 2: giliran berikutnya tetap di control ini, bukan ke AI.
+  assert.ok(pengaduan.aktif(ID));
 });
 
 test('req_2_4 SMS tindak lanjut hanya lewat adapter tiruan, sekali per tiket', async () => {
@@ -193,6 +230,97 @@ test('br_1 tiket tidak terbit sebelum keempat data lengkap', async () => {
   assert.equal(h.tiket, null);
   assert.equal(h.tahap, 'tanya_ulang');
   assert.equal(gerbang.tiketPerPercakapan.size, 0);
+});
+
+function catatTerbit(gerbang) {
+  const tercatat = [];
+  const asli = gerbang.terbitkanTiket.bind(gerbang);
+  gerbang.terbitkanTiket = async (d) => { tercatat.push(d); return asli(d); };
+  return tercatat;
+}
+
+test('req_2_3 skenario Basic Path SRS: satu kalimat lengkap langsung menerbitkan tiket', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  const tercatat = catatTerbit(gerbang);
+  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.deepEqual(tercatat, [{
+    percakapanId: ID, namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
+    namaPelapor: 'Budi Santoso', nomorTelepon: '081234567890',
+  }]);
+});
+
+test('req_2_2 skenario Alternative Path 1 SRS: hanya nomor telepon yang ditanyakan kembali', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  const tercatat = catatTerbit(gerbang);
+  let h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_ALTERNATIF, ip: '1.1.1.1' });
+  assert.equal(h.jawaban, 'Mohon sebutkan nomor telepon Anda.');
+  assert.equal(h.kurang, 1);
+  h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: '081234567890', ip: '1.1.1.1' });
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.equal(tercatat[0].namaProduk, 'Krim Wajah Glowing');
+  assert.equal(tercatat[0].kronologi, 'Krim Wajah Glowing membuat kulit saya iritasi');
+});
+
+test('req_2_5 skenario Exception Path 1 SRS: data sebagian disimpan tanpa tiket', async () => {
+  const { gerbang, pengaduan, riwayat } = rakitan();
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_EXCEPTION, ip: '1.1.1.1' });
+  const hasil = await pengaduan.panggilanBerakhir(ID);
+  assert.equal(hasil.pesan, 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.');
+  const simpan = gerbang.tidakLengkap.get(ID);
+  assert.equal(simpan.namaProduk, 'Krim Wajah Glowing');
+  assert.equal(simpan.kronologi, 'Krim Wajah Glowing membuat kulit saya iritasi');
+  assert.equal(gerbang.tiketPerPercakapan.size, 0);
+});
+
+// Satu percakapan satu tiket (tiket.percakapan_id unik): pengaduan kedua tidak boleh dijawab seolah tercatat.
+
+test('req_2_3 pesan pengaduan kedua sama persis dengan kamus Lampiran A (batas percakapan satu panggilan)', () => {
+  assert.equal(PESAN_BATAS_PERCAKAPAN, 'Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru.');
+  assert.equal(PESAN_BATAS_PERCAKAPAN, PESAN_BATAS_AI.panggilan);
+});
+
+test('req_2_3 tetap di layanan 2 atau menekan 2 lagi setelah tiket terbit tidak mencatat atau mengaku mencatat pengaduan kedua', async () => {
+  const { gerbang, sms, pengaduan, riwayat } = rakitan();
+  const tercatat = catatTerbit(gerbang);
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
+  // [] = langsung menyampaikan pengaduan kedua tanpa memilih menu lagi.
+  for (const pilihan of [[], [2], [1, 2]]) {
+    for (const n of pilihan) pilihMenu(riwayat, pengaduan, ID, n);
+    // Ucapan tetap ditangani gateway tanpa AI, supaya data pelapor tidak sampai ke model.
+    assert.ok(pengaduan.aktif(ID));
+    const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
+    assert.equal(h.jawaban, PESAN_BATAS_PERCAKAPAN);
+    assert.equal(h.tiket, null);
+    assert.equal(h.suara, null);
+  }
+  assert.equal(tercatat.length, 1);
+  assert.equal(sms.terkirim.length, 1);
+  const model = JSON.stringify(riwayat.untukModel(ID));
+  for (const data of ['Ahmad Fauzi', 'Budi Santoso', '0812', 'Sirup Batuk Sehat']) assert.ok(!model.includes(data));
+  assert.equal(await pengaduan.panggilanBerakhir(ID), null);
+  assert.equal(gerbang.tidakLengkap.size, 0);
+});
+
+test('req_2_3 memilih layanan 1 setelah tiket terbit kembali ke alur UC-01', async () => {
+  const { pengaduan, riwayat } = rakitan();
+  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
+  pilihMenu(riwayat, pengaduan, ID, 2);
+  pilihMenu(riwayat, pengaduan, ID, 1);
+  assert.ok(!pengaduan.aktif(ID));
+});
+
+test('req_2_3 giliran yang tiketnya terbit selama ekstraksi tidak menerbitkan atau mengaku mencatat lagi', async () => {
+  let lepas;
+  const tahan = new Promise((r) => { lepas = r; });
+  const ekstraktor = new EkstraktorAturan();
+  const { gerbang, pengaduan } = rakitan({ ekstraktor: { ekstrak: async (u, k) => (u === 'tahan' ? (await tahan, {}) : ekstraktor.ekstrak(u, k)) } });
+  const tercatat = catatTerbit(gerbang);
+  const kedua = pengaduan.tangani(ID, 'tahan');
+  assert.match((await pengaduan.tangani(ID, SRS_BASIC)).jawaban, /^Pengaduan Anda telah dicatat/);
+  lepas();
+  assert.equal((await kedua).jawaban, PESAN_BATAS_PERCAKAPAN);
+  assert.equal(tercatat.length, 1);
 });
 
 test('req_2_3 retry setelah gagal terbit tidak membuat tiket ganda', async () => {
@@ -258,15 +386,19 @@ test('req_2_5 akhiri panggilan dengan data sebagian menyimpan pengaduan_tidak_le
   assert.ok(!pengaduan.aktif(ID));
 });
 
-test('req_2_5 akhiri panggilan tanpa data apa pun tetap disimpan sebagai tidak lengkap', async () => {
+test('req_2_5 akhiri panggilan tepat setelah menekan 2 tanpa data apa pun tidak menyimpan pengaduan', async () => {
   const { gerbang, pengaduan } = rakitan();
+  let simpan = 0;
+  gerbang.simpanTidakLengkap = async () => { simpan++; };
   const hasil = await pengaduan.panggilanBerakhir(ID);
-  assert.equal(hasil.tersimpan, true);
-  assert.equal(gerbang.tidakLengkap.get(ID).status, 'pengaduan_tidak_lengkap');
+  assert.deepEqual(hasil, { pesan: PESAN_PENGADUAN_TIDAK_LENGKAP, tersimpan: false, lengkap: 0 });
+  assert.equal(simpan, 0);
+  assert.ok(!pengaduan.aktif(ID));
 });
 
 test('req_2_5 akhiri berulang (tombol lalu koneksi putus) hanya menyimpan sekali', async () => {
   const { gerbang, pengaduan } = rakitan();
+  await pengaduan.tangani(ID, SRS_EXCEPTION);
   let simpan = 0;
   const asli = gerbang.simpanTidakLengkap.bind(gerbang);
   gerbang.simpanTidakLengkap = async (d) => { simpan++; return asli(d); };
@@ -285,6 +417,7 @@ test('req_2_5 pengaduan yang sudah bertiket atau bukan pengaduan tidak disimpan 
 
 test('req_2_5 galat penyimpanan tidak mengganggu penutupan panggilan', async () => {
   const { gerbang, pengaduan } = rakitan();
+  await pengaduan.tangani(ID, SRS_EXCEPTION);
   gerbang.simpanTidakLengkap = async () => { throw new Error('down'); };
   const hasil = await pengaduan.panggilanBerakhir(ID);
   assert.equal(hasil.tersimpan, false);
@@ -310,6 +443,7 @@ test('req_2_5 koneksi putus: sesi tidak aktif yang dibuang memicu penyimpanan pe
   const pengaduan = new PengaduanController({ gerbang });
   riwayat.saatDibuang = (id) => { pengaduan.panggilanBerakhir(id); };
   pilihMenu(riwayat, pengaduan, ID, 2);
+  await pengaduan.tangani(ID, SRS_EXCEPTION);
   t = 16 * 60 * 1000;
   riwayat.bersihkan();
   await new Promise((r) => setImmediate(r));
@@ -384,6 +518,7 @@ test('req_2_5 server menolak penyimpanan tidak lengkap (409): dianggap tidak ter
   const gerbang = new GerbangPengaduanTiruan();
   gerbang.simpanTidakLengkap = async () => { throw new PercakapanDitolak(); };
   const { pengaduan } = rakitan({ gerbang });
+  await pengaduan.tangani(ID, SRS_EXCEPTION);
   const hasil = await pengaduan.panggilanBerakhir(ID);
   assert.equal(hasil.tersimpan, false);
 });

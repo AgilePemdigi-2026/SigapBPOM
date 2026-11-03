@@ -57,7 +57,11 @@ const KATA_HENTI_NAMA = new Set([
   'dan', 'nomor', 'no', 'telepon', 'telpon', 'hp', 'produk', 'yang', 'saya', 'membeli', 'beli', 'mengalami', 'dari', 'untuk', 'ya', 'adalah',
   'tinggal', 'di', 'kronologi', 'kejadian', 'setelah', 'sesudah', 'lalu', 'kemudian', 'karena', 'tapi', 'tetapi', 'dengan', 'nama', 'itu', 'ingin', 'mau',
 ]);
-const POLA_BATAS_PRODUK = /(?:^|\s+)(?:di|dari|pada|kemarin|tadi|lalu|setelah|sesudah|ketika|saat|waktu|karena|sehingga|tapi|tetapi|dan|kronologi|kronologinya|kejadiannya|nama|nomor|atas|yang|untuk|buat|dengan|sebanyak|seharga|sekitar|itu)\b/iu;
+const KATA_AKIBAT = 'membuat|menyebabkan|mengakibatkan|bikin';
+const POLA_BATAS_PRODUK = new RegExp(`(?:^|\\s+)(?:di|dari|pada|kemarin|tadi|lalu|setelah|sesudah|ketika|saat|waktu|karena|sehingga|tapi|tetapi|dan|kronologi|kronologinya|kejadiannya|nama|nomor|atas|yang|untuk|buat|dengan|sebanyak|seharga|sekitar|itu|${KATA_AKIBAT})\\b`, 'iu');
+// Kalimat yang diawali nama produk lalu akibatnya, seperti contoh SRS Tabel B.3 "Krim Wajah Glowing membuat kulit saya iritasi ...".
+const POLA_KALIMAT_AKIBAT = new RegExp(`(?<=^|[.!?,;])\\s*([^.!?,;]+?)\\s+(?:${KATA_AKIBAT})\\s`, 'giu');
+const KATA_BUKAN_PRODUK = new Set([...KATA_HENTI_NAMA, ...FILLER, 'ini', 'tersebut', 'ternyata', 'aku', 'kami', 'kita', 'dia', 'ia', 'mereka']);
 const POLA_PRODUK = [
   /\bnama\s+produk(?:nya)?\s*(?:adalah|yaitu|:)?\s+(.+)/isu,
   /\bproduk(?:nya)?\s+(?:yang\s+(?:saya\s+)?(?:adukan|laporkan)\s+)?(?:bernama|adalah|yaitu)\s+(.+)/isu,
@@ -94,6 +98,25 @@ function cariNamaProduk(teks) {
   return null;
 }
 
+/**
+ * Kalimat akibat pertama yang subjeknya layak sebagai nama produk, atau yang memuat `produk` yang sudah dikenali
+ * ("Saya membeli X yang membuat ..."): `{ namaProduk, kalimat, index }`, atau null.
+ * ponytail: subjek tanpa kata ganti atau kata sambung dianggap nama produk, jadi kata benda umum seperti "Pemakaian rutin"
+ * ikut tertangkap. Bila sering terjadi, tambahkan daftar kata benda umum atau pasang ekstraktor lain lewat interface.
+ */
+function cariKalimatAkibat(teks, produk) {
+  for (const m of teks.matchAll(POLA_KALIMAT_AKIBAT)) {
+    // Anak kalimat "yang saya beli" dibuang; subjek lain yang memuat kata ganti atau kata sambung bukan nama produk.
+    const nama = rapikan(m[1].split(/\s+yang(?:\s|$)/iu)[0]);
+    const kata = nama.toLowerCase().split(' ').map((k) => k.replace(/[^\p{L}]/gu, ''));
+    const layak = nama && kata.length <= KATA_MAKS.namaProduk && !kata.some((k) => KATA_BUKAN_PRODUK.has(k));
+    if (layak || (produk && m[1].includes(produk))) {
+      return { namaProduk: layak ? nama.slice(0, PANJANG_MAKS.namaProduk) : produk, kalimat: teks.slice(m.index), index: m.index };
+    }
+  }
+  return null;
+}
+
 function potongNama(kata) {
   const hasil = [];
   for (const k of kata.split(/\s+/)) {
@@ -110,10 +133,13 @@ function cariNamaPelapor(teks) {
   return nama && !adalahFiller(nama) ? nama.slice(0, PANJANG_MAKS.namaPelapor) : null;
 }
 
-function cariKronologi(teks, ditanya) {
+function cariKronologi(teks, ditanya, akibat) {
   const eksplisit = teks.match(POLA_KRONOLOGI_EKSPLISIT);
+  const penanda = teks.match(POLA_KRONOLOGI_PENANDA);
+  // Kalimat akibat diambil utuh dari subjeknya, kecuali kata penanda muncul lebih dulu, agar keluhannya tidak terpotong.
+  const umum = akibat && !(penanda && penanda.index < akibat.index) ? [akibat.kalimat] : penanda;
   // Saat kronologi yang ditanyakan ulang, kalimat sebelum penanda ikut menjadi bagian ceritanya.
-  const cocok = eksplisit ?? (ditanya === 'kronologi' ? [teks] : teks.match(POLA_KRONOLOGI_PENANDA));
+  const cocok = eksplisit ?? (ditanya === 'kronologi' ? [teks] : umum);
   if (!cocok) return null;
   const isi = rapikan((cocok[1] ?? cocok[0]).replace(POLA_AKHIR_KRONOLOGI, ''));
   return hitungKata(isi) >= KATA_MIN_KRONOLOGI ? isi.slice(0, PANJANG_MAKS.kronologi) : null;
@@ -146,9 +172,11 @@ export class EkstraktorAturan {
     if (nomor) hasil.nomorTelepon = nomor;
     const namaPelapor = cariNamaPelapor(sisa);
     if (namaPelapor) hasil.namaPelapor = namaPelapor;
-    const namaProduk = cariNamaProduk(sisa);
+    const produk = cariNamaProduk(sisa);
+    const akibat = cariKalimatAkibat(sisa, produk);
+    const namaProduk = produk ?? akibat?.namaProduk;
     if (namaProduk) hasil.namaProduk = namaProduk;
-    const kronologi = cariKronologi(sisa, ditanya);
+    const kronologi = cariKronologi(sisa, ditanya, akibat);
     if (kronologi) hasil.kronologi = kronologi;
     // Pertanyaan tanya ulang dijawab apa adanya, tetapi hanya bila ucapan tidak memuat data lain yang sudah dikenali.
     if (ditanya && ditanya !== 'nomorTelepon' && data[ditanya] === undefined && !(ditanya in hasil) && Object.keys(hasil).length === 0) {
@@ -164,6 +192,13 @@ export const pesanTiketPengaduan = (nomorTiket) => `Pengaduan Anda telah dicatat
 
 /** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
 export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
+
+/**
+ * Kamus pesan Lampiran A (UC-01, UC-02 "Batas percakapan satu panggilan tercapai"), sama dengan `PESAN_BATAS_AI.panggilan`
+ * di percakapan.mjs (tidak diimpor karena percakapan.mjs mengimpor modul ini). Satu percakapan hanya punya satu tiket
+ * pengaduan (tiket.percakapan_id unik), jadi pengaduan berikutnya perlu panggilan baru.
+ */
+export const PESAN_BATAS_PERCAKAPAN = 'Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru.';
 
 /** Server menolak percakapan ini (409): sudah ada dengan jenis atau status yang tidak boleh diubah. Dianggap tidak tersimpan. */
 export class PercakapanDitolak extends Error {
@@ -195,29 +230,39 @@ export class PengaduanController {
 
   /** Penelepon menekan 2: mulai pengumpulan data pengaduan pada panggilan ini. */
   mulai(id) {
+    // Tiket percakapan ini sudah terbit: penerbitan berikutnya hanya mengembalikan nomor lama tanpa mencatat data baru,
+    // jadi pengaduan kedua tidak dikumpulkan. Ucapannya tetap ditangani di sini (`ulang`) agar tidak sampai ke AI.
+    const ada = this.sesi.get(id);
+    if (ada?.tiket) {
+      ada.ulang = true;
+      return;
+    }
     this.sesi.delete(id);
     if (this.sesi.size >= SESI_PENGADUAN_MAKS) {
       // Geser dulu sesi yang sudah bertiket; pengaduan berjalan hanya tergeser bila semuanya masih berjalan.
       const korban = [...this.sesi].find(([, v]) => v.tiket !== null)?.[0] ?? this.sesi.keys().next().value;
       this.sesi.delete(korban);
     }
-    this.sesi.set(id, { data: {}, ditanya: null, tiket: null, janji: null });
+    this.sesi.set(id, { data: {}, ditanya: null, tiket: null, janji: null, ulang: false });
   }
 
-  /** Penelepon kembali ke menu atau memilih layanan lain: alur pengaduan dibuang. */
+  /** Penelepon kembali ke menu atau memilih layanan lain: alur pengaduan dibuang. Tiket yang sudah terbit tetap diingat. */
   batal(id) {
-    this.sesi.delete(id);
+    const s = this.sesi.get(id);
+    if (s?.tiket) s.ulang = false;
+    else this.sesi.delete(id);
   }
 
-  /** Panggilan sedang dalam alur pengaduan yang belum selesai. */
+  /** Panggilan sedang dalam alur pengaduan yang belum selesai, atau masih di layanan 2 setelah tiketnya terbit. */
   aktif(id) {
     const s = this.sesi.get(id);
-    return Boolean(s) && s.tiket === null;
+    return Boolean(s) && (s.tiket === null || s.ulang);
   }
 
   /**
    * REQ-2.2, REQ-2.3: serap data dari ucapan, tanyakan hanya data yang kurang, dan begitu lengkap terbitkan tiket (BR-1).
-   * Mengembalikan `{ lengkap: false, kurang, jawaban, suara }` atau `{ lengkap: true, tiket, jawaban }`.
+   * Mengembalikan `{ lengkap: false, kurang, jawaban, suara }`, `{ lengkap: true, tiket, jawaban }`, atau
+   * `{ lengkap: false, sudahBertiket: true, jawaban }` bila tiket percakapan ini sudah terbit.
    * Bila penerbitan gagal, data tetap tersimpan sehingga giliran berikutnya mengulang penerbitan; Edge Function
    * mengembalikan nomor yang sama untuk percakapan yang sama, jadi retry tidak membuat tiket ganda.
    */
@@ -225,6 +270,9 @@ export class PengaduanController {
     const s = this.sesi.get(id);
     if (!s) throw new Error('pengaduan belum dimulai');
     const diperoleh = await this.ekstraktor.ekstrak(ucapan, { ditanya: s.ditanya, data: { ...s.data } });
+    // Ucapan setelah tiket terbit (juga giliran serentak yang tiketnya terbit selama ekstraksi) tidak dicatat di mana pun,
+    // jadi tidak boleh dijawab seolah pengaduannya tercatat.
+    if (s.tiket !== null) return { lengkap: false, sudahBertiket: true, jawaban: PESAN_BATAS_PERCAKAPAN };
     for (const f of FIELD_PENGADUAN) {
       if (s.data[f] !== undefined || diperoleh?.[f] === undefined) continue;
       const nilai = f === 'nomorTelepon' ? validasiNomorTelepon(diperoleh[f]) : String(diperoleh[f]).trim();
@@ -256,6 +304,9 @@ export class PengaduanController {
       throw e;
     }
     s.tiket = nomorTiket;
+    // Penelepon masih di layanan 2: pengaduan berikutnya tetap dijawab control ini, bukan AI yang akan menanyakan data
+    // pelapor lalu menjanjikan penerusan pengaduan yang tidak pernah tercatat. `batal()` mengembalikannya ke alur UC-01.
+    s.ulang = true;
     // REQ-2.4: SMS lewat adapter. Kegagalan SMS tidak membatalkan tiket yang sudah terbit.
     try { await this.pengirimSms?.kirim(nomorTelepon, pesanTiketPengaduan(nomorTiket)); } catch { /* tiket tetap sah */ }
     // Data pelapor tidak perlu disimpan lagi di memori gateway setelah tiket terbit.
@@ -265,7 +316,8 @@ export class PengaduanController {
 
   /**
    * REQ-2.5: panggilan berakhir atau terputus. Pengaduan yang belum bertiket disimpan sebagai `pengaduan_tidak_lengkap`
-   * dengan data yang sudah terkumpul, tanpa nomor tiket. Aman dipanggil berulang (akhiri manual lalu koneksi putus):
+   * dengan data yang sudah terkumpul, tanpa nomor tiket. Tanpa data sama sekali (ditutup tepat setelah menekan 2), tidak ada
+   * pengaduan yang disimpan; status percakapannya diurus di luar control ini. Aman dipanggil berulang (akhiri manual lalu koneksi putus):
    * status dibuang sebelum menunggu penyimpanan, jadi hanya panggilan pertama yang menyimpan.
    * Mengembalikan `{ pesan, tersimpan }` untuk panel, atau null bila panggilan ini bukan pengaduan yang belum selesai.
    */
@@ -276,14 +328,17 @@ export class PengaduanController {
     // Penerbitan yang sedang berjalan diselesaikan dulu: bila berhasil, pengaduan sudah lengkap dan tidak disimpan sebagai tidak lengkap.
     if (s.janji) await s.janji.catch(() => {});
     if (s.tiket !== null) return null;
+    const lengkap = Object.keys(s.data).length;
     let tersimpan = false;
-    try {
-      await this.gerbang?.simpanTidakLengkap({ percakapanId: id, ...s.data });
-      tersimpan = Boolean(this.gerbang);
-    } catch {
-      // Galat penyimpanan dicatat pemanggil sebagai jenis saja; isi data pelapor tidak ikut.
+    if (lengkap > 0) {
+      try {
+        await this.gerbang?.simpanTidakLengkap({ percakapanId: id, ...s.data });
+        tersimpan = Boolean(this.gerbang);
+      } catch {
+        // Galat penyimpanan dicatat pemanggil sebagai jenis saja; isi data pelapor tidak ikut.
+      }
     }
-    return { pesan: PESAN_PENGADUAN_TIDAK_LENGKAP, tersimpan, lengkap: Object.keys(s.data).length };
+    return { pesan: PESAN_PENGADUAN_TIDAK_LENGKAP, tersimpan, lengkap };
   }
 }
 
@@ -299,5 +354,7 @@ export async function prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan, i
     return { jawaban: hasil.jawaban, tiket: hasil.tiket, suara: null, tahap: 'tiket' };
   }
   riwayat.tambah(id, 'assistant', hasil.jawaban ?? '');
+  // Belum ada suara statis untuk pesan ini di boundary, jadi panel hanya menampilkan teksnya.
+  if (hasil.sudahBertiket) return { jawaban: hasil.jawaban, tiket: null, suara: null, tahap: 'sudah_bertiket' };
   return { jawaban: hasil.jawaban, tiket: null, suara: `/voice/statis/${hasil.suara}`, tahap: 'tanya_ulang', kurang: hasil.kurang?.length ?? 0 };
 }
