@@ -10,7 +10,8 @@ import {
   teksUntukSuara,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
-import { CekBpom, cekRegistrasi } from './cekbpom.mjs';
+import { CekBpom } from './cekbpom.mjs';
+import { PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
 import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
@@ -48,6 +49,7 @@ const GILIRAN_SERENTAK_PER_IP = Number(env('AI_GILIRAN_SERENTAK_PER_IP', '3'));
 const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
   'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON,
+  'tidak-ditemukan': PESAN_TIDAK_DITEMUKAN, 'nama-tidak-jelas': PESAN_NAMA_TIDAK_JELAS,
 };
 // Tiket eskalasi lewat Edge Function bila Supabase dikonfigurasi, selain itu tiket tiruan di memori (#30).
 const SUPABASE_URL = env('SUPABASE_URL', '');
@@ -224,6 +226,7 @@ async function giliran(req, res, url) {
     if (!jawaban) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
     riwayat.pilihLayanan(body.id, Number(body.pilih));
     riwayat.selesaiEskalasi(body.id);
+    riwayat.aturCekRegistrasi(body.id, { ulangNama: 0, kandidat: null });
     riwayat.tambah(body.id, 'user', `Saya memilih layanan ${body.pilih}.`);
     riwayat.tambah(body.id, 'assistant', jawaban);
     return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban, suara: `/voice/statis/layanan-${Number(body.pilih)}` });
@@ -301,13 +304,20 @@ async function giliran(req, res, url) {
       jawaban = PESAN_PENUTUP;
     } else if (!saring) {
       riwayat.tambah(id, 'user', transkrip);
-      // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari tool cari_basis_pengetahuan.
+      // Pertanyaan status registrasi suatu produk dijawab tool cek_registrasi_bpom, selain itu tool cari_basis_pengetahuan.
+      // Selama alur pengaduan (layanan 2) nama produk adalah data pengaduan, jadi tidak dicek di cekbpom.
       const tCek = Date.now();
-      const cek = cekBpom ? await cekRegistrasi(cekBpom, transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1) : null;
+      const keadaanCek = riwayat.cekRegistrasi(id);
+      const cek = cekBpom && riwayat.layanan(id) !== 2
+        ? await cekRegistrasiBpom(cekBpom, transkrip, { ...keadaanCek, jawabanTerakhir: riwayat.jawabanTerakhir(id) })
+        : null;
+      // Kandidat hasil ganda hanya berlaku untuk giliran tepat sesudahnya.
+      riwayat.aturCekRegistrasi(id, cek?.keadaan ?? { ...keadaanCek, kandidat: null });
       let konteks;
       if (cek) {
         if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
-        console.info(JSON.stringify({ ev: 'cekbpom', jenis: cek.kueri.nomor ? 'nomor' : 'nama', hasil: cek.data?.total ?? null, ms: Date.now() - tCek }));
+        const jenis = cek.kueri ? (cek.kueri.nomor ? 'nomor' : 'nama') : null;
+        console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms: Date.now() - tCek }));
         produk = cek.produk;
         konteks = cek.konteks;
       } else {
@@ -315,15 +325,20 @@ async function giliran(req, res, url) {
         kutipan = basis.kutipan;
         konteks = pesanBasisPengetahuan(kutipan, basis.mode);
       }
-      const hasil = await tanyaHermes(id, konteks);
-      token = hasil.token;
-      anggaranAi.catat(ip, id, token - cadangan);
-      cadangan = 0;
-      jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
-      // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
-      if (jawaban.includes(PESAN_BUTUH_PETUGAS)) {
-        jawaban = PESAN_BUTUH_PETUGAS;
-        riwayat.mulaiEskalasi(id, transkrip);
+      if (cek?.jawaban) {
+        // NFR-7: hasil tunggal, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
+        jawaban = cek.jawaban;
+      } else {
+        const hasil = await tanyaHermes(id, konteks);
+        token = hasil.token;
+        anggaranAi.catat(ip, id, token - cadangan);
+        cadangan = 0;
+        jawaban = hasil.jawaban || 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+        // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
+        if (jawaban.includes(PESAN_BUTUH_PETUGAS)) {
+          jawaban = PESAN_BUTUH_PETUGAS;
+          riwayat.mulaiEskalasi(id, transkrip);
+        }
       }
     }
     const diLuarTopik = !menutup && (Boolean(saring) || jawabanDiLuarTopik(jawaban));
@@ -342,7 +357,9 @@ async function giliran(req, res, url) {
     // Hasil cekbpom tampil sebagai kartu produk, dan jawaban yang merujuk ke cekbpom tidak memakai kutipan,
     // jadi keduanya tanpa chip sumber.
     const sumber = produk || /cekbpom/i.test(jawaban) ? [] : sumberUntukPanel(kutipan);
-    const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
+    // Jawaban yang sama persis dengan pesan tetap memakai audio yang sudah dirender saat gateway mulai.
+    const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === jawaban);
+    const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : statis ? `/voice/statis/${statis}` : terbitkanTokenSuara(jawaban, ip);
     return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup, produk });
   } finally {
     // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
