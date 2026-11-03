@@ -7,18 +7,23 @@ export const PESAN_KREDENSIAL_SALAH = 'Login gagal. Email atau password Anda sal
 export const PESAN_AKSES_DIKUNCI = 'Akses dikunci sementara. Hubungi administrator.';
 export const PESAN_LOGIN_BERHASIL = 'Login berhasil!';
 
+/** REQ-3.5, NFR-11: akun dikunci pada percobaan gagal ketiga. Sama dengan ambang di RPC reservasi_percobaan_login. */
+export const BATAS_GAGAL_LOGIN = 3;
+
 export interface DataPetugas {
   id: string;
   nama: string;
-  terkunci_sampai?: string | null;
 }
 
 export interface PenyimpananPetugas {
   dapatkanUserByEmail(email: string): Promise<{ petugasData: DataPetugas | null } | null>;
-  /** Penambahan penghitung dan penetapan kunci dilakukan atomik di basis data (RPC catat_gagal_login). */
-  catatGagalLogin(id: string): Promise<{ gagalLogin: number; terkunciSampai: string | null } | null>;
-  /** Mengembalikan false bila akun sedang terkunci (RPC reset_gagal_login). */
-  resetGagalLogin(id: string): Promise<boolean>;
+  /**
+   * Memesan satu slot percobaan secara atomik (RPC reservasi_percobaan_login). Mengembalikan nomor
+   * percobaan 1 sampai BATAS_GAGAL_LOGIN, atau null bila akun terkunci. Slot terakhir memasang kunci.
+   */
+  reservasiPercobaan(id: string): Promise<number | null>;
+  /** Mengosongkan penghitung dan kunci setelah password benar (RPC reset_gagal_login). */
+  resetGagalLogin(id: string): Promise<void>;
 }
 
 export interface Autentikator {
@@ -29,19 +34,13 @@ export type HasilMasuk =
   | { sukses: true; pesan: string; sesi: unknown; petugas: { id: string; nama: string } }
   | { sukses: false; pesan: string };
 
-function sedangTerkunci(terkunciSampai: string | null | undefined, sekarang: Date): boolean {
-  return !!terkunciSampai && sekarang < new Date(terkunciSampai);
-}
-
 export class AutentikasiEdgeController {
   penyimpanan: PenyimpananPetugas;
   autentikator: Autentikator;
-  jam: () => Date;
 
-  constructor(penyimpanan: PenyimpananPetugas, autentikator: Autentikator, jam: () => Date = () => new Date()) {
+  constructor(penyimpanan: PenyimpananPetugas, autentikator: Autentikator) {
     this.penyimpanan = penyimpanan;
     this.autentikator = autentikator;
-    this.jam = jam;
   }
 
   async masuk(email: string, kataSandi: string): Promise<HasilMasuk> {
@@ -55,27 +54,22 @@ export class AutentikasiEdgeController {
     }
     const { petugasData } = user;
 
-    // Kunci diperiksa sebelum password, sehingga password benar pun ditolak selama akun terkunci.
-    if (sedangTerkunci(petugasData.terkunci_sampai, this.jam())) {
+    // Slot dipesan sebelum password diperiksa, sehingga request paralel pun paling banyak memeriksa
+    // BATAS_GAGAL_LOGIN password, dan password benar ditolak selama akun terkunci.
+    const nomorPercobaan = await this.penyimpanan.reservasiPercobaan(petugasData.id);
+    if (nomorPercobaan === null) {
       return { sukses: false, pesan: PESAN_AKSES_DIKUNCI };
     }
 
     const { sesi, galat } = await this.autentikator.masukDenganPassword(email, kataSandi);
 
     if (galat) {
-      const hasil = await this.penyimpanan.catatGagalLogin(petugasData.id);
-      // Keputusan kunci diambil dari baris yang dikembalikan basis data, bukan dihitung di sini.
-      if (hasil && sedangTerkunci(hasil.terkunciSampai, this.jam())) {
-        return { sukses: false, pesan: PESAN_AKSES_DIKUNCI };
-      }
-      return { sukses: false, pesan: PESAN_KREDENSIAL_SALAH };
+      // Slot sudah terhitung gagal; slot terakhir sudah memasang kunci di basis data.
+      const pesan = nomorPercobaan >= BATAS_GAGAL_LOGIN ? PESAN_AKSES_DIKUNCI : PESAN_KREDENSIAL_SALAH;
+      return { sukses: false, pesan };
     }
 
-    // Bila akun terkunci oleh percobaan paralel, reset ditolak dan sesi tidak diberikan.
-    const berhasilReset = await this.penyimpanan.resetGagalLogin(petugasData.id);
-    if (!berhasilReset) {
-      return { sukses: false, pesan: PESAN_AKSES_DIKUNCI };
-    }
+    await this.penyimpanan.resetGagalLogin(petugasData.id);
 
     return {
       sukses: true,

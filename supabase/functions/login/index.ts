@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// 1. ENTITY LAYER (akses data petugas; penghitung gagal diubah atomik lewat RPC)
+// 1. ENTITY LAYER (akses data petugas; slot percobaan dipesan atomik lewat RPC)
 class PetugasEntity implements PenyimpananPetugas {
   supabase: any;
   constructor(supabase: any) {
@@ -30,18 +30,15 @@ class PetugasEntity implements PenyimpananPetugas {
     return { authUser: user, petugasData: petugas };
   }
 
-  async catatGagalLogin(id: string) {
-    const { data, error } = await this.supabase.rpc('catat_gagal_login', { p_id: id });
+  async reservasiPercobaan(id: string) {
+    const { data, error } = await this.supabase.rpc('reservasi_percobaan_login', { p_id: id });
     if (error) throw error;
-    const baris = Array.isArray(data) ? data[0] : data;
-    if (!baris) return null;
-    return { gagalLogin: baris.gagal_login_baru, terkunciSampai: baris.terkunci_sampai_baru };
+    return typeof data === 'number' ? data : null;
   }
 
   async resetGagalLogin(id: string) {
-    const { data, error } = await this.supabase.rpc('reset_gagal_login', { p_id: id });
+    const { error } = await this.supabase.rpc('reset_gagal_login', { p_id: id });
     if (error) throw error;
-    return data === true;
   }
 }
 
