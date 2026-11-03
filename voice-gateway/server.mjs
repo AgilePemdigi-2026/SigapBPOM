@@ -52,10 +52,10 @@ const SUARA_STATIS = {
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+// REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
+const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
 // Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
 // ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
-// REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; CEKBPOM_AKTIF=0 mematikannya.
-const cekBpom = env('CEKBPOM_AKTIF', '1') === '0' ? null : new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') });
 const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
