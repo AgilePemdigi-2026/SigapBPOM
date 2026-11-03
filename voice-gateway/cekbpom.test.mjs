@@ -17,6 +17,12 @@ test('req_1_3 pertanyaan edukasi tidak dicari di cekbpom', () => {
   assert.equal(kueriProduk('Apakah sudah terdaftar?'), null);
 });
 
+test('req_1_3 ucapan pengaduan atau keluhan tidak dicari di cekbpom', () => {
+  assert.equal(kueriProduk('Saya mau daftar pengaduan krim pemutih palsu'), null);
+  assert.equal(kueriProduk('krim wardah yang saya beli tidak ada izin edar, kulit saya gatal'), null);
+  assert.equal(kueriProduk('saya mau lapor produk tidak terdaftar', true), null);
+});
+
 const baris = (n) => ({ PRODUCT_NAME: `Produk ${n}`, PRODUCT_BRANDS: 'Merek', PRODUCT_REGISTER: `MD 00${n}`, STATUS: 'Berlaku', REGISTRAR: 'PT &amp; Co', PRODUCT_EXPIRED: '2027-12-12' });
 
 function fetchTiruan(data, log = []) {

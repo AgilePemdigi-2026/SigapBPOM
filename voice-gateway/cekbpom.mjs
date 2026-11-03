@@ -18,6 +18,8 @@ const POLA_NOMOR = /\b(MD|ML|PIRT|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL|DBL|DKL|DT
 const POLA_NIAT = /\b(terdaftar|daftar|izin edar|nomor (izin|registrasi|bpom|edar)|registrasi|legal|resmi|cek ?bpom|ada bpom|sudah bpom|udah bpom|bpom nya|bpomnya|cek produk|cekin|cek(kan)?)\b/i;
 // Pertanyaan cara atau alasan ("bagaimana cara cek nomor registrasi?") dijawab dari korpus, bukan dicari di cekbpom.
 const POLA_EDUKASI = /\b(bagaimana|gimana|cara|kenapa|mengapa|apa itu|apa arti|artinya|maksudnya|syarat|biaya|berapa lama)\b/i;
+// Ucapan pengaduan atau keluhan ("mau daftar pengaduan", "kulit saya gatal") tetap di alurnya sendiri, bukan dicari di cekbpom.
+const POLA_PENGADUAN = /\b(pengaduan|mengadu|lapor|melapor|laporkan|keluhan|efek samping|gatal|alergi)\b/i;
 const POLA_TANYA = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|berapa|siapa|dimana|bolehkah|bisakah)\b|\?/i;
 // Kata yang dibuang dari ucapan agar tersisa nama produk.
 const KATA_ISI = new Set(`apakah apa ya yah yang itu ini tuh sudah udah belum blm terdaftar daftar di ke dari bpom badan pom pengawas obat
@@ -33,7 +35,7 @@ export function kueriProduk(ucapan, setelahMenu1 = false) {
   const teks = String(ucapan ?? '');
   const nomor = teks.match(POLA_NOMOR);
   if (nomor) return { nomor: `${nomor[1].toUpperCase()} ${nomor[2].replace(/\s+/g, '')}` };
-  if (POLA_EDUKASI.test(teks)) return null;
+  if (POLA_EDUKASI.test(teks) || POLA_PENGADUAN.test(teks)) return null;
   const kata = teks.toLowerCase().replace(/[^a-z0-9\s-]+/g, ' ').split(/\s+/).filter(Boolean);
   const niat = POLA_NIAT.test(teks) || (setelahMenu1 && kata.length <= 6 && !POLA_TANYA.test(teks));
   if (!niat) return null;
