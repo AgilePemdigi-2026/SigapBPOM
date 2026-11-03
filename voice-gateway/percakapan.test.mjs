@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
-  AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
-  pesanLayanan, saringUcapan, teksUntukSuara, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
+  AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
+  pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
 } from './percakapan.mjs';
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
 
@@ -93,6 +93,13 @@ test('cadangan token membuat giliran serentak tidak lolos bersamaan, lalu dikore
   assert.equal(a.total, 0);
 });
 
+test('nfr_1 token giliran yang dibatalkan penelepon sebelum token pertama tetap dibebankan, galat sebelum keluaran dikembalikan', () => {
+  assert.equal(tokenTerpakai({ token: 3_500, karPrompt: 9_000, karKeluaran: 0 }, true), 3_500);
+  assert.equal(tokenTerpakai({ token: 0, karPrompt: 9_000, karKeluaran: 300 }), 3_100);
+  assert.equal(tokenTerpakai({ token: 0, karPrompt: 9_000, karKeluaran: 0 }, true), 3_000);
+  assert.equal(tokenTerpakai({ token: 0, karPrompt: 9_000, karKeluaran: 0 }), 0);
+});
+
 test('penelepon yang menolak tawaran bantuan lagi mengakhiri panggilan', () => {
   assert.ok(PROMPT_SISTEM.includes(PESAN_TAWARAN_PENUTUP));
   const tawaran = `Pengaduan akan diteruskan kepada petugas. ${PESAN_TAWARAN_PENUTUP}`;
@@ -147,6 +154,65 @@ test('jawaban baku butuh petugas atau di luar topik setelah kalimat isi tetap di
   assert.equal(petugas.susunan.khusus, 'butuh_petugas');
   const luar = alirkan(`Baik, saya coba jelaskan sedikit dulu ya. ${PESAN_DI_LUAR_TOPIK}`);
   assert.equal(luar.susunan.khusus, 'di_luar_topik');
+});
+
+/** Stream AI tiruan yang mencatat berapa potongan sudah dibaca dan apakah stream sudah ditutup. */
+function aliranTiruan(potongan) {
+  const jejak = { dibaca: 0, ditutup: false };
+  async function* alir() {
+    try {
+      for (const p of potongan) { jejak.dibaca += 1; yield p; }
+    } finally {
+      jejak.ditutup = true;
+    }
+  }
+  return { aliran: alir(), jejak };
+}
+
+test('nfr_1 stream AI ditutup begitu tawaran penutup atau jawaban baku dikenali', async () => {
+  const sisa = ['Teks lanjutan yang tidak pernah diucapkan. ', 'Masih ada lagi.'];
+  const tawaran = aliranTiruan(['Obat keras hanya boleh dibeli dengan resep dokter. ', `${PESAN_TAWARAN_PENUTUP} `, ...sisa]);
+  const diucapkan = [];
+  const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
+  await alirkanJawaban(tawaran.aliran, susunan, (k) => diucapkan.push(k));
+  assert.deepEqual(diucapkan, ['Obat keras hanya boleh dibeli dengan resep dokter.']);
+  assert.ok(susunan.tawaran);
+  assert.deepEqual(tawaran.jejak, { dibaca: 2, ditutup: true });
+
+  const luar = aliranTiruan([`${PESAN_DI_LUAR_TOPIK} `, ...sisa]);
+  const susunanLuar = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
+  await alirkanJawaban(luar.aliran, susunanLuar, () => assert.fail('jawaban baku tidak boleh diucapkan sebagai kalimat isi'));
+  assert.equal(susunanLuar.khusus, 'di_luar_topik');
+  assert.deepEqual(luar.jejak, { dibaca: 2, ditutup: true });
+});
+
+test('nfr_1 penelepon memutus panggilan di tengah jawaban: kalimat berikutnya tidak dikirim ke TTS dan stream ditutup', async () => {
+  const batal = new AbortController();
+  const { aliran, jejak } = aliranTiruan([
+    'Obat keras hanya boleh dibeli dengan resep dokter. ', 'Obat bebas bisa dibeli di apotek tanpa resep. Sisa', ' jawaban yang tidak dibaca.',
+  ]);
+  const keTts = [];
+  const tts = (k) => { keTts.push(k); batal.abort(); };
+  await alirkanJawaban(aliran, new SusunanJawaban(PESAN_BUTUH_PETUGAS), tts, batal.signal);
+  assert.deepEqual(keTts, ['Obat keras hanya boleh dibeli dengan resep dokter.']);
+  assert.deepEqual(jejak, { dibaca: 2, ditutup: true });
+});
+
+test('nfr_1 stream AI putus dengan AbortError setelah penelepon memutus: galat ditelan dan sisa kalimat tidak dikirim ke TTS', async () => {
+  const batal = new AbortController();
+  // Seperti di produksi: event `close` dari res datang di antara potongan, lalu fetch Hermes menolak dengan AbortError.
+  async function* aliran() {
+    yield 'Obat keras hanya boleh dibeli dengan resep dokter. Obat bebas';
+    batal.abort();
+    throw new DOMException('This operation was aborted', 'AbortError');
+  }
+  const keTts = [];
+  await alirkanJawaban(aliran(), new SusunanJawaban(PESAN_BUTUH_PETUGAS), (k) => keTts.push(k), batal.signal);
+  assert.deepEqual(keTts, ['Obat keras hanya boleh dibeli dengan resep dokter.']);
+
+  // Galat stream tanpa pembatalan tetap diteruskan agar gateway menjawab dengan pesan gangguan.
+  async function* rusak() { yield 'Kalimat pertama. '; throw new Error('hermes 502'); }
+  await assert.rejects(alirkanJawaban(rusak(), new SusunanJawaban(PESAN_BUTUH_PETUGAS), () => {}, new AbortController().signal), /hermes 502/);
 });
 
 test('kalimat yang terlalu panjang dipotong di batas kata', () => {

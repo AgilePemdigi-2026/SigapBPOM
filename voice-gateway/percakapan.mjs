@@ -181,6 +181,34 @@ export class SusunanJawaban {
   }
 }
 
+/**
+ * Mengalirkan potongan jawaban AI menjadi kalimat yang langsung diucapkan lewat `ucapkan`.
+ * Setelah tawaran penutup atau jawaban baku dikenali tidak ada kalimat lain yang diucapkan, jadi loop berhenti dan
+ * `return()` iterator menutup stream AI (Hermes mengabaikan max_tokens, sisa jawabannya hanya membuang token).
+ * Begitu `sinyal` dibatalkan (penelepon memutus panggilan), tidak ada kalimat lagi yang diteruskan ke `ucapkan` (TTS)
+ * dan fungsi selesai normal; pemanggil memeriksa `sinyal.aborted` untuk melewati jawaban pengganti.
+ */
+export async function alirkanJawaban(aliran, susunan, ucapkan, sinyal) {
+  const pemecah = new PemecahKalimat();
+  const proses = (kalimat) => {
+    for (const k of kalimat) {
+      if (sinyal?.aborted) return;
+      const ucap = susunan.tambah(k);
+      if (ucap) ucapkan(ucap);
+    }
+  };
+  try {
+    for await (const potongan of aliran) {
+      proses(pemecah.tambah(potongan));
+      if (susunan.tawaran || susunan.khusus || sinyal?.aborted) break;
+    }
+  } catch (e) {
+    // Stream yang putus karena pembatalan itu sendiri (AbortError dari fetch Hermes) bukan galat; galat lain diteruskan.
+    if (!sinyal?.aborted) throw e;
+  }
+  proses(pemecah.akhiri());
+}
+
 export const jawabanDiLuarTopik = (jawaban) => sederhanakan(jawaban).includes(sederhanakan(PESAN_DI_LUAR_TOPIK));
 
 const POLA_TAWARAN = /ada (lagi )?yang bisa saya bantu/;
@@ -247,6 +275,18 @@ export class AnggaranToken {
     for (const m of [this.perIp, this.perPanggilan]) if (m.size > 5000) m.delete(m.keys().next().value);
   }
 }
+
+// Perkiraan kasar karakter per token, dipakai bila Hermes tidak mengirim `usage`.
+const KARAKTER_PER_TOKEN = 3;
+
+/**
+ * Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
+ * datang (termasuk saat stream putus di tengah). Permintaan yang gagal sebelum menghasilkan keluaran dikembalikan.
+ * Permintaan yang dibatalkan penelepon tetap dibebankan prompt-nya karena Hermes sudah memprosesnya; tanpa itu klien
+ * bisa melewati anggaran dengan memutus koneksi sebelum token pertama.
+ */
+export const tokenTerpakai = (hasil, dibatalkan = false) => hasil.token
+  || (hasil.karKeluaran || dibatalkan ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / KARAKTER_PER_TOKEN) : 0);
 
 /** Kapasitas sesi penuh dan semuanya sedang mengumpulkan pengaduan. Boundary menjawabnya 503. */
 export class SesiPenuh extends Error {

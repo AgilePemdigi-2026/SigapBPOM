@@ -2,6 +2,8 @@
 import regulasiBpom from '../../../knowledge/regulasi-bpom/manifest.json' with { type: 'json' };
 import regulasiTerkait from '../../../knowledge/regulasi-terkait/manifest.json' with { type: 'json' };
 import edukasiBpom from '../../../knowledge/edukasi-bpom/manifest.json' with { type: 'json' };
+import faqPanganOlahan from '../../../knowledge/faq-pangan-olahan/manifest.json' with { type: 'json' };
+import publikasiBpom from '../../../knowledge/publikasi-bpom/manifest.json' with { type: 'json' };
 import type { KueriPenyimpanan, MateriTersimpan, PenyimpananMateri } from '../BasisPengetahuanController.ts';
 
 // Kategori ditebak dari judul; urutan penting karena "Obat Tradisional" juga mengandung "Obat".
@@ -14,7 +16,8 @@ const POLA_KATEGORI: [RegExp, string][] = [
 ];
 const kategoriDari = (judul: string) => POLA_KATEGORI.find(([pola]) => pola.test(judul))?.[1] ?? 'Edukasi Umum';
 
-type DokumenManifest = { file: string; title: string; bentuk: string; tahun: string; nomor?: string; tanggal?: string };
+// `kategori` di manifest dipakai bila ada, karena judul seperti tanya jawab FAQ jarang memuat kata kuncinya.
+type DokumenManifest = { file: string; title: string; bentuk: string; tahun: string; nomor?: string; tanggal?: string; kategori?: string };
 
 /** Dokumen korpus beserta letak berkasnya, relatif terhadap akar repo. */
 export type DokumenKorpus = Omit<MateriTersimpan, 'id' | 'status'> & { berkas: string };
@@ -23,7 +26,7 @@ const dari = (folder: string, dokumen: DokumenManifest[]): DokumenKorpus[] =>
   dokumen.map((d) => ({
     berkas: `knowledge/${folder}/${d.file}`,
     judul: d.title,
-    kategori: kategoriDari(d.title),
+    kategori: d.kategori ?? kategoriDari(d.title),
     // Peraturan dirujuk dengan nomor dan tahun; informasi publik BPOM dengan bentuknya.
     rujukanSumber: d.nomor ? `${d.bentuk} No. ${d.nomor} Tahun ${d.tahun}` : d.bentuk,
     // Tanggal terbit dipakai sebagai waktu pemutakhiran; peraturan tanpa tanggal memakai awal tahunnya.
@@ -34,6 +37,8 @@ export const DOKUMEN_KORPUS: DokumenKorpus[] = [
   ...dari('regulasi-bpom', regulasiBpom.dokumen),
   ...dari('regulasi-terkait', regulasiTerkait.dokumen),
   ...dari('edukasi-bpom', edukasiBpom.dokumen),
+  ...dari('faq-pangan-olahan', faqPanganOlahan.dokumen),
+  ...dari('publikasi-bpom', publikasiBpom.dokumen),
 ];
 
 const terbaru = (a: MateriTersimpan, b: MateriTersimpan) =>

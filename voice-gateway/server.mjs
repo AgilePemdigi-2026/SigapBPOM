@@ -7,8 +7,8 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
-  PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SesiPenuh, SusunanJawaban, idPanggilanSah, inginMenutup, pilihMenu,
-  pesanLayanan, saringUcapan, uraiGiliranJson, teksUntukSuara,
+  PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SesiPenuh, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
+  pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, labelKueri, tabelCek } from './cekbpom.mjs';
@@ -224,14 +224,14 @@ async function sttElevenLabs(audio, tipe) {
 
 // Jawaban dialirkan (stream) per potongan agar kalimat pertama bisa diubah menjadi suara sebelum jawaban selesai.
 // Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan SusunanJawaban, pemakaian lewat AnggaranToken.
-async function* aliranHermes(id, kutipan, hasil) {
+async function* aliranHermes(id, kutipan, hasil, sinyal) {
   const pesan = riwayat.untukModel(id, kutipan);
   hasil.karPrompt = JSON.stringify(pesan).length;
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({ model: HERMES_MODEL, messages: pesan, stream: true }),
-    signal: AbortSignal.timeout(BATAS_WAKTU_HERMES_MS),
+    signal: AbortSignal.any([AbortSignal.timeout(BATAS_WAKTU_HERMES_MS), sinyal]),
   });
   if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
   const dekoder = new TextDecoder();
@@ -269,10 +269,6 @@ async function* aliranHermes(id, kutipan, hasil) {
 
 /** Pemberitahuan internal Hermes (misalnya "⚠️ No reply: every provider ... failed"), bukan jawaban model. */
 const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
-
-// Token yang dibebankan ke anggaran: `usage` dari Hermes, atau perkiraan dari prompt dan keluaran bila `usage` tidak
-// datang (termasuk saat stream putus di tengah). Hanya permintaan yang belum menghasilkan keluaran yang dikembalikan.
-const tokenTerpakai = (hasil) => hasil.token || (hasil.karKeluaran ? Math.ceil((hasil.karPrompt + hasil.karKeluaran) / 3) : 0);
 
 async function ttsElevenLabs(teks) {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
@@ -324,6 +320,9 @@ async function giliran(req, res, url) {
   if (batasAi) throw new ErrorGateway(429, PESAN_BATAS_AI[batasAi]);
   giliranAktif.set(ip, (giliranAktif.get(ip) ?? 0) + 1);
   let cadangan = PERKIRAAN_TOKEN_GILIRAN;
+  // Penelepon memutus panggilan sebelum jawaban selesai: hentikan stream Hermes dan jangan render TTS lagi.
+  const batal = new AbortController();
+  res.on('close', () => { if (!res.writableFinished) batal.abort(); });
   try {
     let audio = null;
     if (ketik === null) {
@@ -335,7 +334,8 @@ async function giliran(req, res, url) {
     const mulai = Date.now();
     const transkrip = ketik ?? await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
-    if (transkrip) pantau.tahap(id, TAHAP.MEMPROSES);
+    // Penelepon sudah memutus panggilan: Hermes belum dipanggil, jadi cadangan token dikembalikan di finally luar.
+    if (batal.signal.aborted) return;
 
     // Jawaban dikirim sebagai NDJSON: transkrip lebih dulu (dengan tanda putar kalimat jeda bila AI dipanggil),
     // lalu tiap kalimat beserta suaranya begitu siap, terakhir sumber dan status panggilan.
@@ -346,6 +346,30 @@ async function giliran(req, res, url) {
       if (!transkrip) {
         tulis({ jenis: 'transkrip', transkrip: '' });
         tulis({ jenis: 'selesai' });
+        return;
+      }
+      pantau.tahap(id, TAHAP.MEMPROSES);
+
+      // T-F4.1-02, T-F4.2-02 (REQ-2.2, REQ-2.3): alur pengaduan seluruhnya di gateway, tanpa AI. Data kurang ditanyakan ulang;
+      // begitu lengkap tiket terbit lewat Edge Function. Ucapan mentah tidak masuk riwayat dan tidak pernah sampai ke model.
+      if (pengaduan.aktif(id)) {
+        tulis({ jenis: 'transkrip', transkrip });
+        let hasil;
+        try {
+          hasil = await prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan: transkrip, ip });
+        } catch (e) {
+          if (e instanceof BatasTiketTercapai) {
+            console.info(JSON.stringify({ ev: 'pengaduan', tahap: 'ditolak', batas: e.jenis }));
+            throw new ErrorGateway(429, 'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.');
+          }
+          throw e;
+        }
+        // Tiket tetap terbit walau penelepon sudah memutus; hanya render suaranya yang dilewati.
+        const suara = hasil.tiket ? (batal.signal.aborted ? null : terbitkanTokenSuara(hasil.jawaban, ip)) : hasil.suara;
+        console.info(JSON.stringify({ ev: 'pengaduan', tahap: hasil.tahap, kurang: hasil.kurang, stt_ms: tStt }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        ucapkan(hasil.jawaban, suara);
+        tulis({ jenis: 'selesai', sumber: [], pengaduan: hasil.tiket });
         return;
       }
 
@@ -402,7 +426,8 @@ async function giliran(req, res, url) {
               throw e;
             }
             jawaban = pesanTiketEskalasi(tiket);
-            suara = terbitkanTokenSuara(jawaban, ip);
+            // Tiket tetap terbit walau penelepon sudah memutus; hanya render suaranya yang dilewati.
+            suara = batal.signal.aborted ? null : terbitkanTokenSuara(jawaban, ip);
           } else {
             jawaban = PESAN_MINTA_ULANG_TELEPON;
             suara = '/voice/statis/ulang-telepon';
@@ -436,9 +461,9 @@ async function giliran(req, res, url) {
       }
 
       riwayat.tambah(id, 'user', transkrip);
+      // Kalimat jeda juga menutupi waktu cek registrasi di cekbpom (paling lama 5 detik).
       tulis({ jenis: 'transkrip', transkrip, jeda: true });
       // Pertanyaan status registrasi suatu produk dijawab tool cek_registrasi_bpom, selain itu tool cari_basis_pengetahuan.
-      // Suara jeda sudah diputar panel selama pencarian ini berlangsung.
       // Selama alur pengaduan (layanan 2) nama produk adalah data pengaduan, jadi tidak dicek di cekbpom.
       const tCek = Date.now();
       const keadaanCek = riwayat.cekRegistrasi(id);
@@ -448,7 +473,7 @@ async function giliran(req, res, url) {
         : null;
       // Kandidat hasil ganda hanya berlaku untuk giliran tepat sesudahnya.
       riwayat.aturCekRegistrasi(id, cek?.keadaan ?? { ...keadaanCek, kandidat: null });
-      let kutipan = [], konteks, produk;
+      let konteks, kutipan = [];
       if (cek) {
         if (cek.kueri) tulis({ jenis: 'cek', ...tabelCek(cek.kueri, cek.data) });
         if (cek.galat) console.error(JSON.stringify({ ev: 'cekbpom_gagal', jenis: cek.galat }));
@@ -456,61 +481,67 @@ async function giliran(req, res, url) {
         const ms = Date.now() - tCek;
         console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms }));
         if (cek.kueri) kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
-        produk = cek.produk;
         konteks = cek.konteks;
       } else {
         const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
-        kutipan = basis.kutipan;
+        kutipan = basis.kutipan.slice(0, KUTIPAN_MAKS);
         konteks = pesanBasisPengetahuan(kutipan, basis.mode);
+      }
+      if (batal.signal.aborted) return;
+      if (cek?.jawaban) {
+        // NFR-7: hasil tunggal, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
+        // Tawaran penutup diucapkan terpisah agar memakai audio statisnya.
+        const isi = cek.jawaban.endsWith(PESAN_TAWARAN_PENUTUP) ? cek.jawaban.slice(0, -PESAN_TAWARAN_PENUTUP.length).trim() : cek.jawaban;
+        const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === isi);
+        ucapkan(isi, statis ? `/voice/statis/${statis}` : terbitkanTokenSuara(isi, ip));
+        if (isi !== cek.jawaban) ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
+        riwayat.tambah(id, 'assistant', cek.jawaban);
+        console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: Date.now() - mulai, jalur: cek.jalur, token: 0 }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        tulis({ jenis: 'selesai', sumber: [], produk: cek.produk });
+        return;
       }
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
-      let tKalimat1 = 0, jawaban, diLuarTopik = false;
-      if (cek?.jawaban) {
-        // NFR-7: hasil tunggal, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
-        jawaban = cek.jawaban;
-        tKalimat1 = Date.now() - mulai;
-        // Jawaban yang sama persis dengan pesan tetap memakai audio yang sudah dirender saat gateway mulai.
-        const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === jawaban);
-        ucapkan(jawaban, statis ? `/voice/statis/${statis}` : terbitkanTokenSuara(jawaban, ip));
-      } else {
-        const pemecah = new PemecahKalimat();
-        const proses = (kalimat) => {
-          for (const k of kalimat) {
-            const ucap = susunan.tambah(k);
-            if (!ucap) continue;
-            if (!tKalimat1) tKalimat1 = Date.now() - mulai;
-            ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
-          }
-        };
-        try {
-          for await (const potongan of aliranHermes(id, konteks, hasil)) proses(pemecah.tambah(potongan));
-          proses(pemecah.akhiri());
-        } finally {
-          hasil.token = tokenTerpakai(hasil);
-          anggaranAi.catat(ip, id, hasil.token - cadangan);
-          cadangan = 0;
-        }
+      let tKalimat1 = 0;
+      const ucapkanKalimat = (ucap) => {
+        if (!tKalimat1) tKalimat1 = Date.now() - mulai;
+        ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
+      };
+      try {
+        await alirkanJawaban(aliranHermes(id, konteks, hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
+      } finally {
+        hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
+        anggaranAi.catat(ip, id, hasil.token - cadangan);
+        cadangan = 0;
+      }
+      if (batal.signal.aborted) {
+        // Tidak ada yang mendengar lagi: lewati jawaban pengganti (render TTS), tawaran penutup, dan baris selesai. Kalimat yang sudah
+        // terkirim tetap masuk riwayat agar giliran berikutnya (bila koneksi hanya putus sesaat) tidak melihat dua ucapan
+        // user berturut-turut. Tawaran penutup belum terucap, jadi tidak ikut dicatat.
+        if (susunan.isi.length) riwayat.tambah(id, 'assistant', susunan.isi.join(' '));
+        console.info(JSON.stringify({ ev: 'giliran', batal: true, stt_ms: tStt, total_ms: Date.now() - mulai, kalimat: susunan.isi.length, token: hasil.token }));
+        return;
+      }
 
-        jawaban = susunan.teks;
-        diLuarTopik = susunan.khusus === 'di_luar_topik';
-        // Jawaban baku baru dikenali setelah kalimat isi terkirim: panel membuang audio yang belum diputar dan teksnya.
-        if (susunan.khusus && susunan.isi.length) tulis({ jenis: 'ganti' });
-        if (diLuarTopik) {
-          jawaban = PESAN_DI_LUAR_TOPIK;
-          riwayat.catatDiLuarTopik(id);
-          ucapkan(jawaban, '/voice/statis/di-luar-topik');
-        } else if (susunan.khusus === 'butuh_petugas') {
-          // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
-          jawaban = PESAN_BUTUH_PETUGAS;
-          riwayat.mulaiEskalasi(id, transkrip);
-          ucapkan(jawaban, '/voice/statis/butuh-petugas');
-        } else if (!susunan.isi.length) {
-          jawaban = 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
-          ucapkan(jawaban, terbitkanTokenSuara(jawaban, ip));
-        } else if (susunan.tawaran) {
-          ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
-        }
+      let jawaban = susunan.teks;
+      const diLuarTopik = susunan.khusus === 'di_luar_topik';
+      // Jawaban baku baru dikenali setelah kalimat isi terkirim: panel membuang audio yang belum diputar dan teksnya.
+      if (susunan.khusus && susunan.isi.length) tulis({ jenis: 'ganti' });
+      if (diLuarTopik) {
+        jawaban = PESAN_DI_LUAR_TOPIK;
+        riwayat.catatDiLuarTopik(id);
+        ucapkan(jawaban, '/voice/statis/di-luar-topik');
+      } else if (susunan.khusus === 'butuh_petugas') {
+        // Pertanyaan medis yang lolos dari pola dikenali dari jawaban AI: giliran berikutnya meminta nomor telepon.
+        jawaban = PESAN_BUTUH_PETUGAS;
+        riwayat.mulaiEskalasi(id, transkrip);
+        ucapkan(jawaban, '/voice/statis/butuh-petugas');
+      } else if (!susunan.isi.length) {
+        jawaban = 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
+        ucapkan(jawaban, terbitkanTokenSuara(jawaban, ip));
+      } else if (susunan.tawaran) {
+        ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
       }
       riwayat.tambah(id, 'assistant', jawaban);
       console.info(JSON.stringify({
@@ -518,9 +549,9 @@ async function giliran(req, res, url) {
         jawaban_kar: jawaban.length, kalimat: susunan.isi.length, kutipan: kutipan.length, di_luar_topik: diLuarTopik,
         token: hasil.token, token_hari_ini: anggaranAi.total,
       }));
-      // Hasil cekbpom tampil sebagai kartu produk, dan jawaban yang merujuk ke cekbpom tidak memakai kutipan,
-      // jadi keduanya tanpa chip sumber.
-      if (susunan.khusus) produk = undefined;
+      // Hasil cekbpom tampil sebagai kartu produk, dan jawaban baku atau yang merujuk ke cekbpom tidak memakai kutipan,
+      // jadi semuanya tanpa chip sumber.
+      const produk = diLuarTopik ? undefined : cek?.produk;
       const sumber = susunan.khusus || produk || /cekbpom/i.test(jawaban) ? [] : sumberUntukPanel(kutipan);
       pantau.tahap(id, TAHAP.MENJAWAB);
       tulis({ jenis: 'selesai', sumber, produk });
