@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CekBpom, hasilProduk, kueriProduk, pesanCekBpom } from './cekbpom.mjs';
+import { CekBpom, cekRegistrasi, hasilProduk, kueriProduk, pesanCekBpom } from './cekbpom.mjs';
 
 test('req_1_3 kueri produk dikenali dari pertanyaan status registrasi', () => {
   assert.deepEqual(kueriProduk('Apakah Indomie goreng sudah terdaftar di BPOM?'), { nama: 'indomie goreng' });
@@ -49,7 +49,7 @@ test('req_1_3 hasil per merek disaring dengan sisa kata nama produk', async () =
     fetch: async (url, opsi) => {
       if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="t">');
       if (/product_brand=indomie&/.test(opsi.body)) {
-        return Response.json({ recordsFiltered: 2, data: [{ PRODUCT_NAME: 'Mi Instan Goreng', PRODUCT_REGISTER: 'MD 1' }, { PRODUCT_NAME: 'Mi Instan Soto', PRODUCT_REGISTER: 'MD 2' }] });
+        return Response.json({ recordsFiltered: 2, data: [{ PRODUCT_NAME: 'Mi Instan Goreng', PRODUCT_REGISTER: 'MD 1', STATUS: 'Berlaku' }, { PRODUCT_NAME: 'Mi Instan Soto', PRODUCT_REGISTER: 'MD 2', STATUS: 'Berlaku' }] });
       }
       return Response.json({ recordsFiltered: 0, data: [] });
     },
@@ -64,12 +64,12 @@ test('req_1_3 merek di kata mana pun: "susu greenfield" ditemukan lewat merek Gr
       if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="t">');
       if (/product_brand=greenfield&/.test(opsi.body)) {
         return Response.json({ recordsFiltered: 209, data: [
-          { PRODUCT_NAME: 'Susu UHT Full Cream', PRODUCT_BRANDS: 'Greenfields', PRODUCT_REGISTER: 'MD 400213330621' },
-          { PRODUCT_NAME: 'Krim Whipping', PRODUCT_BRANDS: 'Greenfields', PRODUCT_REGISTER: 'MD 402513022621' },
+          { PRODUCT_NAME: 'Susu UHT Full Cream', PRODUCT_BRANDS: 'Greenfields', PRODUCT_REGISTER: 'MD 400213330621', STATUS: 'Berlaku' },
+          { PRODUCT_NAME: 'Krim Whipping', PRODUCT_BRANDS: 'Greenfields', PRODUCT_REGISTER: 'MD 402513022621', STATUS: 'Berlaku' },
         ] });
       }
       if (/product_brand=susu&/.test(opsi.body)) {
-        return Response.json({ recordsFiltered: 117, data: [{ PRODUCT_NAME: 'Susu Lemak Penuh', PRODUCT_BRANDS: 'SUKASUSU', PRODUCT_REGISTER: 'MD 9' }] });
+        return Response.json({ recordsFiltered: 117, data: [{ PRODUCT_NAME: 'Susu Lemak Penuh', PRODUCT_BRANDS: 'SUKASUSU', PRODUCT_REGISTER: 'MD 9', STATUS: 'Berlaku' }] });
       }
       return Response.json({ recordsFiltered: 0, data: [] });
     },
@@ -111,6 +111,18 @@ test('req_1_3 token kedaluwarsa (419) membuka sesi baru sekali', async () => {
     },
   });
   assert.equal((await cek.cari({ nomor: 'MD 001' })).produk.length, 1);
+});
+
+test('nfr_7 status izin yang tidak dikenal tidak ditebak sebagai Berlaku', async () => {
+  for (const STATUS of [undefined, '', 'Dibekukan']) {
+    const cek = new CekBpom({ fetch: fetchTiruan([{ ...baris(1), STATUS }]) });
+    const hasil = await cekRegistrasi(cek, 'nomor izin edar MD 001234567');
+    assert.equal(hasil.produk, undefined, `STATUS ${STATUS}`);
+    assert.match(hasil.galat, /status tidak dikenal/);
+    assert.match(hasil.konteks, /Jangan menyebut status atau nomor izin edar/);
+  }
+  const cek = new CekBpom({ fetch: fetchTiruan([{ ...baris(1), STATUS: 'Tidak Berlaku' }]) });
+  assert.equal((await cek.cari({ nomor: 'MD 001' })).produk[0].status, 'Tidak Berlaku');
 });
 
 test('br_7 kartu produk: tunggal, kandidat maksimal tiga, atau tidak ditemukan', () => {

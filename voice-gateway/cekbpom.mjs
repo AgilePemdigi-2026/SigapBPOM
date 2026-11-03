@@ -48,7 +48,9 @@ function statusIzin(s) {
   const t = String(s ?? '').toLowerCase();
   if (t.includes('batal')) return 'Dibatalkan';
   if (t.includes('tidak') || t.includes('habis') || t.includes('kadaluarsa') || t.includes('expired')) return 'Tidak Berlaku';
-  return 'Berlaku';
+  if (t.includes('berlaku')) return 'Berlaku';
+  // NFR-7: status yang tidak dikenal tidak ditebak; kueri ini diperlakukan sebagai gangguan cekbpom.
+  throw new Error('cekbpom status tidak dikenal');
 }
 
 /** Bentuk sama dengan `Produk` di src/lib/kartuPanggilan.ts, plus merek dan tanggal berlaku untuk konteks AI. */
