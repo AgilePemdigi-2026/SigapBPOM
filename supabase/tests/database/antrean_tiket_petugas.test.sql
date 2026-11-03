@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(15);
 
 -- 1. Hak akses: pengguna anon ditolak mengakses view, tabel, dan RPC
 set local role anon;
@@ -39,18 +39,18 @@ select throws_ok(
   'Pengguna anon tidak boleh membaca tabel tiket'
 );
 
--- 2. Siapkan data dummy dengan service_role
+-- 2. Siapkan akun petugas uji dengan role bawaan tes, seperti seed.sql: service_role tidak boleh menulis auth.users
 reset role;
-set local role service_role;
-
--- Siapkan akun petugas uji
 insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-000000000088', 'petugas.antrean@halobpom.go.id')
 on conflict (id) do nothing;
 
-insert into public.petugas (id, nama, email)
-values ('00000000-0000-0000-0000-000000000088', 'Petugas Antrean', 'petugas.antrean@halobpom.go.id')
+insert into public.petugas (id, nama)
+values ('00000000-0000-0000-0000-000000000088', 'Petugas Antrean')
 on conflict (id) do nothing;
+
+-- Siapkan data dummy dengan service_role
+set local role service_role;
 
 -- Siapkan penelepon dengan data mentah
 insert into public.penelepon (id, no_telp, nama_pelapor)
