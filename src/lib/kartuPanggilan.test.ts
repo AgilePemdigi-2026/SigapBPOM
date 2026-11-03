@@ -8,6 +8,7 @@ import {
   htmlKartuPengaduan,
   htmlKartuProduk,
   htmlKartuTiket,
+  pesanAkhirPanggilan,
   pesanTiketEskalasi,
   pesanTiketPengaduan,
   type Produk,
@@ -91,4 +92,24 @@ test('t_f4_2_03 event pengaduan dari gateway tanpa field tiket tetap merender ka
 test('t_f4_2_03 event tiket eskalasi tetap merender kartu eskalasi, event tanpa tiket tidak merender kartu', () => {
   assert.equal(htmlKartuTiket({ tiket: 'ESK-20261019-0001' }), htmlKartuEskalasi('ESK-20261019-0001'));
   assert.equal(htmlKartuTiket({}), '');
+});
+
+test('t_f4_3_03 req_2_5 event pengaduan tidak lengkap dari gateway menampilkan pesan persis kamus pesan', () => {
+  // Bentuk `data` balasan /voice/akhiri untuk pengaduan yang belum bertiket.
+  const data = { pesan: 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.', tersimpan: true, lengkap: 2 };
+  assert.equal(
+    pesanAkhirPanggilan({ layanan: 2, tiketPengaduan: false, akhir: data }),
+    'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.',
+  );
+});
+
+test('t_f4_3_03 req_2_5 pengaduan tanpa tiket menampilkan pesan kamus sebelum gateway membalas', () => {
+  assert.equal(pesanAkhirPanggilan({ layanan: 2, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
+  assert.equal(pesanAkhirPanggilan({ layanan: 2, tiketPengaduan: false, akhir: null }), PESAN_PENGADUAN_TIDAK_LENGKAP);
+});
+
+test('t_f4_3_03 pengaduan bertiket dan layanan informasi produk tidak menampilkan pesan pengaduan tidak lengkap', () => {
+  assert.notEqual(pesanAkhirPanggilan({ layanan: 2, tiketPengaduan: true }), PESAN_PENGADUAN_TIDAK_LENGKAP);
+  assert.notEqual(pesanAkhirPanggilan({ layanan: 1, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
+  assert.notEqual(pesanAkhirPanggilan({ layanan: null, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
 });
