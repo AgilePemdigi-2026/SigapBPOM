@@ -98,7 +98,11 @@ export class SesiSupabase implements AdapterSesi {
       if (typeof akses !== 'string' || typeof refresh !== 'string') return sistem;
       // Token dari Edge Function tidak dipercaya begitu saja: divalidasi dan dicek perannya sebelum cookie dipasang.
       const petugas = await this.periksa(akses);
-      if (!petugas) return null;
+      if (!petugas) {
+        // Sesi yang sudah dibuat Edge Function dicabut agar refresh token-nya tidak menggantung.
+        await this.panggil('/auth/v1/logout?scope=local', { token: akses, method: 'POST' });
+        return null;
+      }
       this.pasangCookie(cookies, { akses, refresh });
       return petugas;
     }

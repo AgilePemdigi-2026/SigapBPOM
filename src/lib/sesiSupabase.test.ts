@@ -61,14 +61,15 @@ test('login memanggil Edge Function login dengan kunci anon dan memasang cookie 
   for (const o of Object.values(dipasang)) assert.deepEqual(o, { path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
 });
 
-test('login dengan token dari Edge Function yang bukan petugas ditolak tanpa cookie', async () => {
-  const { sesi } = buat((p) => {
+test('req_3_2 login dengan token dari Edge Function yang bukan petugas ditolak tanpa cookie dan sesinya dicabut', async () => {
+  const { sesi, panggilan } = buat((p) => {
     if (p.url.endsWith('/functions/v1/login')) return { json: { sukses: true, sesi: { access_token: TOKEN, refresh_token: 'rt-1' } } };
     return petugasOk(TOKEN, false)(p);
   });
   const { cookies, isi } = buatCookies();
   assert.equal(await sesi.masuk('a@pom.go.id', 'x', cookies), null);
   assert.equal(isi.size, 0);
+  assert.ok(panggilan.some((p) => p.url.endsWith('/auth/v1/logout?scope=local') && p.method === 'POST' && p.auth === `Bearer ${TOKEN}`));
 });
 
 test('pesan kredensial salah dan akun terkunci dari Edge Function diteruskan, tanpa cookie', async () => {
