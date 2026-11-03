@@ -8,7 +8,8 @@ export const GET: APIRoute = async () => {
     const panggilan = await pemantauanLayanan().panggilanBerjalan();
     return Response.json({ status: 'success', message: 'OK', data: { panggilan } }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
-    console.error('panggilan-berjalan', e);
+    // PROJECT_RULES 5.10: hanya jenis galat, tanpa isi atau stack.
+    console.error('panggilan-berjalan', e instanceof Error ? e.name : 'unknown');
     return Response.json({ status: 'error', message: 'Data panggilan gagal dimuat.', data: null }, { status: 500 });
   }
 };
