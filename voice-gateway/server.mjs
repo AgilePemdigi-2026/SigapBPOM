@@ -21,6 +21,7 @@ import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
 } from './eskalasi.mjs';
+import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -92,6 +93,15 @@ const pengaduan = new PengaduanController({
   pengirimSms: new PengirimSmsTiruan(),
   pembatas: pembatasTiket,
 });
+// Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
+const pantau = new PemantauPanggilan({
+  pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
+  konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
+  // Panggilan yang sedang mengumpulkan pengaduan tidak ditutup selama jeda bicara; batas atasnya ada di PemantauPanggilan.
+  tahan: (id) => pengaduan.aktif(id),
+  onGalat: (e) => console.error(JSON.stringify({ ev: 'pantau_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
+});
+pantau.mulai();
 let korpus = null;
 try {
   const mulai = Date.now();
@@ -107,7 +117,7 @@ async function akhiriPengaduan(id) {
   return hasil && { pesan: hasil.pesan, tersimpan: hasil.tersimpan };
 }
 // Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
-riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}); };
+riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)); };
 riwayat.dilindungi = (id) => pengaduan.aktif(id);
 setInterval(() => riwayat.bersihkan(), 60_000).unref();
 
@@ -248,6 +258,8 @@ async function giliran(req, res, url) {
     if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
     const menu = pilihMenu(riwayat, pengaduan, body.id, Number(body.pilih));
     if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+    // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
+    // pertama yang sudah melewati kuota dan pembatas laju.
     riwayat.aturCekRegistrasi(body.id, { ulangNama: 0, kandidat: null });
     return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
   }
@@ -266,11 +278,13 @@ async function giliran(req, res, url) {
   try {
     const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
     if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
+    pantau.tahap(id, TAHAP.MENDENGAR);
 
     const mulai = Date.now();
     const transkrip = await sttElevenLabs(audio, tipe);
     const tStt = Date.now() - mulai;
     if (!transkrip) return kirim(res, 200, 'success', 'OK', { transkrip: '', jawaban: null, suara: null });
+    pantau.tahap(id, TAHAP.MEMPROSES);
 
     // T-F4.1-02, T-F4.2-02 (REQ-2.2, REQ-2.3): alur pengaduan seluruhnya di gateway, tanpa AI. Data kurang ditanyakan ulang;
     // begitu lengkap tiket terbit lewat Edge Function. Ucapan mentah tidak masuk riwayat dan tidak pernah sampai ke model.
@@ -329,6 +343,7 @@ async function giliran(req, res, url) {
       }
       riwayat.tambah(id, 'assistant', jawaban);
       console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
+      pantau.tahap(id, TAHAP.MENJAWAB);
       return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber: [], suara, tiket });
     }
 
@@ -400,6 +415,7 @@ async function giliran(req, res, url) {
     // Jawaban yang sama persis dengan pesan tetap memakai audio yang sudah dirender saat gateway mulai.
     const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === jawaban);
     const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : statis ? `/voice/statis/${statis}` : terbitkanTokenSuara(jawaban, ip);
+    pantau.tahap(id, TAHAP.MENJAWAB);
     return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup, produk });
   } finally {
     // AI tidak jadi dipanggil (ucapan kosong, tersaring, atau galat): kembalikan cadangan.
@@ -455,6 +471,7 @@ const server = createServer(async (req, res) => {
       if (!idPanggilanSah(body.id)) return kirim(res, 200, 'success', 'OK');
       // REQ-2.5: pengaduan yang belum bertiket disimpan sebagai pengaduan tidak lengkap; pesannya dikirim ke panel.
       const akhir = await akhiriPengaduan(body.id);
+      await pantau.akhiri(body.id);
       riwayat.hapus(body.id);
       return kirim(res, 200, 'success', 'OK', akhir);
     }
