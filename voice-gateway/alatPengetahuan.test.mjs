@@ -78,6 +78,8 @@ test('t_f1_3_03 tanpa pencari dikonfigurasi dipakai korpus lokal; tanpa keduanya
 test('t_f1_3_03 pesan agen meminta penutup Sumber, memuat rujukan, dan pesan baku di luar topik', () => {
   const pesan = pesanBasisPengetahuan([{ judul: 'Label Pangan Olahan', label: 'Peraturan BPOM Nomor 26 Tahun 2021', sumber: '', teks: POTONGAN.teks }]);
   assert.ok(pesan.includes('"Sumber: <rujukan>"'));
+  // Sumber ditutup lebih dulu, baru tawaran penutup dari prompt sistem, agar keduanya tidak bersaing.
+  assert.ok(pesan.indexOf('"Sumber: <rujukan>"') < pesan.indexOf('lalu baru kalimat penawaran penutup'));
   assert.ok(pesan.includes('Rujukan: Peraturan BPOM Nomor 26 Tahun 2021'));
   assert.ok(pesan.includes(POTONGAN.teks));
   assert.ok(pesan.includes(PESAN_DI_LUAR_TOPIK));
