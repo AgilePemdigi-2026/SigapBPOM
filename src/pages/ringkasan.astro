@@ -5,6 +5,9 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Orb from '../components/Orb.astro';
 import { KB_TOTAL } from '../lib/data';
 import { pemantauanLayanan } from '../lib/pemantauan';
+import { BasisPengetahuanController } from '../lib/BasisPengetahuanController';
+import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
+import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
 
 const PERIODE = [
   ['harian', 'Harian', 'Panggilan masuk hari ini per jam'],
@@ -14,7 +17,18 @@ const PERIODE = [
 const AWAL = 'mingguan';
 
 const fmt = (n: number) => n.toLocaleString('id-ID');
-const ringkasan = await pemantauanLayanan(Astro.locals.tokenAkses).ringkasanLayanan().catch(() => null);
+const konfigurasi = bacaKonfigurasiSupabase();
+const token = Astro.locals.tokenAkses;
+// Jumlah materi dibaca dari Supabase dengan token petugas, sama seperti halaman Basis Pengetahuan; tanpa token memakai data tiruan.
+const materiTotal = async () => {
+  if (!konfigurasi || !token) return KB_TOTAL.total;
+  const hasil = await new BasisPengetahuanController(new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })).daftarMateri({ ukuran: 1 });
+  return 'total' in hasil ? hasil.total : null;
+};
+const [ringkasan, jumlahMateri] = await Promise.all([
+  pemantauanLayanan(token).ringkasanLayanan().catch(() => null),
+  materiTotal().catch(() => null),
+]);
 const st = ringkasan?.statistik;
 const urgent = ringkasan?.kasus ?? [];
 const KATEGORI = ringkasan?.kategori ?? [];
@@ -133,7 +147,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         <span class="grow"></span>
         <a href="/pantau-ai-agent" class="tile agent">
           <span class="dot-idle"></span>
-          <span class="agent-text"><span>Pantau AI Agent</span><span>Basis pengetahuan · {fmt(KB_TOTAL.total)} materi</span></span>
+          <span class="agent-text"><span>Pantau AI Agent</span><span>Basis pengetahuan · {jumlahMateri === null ? '—' : fmt(jumlahMateri)} materi</span></span>
           <i class="icon-arrow-up-right"></i>
         </a>
       </section>
