@@ -77,6 +77,26 @@ test('req_4_2 penelepon yang diam lama lalu berbicara lagi tetap tercatat sebaga
   assert.equal(pelapor.daftarAktif()[0].tahap, 'mendengar');
 });
 
+test('req_4_2 penelepon yang diam lama lalu menekan akhiri tetap menutup panggilannya', async () => {
+  const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000 });
+  pantau.tahap(ID, TAHAP.MENJAWAB);
+  await tunggu();
+  for (let i = 0; i < 7; i++) await maju(15_000); // diam 105 detik, melewati diamMs
+  await pantau.akhiri(ID);
+  assert.equal(pelapor.panggilan.get(ID).selesai, true, 'akhiri terkirim walau panggilan sedang diam');
+  assert.deepEqual(pelapor.daftarAktif(), []);
+});
+
+test('req_4_2 panggilan yang diam melewati lupaMs dilupakan gateway', async () => {
+  const { pantau, maju, tunggu } = siapkan({ diamMs: 90_000, lupaMs: 600_000 });
+  pantau.tahap(ID, TAHAP.MENJAWAB);
+  await tunggu();
+  await maju(500_000);
+  assert.equal(pantau.sesi.size, 1, 'masih diingat sebelum lupaMs');
+  await maju(100_001);
+  assert.equal(pantau.sesi.size, 0);
+});
+
 test('req_4_2 penulisan di-throttle: perubahan tahap beruntun tidak ditulis satu per satu', async () => {
   const { pelapor, pantau, maju, tunggu } = siapkan({ jedaMinMs: 2_000 });
   pantau.tahap(ID, TAHAP.MENDENGAR);

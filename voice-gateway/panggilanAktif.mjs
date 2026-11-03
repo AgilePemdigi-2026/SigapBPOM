@@ -90,22 +90,23 @@ export class PelaporPanggilanSupabase {
  * Pelacak panggilan aktif. `tahap()` dipanggil dari alur giliran; penulisan ke pelapor di-throttle:
  *  - perubahan tahap/layanan/topik ditulis paling cepat sekali per `jedaMinMs` (yang tertunda ditulis pada tik berikutnya),
  *  - panggilan yang tidak berubah tetap mengirim heartbeat tiap `heartbeatMs`,
- *  - panggilan tanpa aktivitas selama `diamMs` berhenti dilacak dan heartbeat-nya berhenti (penelepon mungkin pergi tanpa
- *    memanggil /voice/akhiri). Panggilan tidak ditutup di sini: view menyembunyikannya setelah batas heartbeat dan penyapu
- *    basis data menutupnya, sedangkan penelepon yang ternyata masih ada dicatat lagi pada giliran berikutnya selama barisnya belum disapu,
+ *  - panggilan tanpa aktivitas selama `diamMs` berhenti mengirim heartbeat (penelepon mungkin pergi tanpa memanggil
+ *    /voice/akhiri). Panggilan tidak ditutup di sini: view menyembunyikannya setelah batas heartbeat dan penyapu basis data
+ *    menutupnya. Penelepon yang ternyata masih ada dicatat lagi pada giliran berikutnya selama barisnya belum disapu, dan
+ *    akhiri tetap diteruskan; sesinya baru dilupakan setelah diam selama `lupaMs`,
  *  - jumlah panggilan terlacak dibatasi `maks` agar gateway publik tidak dipakai membanjiri basis data.
  * Tidak ada penulisan per potongan audio: hanya per perubahan tahap.
  */
 export class PemantauPanggilan {
   constructor({
     pelapor, konteks = () => ({}), now = () => Date.now(), onGalat = () => {},
-    heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, maks = 200,
+    heartbeatMs = 15_000, jedaMinMs = 2_000, diamMs = 90_000, lupaMs = diamMs + 10 * 60_000, maks = 200,
   }) {
     this.pelapor = pelapor;
     this.konteks = konteks;
     this.now = now;
     this.onGalat = onGalat;
-    this.batas = { heartbeatMs, jedaMinMs, diamMs, maks };
+    this.batas = { heartbeatMs, jedaMinMs, diamMs, lupaMs, maks };
     this.sesi = new Map();
     this.timer = null;
   }
@@ -154,12 +155,15 @@ export class PemantauPanggilan {
     }
   }
 
-  /** Dipanggil berkala: kirim perubahan tertunda dan heartbeat, lepas panggilan yang diam tanpa menutupnya. */
+  /** Dipanggil berkala: kirim perubahan tertunda dan heartbeat; panggilan yang diam tidak dikirim dan tidak ditutup. */
   tik() {
     const sekarang = this.now();
     for (const [id, s] of this.sesi) {
-      if (sekarang - s.aktif > this.batas.diamMs) {
+      const diam = sekarang - s.aktif;
+      if (diam > this.batas.lupaMs) {
         this.sesi.delete(id);
+      } else if (diam > this.batas.diamMs) {
+        continue;
       } else if (this.berubah(s) ? sekarang - s.kirimTerakhir >= this.batas.jedaMinMs : sekarang - s.kirimTerakhir >= this.batas.heartbeatMs) {
         this.kirim(id, s);
       }
