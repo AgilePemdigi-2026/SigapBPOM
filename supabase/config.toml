@@ -421,3 +421,6 @@ verify_jwt = false
 
 [functions.terbitkan-tiket-eskalasi]
 verify_jwt = false
+
+[functions.katalog-materi]
+verify_jwt = false
