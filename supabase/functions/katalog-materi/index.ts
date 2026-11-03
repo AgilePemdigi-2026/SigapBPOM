@@ -1,6 +1,7 @@
 // Boundary UC-07: katalog materi_pengetahuan untuk Voice Gateway, agar kutipan CS AI mengikuti Basis Pengetahuan.
-// POST { offset?, batas? } -> { status, message, data: { materi: [{ judul, rujukan_sumber, status, isi }] } }
-// Hanya kolom yang dipakai pencarian; kunci service_role tetap di Supabase, gateway cukup memegang SIGAP_KUNCI_INTERNAL.
+// POST { offset?, batas? } -> { status, message, data: { materi: [{ judul, rujukan_sumber, status, isi? }] } }
+// Hanya kolom yang dipakai pencarian; isi hanya untuk materi aktif, karena materi nonaktif cukup dikenali lewat
+// judul dan rujukan_sumber. Kunci service_role tetap di Supabase, gateway cukup memegang SIGAP_KUNCI_INTERNAL.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 import { layani } from '../_shared/boundary/http.ts';
 
@@ -18,5 +19,5 @@ layani(async (body) => {
     .order('id')
     .range(offset, offset + batas - 1);
   if (error) throw error;
-  return { materi: data };
+  return { materi: data.map(({ isi, ...b }) => (b.status === 'aktif' ? { ...b, isi } : b)) };
 });
