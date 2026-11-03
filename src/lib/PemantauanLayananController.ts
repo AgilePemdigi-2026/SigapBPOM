@@ -170,6 +170,8 @@ const label = (kamus: Record<string, string>, kunci: string | null | undefined) 
 
 /** Komponen yang selalu tampil di halaman pantau, meski gateway tidak melaporkannya (T-F5.4-01). */
 export const KOMPONEN_AGENT = ['Voice Gateway', 'Hermes', 'STT/TTS', 'cekbpom'] as const;
+/** Nama tool cek registrasi di log_tool (InformasiProdukController, REQ-1.3). */
+export const TOOL_CEK_REGISTRASI = 'cek_registrasi_bpom';
 
 // REQ-4.1: tabel Kasus Perlu Tindak Lanjut di ringkasan memuat beberapa tiket teratas saja.
 export const BATAS_KASUS_RINGKASAN = 3;
@@ -363,6 +365,12 @@ export class PemantauanLayananController {
       (this.penyimpanan.ambilLogTool?.(BATAS_LOG_TOOL) ?? Promise.resolve([])).catch((): LogToolTersimpan[] => []),
     ]);
     const perNama = new Map(hasil.map((k) => [k.nama, k]));
+    // cekbpom dipanggil lewat tool cek registrasi, jadi kondisinya diambil dari pemanggilan tool terakhir, selama
+    // gateway terjangkau dan belum melaporkannya sendiri.
+    const cekTerakhir = log.reduce<LogToolTersimpan | null>((t, l) => (l.namaTool === TOOL_CEK_REGISTRASI && (!t || l.waktu > t.waktu) ? l : t), null);
+    if (hasil.length && cekTerakhir && !perNama.has('cekbpom')) {
+      perNama.set('cekbpom', { nama: 'cekbpom', sehat: cekTerakhir.berhasil, latensiMs: cekTerakhir.durasiMs });
+    }
     const komponen = [...KOMPONEN_AGENT, ...hasil.map((k) => k.nama).filter((n) => !(KOMPONEN_AGENT as readonly string[]).includes(n))].map(
       (nama): StatusKomponen => {
         const k = perNama.get(nama);

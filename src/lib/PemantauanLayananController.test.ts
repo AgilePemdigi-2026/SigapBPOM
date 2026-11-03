@@ -370,13 +370,37 @@ test('t_f5_4_01 adapter Supabase membaca log_tool terbaru lebih dulu', async () 
   assert.equal(dipanggil[0].url.searchParams.get('select'), 'id,nama_tool,durasi_ms,berhasil,waktu');
 });
 
-test('t_f5_4_01 adapter gateway membaca endpoint health', async () => {
+test('t_f5_4_01 adapter gateway membaca /voice/kesehatan dan mengukur latensinya', async () => {
   const dipanggil: string[] = [];
-  const fetchPalsu = (async (url: string) => {
+  let t = 1000;
+  const balasan = (siap: unknown) => (async (url: string) => {
     dipanggil.push(url);
-    return Response.json({ status: 'success', message: 'OK', data: { komponen: [{ nama: 'Hermes', sehat: false, latensiMs: 'x' }, { bukan: 1 }] } });
+    t += 25;
+    return Response.json({ status: 'success', message: 'OK', data: { siap, korpus: 10, katalog: { status: 'ok' } } });
   }) as unknown as typeof fetch;
-  const hasil = await new PemeriksaKesehatanGateway({ url: 'http://gw:8787/', fetch: fetchPalsu }).periksa();
-  assert.deepEqual(dipanggil, ['http://gw:8787/health']);
-  assert.deepEqual(hasil, [{ nama: 'Hermes', sehat: false, latensiMs: null }]);
+  const siap = await new PemeriksaKesehatanGateway({ url: 'http://gw:8787/', fetch: balasan(true), now: () => t }).periksa();
+  assert.deepEqual(dipanggil, ['http://gw:8787/voice/kesehatan']);
+  assert.deepEqual(siap, [
+    { nama: 'Voice Gateway', sehat: true, latensiMs: 25 },
+    { nama: 'Hermes', sehat: true, latensiMs: null },
+    { nama: 'STT/TTS', sehat: true, latensiMs: null },
+  ]);
+  const belumSiap = await new PemeriksaKesehatanGateway({ url: 'http://gw:8787', fetch: balasan('ya'), now: () => t }).periksa();
+  assert.deepEqual(belumSiap.map((k) => k.sehat), [true, false, false]);
+});
+
+test('t_f5_4_01 adapter gateway melempar galat bila gateway menjawab error', async () => {
+  const gagal = (async () => new Response('x', { status: 503 })) as unknown as typeof fetch;
+  await assert.rejects(new PemeriksaKesehatanGateway({ url: 'http://gw:8787', fetch: gagal }).periksa());
+});
+
+test('t_f5_4_01 kondisi cekbpom diambil dari pemanggilan cek registrasi terakhir', async () => {
+  const gateway: PemeriksaKesehatanAgent = { periksa: async () => [{ nama: 'Voice Gateway', sehat: true, latensiMs: 9 }] };
+  const data = contohPemantauan(SEKARANG);
+  const terbaru = data.logTool.filter((l) => l.namaTool === 'cek_registrasi_bpom').sort((a, b) => b.waktu.localeCompare(a.waktu))[0];
+  const r = await pantau(data, gateway).pantauAgent();
+  const cek = r.komponen.find((k) => k.nama === 'cekbpom');
+  assert.deepEqual(cek, { nama: 'cekbpom', status: terbaru.berhasil ? 'Normal' : 'Gangguan', latensiMs: terbaru.durasiMs });
+  const tanpaLog = await pantau({ ...data, logTool: [] }, gateway).pantauAgent();
+  assert.equal(tanpaLog.komponen.find((k) => k.nama === 'cekbpom')?.status, 'Gangguan');
 });
