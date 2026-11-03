@@ -9,8 +9,9 @@ import {
   PembatasLaju, RiwayatPanggilan, idPanggilanSah, inginMenutup, jawabanDiLuarTopik, pesanLayanan, rapikanJawaban, saringUcapan,
   teksUntukSuara,
 } from './percakapan.mjs';
-import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, cekRegistrasi } from './cekbpom.mjs';
+import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -54,6 +55,9 @@ const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
+// Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
+// (embedding produksi belum ada); selain itu dipakai korpus lokal.
+const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
 // Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
 // ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
 const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
@@ -297,7 +301,7 @@ async function giliran(req, res, url) {
       jawaban = PESAN_PENUTUP;
     } else if (!saring) {
       riwayat.tambah(id, 'user', transkrip);
-      // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari kutipan korpus.
+      // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari tool cari_basis_pengetahuan.
       const tCek = Date.now();
       const cek = cekBpom ? await cekRegistrasi(cekBpom, transkrip, riwayat.jawabanTerakhir(id) === PESAN_LAYANAN_1) : null;
       let konteks;
@@ -307,8 +311,9 @@ async function giliran(req, res, url) {
         produk = cek.produk;
         konteks = cek.konteks;
       } else {
-        kutipan = korpus ? korpus.cari(transkrip) : [];
-        konteks = pesanKutipan(kutipan);
+        const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
+        kutipan = basis.kutipan;
+        konteks = pesanBasisPengetahuan(kutipan, basis.mode);
       }
       const hasil = await tanyaHermes(id, konteks);
       token = hasil.token;
@@ -336,7 +341,7 @@ async function giliran(req, res, url) {
     }));
     // Hasil cekbpom tampil sebagai kartu produk, dan jawaban yang merujuk ke cekbpom tidak memakai kutipan,
     // jadi keduanya tanpa chip sumber.
-    const sumber = produk || /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+    const sumber = produk || /cekbpom/i.test(jawaban) ? [] : sumberUntukPanel(kutipan);
     const suara = menutup ? '/voice/statis/penutup' : diLuarTopik ? '/voice/statis/di-luar-topik' : terbitkanTokenSuara(jawaban, ip);
     return kirim(res, 200, 'success', 'OK', { transkrip, jawaban, sumber, suara, akhiri: menutup, produk });
   } finally {
