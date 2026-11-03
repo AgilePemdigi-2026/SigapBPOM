@@ -1,18 +1,23 @@
 // Control UC-03 Melakukan Login Dashboard (REQ-3.1 sampai REQ-3.4) dan timeout idle sesi (NFR-12).
-// Penguncian akun (REQ-3.5) menyusul di F3.2.
+// Penguncian akun (REQ-3.5) dihitung di Edge Function login; pesannya diteruskan apa adanya.
 import type { AstroCookies } from 'astro';
 
 export type Petugas = { nama: string; email: string };
 
-/** Penyedia autentikasi (PROJECT_RULES 4.3): sekarang tiruan, Supabase Auth di T-F3.1-03. */
+/** Penolakan dari penyedia autentikasi beserta pesan bakunya, misalnya akun terkunci atau layanan tak tersedia. */
+export type GagalMasuk = { gagal: string; kode: 401 | 429 | 503 };
+
+/** Penyedia autentikasi (PROJECT_RULES 4.3): Supabase Auth untuk produksi, sesi tiruan untuk pengembangan lokal. */
 export interface AdapterSesi {
   /** Memeriksa kredensial lalu memasang cookie sesi. Null bila email atau password salah. */
-  masuk(email: string, password: string, cookies: AstroCookies): Promise<Petugas | null>;
+  masuk(email: string, password: string, cookies: AstroCookies): Promise<Petugas | GagalMasuk | null>;
   /** Pemilik cookie sesi, atau null bila tidak ada sesi yang sah. */
   baca(cookies: AstroCookies): Promise<Petugas | null>;
   keluar(cookies: AstroCookies): Promise<void>;
   /** Penanda unik sesi pada cookie ini, untuk mencatat aktivitas terakhir. Null bila tidak ada sesi. */
   kunci(cookies: AstroCookies): string | null;
+  /** Token akses sesi ini untuk memanggil Supabase atas nama petugas (RLS). Hanya dipakai di server. */
+  tokenAkses?(cookies: AstroCookies): string | null;
 }
 
 /** NFR-12: sesi berakhir setelah 30 menit tanpa aktivitas. */
@@ -30,7 +35,7 @@ const PANJANG_MAKS_ISIAN = 256;
 
 export type HasilLogin =
   | { kode: 200; pesan: string; petugas: Petugas }
-  | { kode: 401 | 422; pesan: string; petugas: null };
+  | { kode: 401 | 422 | 429 | 503; pesan: string; petugas: null };
 
 export class AutentikasiController {
   adapter: AdapterSesi;
@@ -58,6 +63,7 @@ export class AutentikasiController {
     }
     const petugas = await this.adapter.masuk(email, password, cookies);
     if (!petugas) return { kode: 401, pesan: PESAN_LOGIN.salah, petugas: null };
+    if ('gagal' in petugas) return { kode: petugas.kode, pesan: petugas.gagal, petugas: null };
     const kunci = this.adapter.kunci(cookies);
     if (kunci) this.aktivitas.set(kunci, this.now());
     return { kode: 200, pesan: PESAN_LOGIN.berhasil, petugas };

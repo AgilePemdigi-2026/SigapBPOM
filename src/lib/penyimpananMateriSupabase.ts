@@ -1,5 +1,5 @@
 // Adapter produksi PenyimpananMateri: membaca Supabase lewat REST dengan token sesi petugas, sehingga RLS
-// is_petugas() berlaku (T-F2.1-03). Token didapat dari Supabase Auth setelah T-F3.1-03.
+// is_petugas() berlaku (T-F2.1-03). Token didapat dari sesi Supabase Auth petugas (SesiSupabase).
 import type { KueriPenyimpanan, MateriTersimpan, PenyimpananMateri, StatusMateri } from './BasisPengetahuanController.ts';
 
 type BarisMateri = { id: string; judul: string; kategori: string | null; rujukan_sumber: string; status: StatusMateri; diperbarui_pada: string };

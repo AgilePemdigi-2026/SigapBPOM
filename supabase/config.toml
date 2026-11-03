@@ -427,3 +427,6 @@ verify_jwt = false
 
 [functions.simpan-pengaduan-tidak-lengkap]
 verify_jwt = false
+
+[functions.katalog-materi]
+verify_jwt = false
