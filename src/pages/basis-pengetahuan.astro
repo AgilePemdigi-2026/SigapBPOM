@@ -103,7 +103,7 @@ const data = {
   </div>
 
   <dialog id="add-dialog" class="modal" aria-labelledby="add-title">
-    <form id="add-form" method="dialog" novalidate>
+    <form id="add-form" data-name="FormulirMateri" method="dialog" novalidate>
       <div class="modal-head"><h2 id="add-title">Tambah Materi</h2><button type="button" class="x" data-close aria-label="Tutup"><i class="icon-x"></i></button></div>
       <label class="f"><span>Judul Materi</span><input name="judul" placeholder="mis. Cara membaca tanggal kedaluwarsa" /></label>
       <label class="f"><span>Kategori</span><select name="kategori">{KATEGORI_MATERI.map((k) => <option>{k}</option>)}</select></label>

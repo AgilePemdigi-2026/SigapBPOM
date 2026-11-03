@@ -92,7 +92,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
     </div>
 
     <div class="cards">
-      <section class="panel card">
+      <section class="panel card" data-name="KartuStatistikLayanan">
         <h2 class="card-title">Statistik Hari Ini</h2>
         <div class="stats">
           {STATISTIK.map((s) => (
@@ -105,7 +105,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         </div>
       </section>
 
-      <section class="panel card urgent" data-name="KasusPerluTindakLanjut">
+      <section class="panel card urgent" data-name="DaftarKasusPerluTindakLanjut">
         <div class="urgent-head"><h2 class="card-title sm">Kasus Perlu Tindak Lanjut</h2><a href="/tiket-eskalasi" class="pill round" aria-label="Lihat semua tiket eskalasi"><i class="icon-arrow-up-right"></i></a></div>
         {urgent.length === 0 && <div class="empty-card"><i class="icon-circle-check"></i><span>Tidak ada kasus yang perlu ditindaklanjuti.</span></div>}
         {urgent.map((u, i) => i === 0 ? (
