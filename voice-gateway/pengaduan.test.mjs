@@ -96,6 +96,11 @@ test('req_2_2 data lain dalam ucapan tidak dianggap jawaban atas data yang ditan
   assert.deepEqual(ekstrak('Nama saya Budi Santoso', 'kronologi'), { namaPelapor: 'Budi Santoso' });
 });
 
+test('req_2_2 kata keterangan waktu dan nama anggota keluarga tidak tertangkap sebagai data', () => {
+  assert.equal(ekstrak('Susu kental manis merek A, saya beli kemarin dan anak saya sakit perut', 'namaProduk').namaProduk, undefined);
+  assert.equal(ekstrak('anak saya bernama Budi muntah setelah minum sirup obat batuk').namaPelapor, undefined);
+});
+
 test('req_2_2 prompt tanya ulang per data, nomor telepon persis kamus Lampiran A', () => {
   assert.equal(PESAN_MINTA_NOMOR_TELEPON, 'Mohon sebutkan nomor telepon Anda.');
   assert.equal(PROMPT_DATA_KURANG.nomorTelepon.pesan, 'Mohon sebutkan nomor telepon Anda.');

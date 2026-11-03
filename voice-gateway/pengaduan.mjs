@@ -57,13 +57,13 @@ const KATA_HENTI_NAMA = new Set([
   'dan', 'nomor', 'no', 'telepon', 'telpon', 'hp', 'produk', 'yang', 'saya', 'membeli', 'beli', 'mengalami', 'dari', 'untuk', 'ya', 'adalah',
   'tinggal', 'di', 'kronologi', 'kejadian', 'setelah', 'sesudah', 'lalu', 'kemudian', 'karena', 'tapi', 'tetapi', 'dengan', 'nama', 'itu', 'ingin', 'mau',
 ]);
-const POLA_BATAS_PRODUK = /\s+(?:di|dari|pada|kemarin|tadi|lalu|setelah|sesudah|ketika|saat|waktu|karena|sehingga|tapi|tetapi|dan|kronologi|kronologinya|kejadiannya|nama|nomor|atas|yang|untuk|buat|dengan|sebanyak|seharga|sekitar|itu)\b/iu;
+const POLA_BATAS_PRODUK = /(?:^|\s+)(?:di|dari|pada|kemarin|tadi|lalu|setelah|sesudah|ketika|saat|waktu|karena|sehingga|tapi|tetapi|dan|kronologi|kronologinya|kejadiannya|nama|nomor|atas|yang|untuk|buat|dengan|sebanyak|seharga|sekitar|itu)\b/iu;
 const POLA_PRODUK = [
   /\bnama\s+produk(?:nya)?\s*(?:adalah|yaitu|:)?\s+(.+)/isu,
   /\bproduk(?:nya)?\s+(?:yang\s+(?:saya\s+)?(?:adukan|laporkan)\s+)?(?:bernama|adalah|yaitu)\s+(.+)/isu,
   /\b(?:mengadukan|melaporkan|membeli|beli|mengonsumsi|meminum|memakai|menggunakan)\s+(?:produk\s+)?(.+)/isu,
 ];
-const POLA_NAMA = /\b(?:nama\s+(?:saya|pelapor|lengkap(?:\s+saya)?)|atas\s+nama|saya\s+bernama|perkenalkan,?\s+saya)\s*(?:adalah\s+)?(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})/iu;
+const POLA_NAMA = /\b(?:nama\s+(?:saya|pelapor|lengkap(?:\s+saya)?)|atas\s+nama|(?<!\b(?:anak|istri|suami|ibu|ayah|bapak|adik|kakak|teman)\s+)saya\s+bernama|perkenalkan,?\s+saya)\s*(?:adalah\s+)?(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})/iu;
 const POLA_KRONOLOGI_EKSPLISIT = /\b(?:kronologi(?:nya)?|kejadiannya|ceritanya)\s*(?:kejadian)?\s*(?:adalah|begini|yaitu|:)?\s+(.+)/isu;
 const POLA_KRONOLOGI_PENANDA = /\b(?:setelah|sesudah|usai|ketika|saat|sewaktu|kemudian|ternyata|mengalami|merasa)\b.*/isu;
 const POLA_AKHIR_KRONOLOGI = /\b(?:nama\s+(?:saya|pelapor)|atas\s+nama|nomor\s+(?:telepon|telpon|hp|wa|saya)|no\.?\s*(?:telepon|hp))\b.*/isu;
