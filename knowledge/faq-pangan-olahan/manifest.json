@@ -1,0 +1,2157 @@
+{
+ "sumber": "https://rumahsiripo.pom.go.id/informasi/faq (API get_faq_ajax), diunduh 3 November 2026",
+ "jumlah": 239,
+ "dokumen": [
+  {
+   "file": "faq-001-bagaimana-cara-melakukan-registrasi-pangan-olahan.md",
+   "title": "Bagaimana cara melakukan registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-002-apa-saja-jenis-pelayanan-publik-di-direktorat-registrasi-pan.md",
+   "title": "Apa saja jenis pelayanan publik di Direktorat Registrasi Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-003-bagaimana-jadwal-pelayanan-publik-di-direktorat-registrasi-p.md",
+   "title": "Bagaimana jadwal pelayanan publik di Direktorat Registrasi Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-004-bagaimana-cara-mendapatkan-nomor-antrian-untuk-loket-di-dire.md",
+   "title": "Bagaimana cara mendapatkan nomor antrian untuk loket di Direktorat Registrasi Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-005-bagaimana-cara-mendapatkan-nomor-antrian-untuk-layanan-konsu.md",
+   "title": "Bagaimana cara mendapatkan nomor antrian untuk layanan konsultasi online dan live chat di Direktorat Registrasi Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-006-apa-saja-media-informasi-direktorat-registrasi-pangan-olahan.md",
+   "title": "Apa saja media informasi Direktorat Registrasi Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-007-bagaimana-cara-menyampaikan-masukan-saran-dan-atau-kritik-ke.md",
+   "title": "Bagaimana cara menyampaikan masukan, saran, dan atau kritik ke Direktorat Registrasi Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-008-peraturan-apa-saja-yang-dapat-dijadikan-acuan-teknis-dalam-r.md",
+   "title": "Peraturan apa saja yang dapat dijadikan acuan teknis dalam registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-009-pedoman-apa-saja-yang-dapat-dijadikan-acuan-teknis-dalam-reg.md",
+   "title": "Pedoman apa saja yang dapat dijadikan acuan teknis dalam registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-010-apakah-pangan-olahan-yang-dijual-untuk-keperluan-hotel-resto.md",
+   "title": "Apakah pangan olahan yang dijual untuk keperluan hotel, restoran, dan katering perlu didaftarkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-011-apakah-produk-private-label-mencantumkan-logo-hotel-maskapai.md",
+   "title": "Apakah produk private label (mencantumkan logo hotel, maskapai penerbangan, dan sebagainya) harus didaftarkan terpisah dari produk dengan merek yang sama dan bukan private label? Apakah ada prosedur khususnya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-012-kriteria-apa-yang-harus-dipenuhi-pangan-olahan-yang-akan-did.md",
+   "title": "Kriteria apa yang harus dipenuhi pangan olahan yang akan didaftarkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-013-dalam-kondisi-apa-registrasi-pangan-olahan-diajukan-secara-t.md",
+   "title": "Dalam kondisi apa, registrasi pangan olahan diajukan secara terpisah?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-014-bagaimana-tahapan-registrasi-pangan-olahan.md",
+   "title": "Bagaimana tahapan registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-015-apa-saja-jenis-registrasi-pangan-olahan.md",
+   "title": "Apa saja jenis registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-016-apakah-untuk-mendaftarkan-pangan-olahan-dikenai-biaya-regist.md",
+   "title": "Apakah untuk mendaftarkan pangan olahan dikenai biaya registrasi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-017-bagaimana-tata-cara-pembayaran-pnbp-registrasi-pangan-olahan.md",
+   "title": "Bagaimana tata cara pembayaran PNBP registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-018-mengapa-pembayaran-spb-e-registration-pangan-olahan-tidak-da.md",
+   "title": "Mengapa pembayaran SPB e-registration pangan olahan tidak dapat memilih multi payment?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-019-bagaimana-ketentuan-jika-terjadi-ketidaksesuaian-tarif-pnbp.md",
+   "title": "Bagaimana ketentuan jika terjadi ketidaksesuaian tarif PNBP saat registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-020-apakah-pangan-olahan-yang-sedang-dalam-proses-registrasi-di.md",
+   "title": "Apakah pangan olahan yang sedang dalam proses registrasi di BPOM dapat diperjualbelikan/diedarkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-021-berapa-lama-masa-berlaku-izin-edar-atau-pb-umku.md",
+   "title": "Berapa lama masa berlaku izin edar atau PB-UMKU?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-022-apakah-nomor-izin-edar-akan-tetap-berlaku-selama-5-lima-tahu.md",
+   "title": "Apakah Nomor Izin Edar akan tetap berlaku selama 5 (lima) tahun untuk pangan olahan yang didaftarkan berdasarkan perjanjian atau penunjukan jika masa berlaku dokumen tersebut kurang dari 5 (lima) tahun?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-023-apa-arti-dari-digit-angka-pada-pb-umku-produk-pangan.md",
+   "title": "Apa arti dari digit angka pada PB UMKU produk pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-024-produk-pangan-olahan-apa-saja-yang-tidak-dapat-didaftarkan-s.md",
+   "title": "Produk pangan olahan apa saja yang tidak dapat didaftarkan sebagai SPP-IRT sehingga wajib didaftarkan di BPOM?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-025-apa-kriteria-pangan-olahan-yang-tidak-wajib-didaftarkan-di-b.md",
+   "title": "Apa kriteria pangan olahan yang tidak wajib didaftarkan di BPOM?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-026-apa-persyaratan-registrasi-akun-perusahaan.md",
+   "title": "Apa persyaratan registrasi akun perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-027-bagaimana-jika-pada-sertifikat-haccp-tidak-mencantumkan-masa.md",
+   "title": "Bagaimana jika pada sertifikat HACCP tidak mencantumkan masa berlaku?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-028-bagaimana-persyaratan-surat-penunjukan-letter-of-appointment.md",
+   "title": "Bagaimana persyaratan surat penunjukan (Letter of Appointment/ LoA) yang harus dilampirkan oleh importir?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-029-bagaimana-mekanisme-registrasi-akun-perusahaan.md",
+   "title": "Bagaimana mekanisme registrasi akun perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-030-bagaimana-memenuhi-tambahan-data-pada-saat-registrasi-akun-p.md",
+   "title": "Bagaimana memenuhi tambahan data pada saat registrasi akun perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-031-apakah-proses-registrasi-akun-perusahaan-ini-dikenakan-biaya.md",
+   "title": "Apakah proses registrasi akun perusahaan ini dikenakan biaya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-032-apakah-dapat-dilakukan-perubahan-variasi-terhadap-akun-perus.md",
+   "title": "Apakah dapat dilakukan perubahan/ variasi terhadap akun perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-033-apakah-importir-dapat-melakukan-perpindahan-dan-atau-penamba.md",
+   "title": "Apakah importir dapat melakukan perpindahan dan/ atau penambahan alamat gudang (bukan kantor importir)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-034-bagaimana-jika-pabrik-mengalami-perpindahan-lokasi.md",
+   "title": "Bagaimana jika pabrik mengalami perpindahan lokasi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-035-apa-persyaratan-untuk-registrasi-variasi-data-perusahaan-pad.md",
+   "title": "Apa persyaratan untuk registrasi variasi data perusahaan pada E-Registrasi (ereg lama)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-036-apa-persyaratan-untuk-registrasi-variasi-data-perusahaan-pad.md",
+   "title": "Apa persyaratan untuk registrasi variasi data perusahaan pada Ereg-RBA?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-037-bagaimana-mekanisme-registrasi-variasi-data-perusahaan.md",
+   "title": "Bagaimana mekanisme registrasi variasi data perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-038-berapa-lama-timeline-registrasi-dan-perubahan-variasi-akun.md",
+   "title": "Berapa lama timeline registrasi dan perubahan / variasi akun ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-039-apakah-proses-registrasi-variasi-akun-perusahaan-dikenakan-b.md",
+   "title": "Apakah proses registrasi variasi akun perusahaan dikenakan biaya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-040-produk-btp-diakomodir-pada-kbli-berapa.md",
+   "title": "Produk BTP diakomodir pada KBLI berapa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-041-produk-repacking-diakomodir-di-kbli-berapa.md",
+   "title": "Produk repacking diakomodir di KBLI berapa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-042-bagaimana-prosedur-penambahan-jenis-pangan-pada-kbli-yang-sa.md",
+   "title": "Bagaimana prosedur penambahan jenis pangan pada KBLI yang sama di akun perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-043-bagaimana-langkah-registrasi-variasi-akun-perusahaan.md",
+   "title": "Bagaimana langkah Registrasi Variasi Akun Perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-044-bagaimana-cara-pendaftar-melihat-catatan-alasan-penolakan-sa.md",
+   "title": "Bagaimana cara pendaftar melihat catatan/ alasan penolakan saat penambahan KBLI?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-045-pangan-olahan-apa-saja-yang-wajib-didaftarkan-di-badan-pom.md",
+   "title": "Pangan olahan apa saja yang wajib didaftarkan di Badan POM?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-046-bagaimana-dasar-penetapan-tingkat-risiko-registrasi-produk.md",
+   "title": "Bagaimana dasar penetapan tingkat risiko registrasi produk?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-047-apa-saja-tingkat-risiko-produk-pangan-olahan-pada-ereg-rba.md",
+   "title": "Apa saja tingkat risiko produk pangan olahan pada ereg RBA?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-048-bagaimana-bentuk-persetujuan-pb-umku-registrasi-pangan-olaha.md",
+   "title": "Bagaimana bentuk persetujuan/ PB-UMKU registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-049-apa-saja-jenis-registrasi-pangan-yang-termasuk-kategori-risi.md",
+   "title": "Apa saja jenis registrasi pangan yang termasuk kategori risiko menengah rendah?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-050-apa-saja-jenis-registrasi-pangan-yang-termasuk-kategori-risi.md",
+   "title": "Apa saja jenis registrasi pangan yang termasuk kategori risiko menengah tinggi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-051-apa-saja-jenis-registrasi-pangan-yang-termasuk-kategori-risi.md",
+   "title": "Apa saja jenis registrasi pangan yang termasuk kategori risiko tinggi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-052-apa-saja-jenis-registrasi-pangan-yang-termasuk-kategori-ting.md",
+   "title": "Apa saja jenis registrasi pangan yang termasuk kategori tinggi (notifikasi)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-053-berapa-lama-timeline-pembayaran-biaya-registrasi.md",
+   "title": "Berapa lama timeline pembayaran biaya registrasi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-054-berapa-lama-timeline-penilaian-registrasi-risiko-tinggi.md",
+   "title": "Berapa lama timeline penilaian registrasi Risiko Tinggi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-055-berapa-lama-timeline-penilaian-registrasi-risiko-tinggi-noti.md",
+   "title": "Berapa lama timeline penilaian registrasi Risiko Tinggi (notifikasi)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-056-berapa-lama-timeline-penilaian-registrasi-risiko-menengah-ti.md",
+   "title": "Berapa lama timeline penilaian registrasi Risiko Menengah Tinggi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-057-berapa-lama-timeline-penilaian-registrasi-risiko-menengah-re.md",
+   "title": "Berapa lama timeline penilaian registrasi Risiko Menengah Rendah?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-058-pada-registrasi-pangan-olahan-bagaimana-jika-hasil-penilaian.md",
+   "title": "Pada registrasi pangan olahan, bagaimana jika hasil penilaian lebih lanjut memerlukan kelengkapan data?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-059-apakah-pb-umku-yang-telah-disetujui-dapat-dievaluasi-kembali.md",
+   "title": "Apakah PB-UMKU yang telah disetujui dapat dievaluasi kembali? Kriteria apa yang menjadi dasar dilakukannya penilaian kembali terhadap PB-UMKU yang telah disetujui?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-060-bagaimana-jika-perusahaan-menerima-hasil-penilaian-kembali-d.md",
+   "title": "Bagaimana jika perusahaan menerima hasil penilaian kembali dari PB-UMKU yang telah disetujui?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-061-apakah-proses-registrasi-dapat-ditangguhkan.md",
+   "title": "Apakah proses registrasi dapat ditangguhkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-062-apakah-pb-umku-dapat-dibatalkan.md",
+   "title": "Apakah PB-UMKU dapat dibatalkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-063-apakah-pb-umku-dapat-dicabut.md",
+   "title": "Apakah PB-UMKU dapat dicabut?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-064-bagaimana-jika-data-dokumen-yang-diajukan-saat-registrasi-di.md",
+   "title": "Bagaimana jika data/ dokumen yang diajukan saat registrasi diketahui palsu atau tidak benar?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-065-pb-umku-yang-telah-disetujui-registrasi-variasi-ulang-apakah.md",
+   "title": "PB-UMKU yang telah disetujui registrasi variasi/ ulang apakah masih bisa beredar dengan data lama?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-066-bagaimana-tahapan-pengajuan-pb-umku-izin-edar-pangan-olahan.md",
+   "title": "Bagaimana tahapan pengajuan PB UMKU/ Izin Edar Pangan Olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-067-apakah-registrasi-diajukan-untuk-setiap-pangan-olahan.md",
+   "title": "Apakah registrasi diajukan untuk setiap pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-068-apa-saja-persyaratan-dokumen-registrasi-baru-pangan-olahan.md",
+   "title": "Apa saja persyaratan dokumen registrasi baru pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-069-bagaimana-persyaratan-registrasi-amdk.md",
+   "title": "Bagaimana persyaratan registrasi AMDK?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-070-bagaimana-ketentuan-persyaratan-dokumen-hasil-analisis-untuk.md",
+   "title": "Bagaimana ketentuan persyaratan dokumen hasil analisis untuk pangan olahan registrasi baru pada ereg RBA yang sebelumnya sudah terdaftar di e-reg lama untuk tujuan daftar ulang?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-071-bagaimana-persyaratan-administratif-registrasi-pangan-olahan.md",
+   "title": "Bagaimana persyaratan administratif registrasi pangan olahan untuk produk yang diproduksi berdasarkan kerjasama kontrak?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-072-bagaimana-persyaratan-registrasi-single-md-pada-e-reg-rba.md",
+   "title": "Bagaimana persyaratan registrasi Single MD pada e-reg RBA?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-073-bagaimana-persyaratan-administratif-registrasi-pangan-olahan.md",
+   "title": "Bagaimana persyaratan administratif registrasi pangan olahan untuk produk yang diproduksi sendiri dan disertai pencantuman didistribusikan oleh perusahaan lain (distributor)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-074-bagaimana-jika-pemerintah-suatu-negara-tidak-dapat-menerbitk.md",
+   "title": "Bagaimana jika pemerintah suatu negara tidak dapat menerbitkan sertifikat kesehatan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-075-apakah-health-certificate-dapat-diterbitkan-oleh-asosiasi-pe.md",
+   "title": "Apakah Health Certificate dapat diterbitkan oleh asosiasi pengusaha atau kamar dagang?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-076-untuk-produk-yang-dikemas-dalam-kemasan-primer-kemudian-dike.md",
+   "title": "Untuk produk yang dikemas dalam kemasan primer, kemudian dikemas kembali dengan kemasan sekunder, namun jenis kemasan spesifiknya sama, pada sistem diinput sebagai kemasan Ganda atau Tunggal?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-077-jenis-kemasan-komposit-laminat-berupa-plastik-dan-aluminium.md",
+   "title": "Jenis kemasan komposit/ laminat berupa plastik dan aluminium foil, pada freetext apakah diinput sebagai Plastik/Aluminium Metalized atau Plastik Laminat?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-078-untuk-produk-dengan-kemasan-plastik-tunggal-monolayer-dan-pl.md",
+   "title": "Untuk produk dengan kemasan Plastik Tunggal (Monolayer) dan Plastik Multilayer (terdiri atas beberapa lapisan), apakah bisa didaftarkan dalam satu pengajuan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-079-untuk-produk-dengan-kemasan-plastik-tunggal-yang-berbeda-jen.md",
+   "title": "Untuk produk dengan kemasan Plastik Tunggal yang berbeda jenis kemasan spesifiknya, apakah bisa didaftarkan dalam satu pengajuan? Jika bisa, bagaimana input jenis kemasan spesifiknya dan jenis kemasan sesuai NIE nya? Contoh:Saus tomat dengan kemasan botol PET 500 ml dan Jeriken HDPE 1 Liter.",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-080-bagaimana-cara-input-pada-bagian-jenis-kemasan-berat-isi-ber.md",
+   "title": "Bagaimana cara input pada bagian Jenis Kemasan (Berat/Isi Bersih Satuan) Sesuai NIE untuk kemasan Kaleng? Apakah perlu dijabarkan kemasan spesifiknya, misalnya Kaleng Fe atau boleh Kaleng saja?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-081-jika-produk-menggunakan-kemasan-plastik-pp-dan-plastik-pp-da.md",
+   "title": "Jika produk menggunakan kemasan \"\"Plastik PP\"\" dan \"\"Plastik PP dalam Karton\"\", di mana kemasan plastik dijual secara eceran, apakah termasuk kemasan Ganda atau kemasan Plastik Tunggal?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-082-penamaan-sosis-daging-siap-makan-pada-nama-jenis-boleh-atau.md",
+   "title": "Penamaan “sosis daging siap makan” pada nama jenis boleh atau tidak jika proses pengolahannya sterilisasi komersial/ pasteurisasi.?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-083-apabila-pangan-olahan-menggunakan-bahan-baku-yang-salah-satu.md",
+   "title": "Apabila pangan olahan menggunakan bahan baku yang salah satunya ada perlakuan iradiasi, bukan produk akhirnya, pada Detil Data Bahan agar memilih jenis pemrosesan apa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-084-bagaimana-persyaratan-pemberian-nama-jenis.md",
+   "title": "Bagaimana persyaratan pemberian nama jenis?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-085-nama-dagang-seperti-apa-yang-dilarang-digunakan.md",
+   "title": "Nama dagang seperti apa yang dilarang digunakan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-086-jika-produk-memiliki-satuan-berat-atau-isi-bersih-yang-berbe.md",
+   "title": "Jika produk memiliki satuan berat atau isi bersih yang berbeda, apakah boleh mendaftarkan produk dalam satu nomor pengajuan? Misal Jenis Kemasan (Berat/Isi Bersih Satuan) Sesuai NIE: Plastik (135 ml, 500 g, 1 kg, 2 kg)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-087-adakah-batasan-isi-bersih-dalam-pendaftaran-minuman-beralkoh.md",
+   "title": "Adakah batasan isi bersih dalam pendaftaran minuman beralkohol?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-088-bagaimana-ketentuan-pencantuman-berat-bersih-pada-produk-yan.md",
+   "title": "Bagaimana ketentuan pencantuman berat bersih pada produk yang berupa butiran atau bijian (seperti permen dan bakso)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-089-apakah-semua-bahan-perlu-menyebutkan-persentasenya-pada-doku.md",
+   "title": "Apakah semua bahan perlu menyebutkan persentasenya pada dokumen komposisi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-090-bagaimana-cara-menginput-komposisi-produk-yang-bahannya-terd.md",
+   "title": "Bagaimana cara menginput komposisi produk yang bahannya terdiri lebih dari 1 komponen? Misalnya Mi Instan yang berisi Mi, Bumbu, Kecap, Saus",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-091-bagaimana-jika-komposisi-produk-menggunakan-bahan-baku-yang.md",
+   "title": "Bagaimana jika komposisi produk menggunakan bahan baku yang tidak ada dalam daftar menu bahan baku di sistem e- registration?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-092-spesifikasi-bahan-baku-apa-saja-yang-harus-diupload-sebagai.md",
+   "title": "Spesifikasi bahan baku apa saja yang harus diupload sebagai data dukung?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-093-spesifikasi-btp-apa-saja-yang-harus-diupload-sebagai-data-du.md",
+   "title": "Spesifikasi BTP apa saja yang harus diupload sebagai data dukung?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-094-jika-pada-spesifikasi-bahan-terdapat-btp-carry-over-yang-ber.md",
+   "title": "Jika pada spesifikasi bahan terdapat BTP carry over yang berpotensi berasal dari bahan nabati/hewani (contoh: asam lemak), apakah masih perlu dimintakan asal bahan BTP carry over tersebut?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-095-apakah-diperbolehkan-spesifikasi-bahan-diganti-dengan-foto-k.md",
+   "title": "Apakah diperbolehkan spesifikasi bahan diganti dengan foto kemasan yang mencantumkan Nomor Izin Edar BPOM?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-096-bagaimana-jika-informasi-kadar-btp-carry-over-bukan-angka-pa.md",
+   "title": "Bagaimana jika informasi kadar BTP carry over bukan angka pasti, tetapi berupa rentang atau dalam bentuk < (kurang dari)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-097-apa-saja-pengelompokan-btp-perisa.md",
+   "title": "Apa saja pengelompokan BTP perisa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-098-bagaimana-pencantuman-kelompok-perisa-pada-label.md",
+   "title": "Bagaimana pencantuman kelompok perisa pada label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-099-bagaimana-ketentuan-penggunaan-btp-perisa-pada-formula-lanju.md",
+   "title": "Bagaimana ketentuan penggunaan BTP perisa pada Formula Lanjutan dan Pertumbuhan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-100-bagaimana-ketentuan-penggunaan-btp-perisa-pada-makanan-penda.md",
+   "title": "Bagaimana ketentuan penggunaan BTP perisa pada Makanan Pendamping ASI (MP-ASI)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-101-bagaimana-ketentuan-bahan-ginseng-yang-dibolehkan-pada-panga.md",
+   "title": "Bagaimana ketentuan bahan ginseng yang dibolehkan pada pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-102-bagaimana-cara-menginput-bahan-pada-sistem-untuk-bahan-baku.md",
+   "title": "Bagaimana cara menginput bahan pada sistem untuk bahan baku komposit yang dibuat sendiri? Misalnya roti isi selai nanas, selai nanas dibuat sendiri oleh pelaku usaha.",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-103-apa-kriteria-hasil-analisis-yang-dapat-diterima-sebagai-pers.md",
+   "title": "Apa kriteria hasil analisis yang dapat diterima sebagai persyaratan registrasi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-104-parameter-apa-saja-yang-harus-dianalisis-di-laboratorium-seb.md",
+   "title": "Parameter apa saja yang harus dianalisis di laboratorium sebagai persyaratan registrasi pangan olahan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-105-bagaimana-jika-laboratorium-tidak-dapat-menguji-btp-yang-dip.md",
+   "title": "Bagaimana jika laboratorium tidak dapat menguji BTP yang dipersyaratkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-106-hasil-analisis-apa-saja-yang-perlu-diunggah-pada-proses-regi.md",
+   "title": "Hasil analisis apa saja yang perlu diunggah pada proses registrasi Single MD Anak?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-107-pada-registrasi-variasi-komposisi-apakah-wajib-melampirkan-h.md",
+   "title": "Pada registrasi variasi komposisi, apakah wajib melampirkan hasil analisa cemaran mikroba, logam, dan BTP terbaru?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-108-jika-terjadi-registrasi-variasi-komposisi-apakah-perlu-dilak.md",
+   "title": "Jika terjadi registrasi variasi komposisi, apakah perlu dilakukan pengujian ulang zat gizi terkait pencantuman Tabel ING di label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-109-apa-saja-yang-harus-diperhatikan-terhadap-hasil-analisis-cem.md",
+   "title": "Apa saja yang harus diperhatikan terhadap hasil analisis cemaran mikroba?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-110-bagaimana-jika-metode-pengujian-yang-digunakan-untuk-penguji.md",
+   "title": "Bagaimana jika metode pengujian yang digunakan untuk pengujian cemaran mikroba tidak sama persis dengan yang tertuang di peraturan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-111-apa-yang-dimaksud-dengan-lod-dan-loq.md",
+   "title": "Apa yang dimaksud dengan LOD dan LOQ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-112-apabila-pada-hasil-uji-analisis-tidak-tercantum-lod-namun-ad.md",
+   "title": "Apabila pada hasil uji analisis tidak tercantum LOD, namun ada keterangan “memenuhi batas maksimum persyaratan...” apakah harus ditanyakan LOD nya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-113-apakah-tabel-ing-wajb-dicantumkan-pada-semua-produk-pangan.md",
+   "title": "Apakah tabel ING wajb dicantumkan pada semua produk pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-114-bagaimana-ketentuan-takaran-saji-untuk-pangan-fortifikasi-da.md",
+   "title": "Bagaimana ketentuan takaran saji untuk pangan fortifikasi dan pangan olahan antara (intermediate product)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-115-bagaimana-pencantuman-jumlah-sajian-per-kemasan-pada-tabel-i.md",
+   "title": "Bagaimana pencantuman jumlah sajian per kemasan pada tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-116-bagaimana-cara-pencantuman-garam-di-tabel-ing.md",
+   "title": "Bagaimana cara pencantuman garam di tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-117-bagaimana-pencantuman-lemak-jenuh-dan-gula-pada-tabel-ing.md",
+   "title": "Bagaimana pencantuman Lemak jenuh dan gula pada tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-118-apakah-tulisan-vitamin-dan-mineral-serta-komponen-lain-wajib.md",
+   "title": "Apakah tulisan “vitamin dan mineral” serta “komponen lain” wajib dicantumkan jika mencantumkan vitamin dan/mineral di tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-119-bagaimana-cara-pencantuman-turunan-zat-gizi-atau-komponen-la.md",
+   "title": "Bagaimana cara pencantuman turunan zat gizi atau komponen lain (yang belum ditetapkan nilai ALG-nya) pada tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-120-bagaimana-ketentuan-pencantuman-lebih-dari-satu-tabel-ing-ya.md",
+   "title": "Bagaimana ketentuan pencantuman lebih dari satu tabel ING yang menggunakan bahasa dan format yang berbeda pada satu label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-121-bagaimana-cara-pencantuman-ing-untuk-produk-business-to-busi.md",
+   "title": "Bagaimana cara pencantuman ING untuk produk Business to Business (hotel, restoran, kafe (HOREKA)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-122-bagaimana-cara-perhitungan-toleransi-zat-gizi-pada-tabel-ing.md",
+   "title": "Bagaimana cara perhitungan toleransi zat gizi pada tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-123-bagaimana-ketentuan-pencantuman-kandungan-vitamin-dan-minera.md",
+   "title": "Bagaimana ketentuan pencantuman kandungan vitamin dan mineral pada tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-124-bagaimana-ketentuan-pencantuman-format-ing-pada-bagian-label.md",
+   "title": "Bagaimana ketentuan pencantuman Format ING pada Bagian Label yang Paling Mudah Dilihat dan Dibaca (Front of Pack/FOP)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-125-apakah-energi-total-pada-fop-boleh-dicantumkan-akg-nya.md",
+   "title": "Apakah Energi Total pada FOP boleh dicantumkan % AKG nya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-126-bagaimana-jika-informasi-zat-gizi-pada-fop-dicantumkan-terpi.md",
+   "title": "Bagaimana jika informasi zat gizi pada FOP dicantumkan terpisah? Contoh: 2 zat gizi dicantumkan di sebelah kiri label, zat gizi lainnya di sebelah kanan label.",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-127-jika-produk-mencantumkan-fop-apakah-harus-mencantumkan-tabel.md",
+   "title": "Jika produk mencantumkan FOP apakah harus mencantumkan tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-128-bagaimana-format-pencantuman-fop-untuk-pangan-yang-beratnya.md",
+   "title": "Bagaimana format pencantuman FOP untuk pangan yang beratnya kurang dari satu takaran saji?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-129-untuk-penambahan-tabel-ing-pada-label-sedangkan-desain-label.md",
+   "title": "Untuk penambahan Tabel ING pada label sedangkan desain label secara keseluruhan tidak berubah, apakah termasuk Perubahan Informasi Nilai Gizi (ING) saja atau Perubahan Informasi Nilai Gizi (ING) dan desain label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-130-bagaimana-cara-pencantuman-tabel-ing-untuk-kemasan-dengan-uk.md",
+   "title": "Bagaimana cara pencantuman tabel ING untuk kemasan dengan ukuran kecil?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-131-bagaimana-cara-pencantuman-tabel-ing-untuk-produk-minuman-ke.md",
+   "title": "Bagaimana cara pencantuman Tabel ING untuk produk minuman kemasan botol kaca returnable (minuman teh dan minuman karbonasi)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-132-apakah-logo-pilihan-lebih-sehat-boleh-dicantumkan-pada-semua.md",
+   "title": "Apakah Logo pilihan lebih sehat boleh dicantumkan pada semua produk pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-133-berapa-ukuran-logo-pilihan-lebih-sehat.md",
+   "title": "Berapa ukuran logo pilihan lebih sehat?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-134-bagaimana-ketentuan-jika-hasil-analisa-turunan-zat-gizi-lebi.md",
+   "title": "Bagaimana ketentuan jika hasil analisa turunan zat gizi lebih besar dari zat gizi induknya? Contoh: - Turunan lemak seperti lemak jenuh, lemak tidak jenuh, lemak trans, lebih besar dari lemak totalnya - Gula, serat pangan lebih besar dari nilai karbohidrat total",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-135-keterangan-apa-sajakah-yang-harus-tercantum-pada-label-panga.md",
+   "title": "Keterangan apa sajakah yang harus tercantum pada label pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-136-apakah-pencantuman-label-utama-di-bagian-bawah-toples-diperb.md",
+   "title": "Apakah pencantuman label utama di bagian bawah toples diperbolehkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-137-untuk-produk-yang-didaftarkan-sebagai-kemasan-ganda-informas.md",
+   "title": "Untuk produk yang didaftarkan sebagai kemasan ganda, informasi apakah yang wajib dicantumkan pada label kemasan primer?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-138-jika-suatu-perusahaan-memiliki-produk-dengan-berbagai-varian.md",
+   "title": "Jika suatu perusahaan memiliki produk dengan berbagai varian rasa (dikemas primer) dan telah memiliki NIE, kemudian ingin mendaftarkan sebagai kemasan ganda (assorted), bagaimana mekanismenya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-139-bagaimana-mekanisme-registrasi-paket-beberapa-produk-dalam-s.md",
+   "title": "Bagaimana mekanisme registrasi paket beberapa produk dalam satu kemasan (bundling)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-140-registrasi-variasi-perubahan-tata-letak-warna-dasar-dll-seja.md",
+   "title": "Registrasi variasi perubahan tata letak, warna dasar dll, sejauh mana diperbolehkan perubahannya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-141-apakah-kalimat-kalimat-seperti-bonus-2-pcs-berhadiah-ekstra.md",
+   "title": "Apakah kalimat-kalimat seperti Bonus 2 pcs, Berhadiah, Ekstra Berat (Extra 10%) termasuk registrasi promosi dan tidak boleh didaftarkan pada label reguler?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-142-bagaimana-ketentuan-pencantuman-nomor-bpom-ri-md-ml-pada-kem.md",
+   "title": "Bagaimana ketentuan pencantuman nomor BPOM RI MD/ML pada kemasan ganda?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-143-bagaimana-ketentuan-pencantuman-nomor-bpom-ri-md-ml-pada-pro.md",
+   "title": "Bagaimana ketentuan pencantuman nomor BPOM RI MD/ML pada produk yang didaftarkan pada kemasan tunggal dan dimasukkan ke dalam kemasan sekunder?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-144-bagaimana-ketentuan-penggunaan-istilah-milk.md",
+   "title": "Bagaimana ketentuan penggunaan istilah “MILK”?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-145-bagaimana-ketentuan-pencantuman-berat-bersih-pada-produk-yan.md",
+   "title": "Bagaimana ketentuan pencantuman berat bersih pada produk yang berupa butiran atau bijian (seperti permen)?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-146-bagaimana-ketentuan-pencantuman-nama-dan-alamat-pihak-yang-m.md",
+   "title": "Bagaimana ketentuan pencantuman nama dan alamat pihak yang memproduksi pada label Single MD?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-147-apakah-pada-label-pangan-olahan-dapat-mencantumkan-profil-pe.md",
+   "title": "Apakah pada label pangan olahan dapat mencantumkan profil perusahaan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-148-bagaimana-jika-keterangan-kedaluwarsa-yang-akan-dicetak-pada.md",
+   "title": "Bagaimana jika keterangan kedaluwarsa yang akan dicetak pada label tidak dapat terletak di bagian utama/depan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-149-bagaimana-ketentuan-pencantuman-komposisi-atau-daftar-bahan.md",
+   "title": "Bagaimana ketentuan pencantuman komposisi atau daftar bahan yang digunakan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-150-bagaimana-cara-pencantuman-btp-yang-ditambahkan-langsung-pad.md",
+   "title": "Bagaimana cara pencantuman BTP yang ditambahkan langsung pada komposisi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-151-bagaimana-cara-pencantuman-btp-ikutan-carry-over-pada-kompos.md",
+   "title": "Bagaimana cara pencantuman BTP ikutan (carry over) pada komposisi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-152-apakah-pada-komposisi-boleh-mencantumkan-baking-powder.md",
+   "title": "Apakah pada komposisi boleh mencantumkan Baking Powder?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-153-apakah-pencantuman-informasi-kandungan-btp-pada-bagian-lain.md",
+   "title": "Apakah pencantuman informasi kandungan BTP pada bagian lain label selain bagian komposisi diperbolehkan? Contoh pencantuman informasi di bagian depan label: Dengan pemanis alami stevia, crafted with natural flavor, atau sweetened with stevia",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-154-bagaimana-pencantuman-quid-pada-komposisi-untuk-produk-roti.md",
+   "title": "Bagaimana pencantuman quid pada komposisi untuk produk: Roti Isi Krim Rasa Cokelat yang menggunakan perisa tanpa ada bahan baku dari cokelat Roti Isi Krim Rasa Cokelat yang menggunakan perisa dan kakao bubuk",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-155-bagaimana-pencantuman-quid-pada-label-terkait-penyebutan-bah.md",
+   "title": "Bagaimana pencantuman QUID pada label terkait penyebutan bahan baku dalam nama jenis pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-156-produk-pangan-olahan-yang-seperti-apa-yang-wajib-mencantumka.md",
+   "title": "Produk pangan olahan yang seperti apa yang wajib mencantumkan alergen ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-157-apa-saja-bahan-yang-merupakan-alergen.md",
+   "title": "Apa saja bahan yang merupakan alergen?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-158-bagaimana-pencantuman-keterangan-tentang-pangan-olahan-yang.md",
+   "title": "Bagaimana pencantuman keterangan tentang pangan olahan yang mengandung alergen?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-159-bagaimana-pencantuman-keterangan-tentang-pangan-olahan-yang.md",
+   "title": "Bagaimana pencantuman keterangan tentang Pangan Olahan yang diproduksi menggunakan sarana produksi yang sama dengan Pangan Olahan yang mengandung alergen?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-160-jika-pada-label-pangan-impor-terdapat-cara-penggunaan-cara-p.md",
+   "title": "Jika pada label pangan impor terdapat cara penggunaan/ cara penyajian dalam bahasa asalnya, apakah perlu dicantumkan sebagai cara penggunaan dalam bahasa Indonesia?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-161-bagaimana-ketentuan-pencantuman-tulisan-saran-penyajian.md",
+   "title": "Bagaimana ketentuan pencantuman tulisan “saran penyajian”?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-162-pangan-olahan-apa-saja-yang-harus-mencantumkan-cara-penyimpa.md",
+   "title": "Pangan olahan apa saja yang harus mencantumkan cara penyimpanan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-163-jika-pada-label-pangan-impor-terdapat-cara-penyimpanan-dalam.md",
+   "title": "Jika pada label pangan impor terdapat cara penyimpanan dalam bahasa asalnya, apakah perlu dicantumkan sebagai cara penyimpanan dalam bahasa Indonesia?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-164-bagaimana-ketentuan-pencantuman-logo-halal.md",
+   "title": "Bagaimana ketentuan pencantuman logo halal?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-165-bagaimana-ketentuan-pencantuman-gambar-buah-daging-ikan-atau.md",
+   "title": "Bagaimana ketentuan pencantuman gambar buah, daging, ikan atau bahan Pangan lainnya pada label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-166-apakah-logo-iso-22000-dapat-dicantumkan-pada-label-pangan.md",
+   "title": "Apakah Logo ISO 22000 dapat dicantumkan pada label pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-167-apakah-produk-yang-mengandung-perisa-alami-boleh-mencantumka.md",
+   "title": "Apakah produk yang mengandung perisa alami boleh mencantumkan gambar bahan terkait perisa tersebut?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-168-bagaimana-ketentuan-pencantuman-informasi-pada-label-susu-ke.md",
+   "title": "Bagaimana ketentuan pencantuman informasi pada label susu kental ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-169-bagaimana-ketentuan-terkait-logo-ara-pangan.md",
+   "title": "Bagaimana ketentuan terkait logo ara pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-170-bagaimana-ketentuan-pencantuman-keterangan-organik-pada-labe.md",
+   "title": "Bagaimana ketentuan pencantuman keterangan “organik” pada label pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-171-apakah-logo-organik-luar-negeri-boleh-dicantumkan-pada-label.md",
+   "title": "Apakah logo organik luar negeri boleh dicantumkan pada label pangan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-172-apakah-pangan-umum-yang-mengandung-bahan-baku-organik-boleh.md",
+   "title": "Apakah pangan umum yang mengandung bahan baku organik boleh mencantumkan keterangan organik pada komposisi? (Misal Cuka dengan komposisi: Beras organik, garam, .. dst)",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-173-bagaimana-ketentuan-pencantuman-keterangan-pangan-prg-pada-l.md",
+   "title": "Bagaimana ketentuan pencantuman keterangan pangan PRG pada label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-174-pangan-prg-yang-bagaimana-yang-wajib-mencantumkan-keterangan.md",
+   "title": "Pangan PRG yang bagaimana yang wajib mencantumkan keterangan PRG?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-175-jika-hasil-analisa-pangan-olahan-mengandung-kurang-dari-5-dn.md",
+   "title": "Jika hasil analisa pangan olahan mengandung kurang dari 5% DNA PRG apakah didaftarkan sebagai pangan umum atau pangan PRG dan bagaimana ketentuan pelabelannya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-176-bagaimana-ketentuan-pencantuman-informasi-pangan-iradiasi-pa.md",
+   "title": "Bagaimana ketentuan pencantuman informasi pangan iradiasi pada label ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-177-jika-produk-pangan-olahan-menggunakan-bahan-baku-berupa-pang.md",
+   "title": "Jika produk pangan olahan menggunakan bahan baku berupa pangan iradiasi maka apakah produk pangan tsb didaftarkan sebagai pangan umum atau pangan Iradiasi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-178-bagaimana-ketentuan-pencantuman-peringatan-untuk-pangan-olah.md",
+   "title": "Bagaimana ketentuan pencantuman peringatan untuk pangan olahan yang mengandung bahan berasal dari babi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-179-bagaimana-ketentuan-pencantuman-peringatan-untuk-pangan-olah.md",
+   "title": "Bagaimana ketentuan pencantuman peringatan untuk pangan olahan yang proses pembuatannya bersinggungan dan/atau menggunakan fasilitas bersama dengan bahan bersumber babi?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-180-bagaimana-ketentuan-pencantuman-peringatan-untuk-pangan-olah.md",
+   "title": "Bagaimana ketentuan pencantuman peringatan untuk pangan olahan yang mengandung alkohol?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-181-bagaimana-ketentuan-pencantuman-peringatan-pada-produk-susu.md",
+   "title": "Bagaimana ketentuan pencantuman peringatan pada produk susu ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-182-bagaimana-ketentuan-pencantuman-peringatan-pada-produk-susu.md",
+   "title": "Bagaimana ketentuan pencantuman peringatan pada produk susu kental dan analognya ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-27",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-183-bagaimana-kalimat-peringatan-yang-tepat-untuk-pangan-olahan.md",
+   "title": "Bagaimana kalimat peringatan yang tepat untuk pangan olahan yang menggunakan ginseng?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-184-apa-persyaratan-pencantuman-kata-alami.md",
+   "title": "Apa persyaratan pencantuman kata Alami?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-185-apa-persyaratan-pencantuman-kata-murni-atau-100.md",
+   "title": "Apa persyaratan pencantuman kata Murni atau 100% ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-186-apa-persyaratan-pencantuman-kata-asli.md",
+   "title": "Apa persyaratan pencantuman kata Asli?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-187-apa-persyaratan-pencantuman-dengan-diikuti-nama-bahan.md",
+   "title": "Apa persyaratan pencantuman “dengan (diikuti nama bahan)” ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-188-apa-persyaratan-pencantuman-dari-diikuti-nama-bahan.md",
+   "title": "Apa persyaratan pencantuman “dari (diikuti nama bahan)” ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-189-apakah-ketentuan-pencantuman-vegan-pada-label.md",
+   "title": "Apakah ketentuan pencantuman Vegan pada label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-190-apakah-persyaratan-pencantuman-spesial-premium-gold-platinum.md",
+   "title": "Apakah persyaratan pencantuman “spesial”, “premium”, “gold”, “platinum”, “ekstra”, “plus” (+), “advanced”, atau kata lain yang semakna?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-191-apakah-pencantuman-informasi-bahan-bahan-berikut-diperbolehk.md",
+   "title": "Apakah pencantuman informasi bahan-bahan berikut diperbolehkan “dengan glutation/kolagen/kolostrum”",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-192-apakah-boleh-mencantumkan-klaim-bpa-free-pada-label.md",
+   "title": "Apakah boleh mencantumkan klaim BPA free pada label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-193-jenis-btp-apa-saja-yang-diizinkan-mencantumkan-informasi-tan.md",
+   "title": "Jenis BTP apa saja yang diizinkan mencantumkan informasi tanpa BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-194-bagaimana-ketentuan-pencantuman-informasi-tanpa-btp-pada-lab.md",
+   "title": "Bagaimana ketentuan pencantuman informasi Tanpa BTP pada label ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-195-apakah-boleh-mencantumkan-nama-jenis-btp-pada-pencantuman-ta.md",
+   "title": "Apakah boleh mencantumkan nama jenis BTP pada pencantuman tanpa BTP pada Label? Contoh : Tanpa MSG",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-196-apakah-pencantuman-informasi-tanpa-btp-dapat-menggunakan-per.md",
+   "title": "Apakah pencantuman informasi tanpa BTP dapat menggunakan pernyataan/ kalimat lain selain “Tanpa BTP”?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-197-persyaratan-apa-yang-diperlukan-agar-dapat-mencantumkan-info.md",
+   "title": "Persyaratan apa yang diperlukan agar dapat mencantumkan informasi Tanpa BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-198-terkait-pencantuman-tanpa-btp-pada-label-a-bagaimana-jika-te.md",
+   "title": "Terkait pencantuman tanpa BTP pada label: a. Bagaimana jika terdapat BTP ikutan/carry over? b. Bagaimana jika laboratorium tidak dapat menganalisa BTP ikutan/carry over?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-199-klaim-apa-saja-yang-boleh-dicantumkan-pada-label.md",
+   "title": "Klaim apa saja yang boleh dicantumkan pada label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-200-apakah-persyaratan-utama-jika-suatu-pangan-olahan-akan-menca.md",
+   "title": "Apakah persyaratan utama jika suatu pangan olahan akan mencantumkan klaim ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-201-klaim-apa-saja-yang-tidak-dipersyaratkan-ketentuan-perbpom-n.md",
+   "title": "Klaim apa saja yang tidak dipersyaratkan ketentuan PerBPOM No. 1 tahun 2022 Pasal 5 ayat 2?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-202-bagaimana-ketentuan-registrasi-produk-pangan-olahan-yang-men.md",
+   "title": "Bagaimana ketentuan registrasi produk pangan olahan yang menggunakan mikroorganisme?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-203-apakah-untuk-produk-yang-ditambahkan-mikroorganisme-selain-u.md",
+   "title": "Apakah untuk produk yang ditambahkan mikroorganisme selain untuk tujuan fermentasi sebagaimana diatur pada KepKa BPOM No.38 tahun 2023, harus didaftarkan sebagai pangan berklaim atau boleh didaftarkan sebagai pangan umum tanpa klaim?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-204-bagaimana-ketentuan-registrasi-pangan-olahan-non-fermentasi.md",
+   "title": "Bagaimana ketentuan registrasi pangan olahan non fermentasi yang ditambahkan mikroorganisme?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-205-bagaimana-ketentuan-pencantuman-klaim-fungsi-vitamin-c-berik.md",
+   "title": "Bagaimana ketentuan pencantuman klaim fungsi vitamin C berikut: “Konsumsi Vitamin C yang cukup dapat berkontribusi terhadap fungsi normal daya tahan tubuh, jika disertai dengan diet gizi seimbang”, untuk produk yang diseduh dengan air hangat/panas?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-206-untuk-zat-gizi-yang-belum-ada-alg-nya-seperti-epa-dan-dha-ba.md",
+   "title": "Untuk zat gizi yang belum ada ALG nya seperti EPA dan DHA, bagaimana ketentuan pencantuman klaimnya?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-207-untuk-klaim-kandungan-gizi-dan-non-gizi-sesuai-dengan-peratu.md",
+   "title": "Untuk klaim kandungan gizi dan non gizi sesuai dengan Peraturan BPOM No 30 tahun 2021, apakah zat gizi tersebut harus tercantum pada tabel ING?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-208-bagaimana-ketentuan-produk-pangan-yang-tidak-bisa-mencantumk.md",
+   "title": "Bagaimana ketentuan produk pangan yang tidak bisa mencantumkan klaim rendah/bebas, contohnya bebas Kolesterol?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-209-apakah-kata-unsalted-pada-produk-pangan-termasuk-mentega-uns.md",
+   "title": "Apakah kata unsalted pada produk pangan termasuk mentega (unsalted butter) termasuk klaim tanpa penambahan garam atau bukan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-210-bagaimana-ketentuan-pencantuman-klaim-mengandung-omega-3-ome.md",
+   "title": "Bagaimana ketentuan pencantuman klaim \"\"Mengandung Omega 3, Omega 6, Omega 9\"\" pada Label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-211-apa-sajakah-produk-pangan-keperluan-gizi-khusus.md",
+   "title": "Apa sajakah produk Pangan Keperluan Gizi Khusus?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-212-bagaimana-peringatan-untuk-pangan-diet-khusus-dan-pangan-kep.md",
+   "title": "Bagaimana peringatan untuk Pangan Diet Khusus dan Pangan Keperluan Medis Khusus?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-213-apakah-perbedaan-makanan-selingan-dengan-mpasi-dan-bagaimana.md",
+   "title": "Apakah perbedaan makanan selingan dengan MPASI dan bagaimana persyaratannya ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-214-apakah-produk-mpasi-dapat-menambahkan-perisa.md",
+   "title": "Apakah produk MPASI dapat menambahkan perisa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-215-ada-berapa-jenis-mpasi.md",
+   "title": "Ada berapa jenis MPASI ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-216-apa-saja-jenis-btp-yang-didaftarkan.md",
+   "title": "Apa saja jenis BTP yang didaftarkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-217-apa-saja-bentuk-sediaan-btp.md",
+   "title": "Apa saja bentuk sediaan BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-218-bagaimana-penentuan-fungsi-btp-untuk-btp-campuran.md",
+   "title": "Bagaimana Penentuan fungsi BTP untuk BTP Campuran?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-219-bagaimana-penentuan-nama-jenis-btp.md",
+   "title": "Bagaimana Penentuan nama jenis BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-220-apa-saja-persyaratan-teknis-registrasi-btp.md",
+   "title": "Apa saja persyaratan teknis registrasi BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-221-apa-acuan-persyaratan-cemaran-untuk-registrasi-btp-campuran.md",
+   "title": "Apa acuan persyaratan cemaran untuk registrasi BTP campuran?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-222-apa-acuan-registrasi-btp-perisa.md",
+   "title": "Apa acuan registrasi BTP perisa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-223-hasil-analisa-apa-saja-yang-harus-dilampirkan-untuk-registra.md",
+   "title": "Hasil analisa apa saja yang harus dilampirkan untuk registrasi BTP Campuran?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-224-hasil-analisa-apa-yang-harus-dilampirkan-untuk-registrasi-bt.md",
+   "title": "Hasil analisa apa yang harus dilampirkan untuk registrasi BTP campuran selain hasil analisa cemaran mikroba dan logam?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-225-apa-acuan-persyaratan-spesifikasi-pada-registrasi-btp-tungga.md",
+   "title": "Apa acuan persyaratan spesifikasi pada registrasi BTP tunggal ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-226-apakah-btp-tunggal-dipersyaratkan-hasil-analisa.md",
+   "title": "Apakah BTP tunggal dipersyaratkan hasil analisa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-227-keterangan-apa-yang-harus-tercantum-pada-spesifikasi-btp-per.md",
+   "title": "Keterangan apa yang harus tercantum pada spesifikasi BTP perisa?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-228-apa-yang-dimaksud-dengan-table-top-sweetener.md",
+   "title": "Apa yang dimaksud dengan table-top sweetener?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-229-sediaan-pemanis-cair-yang-digunakan-dengan-cara-diteteskan-p.md",
+   "title": "Sediaan pemanis cair yang digunakan dengan cara diteteskan pada produk akhir siap konsumsi, apakah didaftarkan sebagai pangan olahan atau BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-230-bagaimana-cara-perhitungan-takaran-penggunaan-btp-dalam-prod.md",
+   "title": "Bagaimana cara perhitungan takaran penggunaan BTP dalam produk pangan untuk pencantuman pada label produk BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-231-termasuk-registrasi-variasi-apakah-untuk-perubahan-format-in.md",
+   "title": "Termasuk registrasi variasi apakah untuk perubahan format Informasi Nilai Gizi tanpa merubah takaran saji atau inputan zat gizi pada sistem?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-232-pada-registrasi-variasi-komposisi-apakah-wajib-diuji-cemaran.md",
+   "title": "Pada registrasi variasi komposisi, apakah wajib diuji cemaran mikroba, logam, dan BTP?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-233-jika-terjadi-perubahan-komposisi-apakah-perlu-dilakukan-peng.md",
+   "title": "Jika terjadi perubahan komposisi, apakah perlu dilakukan pengujian ulang zat gizi terkait pencantuman Tabel ING di label?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-234-apakah-perbedaan-variasi-desain-label-dengan-variasi-tata-le.md",
+   "title": "Apakah perbedaan variasi desain label dengan variasi tata letak ?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-235-apabila-perubahan-variasi-minor-yang-dilakukan-pelaku-usaha.md",
+   "title": "Apabila perubahan variasi minor yang dilakukan Pelaku Usaha telah terbit sebelumnya, namun ternyata terdapat ketidaksesuaian pada desain labelnya. Apakah saat pengajuan variasi mayor selanjutnya harus dilakukan penyesuaian?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-236-bagaimana-alur-dan-ketentuan-perubahan-variasi-pada-ereg-rba.md",
+   "title": "Bagaimana alur dan ketentuan perubahan variasi pada ereg RBA untuk semua kategori risiko?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-237-bagaimana-mekanisme-perubahan-desain-label-untuk-produk-deng.md",
+   "title": "Bagaimana mekanisme perubahan desain label untuk produk dengan risiko MT yang tidak terdapat final labelnya? Apakah tetap dapat dilakukan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-238-jika-akan-yang-menghilangkan-klaim-pada-label-apakah-perlu-m.md",
+   "title": "Jika akan yang menghilangkan klaim pada label, apakah perlu memilih jenis variasi klaim dan apakah input klaim pada sistem perlu dihilangkan?",
+   "tahun": "2026",
+   "tanggal": "2026-06-26",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "faq-239-daftar-produk-pangan-olahan-wajib-sni.md",
+   "title": "Daftar produk pangan olahan wajib SNI",
+   "tahun": "2026",
+   "tanggal": "2026-10-16",
+   "bentuk": "FAQ Rumah SiRiPO BPOM",
+   "source_url": "https://rumahsiripo.pom.go.id/informasi/faq",
+   "kategori": "Pangan Olahan"
+  }
+ ]
+}

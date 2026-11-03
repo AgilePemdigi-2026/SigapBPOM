@@ -1,6 +1,6 @@
 {
  "sumber": "https://github.com/harezadmm/CoretaxAgent (knowledge/regulations, commit 8cf9346), aslinya dari peraturan.bpk.go.id",
- "jumlah": 138,
+ "jumlah": 141,
  "dokumen": [
   {
    "file": "acuan-label-gizi-d3a04533.md",
@@ -1105,6 +1105,33 @@
    "tahun": "2022",
    "bentuk": "Peraturan BPOM",
    "source_url": "https://peraturan.bpk.go.id/Details/223971/peraturan-bpom-no-11-tahun-2022"
+  },
+  {
+   "file": "kemasan-pangan-jdih-2026-11.md",
+   "title": "Kemasan Pangan",
+   "nomor": "11",
+   "tahun": "2026",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://jdih.pom.go.id/download/rule/1762/11/2026/Peraturan%20Badan%20Pengawas%20Obat%20dan%20Makanan%20Nomor%2011%20Tahun%202026%20tentang%20Kemasan%20Pangan",
+   "kategori": "Pangan Olahan"
+  },
+  {
+   "file": "penarikan-dan-pemusnahan-obat-dan-atau-bahan-obat-yang-tidak-memenuhi-jdih-2026-12.md",
+   "title": "Penarikan dan Pemusnahan Obat dan/atau Bahan Obat yang Tidak Memenuhi Standar dan/atau Persyaratan Keamanan, Khasiat, Mutu, Label, dan/atau Informasi Produk",
+   "nomor": "12",
+   "tahun": "2026",
+   "bentuk": "Peraturan BPOM",
+   "source_url": "https://jdih.pom.go.id/download/rule/1773/12/2026/Peraturan%20Badan%20Pengawas%20Obat%20dan%20Makanan%20Nomor%2012%20Tahun%202026%20tentang%20Penarikan%20dan%20Pemusnahan%20Obat%20dan/atau%20Bahan%20Obat%20yang%20Tidak%20Memenuhi%20Standar%20dan/atau%20Persyaratan%20Keamanan%2C%20Khasiat%2C%20Mutu%2C%20Label%2C%20dan/atau%20Informasi%20Produk",
+   "kategori": "Obat"
+  },
+  {
+   "file": "nilai-kandungan-zat-gizi-untuk-pangan-olahan-yang-diproduksi-oleh-usah-jdih-2026-265.md",
+   "title": "Nilai Kandungan Zat Gizi untuk Pangan Olahan yang Diproduksi oleh Usaha Mikro dan Kecil",
+   "nomor": "265",
+   "tahun": "2026",
+   "bentuk": "Keputusan Kepala BPOM",
+   "source_url": "https://jdih.pom.go.id/download/rule/1764/265/2026/Keputusan%20Kepala%20Badan%20Pengawas%20Obat%20dan%20Makanan%20Nomor%20265%20Tahun%202026%20Tentang%20Nilai%20Kandungan%20Zat%20Gizi%20untuk%20Pangan%20Olahan%20yang%20Diproduksi%20oleh%20Usaha%20Mikro",
+   "kategori": "Pangan Olahan"
   }
  ]
 }
