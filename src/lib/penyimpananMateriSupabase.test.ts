@@ -55,12 +55,14 @@ test('t_f2_1_03 tanpa sesi petugas materi tidak terbaca', { skip: lewati }, asyn
 });
 
 test('t_f2_4_02 graf dari materi Supabase menunjuk materi yang benar-benar tersimpan', { skip: lewati }, async () => {
-  const penyimpanan = new PenyimpananMateriSupabase({ url, kunciPublik, tokenAkses: await tokenPetugas() });
-  const graf = await new BasisPengetahuanController(penyimpanan).grafPengetahuan();
+  const kb = new BasisPengetahuanController(new PenyimpananMateriSupabase({ url, kunciPublik, tokenAkses: await tokenPetugas() }));
+  const graf = await kb.grafPengetahuan();
   assert.ok('simpul' in graf);
-  const { baris } = await penyimpanan.daftar({ status: 'aktif', offset: 0, batas: 1000 });
-  const perId = new Map(baris.map((m) => [m.id, m]));
+  const semua = await kb.semuaMateri();
+  assert.ok('materi' in semua);
+  assert.equal(semua.total, DOKUMEN_KORPUS.length, 'seluruh korpus terbaca walau melewati max-rows PostgREST');
+  const perId = new Map(semua.materi.map((m) => [m.id, m]));
   const materi = graf.simpul.filter((n) => !n.hub);
   assert.ok(materi.length > 0);
-  for (const n of materi) assert.equal(n.rujukan, perId.get(n.id)?.rujukanSumber, `rujukan simpul ${n.label} sesuai tabel`);
+  for (const n of materi) assert.equal(n.rujukan, perId.get(n.id)?.rujukan, `rujukan simpul ${n.label} sesuai tabel`);
 });
