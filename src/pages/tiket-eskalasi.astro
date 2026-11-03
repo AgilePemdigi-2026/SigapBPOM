@@ -1,0 +1,66 @@
+---
+// Boundary UC-04 Memantau Layanan, halaman Tiket Eskalasi (REQ-4.3, REQ-4.4, T-F5.3-02): antrean tindak lanjut dari
+// view antrean_tiket_petugas. Read-only: penanganan tiket menyusul di Sprint 3 (UC-06).
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { chip } from '../lib/data';
+import { pemantauanLayanan } from '../lib/pemantauan';
+
+const hasil = await pemantauanLayanan(Astro.locals.tokenAkses).antreanTiket();
+const gagal = 'gagal' in hasil ? hasil.gagal : '';
+const tiket = 'gagal' in hasil ? [] : hasil.tiket;
+// Penyimpanan gagal: 503 (PROJECT_RULES 4.4).
+if (gagal) Astro.response.status = 503;
+---
+<DashboardLayout title="Tiket Eskalasi">
+  <div class="page">
+    <section class="panel head">
+      <div class="head-title">
+        <h1>Tiket Eskalasi</h1>
+        <span>Antrean Tindak Lanjut</span>
+      </div>
+    </section>
+
+    <section class="panel list" data-name="AntreanTiketEskalasi">
+      <div class="row-grid cols-head" aria-hidden="true"><span>NOMOR TIKET</span><span>RINGKASAN MASALAH</span><span>JENIS KASUS</span><span>WAKTU MASUK</span><span>TRANSKRIP</span><span>STATUS</span><span></span></div>
+      {gagal && <div class="empty" role="alert"><i class="icon-file-x"></i><span>{gagal}</span></div>}
+      {!gagal && tiket.length === 0 && <div class="empty"><i class="icon-circle-check"></i><span>Tidak ada kasus yang perlu ditindaklanjuti.</span></div>}
+      <ol class="rows" aria-label="Antrean tiket">
+        {tiket.map((t) => {
+          const warna = chip(t.labelStatus);
+          return (
+            <li class="row-grid tile row">
+              <span class="mono no">{t.noTiket}</span>
+              <span class="ringkasan">{t.ringkasan}</span>
+              <span>{t.jenis}</span>
+              <span>{t.waktuMasuk}</span>
+              {t.tautanTranskrip ? <a href={t.tautanTranskrip} class="link"><i class="icon-file-text"></i>Lihat Transkrip</a> : <span>—</span>}
+              <span class="chip" style={`background:${warna.bg};color:${warna.fg}`}>{t.labelStatus}</span>
+              <a href={t.tautanKasus} class="pill buka">Buka Kasus</a>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  </div>
+</DashboardLayout>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .head { padding: 22px 28px; display: flex; align-items: center; gap: 16px; }
+  .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.02em; }
+  .head-title span { font-size: 15px; color: var(--muted); }
+
+  .list { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+  .row-grid { display: grid; grid-template-columns: 1.1fr 2fr .9fr 1.2fr 1fr 1fr auto; gap: 14px; align-items: center; padding: 0 18px; }
+  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); padding-bottom: 4px; }
+  .rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .row { min-height: 64px; border-radius: 18px; font-size: 15px; }
+  .no { font-weight: 600; }
+  .ringkasan { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .chip { justify-self: start; }
+  .link { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: #2152c9; white-space: nowrap; }
+  .buka { height: 44px; padding: 0 16px; font-size: 14px; font-weight: 500; color: var(--ink); }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; min-height: 220px; }
+  .empty i { font-size: 28px; color: var(--muted-2); }
+</style>
