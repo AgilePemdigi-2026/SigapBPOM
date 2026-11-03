@@ -57,4 +57,12 @@ export class PenyimpananMateriTiruan implements PenyimpananMateri {
   async potongan() {
     return {};
   }
+
+  // Status diubah di larik yang sama, jadi berlaku untuk permintaan berikutnya sampai server dimulai ulang.
+  async nonaktifkan(materiId: string) {
+    const i = this.materi.findIndex((m) => m.id === materiId);
+    if (i < 0) return false;
+    this.materi[i] = { ...this.materi[i], status: 'tidak_aktif', diperbaruiPada: new Date().toISOString() };
+    return true;
+  }
 }
