@@ -42,7 +42,7 @@ export const PESAN_MATERI = {
 } as const;
 
 export const UKURAN_HALAMAN_BAWAAN = 25;
-// ponytail: halaman dan graf membaca paling banyak 1000 materi sekaligus; tambah paginasi di UI bila korpus melewatinya.
+// Sama dengan max-rows PostgREST Supabase: satu permintaan tidak pernah mengembalikan lebih dari 1000 baris.
 export const UKURAN_HALAMAN_MAKS = 1000;
 // PROJECT_RULES 5.6: panjang isian dibatasi sebelum diteruskan ke basis data.
 const PANJANG_CARI_MAKS = 100;
@@ -68,6 +68,18 @@ export function keTampilan(m: MateriTersimpan): Materi {
 }
 
 const bulat = (n: number) => Math.round(n * 10) / 10;
+
+// Seluruh materi dibaca per UKURAN_HALAMAN_MAKS sampai jumlahnya mencapai total dari penyimpanan (Content-Range).
+// ponytail: seluruh korpus dikirim ke halaman sekaligus; ganti dengan paginasi UI (F2.1) bila korpus jauh lebih besar.
+async function bacaSemua(penyimpanan: PenyimpananMateri, status?: StatusMateri) {
+  const semua: MateriTersimpan[] = [];
+  for (;;) {
+    const { baris, total } = await penyimpanan.daftar({ status, offset: semua.length, batas: UKURAN_HALAMAN_MAKS });
+    semua.push(...baris);
+    // Halaman kosong menghentikan perulangan bila materi berkurang di antara dua permintaan.
+    if (!baris.length || semua.length >= total) return semua;
+  }
+}
 
 /** Graf dari materi aktif: setiap materi tersambung ke kategorinya dan ke materi lain dengan rujukan sumber yang sama. */
 export function susunGraf(materi: MateriTersimpan[], potongan: Record<string, string[]>): Graf {
@@ -143,10 +155,20 @@ export class BasisPengetahuanController {
     }
   }
 
+  /** Seluruh materi untuk halaman Basis Pengetahuan, yang menyaring dan mencari di browser. */
+  async semuaMateri(): Promise<{ materi: Materi[]; total: number } | { gagal: string }> {
+    try {
+      const baris = await bacaSemua(this.penyimpanan);
+      return { materi: baris.map(keTampilan), total: baris.length };
+    } catch {
+      return { gagal: PESAN_MATERI.gagalDimuat };
+    }
+  }
+
   /** REQ-7.4: graf hanya memuat materi aktif, karena materi tidak aktif tidak lagi dipakai sebagai sumber jawaban (BR-5). */
   async grafPengetahuan(): Promise<Graf | { gagal: string }> {
     try {
-      const { baris } = await this.penyimpanan.daftar({ status: 'aktif', offset: 0, batas: UKURAN_HALAMAN_MAKS });
+      const baris = await bacaSemua(this.penyimpanan, 'aktif');
       const awal = susunGraf(baris, {});
       const ids = awal.simpul.filter((n) => !n.hub).map((n) => n.id);
       return susunGraf(baris, await this.penyimpanan.potongan(ids));

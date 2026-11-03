@@ -50,7 +50,42 @@ test('t_f2_1_03 error jaringan menghasilkan pesan gagal memuat dari kamus', asyn
   const rusak: PenyimpananMateri = { daftar: async () => { throw new Error('fetch failed'); }, potongan: async () => ({}), nonaktifkan: async () => false };
   const kb = new BasisPengetahuanController(rusak);
   assert.deepEqual(await kb.daftarMateri(), { gagal: PESAN_MATERI.gagalDimuat });
+  assert.deepEqual(await kb.semuaMateri(), { gagal: PESAN_MATERI.gagalDimuat });
   assert.deepEqual(await kb.grafPengetahuan(), { gagal: PESAN_MATERI.gagalDimuat });
+});
+
+test('t_f2_1_03 halaman dan graf membaca seluruh materi per 1000 baris, tidak terpotong batas PostgREST', async () => {
+  const KORPUS = UKURAN_HALAMAN_MAKS + 32;
+  const diminta: string[] = [];
+  // Meniru PostgREST Supabase: paling banyak 1000 baris per permintaan, total di Content-Range.
+  const fetchPostgrest = (async (url: string) => {
+    if (url.includes('materi_potongan')) return Response.json([]);
+    const p = new URL(url).searchParams;
+    diminta.push(`${p.get('offset')}+${p.get('limit')}`);
+    const awal = Number(p.get('offset'));
+    const akhir = Math.min(KORPUS, awal + Math.min(UKURAN_HALAMAN_MAKS, Number(p.get('limit'))));
+    const baris = Array.from({ length: akhir - awal }, (_, i) => ({
+      id: `m${awal + i}`,
+      judul: `Materi ${awal + i}`,
+      // Kategori Kosmetik hanya ada di baris terakhir, setelah batas 1000.
+      kategori: awal + i === KORPUS - 1 ? 'Kosmetik' : 'Pangan Olahan',
+      rujukan_sumber: 'Penjelasan Publik',
+      status: 'aktif',
+      diperbarui_pada: '2026-10-01T00:00:00+07:00',
+    }));
+    return Response.json(baris, { headers: { 'Content-Range': `${awal}-${akhir - 1}/${KORPUS}` } });
+  }) as unknown as typeof fetch;
+  const kb = new BasisPengetahuanController(new PenyimpananMateriSupabase({ url: 'https://contoh.supabase.co', kunciPublik: 'publik', tokenAkses: 'token-petugas', fetch: fetchPostgrest }));
+
+  const semua = await kb.semuaMateri();
+  assert.ok('materi' in semua);
+  assert.equal(semua.total, KORPUS);
+  assert.equal(new Set(semua.materi.map((m) => m.id)).size, KORPUS);
+  assert.deepEqual(diminta, ['0+1000', '1000+1000']);
+
+  const graf = await kb.grafPengetahuan();
+  assert.ok('simpul' in graf);
+  assert.ok(graf.simpul.some((n) => n.id === 'kategori:Kosmetik'), 'kategori di luar 1000 baris pertama tetap masuk graf');
 });
 
 test('t_f2_4_02 graf hanya memuat materi aktif, tersambung ke kategori dan rujukan bersama', async () => {

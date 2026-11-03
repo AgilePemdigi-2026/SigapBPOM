@@ -2,7 +2,7 @@
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { KATEGORI_MATERI, chip } from '../lib/data';
-import { BasisPengetahuanController, UKURAN_HALAMAN_MAKS, type Materi } from '../lib/BasisPengetahuanController';
+import { BasisPengetahuanController, type Materi } from '../lib/BasisPengetahuanController';
 import { PenyimpananMateriTiruan } from '../lib/mock/materiTiruan';
 import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
 import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
@@ -15,7 +15,7 @@ const penyimpanan = konfigurasi && token
   ? new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })
   : new PenyimpananMateriTiruan();
 const basis = new BasisPengetahuanController(penyimpanan);
-const [daftar, graf] = await Promise.all([basis.daftarMateri({ ukuran: UKURAN_HALAMAN_MAKS }), basis.grafPengetahuan()]);
+const [daftar, graf] = await Promise.all([basis.semuaMateri(), basis.grafPengetahuan()]);
 const MATERI: Materi[] = 'materi' in daftar ? daftar.materi : [];
 const gagal = 'gagal' in daftar ? daftar.gagal : '';
 const SIMPUL = 'simpul' in graf ? graf.simpul : [];
@@ -25,7 +25,6 @@ const KB_TOTAL = { total: MATERI.length, aktif, nonaktif: MATERI.length - aktif 
 
 const awal = SIMPUL[0];
 const byId = Object.fromEntries(SIMPUL.map((n) => [n.id, n]));
-const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 const data = {
   materi: MATERI,
   total: KB_TOTAL,
@@ -33,7 +32,6 @@ const data = {
   simpul: SIMPUL,
   chipAktif: chip('Aktif'),
   chipNonaktif: chip('Tidak Aktif'),
-  simpanMateriUrl: `${SUPABASE_URL}/functions/v1/simpan-materi`,
 };
 ---
 <DashboardLayout title="Basis Pengetahuan">
@@ -123,7 +121,6 @@ const data = {
 </DashboardLayout>
 
 <script>
-  // ponytail: perubahan materi hanya di memori browser sampai T-F2.2-02 / T-F2.3-02 menyimpan ke Supabase.
   type Materi = { id: number | string; judul: string; kategori: string; rujukan: string; tgl: string; aktif: boolean };
   type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
   const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
@@ -217,8 +214,11 @@ const data = {
   field('judul').addEventListener('input', () => saveBtn.setAttribute('aria-disabled', String(!field('judul').value.trim())));
   field('rujukan').addEventListener('input', () => { err.hidden = true; field('rujukan').classList.remove('invalid'); });
 
+  // Simpan menulis ke basis data dan menunggu embedding; klik kedua atau Enter selama menunggu tidak boleh membuat materi ganda.
+  let mengirim = false;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (mengirim) return;
     const judul = field('judul').value.trim();
     const rujukan = field('rujukan').value.trim();
     if (!judul) return field('judul').focus();
@@ -226,39 +226,35 @@ const data = {
     const kategori = field('kategori').value;
     const isi = field('isi').value;
 
+    mengirim = true;
     saveBtn.setAttribute('aria-disabled', 'true');
-    try {
-      // ponytail: simpan-materi hanya menerima token sesi petugas (Authorization: Bearer). Sesi dashboard masih tiruan
-      // sampai T-F3.1-03, jadi permintaan ini ditolak 401 dan materi belum bisa disimpan dari dashboard.
-      const respon = await fetch(D.simpanMateriUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ judul, rujukan, kategori, isi }),
-      });
-      const hasil = await respon.json().catch(() => null);
-      if (respon.status === 422) {
-        err.textContent = hasil?.message || 'Rujukan sumber wajib diisi.';
-        err.hidden = false;
-        field('rujukan').classList.add('invalid');
-        return;
-      }
-      if (!respon.ok || hasil?.status === 'error') throw new Error('simpan-materi tidak tersedia');
-      const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
-      materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl, aktif: true });
-      st.added++;
-      st.tab = 'Semua'; st.q = '';
-      (document.getElementById('kb-q') as HTMLInputElement).value = '';
-      pressGroup('data-tab', 'Semua');
-      showView('list');
-      render();
-      dialog.close();
-      toast(hasil?.message || 'Materi siap digunakan sistem.');
-    } catch {
+    // Lewat proxy same-origin, yang melampirkan token sesi petugas dari cookie HttpOnly (src/pages/api/simpan-materi.ts).
+    const respon = await fetch('/api/simpan-materi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ judul, rujukan, kategori, isi }),
+    }).catch(() => null);
+    const hasil = await respon?.json().catch(() => null);
+    mengirim = false;
+    saveBtn.removeAttribute('aria-disabled');
+    if (!respon?.ok || hasil?.status === 'error') {
       // REQ-7.1: jangan tampilkan sukses bila server tidak menyimpan materi. Dialog tetap terbuka agar isian tidak hilang.
-      // ponytail: pesan gagal simpan belum ada di kamus PRD-rinci Lampiran A; tampilkan di #add-err setelah barisnya ditambahkan.
-    } finally {
-      saveBtn.removeAttribute('aria-disabled');
+      const rujukanKosong = respon?.status === 422;
+      err.textContent = hasil?.message || (rujukanKosong ? 'Rujukan sumber wajib diisi.' : 'Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi.');
+      err.hidden = false;
+      field('rujukan').classList.toggle('invalid', rujukanKosong);
+      return;
     }
+    const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
+    materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl, aktif: true });
+    st.added++;
+    st.tab = 'Semua'; st.q = '';
+    (document.getElementById('kb-q') as HTMLInputElement).value = '';
+    pressGroup('data-tab', 'Semua');
+    showView('list');
+    render();
+    dialog.close();
+    toast(hasil?.message || 'Materi siap digunakan sistem.');
   });
 
   render();
