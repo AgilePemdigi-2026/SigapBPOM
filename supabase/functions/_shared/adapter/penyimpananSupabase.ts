@@ -2,11 +2,25 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 import { ErrorSigap, type LogTool, type PenyimpananLayanan, type PotonganPengetahuan } from '../control/InformasiProdukController.ts';
 import type { PenyimpananPengaduan } from '../control/PengaduanController.ts';
+import type { PenyimpananTranskrip } from '../control/TranskripController.ts';
+import type { Pembicara } from '../entity/ucapan.ts';
 
-export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPengaduan {
+export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPengaduan, PenyimpananTranskrip {
   db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
   });
+
+  async catatUcapan(data: { percakapanId: string; pembicara: Pembicara; teks: string }) {
+    const { data: urutan, error } = await this.db.rpc('catat_ucapan', {
+      p_percakapan_id: data.percakapanId,
+      p_pembicara: data.pembicara,
+      p_teks: data.teks,
+    });
+    if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    if (error?.code === '55000') throw new ErrorSigap(409, 'Percakapan sudah berakhir.');
+    if (error) throw error;
+    return urutan as number;
+  }
 
   async catatLogTool(log: LogTool) {
     const { error } = await this.db.from('log_tool').insert({
@@ -25,6 +39,7 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
       p_ringkasan: data.ringkasan,
     });
     if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    if (error?.code === '55000') throw new ErrorSigap(409, 'Percakapan sudah berakhir.');
     if (error?.code === '23505') throw new ErrorSigap(422, 'Tiket untuk percakapan ini sudah diterbitkan.');
     if (error) throw error;
     return nomorTiket as string;
@@ -63,6 +78,7 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
       p_ringkasan: data.ringkasan ?? null,
     });
     if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    if (error?.code === '55000') throw new ErrorSigap(409, 'Percakapan sudah berakhir.');
     // SG409: percakapan sudah ada dengan jenis atau status yang tidak boleh diubah (migrasi perketat_percakapan_pengaduan).
     if (error?.code === 'SG409') throw new ErrorSigap(409, 'Percakapan tidak dapat diubah.');
     if (error?.code === '23505') {
@@ -110,6 +126,7 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
       p_no_telp: data.nomorTelepon ?? null,
     });
     if (error?.code === 'P0002') throw new ErrorSigap(404, 'Percakapan tidak ditemukan.');
+    if (error?.code === '55000') throw new ErrorSigap(409, 'Percakapan sudah berakhir.');
     // SG409: percakapan sudah ada dengan jenis atau status yang tidak boleh diubah (migrasi perketat_percakapan_pengaduan).
     if (error?.code === 'SG409') throw new ErrorSigap(409, 'Percakapan tidak dapat diubah.');
     if (error) throw error;
