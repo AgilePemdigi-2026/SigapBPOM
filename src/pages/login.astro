@@ -50,8 +50,8 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
 </BaseLayout>
 
 <script>
-  // Kredensial diperiksa di server (/api/login). ponytail: penghitung gagal masih di browser sampai
-  // T-F3.2-02 memasang Edge Function penguncian; pengguna bisa meresetnya, jadi bukan pengaman.
+  // Kredensial dan penguncian diperiksa di server (/api/login, Edge Function login T-F3.2-02), yang juga mengirim pesan
+  // "Akses dikunci" pada kegagalan ketiga. Penghitung di browser hanya untuk petunjuk sisa percobaan, bukan pengunci.
   const MAX_GAGAL = 3; // REQ-3.5, NFR-11
   const FAIL_KEY = 'sigap-gagal-login';
   const AKTIF_KEY = 'sigap-aktif';
@@ -76,11 +76,12 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
   function showErr(msg: string) {
     const n = gagal();
     errMsg.textContent = msg;
-    errHint.hidden = !(n > 0 && n < MAX_GAGAL);
+    const terkunci = msg === MSG.kunci;
+    errHint.hidden = terkunci || !(n > 0 && n < MAX_GAGAL);
     errHint.textContent = `Percobaan gagal ${n} dari ${MAX_GAGAL}. Akun dikunci sementara setelah ${MAX_GAGAL} kali gagal.`;
     errBox.hidden = false;
     pwWrap.classList.add('invalid');
-    btn.classList.toggle('locked', n >= MAX_GAGAL);
+    btn.classList.toggle('locked', terkunci);
   }
 
   toggle.addEventListener('click', () => {
@@ -92,7 +93,6 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (gagal() >= MAX_GAGAL) return showErr(MSG.kunci);
     if (!email.value.trim() || !pw.value) return showErr(MSG.kosong);
     const res = await fetch('/api/login', {
       method: 'POST',
@@ -103,7 +103,7 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
     if (res?.status === 401) {
       const n = gagal() + 1;
       sessionStorage.setItem(FAIL_KEY, String(n));
-      return showErr(n >= MAX_GAGAL ? MSG.kunci : hasil?.message ?? MSG.galat);
+      return showErr(hasil?.message ?? MSG.galat);
     }
     if (!res?.ok) return showErr(hasil?.message ?? MSG.galat);
     sessionStorage.removeItem(FAIL_KEY);
@@ -111,8 +111,6 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
     sessionStorage.setItem('sigap-toast', hasil?.message ?? '');
     location.href = '/ringkasan';
   });
-
-  if (gagal() >= MAX_GAGAL) btn.classList.add('locked');
 </script>
 
 <style>
