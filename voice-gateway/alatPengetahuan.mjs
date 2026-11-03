@@ -54,8 +54,10 @@ export class PencariPengetahuanSupabase {
  * jalur lokal. Hanya bila Edge Function tidak dikonfigurasi atau gagal, dipakai korpus lokal `pengetahuan.mjs`.
  * Selama PENGETAHUAN_VEKTOR mati, korpus lokal belum menyaring materi tidak aktif (REQ-7.3, BR-5) sampai katalog #66 masuk.
  * Mengembalikan { kutipan: { judul, label, sumber, teks }[], mode: 'basis' | 'lokal' }.
+ * `saatLokal(durasiMs, berhasil)` dipanggil hanya bila BM25 lokal dijalankan, untuk log_tool (T-F5.4-01); jalur vektor
+ * sudah dicatat Edge Function cari-pengetahuan sehingga tidak dicatat dua kali.
  */
-export async function cariBasisPengetahuan({ pencari, korpus, pertanyaan, catat = () => {} }) {
+export async function cariBasisPengetahuan({ pencari, korpus, pertanyaan, catat = () => {}, saatLokal = () => {} }) {
   if (pencari) {
     try {
       const potongan = await pencari.cari(pertanyaan);
@@ -65,7 +67,10 @@ export async function cariBasisPengetahuan({ pencari, korpus, pertanyaan, catat 
       catat({ ev: 'tool_pengetahuan_gagal', galat: e instanceof Error ? e.message : 'unknown' });
     }
   }
-  return { mode: 'lokal', kutipan: korpus ? korpus.cari(pertanyaan) : [] };
+  const mulai = Date.now();
+  const kutipan = korpus ? korpus.cari(pertanyaan) : [];
+  saatLokal(Date.now() - mulai, Boolean(korpus));
+  return { mode: 'lokal', kutipan };
 }
 
 /**
