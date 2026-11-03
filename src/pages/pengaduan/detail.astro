@@ -6,7 +6,7 @@ import { chip } from '../../lib/data';
 import { pemantauanLayanan } from '../../lib/pemantauan';
 import { PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
 
-const hasil = await pemantauanLayanan().detailKasus(Astro.url.searchParams.get('tiket'));
+const hasil = await pemantauanLayanan(Astro.locals.tokenAkses).detailKasus(Astro.url.searchParams.get('tiket'));
 const gagal = 'gagal' in hasil ? hasil.gagal : '';
 const d = 'gagal' in hasil ? null : hasil;
 // Tiket tidak ada: 404; penyimpanan gagal: 503 (PROJECT_RULES 4.4).

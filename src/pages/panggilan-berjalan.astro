@@ -5,7 +5,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { pemantauanLayanan } from '../lib/pemantauan';
 import { KAPASITAS_SALURAN_BAWAAN, PESAN_PEMANTAUAN, type Panggilan } from '../lib/PemantauanLayananController';
 
-const panggilan: Panggilan[] = await pemantauanLayanan().panggilanBerjalan().catch(() => []);
+const panggilan: Panggilan[] = await pemantauanLayanan(Astro.locals.tokenAkses).panggilanBerjalan().catch(() => []);
 const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
 ---
 <DashboardLayout title="Panggilan Berjalan">

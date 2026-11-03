@@ -14,7 +14,7 @@ const PERIODE = [
 const AWAL = 'mingguan';
 
 const fmt = (n: number) => n.toLocaleString('id-ID');
-const ringkasan = await pemantauanLayanan().ringkasanLayanan().catch(() => null);
+const ringkasan = await pemantauanLayanan(Astro.locals.tokenAkses).ringkasanLayanan().catch(() => null);
 const st = ringkasan?.statistik;
 const urgent = ringkasan?.kasus ?? [];
 const KATEGORI = ringkasan?.kategori ?? [];
