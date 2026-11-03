@@ -36,3 +36,4 @@ __pycache__/
 
 # Astro
 .astro/
+test-results/
