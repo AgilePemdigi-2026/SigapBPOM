@@ -8,6 +8,8 @@ const TTL_SESI_MS = 30 * 60 * 1000;
 const BATAS_WAKTU_MS = 8000;
 // Kata dari ucapan yang dicoba sebagai merek; membatasi jumlah permintaan ke cekbpom per pertanyaan.
 const KATA_MEREK_MAKS = 3;
+// Baris per kueri merek sebelum disaring sisa kata; 10 baris terlalu sedikit untuk merek besar (Greenfields 209 produk).
+const BARIS_MEREK_MAKS = 50;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
 // Pola nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
@@ -113,12 +115,15 @@ export class CekBpom {
   async kirim(kueri) {
     if (kueri.nomor) return this.kirimKolom({ product_register: kueri.nomor });
     const kataMerek = [...new Set(kueri.nama.split(' ').filter((k) => k.length >= 3))].slice(0, KATA_MEREK_MAKS);
-    const [nama, ...merek] = await Promise.all([
+    const [nama, ...merek] = (await Promise.allSettled([
       this.kirimKolom({ product_name: kueri.nama }),
-      ...kataMerek.map((k) => this.kirimKolom({ product_brand: k }).then((h) => saring(h, kueri.nama, k))),
-    ]);
-    const unik = new Map([...merek.flatMap((h) => h.produk), ...nama.produk].map((p) => [p.nomorIzinEdar, p]));
-    return { total: Math.max(nama.total, ...merek.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
+      ...kataMerek.map((k) => this.kirimKolom({ product_brand: k, length: String(BARIS_MEREK_MAKS) }).then((h) => saring(h, kueri.nama, k))),
+    ])).map((r) => (r.status === 'fulfilled' ? r.value : null));
+    const ok = [...merek, nama].filter(Boolean);
+    const unik = new Map(ok.flatMap((h) => h.produk).map((p) => [p.nomorIzinEdar, p]));
+    // Sebagian kueri gagal tetap dipakai bila ada hasil; tanpa hasil jangan disimpulkan "tidak ditemukan" (NFR-7).
+    if (ok.length <= kataMerek.length && !unik.size) throw new Error('cekbpom cari gagal');
+    return { total: Math.max(...ok.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
   }
 
   async kirimKolom(cari, ulangi = true) {

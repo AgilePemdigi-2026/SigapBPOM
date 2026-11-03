@@ -39,7 +39,7 @@ test('req_1_3 pencarian memakai sesi CSRF, merapikan teks, dan memakai cache', a
   assert.equal(cari[0].opsi.headers['x-csrf-token'], 'tok123');
   assert.equal(cari[0].opsi.headers.cookie, 'sesi=abc');
   assert.ok(cari.some((c) => /product_name=produk&/.test(c.opsi.body)), 'dicari per nama produk');
-  assert.ok(cari.some((c) => /product_brand=produk&/.test(c.opsi.body)), 'dicari per merek');
+  assert.ok(cari.some((c) => /product_brand=produk&/.test(c.opsi.body) && /length=50&/.test(c.opsi.body)), 'dicari per merek, 50 baris');
   await cek.cari({ nama: 'Produk' });
   assert.equal(log.length, 3, 'kueri sama tidak memanggil cekbpom lagi');
 });
@@ -76,6 +76,29 @@ test('req_1_3 merek di kata mana pun: "susu greenfield" ditemukan lewat merek Gr
   });
   const hasil = await cek.cari(kueriProduk('Apakah susu Greenfield sudah terdaftar di BPOM?'));
   assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 400213330621']);
+});
+
+test('req_1_3 kueri merek yang gagal tidak menggagalkan hasil kueri lain', async () => {
+  const cek = new CekBpom({
+    fetch: async (url, opsi) => {
+      if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="t">');
+      if (/product_brand=goreng&/.test(opsi.body)) throw new Error('timeout');
+      if (/product_brand=indomie&/.test(opsi.body)) return Response.json({ recordsFiltered: 1, data: [baris(1)].map((b) => ({ ...b, PRODUCT_NAME: 'Mi Goreng' })) });
+      return Response.json({ recordsFiltered: 0, data: [] });
+    },
+  });
+  assert.deepEqual((await cek.cari({ nama: 'indomie goreng' })).produk.map((p) => p.nomorIzinEdar), ['MD 001']);
+});
+
+test('nfr_7 kueri yang gagal tanpa hasil tidak disimpulkan tidak ditemukan', async () => {
+  const cek = new CekBpom({
+    fetch: async (url, opsi) => {
+      if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="t">');
+      if (/product_brand=goreng&/.test(opsi.body)) throw new Error('timeout');
+      return Response.json({ recordsFiltered: 0, data: [] });
+    },
+  });
+  await assert.rejects(cek.cari({ nama: 'indomie goreng' }), /cekbpom cari gagal/);
 });
 
 test('req_1_3 token kedaluwarsa (419) membuka sesi baru sekali', async () => {
