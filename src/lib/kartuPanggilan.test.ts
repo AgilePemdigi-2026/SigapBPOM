@@ -7,6 +7,7 @@ import {
   htmlKartuEskalasi,
   htmlKartuPengaduan,
   htmlKartuProduk,
+  htmlKartuTiket,
   pesanTiketEskalasi,
   pesanTiketPengaduan,
   type Produk,
@@ -70,4 +71,24 @@ test('req_2_3 pesan tiket pengaduan dan pengaduan tidak lengkap sama persis deng
     PESAN_PENGADUAN_TIDAK_LENGKAP,
     'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.',
   );
+});
+
+test('t_f4_2_03 req_2_4 event tiket pengaduan merender kartu dengan nomor ADU dan teks SMS persis kamus pesan', () => {
+  const terbit = TRANSKRIP_TIRUAN.pengaduan.at(-1)!;
+  assert.equal(terbit.jawaban, pesanTiketPengaduan('ADU-20261102-0001'));
+  const html = htmlKartuTiket({ tiket: terbit.tiket, pengaduan: terbit.pengaduan });
+  assert.equal(html, htmlKartuPengaduan('ADU-20261102-0001'));
+  assert.ok(html.includes('ADU-20261102-0001'));
+  // Teks SMS di kartu adalah kalimat penutup pesan kamus "Tiket pengaduan terbit" tanpa diubah.
+  assert.ok(pesanTiketPengaduan('ADU-20261102-0001').endsWith(' Tindak lanjut akan dikirim melalui SMS.'));
+  assert.ok(html.includes('<p class="k-sumber">Tindak lanjut akan dikirim melalui SMS.</p>'));
+});
+
+test('t_f4_2_03 event pengaduan dari gateway tanpa field tiket tetap merender kartu pengaduan', () => {
+  assert.equal(htmlKartuTiket({ pengaduan: 'ADU-20261102-0002' }), htmlKartuPengaduan('ADU-20261102-0002'));
+});
+
+test('t_f4_2_03 event tiket eskalasi tetap merender kartu eskalasi, event tanpa tiket tidak merender kartu', () => {
+  assert.equal(htmlKartuTiket({ tiket: 'ESK-20261019-0001' }), htmlKartuEskalasi('ESK-20261019-0001'));
+  assert.equal(htmlKartuTiket({}), '');
 });

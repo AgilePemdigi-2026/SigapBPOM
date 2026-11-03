@@ -41,7 +41,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 </div>
 
 <script>
-  import { PESAN_PENGADUAN_TIDAK_LENGKAP, esc, htmlKartuEskalasi, htmlKartuPengaduan, htmlKartuProduk, type HasilProduk } from '../lib/kartuPanggilan';
+  import { PESAN_PENGADUAN_TIDAK_LENGKAP, esc, htmlKartuProduk, htmlKartuTiket, type HasilProduk } from '../lib/kartuPanggilan';
 
   type Sumber = { peraturan: string; judul: string; url: string };
   type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string };
@@ -67,7 +67,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   function render(m: Msg) {
     switch (m.kind) {
       case 'sys': return `<div class="m-sys"><span>CS AI · ${m.time}</span><div>${esc(m.text!)}</div>${
-        m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? (m.tiket.startsWith('ADU-') ? htmlKartuPengaduan(m.tiket) : htmlKartuEskalasi(m.tiket)) : (m.pengaduan ? htmlKartuPengaduan(m.pengaduan) : '')}${
+        m.produk ? htmlKartuProduk(m.produk) : ''}${htmlKartuTiket(m)}${
         m.sumber?.length ? `<ul class="m-sumber" aria-label="Sumber rujukan">${m.sumber.map(chipSumber).join('')}</ul>` : ''}</div>`;
       case 'user': return `<div class="m-user"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
       case 'menu': return `<div class="m-menu" role="group" aria-label="Pilihan menu layanan">

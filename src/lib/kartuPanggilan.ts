@@ -76,3 +76,9 @@ export function htmlKartuPengaduan(nomorTiket: string): string {
     <p class="k-sumber">Tindak lanjut akan dikirim melalui SMS.</p>
   </section>`;
 }
+
+/** Kartu tiket untuk satu event jawaban (T-F4.2-03, REQ-2.4). Gateway mengirim nomor ADU di `pengaduan`; transkrip tiruan juga di `tiket`. */
+export function htmlKartuTiket(e: { tiket?: string; pengaduan?: string | null }): string {
+  if (e.tiket) return e.tiket.startsWith('ADU-') ? htmlKartuPengaduan(e.tiket) : htmlKartuEskalasi(e.tiket);
+  return e.pengaduan ? htmlKartuPengaduan(e.pengaduan) : '';
+}
