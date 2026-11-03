@@ -162,7 +162,8 @@ export class SusunanJawaban {
  * Mengalirkan potongan jawaban AI menjadi kalimat yang langsung diucapkan lewat `ucapkan`.
  * Setelah tawaran penutup atau jawaban baku dikenali tidak ada kalimat lain yang diucapkan, jadi loop berhenti dan
  * `return()` iterator menutup stream AI (Hermes mengabaikan max_tokens, sisa jawabannya hanya membuang token).
- * Begitu `sinyal` dibatalkan (penelepon memutus panggilan), tidak ada kalimat lagi yang diteruskan ke `ucapkan` (TTS).
+ * Begitu `sinyal` dibatalkan (penelepon memutus panggilan), tidak ada kalimat lagi yang diteruskan ke `ucapkan` (TTS)
+ * dan fungsi selesai normal; pemanggil memeriksa `sinyal.aborted` untuk melewati jawaban pengganti.
  */
 export async function alirkanJawaban(aliran, susunan, ucapkan, sinyal) {
   const pemecah = new PemecahKalimat();
@@ -173,9 +174,14 @@ export async function alirkanJawaban(aliran, susunan, ucapkan, sinyal) {
       if (ucap) ucapkan(ucap);
     }
   };
-  for await (const potongan of aliran) {
-    proses(pemecah.tambah(potongan));
-    if (susunan.tawaran || susunan.khusus || sinyal?.aborted) break;
+  try {
+    for await (const potongan of aliran) {
+      proses(pemecah.tambah(potongan));
+      if (susunan.tawaran || susunan.khusus || sinyal?.aborted) break;
+    }
+  } catch (e) {
+    // Stream yang putus karena pembatalan itu sendiri (AbortError dari fetch Hermes) bukan galat; galat lain diteruskan.
+    if (!sinyal?.aborted) throw e;
   }
   proses(pemecah.akhiri());
 }

@@ -308,7 +308,8 @@ async function giliran(req, res, url) {
               throw e;
             }
             jawaban = pesanTiketEskalasi(tiket);
-            suara = terbitkanTokenSuara(jawaban, ip);
+            // Tiket tetap terbit walau penelepon sudah memutus; hanya render suaranya yang dilewati.
+            suara = batal.signal.aborted ? null : terbitkanTokenSuara(jawaban, ip);
           } else {
             jawaban = PESAN_MINTA_ULANG_TELEPON;
             suara = '/voice/statis/ulang-telepon';
@@ -352,15 +353,19 @@ async function giliran(req, res, url) {
       };
       try {
         await alirkanJawaban(aliranHermes(id, pesanKutipan(kutipan), hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
-      } catch (e) {
-        if (!batal.signal.aborted) throw e;
       } finally {
         hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
         cadangan = 0;
       }
-      // Tidak ada yang mendengar lagi: lewati jawaban pengganti yang butuh TTS dan baris penutup.
-      if (batal.signal.aborted) return;
+      if (batal.signal.aborted) {
+        // Tidak ada yang mendengar lagi: lewati jawaban pengganti (render TTS), tawaran penutup, dan baris selesai. Kalimat yang sudah
+        // terkirim tetap masuk riwayat agar giliran berikutnya (bila koneksi hanya putus sesaat) tidak melihat dua ucapan
+        // user berturut-turut. Tawaran penutup belum terucap, jadi tidak ikut dicatat.
+        if (susunan.isi.length) riwayat.tambah(id, 'assistant', susunan.isi.join(' '));
+        console.info(JSON.stringify({ ev: 'giliran', batal: true, stt_ms: tStt, total_ms: Date.now() - mulai, kalimat: susunan.isi.length, token: hasil.token }));
+        return;
+      }
 
       let jawaban = susunan.teks;
       const diLuarTopik = susunan.khusus === 'di_luar_topik';

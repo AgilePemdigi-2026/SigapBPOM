@@ -198,6 +198,23 @@ test('nfr_1 penelepon memutus panggilan di tengah jawaban: kalimat berikutnya ti
   assert.deepEqual(jejak, { dibaca: 2, ditutup: true });
 });
 
+test('nfr_1 stream AI putus dengan AbortError setelah penelepon memutus: galat ditelan dan sisa kalimat tidak dikirim ke TTS', async () => {
+  const batal = new AbortController();
+  // Seperti di produksi: event `close` dari res datang di antara potongan, lalu fetch Hermes menolak dengan AbortError.
+  async function* aliran() {
+    yield 'Obat keras hanya boleh dibeli dengan resep dokter. Obat bebas';
+    batal.abort();
+    throw new DOMException('This operation was aborted', 'AbortError');
+  }
+  const keTts = [];
+  await alirkanJawaban(aliran(), new SusunanJawaban(PESAN_BUTUH_PETUGAS), (k) => keTts.push(k), batal.signal);
+  assert.deepEqual(keTts, ['Obat keras hanya boleh dibeli dengan resep dokter.']);
+
+  // Galat stream tanpa pembatalan tetap diteruskan agar gateway menjawab dengan pesan gangguan.
+  async function* rusak() { yield 'Kalimat pertama. '; throw new Error('hermes 502'); }
+  await assert.rejects(alirkanJawaban(rusak(), new SusunanJawaban(PESAN_BUTUH_PETUGAS), () => {}, new AbortController().signal), /hermes 502/);
+});
+
 test('kalimat yang terlalu panjang dipotong di batas kata', () => {
   const { diucapkan } = alirkan(`${'Kata panjang sekali '.repeat(20)}selesai.`);
   assert.ok(diucapkan[0].length <= 221);
