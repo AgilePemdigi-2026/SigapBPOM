@@ -1,4 +1,4 @@
-// Control UC-01 (F1.3, T-F1.3-03, REQ-1.4): tool `cari_basis_pengetahuan` untuk Hermes Agent.
+// Control UC-01 (F1.3, T-F1.3-03, REQ-1.6, REQ-1.7): tool `cari_basis_pengetahuan` untuk Hermes Agent.
 // Hermes dipanggil lewat /v1/chat/completions tanpa tool server (api_server: []), jadi gateway menjalankan tool ini
 // atas nama agen sebelum giliran dikirim, lalu hasilnya disisipkan sebagai pesan sistem. Pencarian vektor ada di
 // Edge Function `cari-pengetahuan` (T-F1.3-02); modul ini hanya memanggilnya dan tidak mengubah logika pencarian.
@@ -52,6 +52,7 @@ export class PencariPengetahuanSupabase {
 /**
  * Jalankan tool. Hasil basis vektor (termasuk kosong) dipercaya apa adanya agar materi tidak aktif tidak muncul lewat
  * jalur lokal. Hanya bila Edge Function tidak dikonfigurasi atau gagal, dipakai korpus lokal `pengetahuan.mjs`.
+ * Selama PENGETAHUAN_VEKTOR mati, korpus lokal belum menyaring materi tidak aktif (REQ-7.3, BR-5) sampai katalog #66 masuk.
  * Mengembalikan { kutipan: { judul, label, sumber, teks }[], mode: 'basis' | 'lokal' }.
  */
 export async function cariBasisPengetahuan({ pencari, korpus, pertanyaan, catat = () => {} }) {
