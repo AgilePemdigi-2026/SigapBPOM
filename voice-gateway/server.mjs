@@ -52,8 +52,9 @@ const SUARA_STATIS = {
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
-// Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function; tanpa konfigurasi dipakai korpus lokal.
-const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
+// Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
+// (embedding produksi belum ada); selain itu dipakai korpus lokal.
+const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
   perIpHarian: Number(env('TIKET_HARIAN_PER_IP', '5')),
