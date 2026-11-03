@@ -1,8 +1,8 @@
 -- T-F5.2-02 (REQ-4.2): panggilan aktif tercatat dengan tahap terbaru, hilang setelah berakhir atau heartbeat berhenti.
 begin;
-select plan(19);
+select plan(20);
 
--- 1. Hak akses: anon dan authenticated tidak boleh memanggil RPC maupun membaca view
+-- 1. Hak akses: anon dan authenticated tidak boleh memanggil RPC; anon dan service_role tidak boleh membaca view
 set local role anon;
 select throws_ok(
   $$ select public.laporkan_panggilan_aktif('77777777-0000-0000-0000-000000000001'::uuid, null, null, 'mendengar') $$,
@@ -20,9 +20,15 @@ select throws_ok(
   '42501', null, 'authenticated tidak boleh memanggil akhiri_panggilan_aktif'
 );
 
--- 2. Siapkan petugas dan penelepon (data uji)
+-- service_role bukan petugas: view ditolak dengan jelas, bukan kosong diam-diam
 reset role;
 set local role service_role;
+select throws_ok(
+  $$ select * from public.panggilan_berjalan $$,
+  '42501', null, 'service_role tidak boleh membaca view panggilan_berjalan'
+);
+
+-- 2. Siapkan petugas dan penelepon (data uji)
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000077', 'petugas.panggilan@halobpom.go.id')
 on conflict (id) do nothing;
 insert into public.petugas (id, nama, email) values ('00000000-0000-0000-0000-000000000077', 'Petugas Panggilan', 'petugas.panggilan@halobpom.go.id')
