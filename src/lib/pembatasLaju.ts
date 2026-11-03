@@ -5,9 +5,10 @@ const BATAS_KUNCI = 5000;
 const ALAMAT_PRIVAT = /^(::ffff:)?(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|^::1$|^f[cd][0-9a-f]{2}:/i;
 
 /**
- * Alamat klien. X-Forwarded-For hanya dipercaya bila koneksi datang dari proxy internal (Caddy);
- * dari situ dipakai entri TERAKHIR yang ditambahkan Caddy, karena entri sebelumnya bisa dipalsukan klien
- * (pola sama dengan voice-gateway/server.mjs). Klien yang tersambung langsung memakai alamat soketnya.
+ * Alamat klien. X-Forwarded-For hanya dipercaya bila koneksi datang dari reverse proxy internal (Nginx, docs/prd/PRD.md Tech Stack).
+ * Dari situ dipakai entri TERAKHIR, yang ditambahkan proxy lewat `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`,
+ * karena entri sebelumnya bisa dipalsukan klien. Syarat: port Astro tidak dipublikasikan ke luar Docker, sebab
+ * userland-proxy Docker membuat klien luar tampak dari 172.x. Klien yang tersambung langsung memakai alamat soketnya.
  */
 export function ipKlien(headers: Headers, alamatSoket: string): string {
   if (!ALAMAT_PRIVAT.test(alamatSoket)) return kunciAlamat(alamatSoket);
