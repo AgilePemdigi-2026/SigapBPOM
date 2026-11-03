@@ -389,6 +389,17 @@ test('t_f5_4_01 adapter gateway membaca /voice/kesehatan dan mengukur latensinya
   assert.deepEqual(belumSiap.map((k) => k.sehat), [true, false, false]);
 });
 
+test('t_f5_4_01 adapter gateway membaca kondisi cekbpom dari pencarian terakhir gateway', async () => {
+  const dengan = (cekbpom: unknown) =>
+    new PemeriksaKesehatanGateway({ url: 'http://gw', fetch: (async () => Response.json({ data: { siap: true, cekbpom } })) as unknown as typeof fetch });
+  const cek = async (cekbpom: unknown) => (await dengan(cekbpom).periksa()).find((k) => k.nama === 'cekbpom');
+  assert.deepEqual(await cek({ aktif: true, sehat: true, latensiMs: 640 }), { nama: 'cekbpom', sehat: true, latensiMs: 640 });
+  assert.deepEqual(await cek({ aktif: true, sehat: false, latensiMs: 5000 }), { nama: 'cekbpom', sehat: false, latensiMs: 5000 });
+  assert.deepEqual(await cek({ aktif: false }), { nama: 'cekbpom', sehat: false, latensiMs: null });
+  assert.equal(await cek({ aktif: true }), undefined, 'belum ada pencarian: diserahkan ke log tool');
+  assert.equal(await cek(undefined), undefined, 'gateway lama tanpa field cekbpom');
+});
+
 test('t_f5_4_01 adapter gateway melempar galat bila gateway menjawab error', async () => {
   const gagal = (async () => new Response('x', { status: 503 })) as unknown as typeof fetch;
   await assert.rejects(new PemeriksaKesehatanGateway({ url: 'http://gw:8787', fetch: gagal }).periksa());
