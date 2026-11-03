@@ -125,6 +125,16 @@ test('nfr_7 status izin yang tidak dikenal tidak ditebak sebagai Berlaku', async
   assert.equal((await cek.cari({ nomor: 'MD 001' })).produk[0].status, 'Tidak Berlaku');
 });
 
+test('nfr_2 cek registrasi dihentikan setelah 5 detik dan diperlakukan sebagai gangguan', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const proses = cekRegistrasi({ cari: () => new Promise(() => {}) }, 'nomor izin edar MD 001234567');
+  t.mock.timers.tick(5000);
+  const hasil = await proses;
+  assert.equal(hasil.galat, 'cekbpom batas waktu');
+  assert.equal(hasil.produk, undefined);
+  assert.match(hasil.konteks, /Jangan menyebut status atau nomor izin edar/);
+});
+
 test('br_7 kartu produk: tunggal, kandidat maksimal tiga, atau tidak ditemukan', () => {
   assert.equal(hasilProduk({ produk: [] }).jenis, 'tidak_ditemukan');
   assert.equal(hasilProduk({ produk: [baris(1)].map((b) => ({ nama: b.PRODUCT_NAME })) }).jenis, 'tunggal');

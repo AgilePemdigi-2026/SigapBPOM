@@ -5,7 +5,8 @@
 export const KANDIDAT_MAKS = 3;
 const TTL_CACHE_MS = 3 * 60 * 1000;
 const TTL_SESI_MS = 30 * 60 * 1000;
-const BATAS_WAKTU_MS = 8000;
+// NFR-2: cek registrasi paling lama 5 detik, sama dengan BATAS_WAKTU_CEK_REGISTRASI_MS di Edge Function.
+const BATAS_WAKTU_MS = 5000;
 // Kata dari ucapan yang dicoba sebagai merek; membatasi jumlah permintaan ke cekbpom per pertanyaan.
 const KATA_MEREK_MAKS = 3;
 // Baris per kueri merek sebelum disaring sisa kata; 10 baris terlalu sedikit untuk merek besar (Greenfields 209 produk).
@@ -204,7 +205,9 @@ ${arahan} Sebutkan hanya data di atas, jangan menambah data lain, dan jangan men
 export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false) {
   const kueri = kueriProduk(ucapan, setelahMenu1);
   if (!kueri) return null;
-  let data = null, galat = null;
-  try { data = await cekBpom.cari(kueri); } catch (e) { galat = e instanceof Error ? e.message : 'unknown'; }
+  let data = null, galat = null, batas;
+  // NFR-2: satu giliran cek registrasi paling lama BATAS_WAKTU_MS, termasuk buka sesi dan ulang 419.
+  const habis = new Promise((_, tolak) => { batas = setTimeout(() => tolak(new Error('cekbpom batas waktu')), BATAS_WAKTU_MS); });
+  try { data = await Promise.race([cekBpom.cari(kueri), habis]); } catch (e) { galat = e instanceof Error ? e.message : 'unknown'; } finally { clearTimeout(batas); }
   return { kueri, data, galat, produk: data ? hasilProduk(data) : undefined, konteks: pesanCekBpom(kueri, data) };
 }
