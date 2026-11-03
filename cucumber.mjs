@@ -11,4 +11,10 @@ export default { ...dasar, tags: 'not @live and not @ui' };
 export const live = { ...dasar, tags: '@live' };
 
 // Skenario SRS Lampiran F lewat browser terhadap dashboard dan panel suara lokal (cara menjalankan di features/README.md).
-export const ui = { ...dasar, tags: '@ui', format: ['progress-bar', 'summary'] };
+// Setiap langkah ditampilkan di terminal dan laporan HTML disimpan di test-results/bdd-ui/laporan.html sebagai bukti uji.
+export const ui = {
+  ...dasar,
+  tags: '@ui',
+  format: ['@cucumber/pretty-formatter', 'html:test-results/bdd-ui/laporan.html'],
+  formatOptions: { theme: { 'feature keyword': ['magenta', 'bold'], 'scenario keyword': ['magenta'], 'step keyword': ['bold'] } },
+};

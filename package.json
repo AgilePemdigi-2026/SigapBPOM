@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.3.0",
+    "@cucumber/pretty-formatter": "^1.0.1",
     "playwright": "^1.56.1",
     "supabase": "^2.122.0"
   }

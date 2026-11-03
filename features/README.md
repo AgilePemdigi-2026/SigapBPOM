@@ -46,6 +46,7 @@ Skenario `@ui` yang ada: UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5)
    - `SIGAP_UI_URL` mengatur alamat dashboard (bawaan `http://localhost:4321`).
    - Browser yang dipakai adalah Google Chrome yang terpasang. Tanpa Chrome, jalankan `npx playwright install chromium` lalu pakai `PW_CHANNEL=chromium`.
    - `PW_HEADED=1` menampilkan jendela browser selama uji.
+   - Setiap langkah tampil di terminal dengan tanda lulus atau gagal, dan laporan HTML tersimpan di `test-results/bdd-ui/laporan.html`.
    - Skenario yang gagal meninggalkan tangkapan layar di `test-results/bdd-ui/`.
 
 Di Windows (PowerShell), environment diisi dengan `$env:NAMA="nilai"` sebelum perintahnya, dan `supabase` harus ada di PATH karena langkah data uji memanggil `supabase db query --local`.
