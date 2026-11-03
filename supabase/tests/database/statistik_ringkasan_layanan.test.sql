@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(18);
 
 -- 1. Hak akses: anon ditolak mengakses RPC dan view
 set local role anon;
@@ -71,6 +71,9 @@ insert into public.percakapan (id, waktu_mulai, status_penyelesaian, topik) valu
   ('11111111-0000-0000-0000-000000000005', now(), 'berjalan', 'Kosmetik'),
   ('11111111-0000-0000-0000-000000000006', now() - interval '2 days', 'selesai_ai', 'Obat'),
   ('11111111-0000-0000-0000-000000000007', now() - interval '10 days', 'selesai_ai', 'Obat');
+-- p8: berjalan tetapi heartbeat berhenti 5 menit lalu (panggilan yatim yang belum disapu), di luar rentang 7 hari
+insert into public.percakapan (id, waktu_mulai, status_penyelesaian, heartbeat_terakhir) values
+  ('11111111-0000-0000-0000-000000000008', now() - interval '10 days', 'berjalan', now() - interval '5 minutes');
 
 -- Siapkan tiket dummy:
 -- t1: eskalasi, belum_ditelaah, hari ini
@@ -114,11 +117,11 @@ select results_eq(
   'Statistik pengaduan selesai bernilai 1'
 );
 
--- Uji panggilan berjalan = 1
+-- Uji panggilan berjalan = 1 (REQ-4.2): p8 tanpa heartbeat segar tidak dihitung, sama seperti view panggilan_berjalan
 select results_eq(
   $$ select panggilan_berjalan from public.ringkasan_statistik_layanan $$,
   $$ values (1) $$,
-  'Statistik panggilan berjalan bernilai 1'
+  'Statistik panggilan berjalan bernilai 1 dan tidak menghitung panggilan tanpa heartbeat segar'
 );
 
 -- Uji persentase kategori 7 hari terakhir (total 6 percakapan dalam 7 hari)
@@ -154,6 +157,18 @@ select is(
   (public.ambil_ringkasan_layanan() -> 'statistik' ->> 'jawaban_otomatis_ai')::int,
   2,
   'RPC ambil_ringkasan_layanan mengembalikan jawaban_otomatis_ai = 2'
+);
+
+select is(
+  (public.ambil_statistik_layanan() ->> 'panggilan_berjalan')::int,
+  1,
+  'RPC ambil_statistik_layanan tidak menghitung panggilan tanpa heartbeat segar'
+);
+
+select is(
+  (public.ambil_ringkasan_layanan() -> 'statistik' ->> 'panggilan_berjalan')::int,
+  1,
+  'RPC ambil_ringkasan_layanan tidak menghitung panggilan tanpa heartbeat segar'
 );
 
 select is(
