@@ -126,6 +126,13 @@ test('req_2_2 kalimat akibat: anak kalimat dibuang, subjek kata ganti atau permi
   assert.equal(ekstrak('Krim Wajah Glowing yang saya beli membuat kulit saya iritasi.').namaProduk, 'Krim Wajah Glowing');
   assert.equal(ekstrak('Nama saya Budi Santoso, Sabun Wangi bikin kulit anak saya gatal.').namaProduk, 'Sabun Wangi');
   assert.equal(ekstrak('Setelah dua hari, Krim Wajah Glowing membuat kulit saya iritasi.').kronologi, 'Setelah dua hari, Krim Wajah Glowing membuat kulit saya iritasi');
+  assert.deepEqual(ekstrak('Krim Wajah Glowing yang membuat kulit saya iritasi.'), {
+    namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing yang membuat kulit saya iritasi',
+  });
+  // Produk dikenali lewat kata kerja: kalimatnya tetap utuh sebagai kronologi, keluhannya tidak hilang.
+  assert.deepEqual(ekstrak('Saya membeli Krim Wajah Glowing yang membuat kulit saya iritasi setelah dua hari pemakaian.'), {
+    namaProduk: 'Krim Wajah Glowing', kronologi: 'Saya membeli Krim Wajah Glowing yang membuat kulit saya iritasi setelah dua hari pemakaian',
+  });
   assert.deepEqual(ekstrak('Saya mau membuat pengaduan produk'), {});
   assert.deepEqual(ekstrak('Krim ini membuat kulit saya gatal'), {});
 });
@@ -199,7 +206,8 @@ test('req_2_3 pengaduan lengkap menghasilkan satu tiket ADU dan pesan tiket diuc
   assert.equal(h.tiket, 'ADU-20261102-0001');
   assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
   assert.equal(gerbang.tiketPerPercakapan.size, 1);
-  assert.ok(!pengaduan.aktif(ID));
+  // Masih di layanan 2: giliran berikutnya tetap di control ini, bukan ke AI.
+  assert.ok(pengaduan.aktif(ID));
 });
 
 test('req_2_4 SMS tindak lanjut hanya lewat adapter tiruan, sekali per tiket', async () => {
@@ -272,11 +280,12 @@ test('req_2_3 pesan pengaduan kedua sama persis dengan kamus Lampiran A (batas p
   assert.equal(PESAN_BATAS_PERCAKAPAN, PESAN_BATAS_AI.panggilan);
 });
 
-test('req_2_3 menekan 2 lagi setelah tiket terbit tidak mencatat atau mengaku mencatat pengaduan kedua', async () => {
+test('req_2_3 tetap di layanan 2 atau menekan 2 lagi setelah tiket terbit tidak mencatat atau mengaku mencatat pengaduan kedua', async () => {
   const { gerbang, sms, pengaduan, riwayat } = rakitan();
   const tercatat = catatTerbit(gerbang);
   await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
-  for (const pilihan of [[2], [1, 2]]) {
+  // [] = langsung menyampaikan pengaduan kedua tanpa memilih menu lagi.
+  for (const pilihan of [[], [2], [1, 2]]) {
     for (const n of pilihan) pilihMenu(riwayat, pengaduan, ID, n);
     // Ucapan tetap ditangani gateway tanpa AI, supaya data pelapor tidak sampai ke model.
     assert.ok(pengaduan.aktif(ID));
@@ -287,7 +296,8 @@ test('req_2_3 menekan 2 lagi setelah tiket terbit tidak mencatat atau mengaku me
   }
   assert.equal(tercatat.length, 1);
   assert.equal(sms.terkirim.length, 1);
-  assert.ok(!JSON.stringify(riwayat.untukModel(ID)).includes('Ahmad Fauzi'));
+  const model = JSON.stringify(riwayat.untukModel(ID));
+  for (const data of ['Ahmad Fauzi', 'Budi Santoso', '0812', 'Sirup Batuk Sehat']) assert.ok(!model.includes(data));
   assert.equal(await pengaduan.panggilanBerakhir(ID), null);
   assert.equal(gerbang.tidakLengkap.size, 0);
 });

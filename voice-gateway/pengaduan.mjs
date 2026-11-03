@@ -98,14 +98,20 @@ function cariNamaProduk(teks) {
   return null;
 }
 
-/** Kalimat akibat pertama yang subjeknya layak sebagai nama produk: `{ namaProduk, kalimat, index }`, atau null. */
-function cariKalimatAkibat(teks) {
+/**
+ * Kalimat akibat pertama yang subjeknya layak sebagai nama produk, atau yang memuat `produk` yang sudah dikenali
+ * ("Saya membeli X yang membuat ..."): `{ namaProduk, kalimat, index }`, atau null.
+ * ponytail: subjek tanpa kata ganti atau kata sambung dianggap nama produk, jadi kata benda umum seperti "Pemakaian rutin"
+ * ikut tertangkap. Bila sering terjadi, tambahkan daftar kata benda umum atau pasang ekstraktor lain lewat interface.
+ */
+function cariKalimatAkibat(teks, produk) {
   for (const m of teks.matchAll(POLA_KALIMAT_AKIBAT)) {
     // Anak kalimat "yang saya beli" dibuang; subjek lain yang memuat kata ganti atau kata sambung bukan nama produk.
-    const nama = rapikan(m[1].split(/\s+yang\s/iu)[0]);
+    const nama = rapikan(m[1].split(/\s+yang(?:\s|$)/iu)[0]);
     const kata = nama.toLowerCase().split(' ').map((k) => k.replace(/[^\p{L}]/gu, ''));
-    if (nama && kata.length <= KATA_MAKS.namaProduk && !kata.some((k) => KATA_BUKAN_PRODUK.has(k))) {
-      return { namaProduk: nama.slice(0, PANJANG_MAKS.namaProduk), kalimat: teks.slice(m.index), index: m.index };
+    const layak = nama && kata.length <= KATA_MAKS.namaProduk && !kata.some((k) => KATA_BUKAN_PRODUK.has(k));
+    if (layak || (produk && m[1].includes(produk))) {
+      return { namaProduk: layak ? nama.slice(0, PANJANG_MAKS.namaProduk) : produk, kalimat: teks.slice(m.index), index: m.index };
     }
   }
   return null;
@@ -166,8 +172,9 @@ export class EkstraktorAturan {
     if (nomor) hasil.nomorTelepon = nomor;
     const namaPelapor = cariNamaPelapor(sisa);
     if (namaPelapor) hasil.namaPelapor = namaPelapor;
-    const akibat = cariKalimatAkibat(sisa);
-    const namaProduk = cariNamaProduk(sisa) ?? akibat?.namaProduk;
+    const produk = cariNamaProduk(sisa);
+    const akibat = cariKalimatAkibat(sisa, produk);
+    const namaProduk = produk ?? akibat?.namaProduk;
     if (namaProduk) hasil.namaProduk = namaProduk;
     const kronologi = cariKronologi(sisa, ditanya, akibat);
     if (kronologi) hasil.kronologi = kronologi;
@@ -246,7 +253,7 @@ export class PengaduanController {
     else this.sesi.delete(id);
   }
 
-  /** Panggilan sedang dalam alur pengaduan yang belum selesai, atau memilih pengaduan lagi setelah tiketnya terbit. */
+  /** Panggilan sedang dalam alur pengaduan yang belum selesai, atau masih di layanan 2 setelah tiketnya terbit. */
   aktif(id) {
     const s = this.sesi.get(id);
     return Boolean(s) && (s.tiket === null || s.ulang);
@@ -297,6 +304,9 @@ export class PengaduanController {
       throw e;
     }
     s.tiket = nomorTiket;
+    // Penelepon masih di layanan 2: pengaduan berikutnya tetap dijawab control ini, bukan AI yang akan menanyakan data
+    // pelapor lalu menjanjikan penerusan pengaduan yang tidak pernah tercatat. `batal()` mengembalikannya ke alur UC-01.
+    s.ulang = true;
     // REQ-2.4: SMS lewat adapter. Kegagalan SMS tidak membatalkan tiket yang sudah terbit.
     try { await this.pengirimSms?.kirim(nomorTelepon, pesanTiketPengaduan(nomorTiket)); } catch { /* tiket tetap sah */ }
     // Data pelapor tidak perlu disimpan lagi di memori gateway setelah tiket terbit.
