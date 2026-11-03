@@ -162,14 +162,14 @@ async function sttElevenLabs(audio, tipe) {
 
 // Jawaban dialirkan (stream) per potongan agar kalimat pertama bisa diubah menjadi suara sebelum jawaban selesai.
 // Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan SusunanJawaban, pemakaian lewat AnggaranToken.
-async function* aliranHermes(id, kutipan, hasil) {
+async function* aliranHermes(id, kutipan, hasil, sinyal) {
   const pesan = riwayat.untukModel(id, kutipan);
   hasil.karPrompt = JSON.stringify(pesan).length;
   const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({ model: HERMES_MODEL, messages: pesan, stream: true }),
-    signal: AbortSignal.timeout(BATAS_WAKTU_HERMES_MS),
+    signal: AbortSignal.any([AbortSignal.timeout(BATAS_WAKTU_HERMES_MS), sinyal]),
   });
   if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
   const dekoder = new TextDecoder();
@@ -255,6 +255,9 @@ async function giliran(req, res, url) {
   if (batasAi) throw new ErrorGateway(429, PESAN_BATAS_AI[batasAi]);
   giliranAktif.set(ip, (giliranAktif.get(ip) ?? 0) + 1);
   let cadangan = PERKIRAAN_TOKEN_GILIRAN;
+  // Penelepon memutus panggilan sebelum jawaban selesai: hentikan stream Hermes dan jangan render TTS lagi.
+  const batal = new AbortController();
+  res.on('close', () => { if (!res.writableFinished) batal.abort(); });
   try {
     const audio = await bacaBody(req, AUDIO_MAKS_BYTE);
     if (audio.length < 1000) throw new ErrorGateway(422, 'Suara tidak terdengar. Silakan ulangi.');
@@ -350,12 +353,16 @@ async function giliran(req, res, url) {
         ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
       };
       try {
-        await alirkanJawaban(aliranHermes(id, pesanKutipan(kutipan), hasil), susunan, ucapkanKalimat);
+        await alirkanJawaban(aliranHermes(id, pesanKutipan(kutipan), hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
+      } catch (e) {
+        if (!batal.signal.aborted) throw e;
       } finally {
         hasil.token = tokenTerpakai(hasil);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
         cadangan = 0;
       }
+      // Tidak ada yang mendengar lagi: lewati jawaban pengganti yang butuh TTS dan baris penutup.
+      if (batal.signal.aborted) return;
 
       let jawaban = susunan.teks;
       const diLuarTopik = susunan.khusus === 'di_luar_topik';

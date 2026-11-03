@@ -162,18 +162,20 @@ export class SusunanJawaban {
  * Mengalirkan potongan jawaban AI menjadi kalimat yang langsung diucapkan lewat `ucapkan`.
  * Setelah tawaran penutup atau jawaban baku dikenali tidak ada kalimat lain yang diucapkan, jadi loop berhenti dan
  * `return()` iterator menutup stream AI (Hermes mengabaikan max_tokens, sisa jawabannya hanya membuang token).
+ * Begitu `sinyal` dibatalkan (penelepon memutus panggilan), tidak ada kalimat lagi yang diteruskan ke `ucapkan` (TTS).
  */
-export async function alirkanJawaban(aliran, susunan, ucapkan) {
+export async function alirkanJawaban(aliran, susunan, ucapkan, sinyal) {
   const pemecah = new PemecahKalimat();
   const proses = (kalimat) => {
     for (const k of kalimat) {
+      if (sinyal?.aborted) return;
       const ucap = susunan.tambah(k);
       if (ucap) ucapkan(ucap);
     }
   };
   for await (const potongan of aliran) {
     proses(pemecah.tambah(potongan));
-    if (susunan.tawaran || susunan.khusus) break;
+    if (susunan.tawaran || susunan.khusus || sinyal?.aborted) break;
   }
   proses(pemecah.akhiri());
 }
