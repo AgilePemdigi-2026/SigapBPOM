@@ -63,12 +63,17 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const tanpaSesi = { auth: { persistSession: false, autoRefreshToken: false } };
+    // Dua klien terpisah: setelah signInWithPassword, supabase-js memakai JWT petugas untuk request berikutnya
+    // pada klien yang sama, sehingga RPC reset_gagal_login (hanya service_role) akan ditolak (REQ-3.5, NFR-11).
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, tanpaSesi);
+    const klienMasuk = createClient(supabaseUrl, supabaseAnonKey, tanpaSesi);
 
     const entity = new PetugasEntity(supabase);
     const autentikator = {
       async masukDenganPassword(email: string, kataSandi: string) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password: kataSandi });
+        const { data, error } = await klienMasuk.auth.signInWithPassword({ email, password: kataSandi });
         return { sesi: data?.session ?? null, galat: error };
       },
     };
