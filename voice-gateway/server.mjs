@@ -2,8 +2,6 @@
 // Satu giliran = satu permintaan HTTP; audio jawaban di-stream lewat token sekali pakai agar cepat mulai diputar.
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
@@ -26,6 +24,7 @@ import {
 } from './eskalasi.mjs';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
+import { kirimAudio } from './audio.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -573,19 +572,17 @@ async function giliran(req, res, url) {
   }
 }
 
-async function suara(res, token) {
+async function suara(req, res, token) {
   const entri = tokenSuara.get(token);
   if (!entri || entri.kedaluwarsa < Date.now()) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
-  tokenSuara.delete(token);
-  const aliran = await entri.render;
-  res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'no-store' });
-  // pipeline menutup aliran TTS bila browser memutus koneksi (misalnya panggilan diakhiri saat audio diputar).
-  // Dengan pipe() aliran itu dibiarkan menggantung lalu galat batas waktunya tidak tertangani dan proses gateway berhenti.
-  await pipeline(Readable.fromWeb(aliran), res).catch(() => {});
+  // Safari meminta media lebih dari sekali (Range bytes=0-1, lalu isinya), jadi audio disimpan utuh sampai token kedaluwarsa
+  // dan tidak dihapus pada permintaan pertama. Sebelumnya permintaan kedua mendapat 404 dan jawaban tidak terdengar di iPhone.
+  entri.audio ??= entri.render.then(async (aliran) => Buffer.from(await new Response(aliran).arrayBuffer()));
+  kirimAudio(req, res, await entri.audio, 'no-store');
 }
 
 // Promise disimpan agar permintaan bersamaan berbagi satu render; dibuang hanya bila render gagal.
-async function statis(res, nama) {
+async function statis(req, res, nama) {
   const teks = Object.hasOwn(SUARA_STATIS, nama) ? SUARA_STATIS[nama] : null;
   if (!teks) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
   if (!suaraStatis.has(nama)) {
@@ -593,9 +590,7 @@ async function statis(res, nama) {
     render.catch(() => suaraStatis.delete(nama));
     suaraStatis.set(nama, render);
   }
-  const audio = await suaraStatis.get(nama);
-  res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=3600' });
-  res.end(audio);
+  kirimAudio(req, res, await suaraStatis.get(nama), 'public, max-age=3600');
 }
 
 const server = createServer(async (req, res) => {
@@ -613,8 +608,8 @@ const server = createServer(async (req, res) => {
       });
     }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
-    if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(res, path.slice('/voice/statis/'.length));
-    if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(res, path.slice('/voice/suara/'.length));
+    if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(req, res, path.slice('/voice/statis/'.length));
+    if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(req, res, path.slice('/voice/suara/'.length));
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
     if (req.method === 'POST' && path === '/voice/akhiri') {
       const body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8') || '{}');
