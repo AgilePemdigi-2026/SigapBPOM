@@ -2,7 +2,7 @@
 // tahap pemrosesan AI terbarunya, dan heartbeat berkala. Yang dikirim hanya id panggilan, jenis layanan, topik baku, dan tahap:
 // tidak ada transkrip, nomor telepon, atau alamat IP. Kegagalan pelaporan tidak pernah mengganggu panggilan.
 
-/** Tahap pemrosesan AI (REQ-4.2). */
+/** Tahap pemrosesan AI (REQ-4.2). Salinan dari TAHAP_AI di supabase/functions/_shared/entity/panggilan.ts: ubah bersama. */
 export const TAHAP = Object.freeze({ MENDENGAR: 'mendengar', MEMPROSES: 'memproses', MENJAWAB: 'menjawab' });
 
 /** Topik baku (bukan isi ucapan) agar dashboard tidak memuat data penelepon. */
@@ -12,6 +12,7 @@ export const TOPIK = Object.freeze({
   ESKALASI: 'Eskalasi ke petugas',
 });
 
+// Nilai mengikuti JENIS_LAYANAN di supabase/functions/_shared/entity/panggilan.ts.
 const JENIS_LAYANAN = { 1: 'informasi_produk', 2: 'pengaduan' };
 
 /** Jenis layanan dan topik dari keadaan panggilan: layanan menu (1 atau 2, atau null) dan apakah sedang eskalasi. */

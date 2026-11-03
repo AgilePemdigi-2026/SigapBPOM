@@ -1,17 +1,11 @@
 // Control UC-04 Memantau Layanan: pencatatan panggilan aktif dari Voice Gateway (T-F5.2-02, REQ-4.2).
 // Tidak memakai API khusus Deno agar bisa diuji dengan `node --test` tanpa basis data.
 // Tidak menerima transkrip atau nomor telepon: hanya jenis layanan, topik singkat, dan tahap pemrosesan AI.
+import { JENIS_LAYANAN, TAHAP_AI, type JenisLayanan, type TahapAi } from '../entity/panggilan.ts';
 import { ErrorSigap } from './InformasiProdukController.ts';
 
 const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PANJANG_MAKS_TOPIK = 80;
-
-/** Tahap pemrosesan AI pada panggilan berjalan (REQ-4.2). */
-export const TAHAP_AI = ['mendengar', 'memproses', 'menjawab'] as const;
-export type TahapAi = (typeof TAHAP_AI)[number];
-
-export const JENIS_LAYANAN = ['informasi_produk', 'pengaduan'] as const;
-export type JenisLayanan = (typeof JENIS_LAYANAN)[number];
 
 export interface PenyimpananPemantauan {
   laporkanPanggilanAktif(data: { percakapanId: string; jenisLayanan: JenisLayanan | null; topik: string | null; tahap: TahapAi | null }): Promise<void>;
