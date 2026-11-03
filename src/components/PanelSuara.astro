@@ -58,7 +58,8 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   import { NAMA_PERISTIWA, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
 
   type Sumber = { peraturan: string; judul: string; url: string };
-  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string };
+  // `live`: gelembung penelepon yang masih diperbarui transkrip live (teks sementara STT realtime).
+  type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string; live?: boolean };
   // Baris NDJSON dari /voice/giliran untuk ucapan: transkrip, lalu kalimat demi kalimat, lalu selesai.
   type Baris =
     | { jenis: 'transkrip'; transkrip: string; jeda?: boolean }
@@ -79,6 +80,15 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   const JEDA_SELESAI_MS = 800;
   const UCAPAN_MAKS_MS = 15_000;
   const TUNGGU_MAKS_MS = 8_000;
+  // Sesi STT realtime ditutup bila penelepon diam selama ini, karena setiap detik audio yang dikirim ditagih.
+  const DIAM_LIVE_MS = 30_000;
+
+  function keBase64(buf: ArrayBuffer) {
+    const u = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000) as unknown as number[]);
+    return btoa(s);
+  }
 
   // REQ-1.6 (T-F1.3-01): chip sumber rujukan di bawah jawaban agen, dibaca pembaca layar sebagai "Sumber: ...".
   function chipSumber(s: Sumber) {
@@ -94,7 +104,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       case 'sys': return `<div class="m-sys"><span>CS AI · ${m.time}</span><div>${esc(m.text!)}</div>${
         m.produk ? htmlKartuProduk(m.produk) : ''}${m.tiket ? (m.tiket.startsWith('ADU-') ? htmlKartuPengaduan(m.tiket) : htmlKartuEskalasi(m.tiket)) : (m.pengaduan ? htmlKartuPengaduan(m.pengaduan) : '')}${
         m.sumber?.length ? `<ul class="m-sumber" aria-label="Sumber rujukan">${m.sumber.map(chipSumber).join('')}</ul>` : ''}</div>`;
-      case 'user': return `<div class="m-user"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
+      case 'user': return `<div class="m-user${m.live ? ' live' : ''}"><span>ANDA · ${m.time}</span><div>${esc(m.text!)}</div></div>`;
       case 'menu': return `<div class="m-menu" role="group" aria-label="Pilihan menu layanan">
         <button data-pick="1" type="button" aria-label="1: Informasi Produk - Izin edar dan edukasi obat &amp; makanan"><span class="no" aria-hidden="true">1</span><span class="t">Informasi Produk</span><span class="d">Izin edar dan edukasi obat &amp; makanan</span></button>
         <button data-pick="2" type="button" aria-label="2: Pengaduan Produk - Laporkan produk yang bermasalah"><span class="no purple" aria-hidden="true">2</span><span class="t">Pengaduan Produk</span><span class="d">Laporkan produk yang bermasalah</span></button></div>`;
@@ -112,6 +122,8 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     let tick: number | undefined, idPanggilan = '';
     let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
     let pantau: number | undefined;
+    // Transkrip live: `realtime` mati untuk sisa panggilan bila token atau koneksi STT realtime gagal; `stt` adalah sesi yang berjalan.
+    let realtime = true, stt: { tutup: () => void } | null = null, modulPcm: Promise<void> | null = null;
     // Pesan diketik: `sibuk` selama satu giliran berjalan (input dikunci), `mengetik` selama ada draf di kolom
     // (mikrofon berhenti merekam supaya suara latar tidak memotong ketikan), `suaraAktif` untuk audio jawaban.
     let sibuk = false, mengetik = false, suaraAktif = true, fokusKetik = false;
@@ -313,15 +325,16 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     // Pesan diketik: gelembung pengguna tampil langsung, lalu dikirim ke endpoint yang sama dan dibaca lewat prosesAliran
     // yang sama, jadi kartu produk, panel Cari Produk, menu, dan eskalasi bekerja persis seperti pada suara.
-    async function giliranKetik(teks: string) {
+    // `ucapan`: teks final dari transkrip live, gelembungnya sudah tampil dan tidak dikembalikan ke kolom ketik bila gagal.
+    async function giliranKetik(teks: string, ucapan = false) {
       if (phase === 'ended' || phase === 'connecting' || sibuk) return;
       sibuk = true;
       berhentiRekam();
       antrean = [];
       pemutar.pause();
-      push({ kind: 'user', text: teks });
+      if (!ucapan) push({ kind: 'user', text: teks });
       setMode('memproses');
-      push({ kind: 'processing', text: 'Memproses pertanyaan Anda' });
+      push({ kind: 'processing', text: ucapan ? 'Memproses ucapan Anda' : 'Memproses pertanyaan Anda' });
       try {
         if (giliranTiruan) {
           const h = giliranTiruan.shift() ?? { transkrip: null, jawaban: null, suara: null };
@@ -332,7 +345,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       } catch (e) {
         await tungguAntrean();
         // Kembalikan pesan ke kolom agar bisa dikirim ulang tanpa mengetik lagi.
-        if (!input.value) { input.value = teks; mengetik = true; }
+        if (!ucapan && !input.value) { input.value = teks; mengetik = true; }
         gagal(e);
       }
     }
@@ -344,19 +357,100 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     }
 
     function berhentiRekam() {
+      stt?.tutup();
+      stt = null;
       clearInterval(pantau);
       pantau = undefined;
       if (rekam && rekam.state !== 'inactive') { rekam.ondataavailable = null; rekam.onstop = null; rekam.stop(); }
       rekam = null;
     }
 
-    // Rekam satu ucapan: mulai saat sinyal melewati ambang, berhenti setelah jeda hening.
     function dengar() {
       berhentiRekam();
       sibuk = false;
       if (phase === 'ended' || phase === 'connecting' || !mic || !ctx || !analis || mengetik) { setMode('diam'); return; }
       setMode('mendengar');
       ctx.resume().catch(() => {});
+      if (realtime && !giliranTiruan && ctx.audioWorklet) dengarLive();
+      else dengarLokal();
+    }
+
+    // Transkrip live (REQ-1.2): selama mendengarkan, audio dialirkan langsung ke STT realtime ElevenLabs dan teks sementaranya
+    // tampil di gelembung penelepon. Begitu ucapan ditetapkan (jeda 0,8 detik), teksnya dikirim sebagai giliran teks. Bila token
+    // atau koneksi gagal, sisa panggilan kembali ke rekam lalu unggah.
+    async function dengarLive() {
+      let ws: WebSocket | null = null, node: AudioWorkletNode | null = null, sumber: MediaStreamAudioSourceNode | null = null;
+      let gelembung: Msg | null = null, siap = false, batasDiam: number | undefined, batasUcapan: number | undefined;
+      const tertunda: string[] = [];
+      const s = {
+        tutup() {
+          clearTimeout(batasDiam);
+          clearTimeout(batasUcapan);
+          sumber?.disconnect();
+          node?.port.close();
+          node?.disconnect();
+          if (ws && ws.readyState <= WebSocket.OPEN) ws.close();
+          // Ucapan yang terpotong (mengetik, pilih layanan, akhiri) tidak dikirim, jadi teks sementaranya dibuang.
+          if (gelembung?.live) { msgs = msgs.filter((m) => m !== gelembung); paint(); }
+        },
+      };
+      stt = s;
+      const aktif = () => stt === s;
+      const selesai = () => { s.tutup(); stt = null; };
+      // Giliran ini kembali ke rekam lalu unggah. `permanen` (token ditolak, koneksi tidak pernah tersambung, auth atau kuota)
+      // mematikan transkrip live untuk sisa panggilan; gangguan sesaat hanya berlaku untuk giliran ini.
+      const gagalLive = (permanen: boolean) => { if (!aktif()) return; if (permanen) realtime = false; selesai(); dengarLokal(); };
+      try {
+        const r = await fetch(`${GATEWAY}/stt-realtime`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) });
+        const d = await r.json().catch(() => null);
+        if (!aktif()) return;
+        if (!r.ok || typeof d?.data?.url !== 'string') return gagalLive(true);
+        modulPcm ??= ctx!.audioWorklet.addModule('/worklet/pcm16.js');
+        await modulPcm;
+        if (!aktif()) return;
+        ws = new WebSocket(d.data.url);
+        node = new AudioWorkletNode(ctx!, 'pcm16', { numberOfOutputs: 0 });
+        sumber = ctx!.createMediaStreamSource(mic!);
+        sumber.connect(node);
+      } catch {
+        return gagalLive(true);
+      }
+      const kirim = (audio: string, commit = false) => ws!.send(JSON.stringify({ message_type: 'input_audio_chunk', audio_base_64: audio, commit, sample_rate: 16000 }));
+      // Audio sebelum sesi siap ditahan sebentar (sekitar 3 detik) agar awal ucapan tidak hilang.
+      node.port.onmessage = (e) => { const b = keBase64(e.data); if (siap) kirim(b); else if (tertunda.length < 12) tertunda.push(b); };
+      ws.onerror = () => gagalLive(!siap);
+      ws.onclose = () => gagalLive(!siap);
+      ws.onmessage = (e) => {
+        if (!aktif()) return;
+        const m = JSON.parse(e.data) as { message_type: string; text?: string };
+        const teks = m.text?.trim() ?? '';
+        if (m.message_type === 'session_started') {
+          siap = true;
+          tertunda.splice(0).forEach((b) => kirim(b));
+        } else if (m.message_type === 'partial_transcript' && teks) {
+          if (!gelembung) {
+            clearTimeout(batasDiam);
+            // Ucapan yang terlalu panjang ditetapkan paksa, sama dengan batas rekaman.
+            batasUcapan = window.setTimeout(() => kirim('', true), UCAPAN_MAKS_MS);
+            push({ kind: 'user', text: teks, live: true });
+            gelembung = msgs[msgs.length - 1];
+          } else { gelembung.text = teks; paint(); }
+        } else if (m.message_type === 'committed_transcript' && teks) {
+          if (gelembung) { gelembung.text = teks; gelembung.live = false; } else push({ kind: 'user', text: teks });
+          gelembung = null;
+          selesai();
+          giliranKetik(teks.slice(0, 500), true);
+        } else if (/error|exceeded|limited|overflow|exhausted|throttled|insufficient|invalid|unaccepted/.test(m.message_type)) {
+          gagalLive(/auth|quota|unaccepted/.test(m.message_type));
+        }
+      };
+      // Penelepon diam lama: sesi realtime ditutup dan panel menunggu dengan deteksi suara lokal tanpa biaya.
+      batasDiam = window.setTimeout(() => { if (aktif()) { selesai(); dengarLokal(); } }, DIAM_LIVE_MS);
+    }
+
+    // Rekam satu ucapan: mulai saat sinyal melewati ambang, berhenti setelah jeda hening.
+    function dengarLokal() {
+      if (!mic || !ctx || !analis) return;
       const a = analis;
       const sampel = new Float32Array(a.fftSize);
       const tipe = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find((t) => MediaRecorder.isTypeSupported(t));
@@ -385,7 +479,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     async function start() {
       phase = 'connecting'; mode = 'diam'; service = null; tiketPengaduan = false; secs = 0; msgs = [];
-      sibuk = false; mengetik = false; fokusKetik = false; input.value = '';
+      sibuk = false; mengetik = false; fokusKetik = false; input.value = ''; realtime = true;
       kabari({ tahap: 'layanan', layanan: null });
       idPanggilan = crypto.randomUUID();
       giliranTiruan = null;
@@ -619,6 +713,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.k-pengaduan dd) { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .02em; }
   .ps-tr :global(.k-pengaduan .k-sumber) { color: #2f6b45; }
   .ps-tr :global(.m-sys > div) { padding: 12px 15px; border-radius: 6px 18px 18px 18px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); font-size: 16px; line-height: 1.45; text-wrap: pretty; }
+  /* Transkrip live: teks sementara tampil lebih pudar dengan kursor berkedip sampai ucapan ditetapkan. */
+  .ps-tr :global(.m-user.live > div) { opacity: .7; }
+  .ps-tr :global(.m-user.live > div)::after { content: '▍'; margin-left: 2px; animation: ps-kedip 1s steps(1) infinite; }
+  @keyframes ps-kedip { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .ps-tr :global(.m-user.live > div)::after { animation: none; } }
   .ps-tr :global(.m-user > div) { padding: 12px 15px; border-radius: 18px 6px 18px 18px; background: linear-gradient(180deg, #e7efff, #dce7fe); border: 1px solid #d3dff9; font-size: 16px; line-height: 1.45; color: #16295e; text-wrap: pretty; min-height: 1.45em; }
   .ps-tr :global(.m-menu) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }

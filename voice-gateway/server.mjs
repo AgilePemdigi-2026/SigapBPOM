@@ -25,11 +25,14 @@ import {
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
 import { kirimAudio } from './audio.mjs';
+import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
 const ASAL_SITUS = env('SITE_ORIGIN', '');
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
+// Transkrip live lewat STT realtime ElevenLabs (sttRealtime.mjs). STT_REALTIME=0 mengembalikan panel ke rekam lalu unggah.
+const STT_REALTIME = env('STT_REALTIME', '1') !== '0';
 // Suara "Zaak" dari library ElevenLabs: penutur asli, jelas, cocok untuk IVR.
 const ELEVENLABS_SUARA = env('ELEVENLABS_VOICE_ID', 'HnnPtoATgzx4ubChwm24');
 // v3 conversational dipilih karena intonasinya paling natural. Model ini mengabaikan `speed`, jadi tempo CS
@@ -151,6 +154,8 @@ async function sinkronKatalog() {
 sinkronKatalog();
 setInterval(sinkronKatalog, SINKRON_KATALOG_MS).unref();
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
+// Satu token per sesi mendengarkan, jadi batasnya sama dengan giliran; setiap detik audio realtime ditagih ElevenLabs.
+const lajuSttRealtime = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
 const giliranAktif = new Map();
 const tokenSuara = new Map();
@@ -572,6 +577,20 @@ async function giliran(req, res, url) {
   }
 }
 
+/**
+ * POST /voice/stt-realtime {id}: alamat WebSocket STT realtime dengan token sekali pakai untuk satu sesi mendengarkan.
+ * 404 bila dimatikan atau kunci ElevenLabs tidak ada; panel lalu memakai rekam lalu unggah (/voice/giliran audio).
+ */
+async function sesiSttRealtime(req, res) {
+  if (!STT_REALTIME || !ELEVENLABS_KEY) throw new ErrorGateway(404, 'Tidak ditemukan.');
+  if (!lajuSttRealtime.izinkan(ipKlien(req))) throw new ErrorGateway(429, 'Terlalu banyak permintaan. Coba lagi sebentar lagi.');
+  let body;
+  try { body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8')); } catch { throw new ErrorGateway(400, 'Permintaan tidak valid.'); }
+  if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
+  const token = await buatTokenSttRealtime(ELEVENLABS_KEY);
+  return kirim(res, 200, 'success', 'OK', { url: alamatSttRealtime(token) });
+}
+
 async function suara(req, res, token) {
   const entri = tokenSuara.get(token);
   if (!entri || entri.kedaluwarsa < Date.now()) throw new ErrorGateway(404, 'Suara tidak ditemukan.');
@@ -611,6 +630,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(req, res, path.slice('/voice/statis/'.length));
     if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(req, res, path.slice('/voice/suara/'.length));
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
+    if (req.method === 'POST' && path === '/voice/stt-realtime') return await sesiSttRealtime(req, res);
     if (req.method === 'POST' && path === '/voice/akhiri') {
       const body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8') || '{}');
       if (!idPanggilanSah(body.id)) return kirim(res, 200, 'success', 'OK');
