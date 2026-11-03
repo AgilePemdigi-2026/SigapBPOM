@@ -45,6 +45,13 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
   type Sumber = { peraturan: string; judul: string; url: string };
   type Msg = { kind: 'sys' | 'user' | 'menu' | 'processing' | 'ended'; text?: string; time?: string; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string };
+  // Baris NDJSON dari /voice/giliran untuk ucapan: transkrip, lalu kalimat demi kalimat, lalu selesai.
+  type Baris =
+    | { jenis: 'transkrip'; transkrip: string; jeda?: boolean }
+    | { jenis: 'kalimat'; teks: string; suara: string | null }
+    | { jenis: 'ganti' }
+    | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null; produk?: HasilProduk; pengaduan?: string | null }
+    | { jenis: 'galat'; message: string };
   type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string | null };
 
   const GATEWAY = '/voice';
@@ -127,6 +134,34 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       });
     }
 
+    // Antrean audio: kalimat jeda lalu kalimat jawaban diputar berurutan begitu masing-masing siap.
+    let antrean: string[] = [];
+    let pemutaran: Promise<void> | null = null;
+    // Giliran ucapan yang sedang berjalan, dibatalkan saat panggilan diakhiri agar gateway berhenti memanggil AI dan TTS.
+    let batalGiliran: AbortController | null = null;
+    function antrekan(src: string) {
+      antrean.push(src);
+      pemutaran ??= (async () => {
+        while (antrean.length && phase !== 'ended') await putar(antrean.shift()!);
+        pemutaran = null;
+      })();
+    }
+    async function tungguAntrean() {
+      while (pemutaran) await pemutaran;
+    }
+    // Naik setiap kali suara dihentikan (pilih layanan, akhiri panggilan). Alur lama yang sedang menunggu audio
+    // membandingkannya setelah audio selesai, agar tidak mendengar atau memutar lagi di atas alur yang baru.
+    let sesiSuara = 0;
+    function hentikanSuara() {
+      sesiSuara++;
+      batalGiliran?.abort();
+      batalGiliran = null;
+      antrean = [];
+      pemutar.pause();
+      // pause() tidak memicu `ended`: selesaikan putar() yang sedang menunggu agar antrean tidak macet.
+      pemutar.dispatchEvent(new Event('ended'));
+    }
+
     // Mode demo dev server (?demo=<nama>): giliran diambil dari transkrip tiruan, bukan dari gateway suara.
     let giliranTiruan: Hasil[] | null = null;
 
@@ -145,11 +180,13 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     async function prosesHasil(h: Hasil) {
       if (phase === 'ended') return;
+      const sesi = sesiSuara;
       if (h.transkrip) push({ kind: 'user', text: h.transkrip });
       if (h.pengaduan) tiketPengaduan = true;
       else if (h.tiket?.startsWith('ADU-')) tiketPengaduan = true;
       if (h.jawaban) say(h.jawaban, h.sumber, h.produk, h.tiket, h.pengaduan ?? undefined);
       if (h.suara) await putar(h.suara);
+      if (sesi !== sesiSuara) return;
       // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
       if (h.akhiri) return end();
       // Mode demo tanpa mikrofon: giliran tiruan berikutnya langsung diputar.
@@ -157,10 +194,72 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       if (phase !== 'ended') dengar();
     }
 
+    // Jawaban ucapan datang bertahap: kalimat jeda diputar segera, tiap kalimat jawaban diantrekan begitu tiba.
+    async function prosesAliran(r: Response) {
+      const sesi = sesiSuara;
+      const pembaca = r.body!.getReader();
+      const dekoder = new TextDecoder();
+      let sisa = '', jawaban: Msg | null = null, akhiri = false, ganti = false;
+      for (;;) {
+        const { value, done } = await pembaca.read();
+        if (done) break;
+        if (phase === 'ended') { pembaca.cancel().catch(() => {}); break; }
+        sisa += dekoder.decode(value, { stream: true });
+        let n;
+        while ((n = sisa.indexOf('\n')) >= 0) {
+          const b = JSON.parse(sisa.slice(0, n)) as Baris;
+          sisa = sisa.slice(n + 1);
+          if (b.jenis === 'transkrip') {
+            if (b.transkrip) push({ kind: 'user', text: b.transkrip });
+            if (b.jeda) { antrekan(`${GATEWAY}/statis/jeda`); push({ kind: 'processing', text: 'Menyiapkan jawaban' }); }
+          } else if (b.jenis === 'kalimat') {
+            if (jawaban) { jawaban.text = ganti ? b.teks : `${jawaban.text} ${b.teks}`; ganti = false; paint(); }
+            else { say(b.teks); jawaban = msgs[msgs.length - 1]; }
+            if (b.suara) antrekan(b.suara);
+          } else if (b.jenis === 'ganti') {
+            // Gateway menarik jawaban yang sudah dikirim (jawaban baku dikenali belakangan).
+            antrean = [];
+            ganti = true;
+          } else if (b.jenis === 'selesai') {
+            if (b.pengaduan || b.tiket?.startsWith('ADU-')) tiketPengaduan = true;
+            if (jawaban) {
+              Object.assign(jawaban, { sumber: b.sumber, tiket: b.tiket ?? undefined, produk: b.produk, pengaduan: b.pengaduan ?? undefined });
+              paint();
+            }
+            akhiri = Boolean(b.akhiri);
+          } else if (b.jenis === 'galat') {
+            throw new Error(b.message);
+          }
+        }
+      }
+      await tungguAntrean();
+      if (phase === 'ended' || sesi !== sesiSuara) return;
+      // Penelepon tidak butuh bantuan lagi: tutup panggilan setelah salam penutup selesai diputar.
+      if (akhiri) return end();
+      dengar();
+    }
+
     async function giliranSuara(rekaman: Blob) {
+      const sesi = sesiSuara;
       setMode('memproses');
       push({ kind: 'processing', text: 'Memproses ucapan Anda' });
-      try { await prosesHasil(await kirimGiliran(rekaman)); } catch (e) { gagal(e); }
+      try {
+        if (giliranTiruan) return await prosesHasil(await kirimGiliran(rekaman));
+        batalGiliran = new AbortController();
+        const r = await fetch(`${GATEWAY}/giliran?id=${idPanggilan}`, {
+          method: 'POST', headers: { 'content-type': rekaman.type || 'audio/webm' }, body: rekaman, signal: batalGiliran.signal,
+        });
+        if (!r.ok || !r.headers.get('content-type')?.includes('ndjson')) {
+          const d = await r.json().catch(() => null);
+          throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
+        }
+        await prosesAliran(r);
+      } catch (e) {
+        await tungguAntrean();
+        // Giliran dihentikan oleh pick() atau end(), termasuk AbortError dari fetch: alur baru yang melanjutkan.
+        if (sesi !== sesiSuara) return;
+        gagal(e);
+      }
     }
 
     function gagal(e: unknown) {
@@ -241,14 +340,16 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       say(PESAN_MENU);
       push({ kind: 'menu' });
       if (!mic) say('Izin mikrofon ditolak. Izinkan mikrofon di browser agar bisa berbicara dengan CS AI.');
+      const sesi = sesiSuara;
       await putar(`${GATEWAY}/statis/menu`);
-      if (phase !== 'ended') dengar();
+      if (phase !== 'ended' && sesi === sesiSuara) dengar();
     }
 
     async function pick(n: 1 | 2) {
       if (phase === 'ended' || phase === 'connecting') return;
       berhentiRekam();
-      pemutar.pause();
+      // Menu, kalimat jeda, atau jawaban yang sedang diputar dihentikan, dan giliran ucapan yang masih berjalan dibatalkan.
+      hentikanSuara();
       phase = 'flow'; service = n; tiketPengaduan = false;
       msgs = msgs.filter((m) => m.kind !== 'menu');
       setMode('memproses');
@@ -267,7 +368,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     function end() {
       if (phase === 'ended') return;
       lepasMic();
-      pemutar.pause();
+      hentikanSuara();
       // REQ-2.5: gateway menyimpan pengaduan yang belum lengkap dan membalas dengan pesan akhir panggilan untuk ditampilkan.
       if (idPanggilan) {
         fetch(`${GATEWAY}/akhiri`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idPanggilan }) })
