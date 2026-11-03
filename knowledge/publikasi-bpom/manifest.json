@@ -1,0 +1,206 @@
+{
+ "sumber": "Publikasi edukasi resmi BPOM (standar-otskk.pom.go.id, pom.go.id/katabpom Cek Fakta, e-meso.pom.go.id), diunduh 3 November 2026",
+ "jumlah": 25,
+ "dokumen": [
+  {
+   "file": "faq-suplemen-kesehatan.md",
+   "title": "FAQ Suplemen Kesehatan",
+   "tahun": "2023",
+   "bentuk": "FAQ Direktorat Standardisasi OTSKK BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/faq-suplemen-kesehatan",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "faq-obat-kuasi.md",
+   "title": "FAQ Obat Kuasi",
+   "tahun": "2023",
+   "bentuk": "FAQ Direktorat Standardisasi OTSKK BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/faq-obat-kuasi",
+   "kategori": "Obat"
+  },
+  {
+   "file": "faq-probiotik-dalam-suplemen-kesehatan.md",
+   "title": "FAQ Probiotik dalam Suplemen Kesehatan",
+   "tahun": "2023",
+   "bentuk": "FAQ Direktorat Standardisasi OTSKK BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/faq-probiotik",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "faq-penandaan-kosmetika.md",
+   "title": "FAQ Penandaan Kosmetika",
+   "tahun": "2022",
+   "bentuk": "FAQ Direktorat Pengawasan Kosmetik BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/faq-penandaan-kosmetika",
+   "kategori": "Kosmetik"
+  },
+  {
+   "file": "tanya-jawab-vitamin-d-di-atas-1000-iu-sampai-4000-iu-sebagai-suplemen-kesehatan.md",
+   "title": "Tanya Jawab Vitamin D di atas 1000 IU sampai 4000 IU sebagai Suplemen Kesehatan untuk Keperluan Khusus",
+   "tahun": "2022",
+   "bentuk": "Tanya Jawab Sosialisasi BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/q-and-a-vitamin-d-1000iu",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "tanya-jawab-peraturan-bpom-nomor-16-tahun-2023-tentang-pengawasan-peredaran-obat.md",
+   "title": "Tanya Jawab Peraturan BPOM Nomor 16 Tahun 2023 tentang Pengawasan Peredaran Obat Tradisional, Obat Kuasi, dan Suplemen Kesehatan",
+   "tahun": "2023",
+   "bentuk": "Tanya Jawab Sosialisasi BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/q-and-a-perbpom-16-tahun-2023-tentang-pengawasan-peredaran-ot-ok-dan-sk",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "tanya-jawab-satu-nomor-notifikasi-untuk-kosmetika-yang-dikemas-dalam-beberapa-uk.md",
+   "title": "Tanya Jawab Satu Nomor Notifikasi untuk Kosmetika yang Dikemas dalam Beberapa Ukuran",
+   "tahun": "2022",
+   "bentuk": "Tanya Jawab Sosialisasi BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/q-and-a-1-nie",
+   "kategori": "Kosmetik"
+  },
+  {
+   "file": "faq-peraturan-bpom-nomor-10-tahun-2024-tentang-penandaan-obat-bahan-alam-obat-ku.md",
+   "title": "FAQ Peraturan BPOM Nomor 10 Tahun 2024 tentang Penandaan Obat Bahan Alam, Obat Kuasi, dan Suplemen Kesehatan",
+   "tahun": "2024",
+   "bentuk": "FAQ Direktorat Standardisasi OTSKK BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/booklet-faq-perbpom-no-10-tahun-2024",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "tanya-jawab-peraturan-bpom-nomor-30-tahun-2023-tentang-klaim-khasiat-obat-bahan.md",
+   "title": "Tanya Jawab Peraturan BPOM Nomor 30 Tahun 2023 tentang Klaim Khasiat Obat Bahan Alam",
+   "tahun": "2023",
+   "bentuk": "Leaflet BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/qa-perbpom-no-30-tahun-2023",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "perubahan-persyaratan-teknis-bahan-kosmetik-berdasarkan-keputusan-kepala-bpom-no.md",
+   "title": "Perubahan Persyaratan Teknis Bahan Kosmetik berdasarkan Keputusan Kepala BPOM Nomor 479 Tahun 2023",
+   "tahun": "2023",
+   "bentuk": "Buku Saku BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/bahan-kosmetik-yang-diizinkan",
+   "kategori": "Kosmetik"
+  },
+  {
+   "file": "buku-saku-obat-tradisional-untuk-memelihara-daya-tahan-tubuh.md",
+   "title": "Buku Saku Obat Tradisional untuk Memelihara Daya Tahan Tubuh",
+   "tahun": "2020",
+   "bentuk": "Buku Saku BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/buku-saku-obat-tradisional-untuk-daya-tahan-tubuh",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "pedoman-penggunaan-herbal-dan-suplemen-kesehatan-dalam-menghadapi-covid-19-di-in.md",
+   "title": "Pedoman Penggunaan Herbal dan Suplemen Kesehatan dalam Menghadapi COVID-19 di Indonesia",
+   "tahun": "2020",
+   "bentuk": "Buku Pedoman BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/buku-pedoman-penggunaan-herbal-and-suplemen-kesehatan-dalam-menghadapi-covid-19",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "buku-saku-suplemen-kesehatan-untuk-memelihara-daya-tahan-tubuh-vitamin-d.md",
+   "title": "Buku Saku Suplemen Kesehatan untuk Memelihara Daya Tahan Tubuh: Vitamin D",
+   "tahun": "2020",
+   "bentuk": "Buku Saku BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/buku-saku-suplemen-kesehatan-untuk-memelihara-daya-tahan-tubuh-dalam-menghadapi-pandemi-covid-19-vitamin-d",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "buku-saku-suplemen-kesehatan-untuk-memelihara-daya-tahan-tubuh-zink.md",
+   "title": "Buku Saku Suplemen Kesehatan untuk Memelihara Daya Tahan Tubuh: Zink",
+   "tahun": "2020",
+   "bentuk": "Buku Saku BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/buku-saku-suplemen-kesehatan-untuk-memelihara-daya-tahan-tubuh-dalam-menghadapi-pandemi-covid-19-zinc",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "buku-saku-suplemen-kesehatan-untuk-memelihara-daya-tahan-tubuh-probiotik-edisi-k.md",
+   "title": "Buku Saku Suplemen Kesehatan untuk Memelihara Daya Tahan Tubuh: Probiotik (Edisi Kedua)",
+   "tahun": "2021",
+   "bentuk": "Buku Saku BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/buku-saku-suplemen-kesehatan-untuk-memelihara-daya-tahan-tubuh-dalam-menghadapi-pandemi-covid-19-probiotik-edisi-kedua",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "peran-serta-masyarakat-dalam-pengawasan-sediaan-farmasi-dan-pangan-olahan.md",
+   "title": "Peran Serta Masyarakat dalam Pengawasan Sediaan Farmasi dan Pangan Olahan",
+   "tahun": "2025",
+   "bentuk": "Buku Saku BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/buku-peran-serta-masyarakat-was-sedian-farmasi-dan-pangan-olahan",
+   "kategori": "Layanan"
+  },
+  {
+   "file": "tanaman-yang-dibatasi-atau-dilarang-dalam-obat-bahan-alam.md",
+   "title": "Tanaman yang Dibatasi atau Dilarang dalam Obat Bahan Alam",
+   "tahun": "2023",
+   "bentuk": "Leaflet BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/larangan-produksi-dan-mengedarkan-obat",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "memilih-obat-tradisional-yang-baik.md",
+   "title": "Memilih Obat Tradisional yang Baik",
+   "tahun": "2024",
+   "bentuk": "Materi KIE BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/kie-obat-dan-makanan",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "monitoring-efek-samping-obat-tradisional-suplemen-kesehatan-dan-kosmetik.md",
+   "title": "Monitoring Efek Samping Obat Tradisional, Suplemen Kesehatan, dan Kosmetik",
+   "tahun": "2023",
+   "bentuk": "Booklet BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/booklet-monitoring-efek-samping-otsk",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "daftar-regulasi-bpom-di-bidang-kosmetik-2025.md",
+   "title": "Daftar Regulasi BPOM di Bidang Kosmetik 2025",
+   "tahun": "2025",
+   "bentuk": "Leaflet BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/leaflet-regulasi-kosmetik-2025",
+   "kategori": "Kosmetik"
+  },
+  {
+   "file": "daftar-regulasi-bpom-di-bidang-suplemen-kesehatan-2025.md",
+   "title": "Daftar Regulasi BPOM di Bidang Suplemen Kesehatan 2025",
+   "tahun": "2025",
+   "bentuk": "Leaflet BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/leaflet-regulasi-suplemen-kesehatan-2025",
+   "kategori": "Suplemen Kesehatan"
+  },
+  {
+   "file": "daftar-regulasi-bpom-di-bidang-obat-bahan-alam-2025.md",
+   "title": "Daftar Regulasi BPOM di Bidang Obat Bahan Alam 2025",
+   "tahun": "2025",
+   "bentuk": "Leaflet BPOM",
+   "source_url": "https://standar-otskk.pom.go.id/publikasi/leaflet-regulasi-oba-2025",
+   "kategori": "Obat Tradisional"
+  },
+  {
+   "file": "buku-saku-hoaks-vs-fakta-produk-obat-obat-bahan-alam-suplemen-kesehatan-kosmetik.md",
+   "title": "Buku Saku Hoaks vs Fakta Produk Obat, Obat Bahan Alam, Suplemen Kesehatan, Kosmetika, dan Pangan Olahan",
+   "tahun": "2024",
+   "bentuk": "Cek Fakta BPOM dan Mafindo",
+   "source_url": "https://www.pom.go.id/storage/cekfakta-dokumen/x3aTlcudTrt4e6eHzce2MYN9e2BmPnD2vqQnrT9v.pdf",
+   "kategori": "Edukasi Umum"
+  },
+  {
+   "file": "dokumentasi-hoaks-obat-dan-makanan-2015-2023.md",
+   "title": "Dokumentasi Hoaks Obat dan Makanan 2015-2023",
+   "tahun": "2024",
+   "bentuk": "Cek Fakta BPOM dan Mafindo",
+   "source_url": "https://www.pom.go.id/storage/cekfakta-dokumen/zKJydmprbvHS266LZgaBPHpBoYUboPM85kSn5Qyj.pdf",
+   "kategori": "Edukasi Umum"
+  },
+  {
+   "file": "buku-saku-pelaporan-efek-samping-obat-bagi-masyarakat.md",
+   "title": "Buku Saku Pelaporan Efek Samping Obat bagi Masyarakat",
+   "tahun": "2026",
+   "bentuk": "Buku Saku e-MESO BPOM",
+   "source_url": "https://e-meso.pom.go.id/user-guide/buku-saku",
+   "kategori": "Obat"
+  }
+ ]
+}
