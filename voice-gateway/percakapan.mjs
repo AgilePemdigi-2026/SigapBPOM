@@ -158,6 +158,26 @@ export class SusunanJawaban {
   }
 }
 
+/**
+ * Mengalirkan potongan jawaban AI menjadi kalimat yang langsung diucapkan lewat `ucapkan`.
+ * Setelah tawaran penutup atau jawaban baku dikenali tidak ada kalimat lain yang diucapkan, jadi loop berhenti dan
+ * `return()` iterator menutup stream AI (Hermes mengabaikan max_tokens, sisa jawabannya hanya membuang token).
+ */
+export async function alirkanJawaban(aliran, susunan, ucapkan) {
+  const pemecah = new PemecahKalimat();
+  const proses = (kalimat) => {
+    for (const k of kalimat) {
+      const ucap = susunan.tambah(k);
+      if (ucap) ucapkan(ucap);
+    }
+  };
+  for await (const potongan of aliran) {
+    proses(pemecah.tambah(potongan));
+    if (susunan.tawaran || susunan.khusus) break;
+  }
+  proses(pemecah.akhiri());
+}
+
 export const jawabanDiLuarTopik = (jawaban) => sederhanakan(jawaban).includes(sederhanakan(PESAN_DI_LUAR_TOPIK));
 
 const POLA_TAWARAN = /ada (lagi )?yang bisa saya bantu/;

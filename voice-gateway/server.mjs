@@ -7,7 +7,7 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
-  PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup,
+  PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
   pesanLayanan, saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
 import { Korpus, pesanKutipan } from './pengetahuan.mjs';
@@ -343,20 +343,14 @@ async function giliran(req, res, url) {
       tulis({ jenis: 'transkrip', transkrip, jeda: true });
       const kutipan = korpus ? korpus.cari(transkrip, KUTIPAN_MAKS) : [];
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
-      const pemecah = new PemecahKalimat();
       const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
       let tKalimat1 = 0;
-      const proses = (kalimat) => {
-        for (const k of kalimat) {
-          const ucap = susunan.tambah(k);
-          if (!ucap) continue;
-          if (!tKalimat1) tKalimat1 = Date.now() - mulai;
-          ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
-        }
+      const ucapkanKalimat = (ucap) => {
+        if (!tKalimat1) tKalimat1 = Date.now() - mulai;
+        ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
       };
       try {
-        for await (const potongan of aliranHermes(id, pesanKutipan(kutipan), hasil)) proses(pemecah.tambah(potongan));
-        proses(pemecah.akhiri());
+        await alirkanJawaban(aliranHermes(id, pesanKutipan(kutipan), hasil), susunan, ucapkanKalimat);
       } finally {
         hasil.token = tokenTerpakai(hasil);
         anggaranAi.catat(ip, id, hasil.token - cadangan);

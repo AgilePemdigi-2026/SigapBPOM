@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
-  AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
+  AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
   pesanLayanan, saringUcapan, teksUntukSuara,
 } from './percakapan.mjs';
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
@@ -147,6 +147,36 @@ test('jawaban baku butuh petugas atau di luar topik setelah kalimat isi tetap di
   assert.equal(petugas.susunan.khusus, 'butuh_petugas');
   const luar = alirkan(`Baik, saya coba jelaskan sedikit dulu ya. ${PESAN_DI_LUAR_TOPIK}`);
   assert.equal(luar.susunan.khusus, 'di_luar_topik');
+});
+
+/** Stream AI tiruan yang mencatat berapa potongan sudah dibaca dan apakah stream sudah ditutup. */
+function aliranTiruan(potongan) {
+  const jejak = { dibaca: 0, ditutup: false };
+  async function* alir() {
+    try {
+      for (const p of potongan) { jejak.dibaca += 1; yield p; }
+    } finally {
+      jejak.ditutup = true;
+    }
+  }
+  return { aliran: alir(), jejak };
+}
+
+test('nfr_1 stream AI ditutup begitu tawaran penutup atau jawaban baku dikenali', async () => {
+  const sisa = ['Teks lanjutan yang tidak pernah diucapkan. ', 'Masih ada lagi.'];
+  const tawaran = aliranTiruan(['Obat keras hanya boleh dibeli dengan resep dokter. ', `${PESAN_TAWARAN_PENUTUP} `, ...sisa]);
+  const diucapkan = [];
+  const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
+  await alirkanJawaban(tawaran.aliran, susunan, (k) => diucapkan.push(k));
+  assert.deepEqual(diucapkan, ['Obat keras hanya boleh dibeli dengan resep dokter.']);
+  assert.ok(susunan.tawaran);
+  assert.deepEqual(tawaran.jejak, { dibaca: 2, ditutup: true });
+
+  const luar = aliranTiruan([`${PESAN_DI_LUAR_TOPIK} `, ...sisa]);
+  const susunanLuar = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
+  await alirkanJawaban(luar.aliran, susunanLuar, () => assert.fail('jawaban baku tidak boleh diucapkan sebagai kalimat isi'));
+  assert.equal(susunanLuar.khusus, 'di_luar_topik');
+  assert.deepEqual(luar.jejak, { dibaca: 2, ditutup: true });
 });
 
 test('kalimat yang terlalu panjang dipotong di batas kata', () => {
