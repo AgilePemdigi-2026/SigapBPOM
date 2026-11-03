@@ -1,6 +1,6 @@
 -- T-F5.2-02 (REQ-4.2): panggilan aktif tercatat dengan tahap terbaru, hilang setelah berakhir atau heartbeat berhenti.
 begin;
-select plan(18);
+select plan(19);
 
 -- 1. Hak akses: anon dan authenticated tidak boleh memanggil RPC; anon dan service_role tidak boleh membaca view
 set local role anon;
@@ -18,6 +18,10 @@ set local role authenticated;
 select throws_ok(
   $$ select public.akhiri_panggilan_aktif('77777777-0000-0000-0000-000000000001'::uuid) $$,
   '42501', null, 'authenticated tidak boleh memanggil akhiri_panggilan_aktif'
+);
+select is(
+  has_table_privilege('authenticated', 'public.panggilan_berjalan', 'INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'),
+  false, 'authenticated hanya boleh membaca view panggilan_berjalan'
 );
 
 -- service_role bukan petugas: view ditolak dengan jelas, bukan kosong diam-diam
