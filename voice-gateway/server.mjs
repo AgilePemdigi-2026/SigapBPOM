@@ -10,7 +10,7 @@ import {
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
   pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai,
 } from './percakapan.mjs';
-import { Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -55,6 +55,9 @@ const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+// Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
+// ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
+const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
   perIpHarian: Number(env('TIKET_HARIAN_PER_IP', '5')),
@@ -79,6 +82,22 @@ try {
 } catch (e) {
   console.error(JSON.stringify({ ev: 'korpus_gagal', jenis: e instanceof Error ? e.code ?? e.message : 'unknown' }));
 }
+let katalog = { status: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? 'menunggu' : 'tidak_dikonfigurasi' };
+async function sinkronKatalog() {
+  if (!korpus || katalog.status === 'tidak_dikonfigurasi') return;
+  try {
+    const baris = await new KatalogMateriSupabase({ url: SUPABASE_URL, kunci: SIGAP_KUNCI_INTERNAL }).ambil();
+    const hasil = korpus.terapkanKatalog(baris);
+    katalog = { status: baris.length ? 'aktif' : 'kosong', materi: baris.length, ...hasil, waktu: new Date().toISOString() };
+    console.info(JSON.stringify({ ev: 'katalog', ...katalog }));
+  } catch (e) {
+    // Katalog terakhir tetap dipakai; kegagalan sementara tidak menghentikan layanan.
+    katalog = { ...katalog, galat: e instanceof Error ? e.message : 'unknown' };
+    console.error(JSON.stringify({ ev: 'katalog_gagal', galat: katalog.galat }));
+  }
+}
+sinkronKatalog();
+setInterval(sinkronKatalog, SINKRON_KATALOG_MS).unref();
 const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
 const giliranAktif = new Map();
@@ -392,7 +411,8 @@ async function giliran(req, res, url) {
         jawaban_kar: jawaban.length, kalimat: susunan.isi.length, kutipan: kutipan.length, di_luar_topik: diLuarTopik,
         token: hasil.token, token_hari_ini: anggaranAi.total,
       }));
-      const sumber = susunan.khusus ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+      // Jawaban baku soal registrasi produk (NFR-7) tidak memakai kutipan, jadi chip sumber tidak ditampilkan.
+      const sumber = susunan.khusus || /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
       tulis({ jenis: 'selesai', sumber });
     } catch (e) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
@@ -438,7 +458,13 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   try {
     if (req.method === 'GET' && path === '/voice/kesehatan') {
-      return kirim(res, 200, 'success', 'OK', { siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0 });
+      return kirim(res, 200, 'success', 'OK', {
+        siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0,
+        katalog: {
+          status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0,
+          tanpaKatalog: katalog.tanpaKatalog ?? 0,
+        },
+      });
     }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
     if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(res, path.slice('/voice/statis/'.length));
