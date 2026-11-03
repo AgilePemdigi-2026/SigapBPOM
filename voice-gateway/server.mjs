@@ -281,7 +281,7 @@ async function giliran(req, res, url) {
       riwayat.tambah(id, 'user', transkrip);
       const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
       kutipan = basis.kutipan;
-      const hasil = await tanyaHermes(id, pesanBasisPengetahuan(kutipan));
+      const hasil = await tanyaHermes(id, pesanBasisPengetahuan(kutipan, basis.mode));
       token = hasil.token;
       anggaranAi.catat(ip, id, token - cadangan);
       cadangan = 0;

@@ -69,11 +69,14 @@ export async function cariBasisPengetahuan({ pencari, korpus, pertanyaan, catat 
 
 /**
  * Pesan sistem untuk Hermes dari hasil tool. Potongan ditandai sebagai data, bukan instruksi.
- * Hasil kosong menjadi jalur eskalasi F1.4; pertanyaan di luar topik dijawab pesan baku.
+ * Hasil kosong basis vektor menjadi jalur eskalasi F1.4. Hasil kosong korpus lokal (BM25 di bawah SKOR_MINIMAL)
+ * mengembalikan null: agen menjawab dengan prompt sistem saja, agar pertanyaan dasar seperti "apa itu BPOM" tidak
+ * diminta nomor telepon. Pertanyaan di luar topik dijawab pesan baku.
  */
-export function pesanBasisPengetahuan(kutipan) {
+export function pesanBasisPengetahuan(kutipan, mode = 'basis') {
   const aturan = `Pertanyaan di luar topik obat dan makanan dijawab hanya dengan kalimat: ${PESAN_DI_LUAR_TOPIK}`;
   if (!kutipan.length) {
+    if (mode === 'lokal') return null;
     return `Hasil tool ${NAMA_TOOL}: tidak ada materi relevan. Bila pertanyaan terakhir adalah pertanyaan edukasi tentang obat atau makanan, `
       + `jangan menjawab dari pengetahuan sendiri; jawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}\n${aturan}`;
   }

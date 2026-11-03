@@ -93,6 +93,11 @@ test('t_f1_3_03 hasil kosong masuk jalur eskalasi dan tidak boleh dijawab dari p
   assert.ok(pesan.includes(PESAN_DI_LUAR_TOPIK));
 });
 
+test('t_f1_3_03 hasil kosong korpus lokal tanpa pesan tool agar pertanyaan dasar tidak dieskalasi (REQ-1.7)', () => {
+  assert.equal(pesanBasisPengetahuan([], 'lokal'), null);
+  assert.ok(pesanBasisPengetahuan([], 'basis').includes(PESAN_BUTUH_PETUGAS));
+});
+
 test('t_f1_3_03 sumber untuk panel sama dengan rujukan materi yang dipakai', () => {
   assert.deepEqual(
     sumberUntukPanel([{ judul: 'Label Pangan Olahan', label: 'Peraturan BPOM Nomor 26 Tahun 2021', sumber: '', teks: 't' }]),
