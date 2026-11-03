@@ -10,8 +10,9 @@ import {
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, idPanggilanSah, inginMenutup,
   pesanLayanan, saringUcapan, uraiGiliranJson, teksUntukSuara,
 } from './percakapan.mjs';
-import { KatalogMateriSupabase, Korpus, pesanKutipan } from './pengetahuan.mjs';
+import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, cekRegistrasi, labelKueri, tabelCek } from './cekbpom.mjs';
+import { PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel } from './alatPengetahuan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
   pesanTiketEskalasi,
@@ -56,10 +57,13 @@ const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+// REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
+const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
+// Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
+// (embedding produksi belum ada); selain itu dipakai korpus lokal.
+const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
 // Katalog materi dari Supabase (halaman Basis Pengetahuan dan Graf Pengetahuan): status aktif dan materi baru
 // ikut menentukan kutipan CS AI. Tanpa kunci internal, semua berkas korpus dipakai seperti sebelumnya.
-// REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; CEKBPOM_AKTIF=0 mematikannya.
-const cekBpom = env('CEKBPOM_AKTIF', '1') === '0' ? null : new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') });
 const SINKRON_KATALOG_MS = Number(env('KATALOG_SINKRON_MS', String(5 * 60 * 1000)));
 const pembatasTiket = new PembatasTiket({
   perPanggilan: Number(env('TIKET_PER_PANGGILAN', '2')),
@@ -374,7 +378,7 @@ async function giliran(req, res, url) {
 
       riwayat.tambah(id, 'user', transkrip);
       tulis({ jenis: 'transkrip', transkrip, jeda: true });
-      // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari kutipan korpus.
+      // Pertanyaan status registrasi suatu produk dijawab dari cekbpom, selain itu dari tool cari_basis_pengetahuan.
       // Suara jeda sudah diputar panel selama pencarian ini berlangsung.
       const tCek = Date.now();
       // Panel Cari Produk di halaman publik mulai mengetik kueri saat pencarian dimulai, lalu menampilkan tabel sebelum AI menjawab.
@@ -389,8 +393,9 @@ async function giliran(req, res, url) {
         produk = cek.produk;
         konteks = cek.konteks;
       } else {
-        kutipan = korpus ? korpus.cari(transkrip, KUTIPAN_MAKS) : [];
-        konteks = pesanKutipan(kutipan);
+        const basis = await cariBasisPengetahuan({ pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)) });
+        kutipan = basis.kutipan;
+        konteks = pesanBasisPengetahuan(kutipan, basis.mode);
       }
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const pemecah = new PemecahKalimat();
@@ -441,7 +446,7 @@ async function giliran(req, res, url) {
       // Hasil cekbpom tampil sebagai kartu produk, dan jawaban yang merujuk ke cekbpom tidak memakai kutipan,
       // jadi keduanya tanpa chip sumber.
       if (susunan.khusus) produk = undefined;
-      const sumber = susunan.khusus || produk || /cekbpom/i.test(jawaban) ? [] : kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+      const sumber = susunan.khusus || produk || /cekbpom/i.test(jawaban) ? [] : sumberUntukPanel(kutipan);
       tulis({ jenis: 'selesai', sumber, produk });
     } catch (e) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));

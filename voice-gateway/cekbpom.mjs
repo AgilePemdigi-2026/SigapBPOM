@@ -5,9 +5,12 @@
 export const KANDIDAT_MAKS = 3;
 const TTL_CACHE_MS = 3 * 60 * 1000;
 const TTL_SESI_MS = 30 * 60 * 1000;
-const BATAS_WAKTU_MS = 8000;
+// NFR-2: cek registrasi paling lama 5 detik, sama dengan BATAS_WAKTU_CEK_REGISTRASI_MS di Edge Function.
+const BATAS_WAKTU_MS = 5000;
 // Kata dari ucapan yang dicoba sebagai merek; membatasi jumlah permintaan ke cekbpom per pertanyaan.
 const KATA_MEREK_MAKS = 3;
+// Baris per kueri merek sebelum disaring sisa kata; 10 baris terlalu sedikit untuk merek besar (Greenfields 209 produk).
+const BARIS_MEREK_MAKS = 50;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
 // Pola nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
@@ -15,6 +18,8 @@ const POLA_NOMOR = /\b(MD|ML|PIRT|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL|DBL|DKL|DT
 const POLA_NIAT = /\b(terdaftar|daftar|izin edar|nomor (izin|registrasi|bpom|edar)|registrasi|legal|resmi|cek ?bpom|ada bpom|sudah bpom|udah bpom|bpom nya|bpomnya|cek produk|cekin|cek(kan)?)\b/i;
 // Pertanyaan cara atau alasan ("bagaimana cara cek nomor registrasi?") dijawab dari korpus, bukan dicari di cekbpom.
 const POLA_EDUKASI = /\b(bagaimana|gimana|cara|kenapa|mengapa|apa itu|apa arti|artinya|maksudnya|syarat|biaya|berapa lama)\b/i;
+// Ucapan pengaduan atau keluhan ("mau daftar pengaduan", "kulit saya gatal") tetap di alurnya sendiri, bukan dicari di cekbpom.
+const POLA_PENGADUAN = /\b(pengaduan|mengadu|lapor|melapor|laporkan|keluhan|efek samping|gatal|alergi)\b/i;
 const POLA_TANYA = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|berapa|siapa|dimana|bolehkah|bisakah)\b|\?/i;
 // Kata yang dibuang dari ucapan agar tersisa nama produk.
 const KATA_ISI = new Set(`apakah apa ya yah yang itu ini tuh sudah udah belum blm terdaftar daftar di ke dari bpom badan pom pengawas obat
@@ -30,7 +35,7 @@ export function kueriProduk(ucapan, setelahMenu1 = false) {
   const teks = String(ucapan ?? '');
   const nomor = teks.match(POLA_NOMOR);
   if (nomor) return { nomor: `${nomor[1].toUpperCase()} ${nomor[2].replace(/\s+/g, '')}` };
-  if (POLA_EDUKASI.test(teks)) return null;
+  if (POLA_EDUKASI.test(teks) || POLA_PENGADUAN.test(teks)) return null;
   const kata = teks.toLowerCase().replace(/[^a-z0-9\s-]+/g, ' ').split(/\s+/).filter(Boolean);
   const niat = POLA_NIAT.test(teks) || (setelahMenu1 && kata.length <= 6 && !POLA_TANYA.test(teks));
   if (!niat) return null;
@@ -46,7 +51,9 @@ function statusIzin(s) {
   const t = String(s ?? '').toLowerCase();
   if (t.includes('batal')) return 'Dibatalkan';
   if (t.includes('tidak') || t.includes('habis') || t.includes('kadaluarsa') || t.includes('expired')) return 'Tidak Berlaku';
-  return 'Berlaku';
+  if (t.includes('berlaku')) return 'Berlaku';
+  // NFR-7: status yang tidak dikenal tidak ditebak; kueri ini diperlakukan sebagai gangguan cekbpom.
+  throw new Error('cekbpom status tidak dikenal');
 }
 
 const KOMPOSISI_MAKS = 300;
@@ -135,12 +142,15 @@ export class CekBpom {
   async kirim(kueri) {
     if (kueri.nomor) return this.kirimKolom({ product_register: kueri.nomor });
     const kataMerek = [...new Set(kueri.nama.split(' ').filter((k) => k.length >= 3))].slice(0, KATA_MEREK_MAKS);
-    const [nama, ...merek] = await Promise.all([
+    const [nama, ...merek] = (await Promise.allSettled([
       this.kirimKolom({ product_name: kueri.nama }),
-      ...kataMerek.map((k) => this.kirimKolom({ product_brand: k }).then((h) => saring(h, kueri.nama, k))),
-    ]);
-    const unik = new Map([...merek.flatMap((h) => h.produk), ...nama.produk].map((p) => [p.nomorIzinEdar, p]));
-    return { total: Math.max(nama.total, ...merek.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
+      ...kataMerek.map((k) => this.kirimKolom({ product_brand: k, length: String(BARIS_MEREK_MAKS) }).then((h) => saring(h, kueri.nama, k))),
+    ])).map((r) => (r.status === 'fulfilled' ? r.value : null));
+    const ok = [...merek, nama].filter(Boolean);
+    const unik = new Map(ok.flatMap((h) => h.produk).map((p) => [p.nomorIzinEdar, p]));
+    // Sebagian kueri gagal tetap dipakai bila ada hasil; tanpa hasil jangan disimpulkan "tidak ditemukan" (NFR-7).
+    if (ok.length <= kataMerek.length && !unik.size) throw new Error('cekbpom cari gagal');
+    return { total: Math.max(...ok.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
   }
 
   async kirimKolom(cari, ulangi = true) {
@@ -241,7 +251,9 @@ export async function cekRegistrasi(cekBpom, ucapan, setelahMenu1 = false, saatM
   const kueri = kueriProduk(ucapan, setelahMenu1);
   if (!kueri) return null;
   saatMencari(kueri);
-  let data = null, galat = null;
-  try { data = await cekBpom.cari(kueri); } catch (e) { galat = e instanceof Error ? e.message : 'unknown'; }
+  let data = null, galat = null, batas;
+  // NFR-2: satu giliran cek registrasi paling lama BATAS_WAKTU_MS, termasuk buka sesi dan ulang 419.
+  const habis = new Promise((_, tolak) => { batas = setTimeout(() => tolak(new Error('cekbpom batas waktu')), BATAS_WAKTU_MS); });
+  try { data = await Promise.race([cekBpom.cari(kueri), habis]); } catch (e) { galat = e instanceof Error ? e.message : 'unknown'; } finally { clearTimeout(batas); }
   return { kueri, data, galat, produk: data ? hasilProduk(data) : undefined, konteks: pesanCekBpom(kueri, data) };
 }
