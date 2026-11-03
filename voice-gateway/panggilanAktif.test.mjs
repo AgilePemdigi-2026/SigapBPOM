@@ -48,7 +48,7 @@ test('req_4_2 panggilan yatim hilang dari daftar aktif saat heartbeat berhenti',
   assert.deepEqual(pelapor.daftarAktif(), []);
 });
 
-test('req_4_2 heartbeat berkala menjaga panggilan tetap aktif selama ada aktivitas lalu menutupnya saat diam', async () => {
+test('req_4_2 heartbeat berkala menjaga panggilan tetap aktif selama ada aktivitas lalu berhenti saat diam', async () => {
   const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000 });
   pantau.tahap(ID, TAHAP.MENJAWAB);
   await tunggu();
@@ -59,8 +59,22 @@ test('req_4_2 heartbeat berkala menjaga panggilan tetap aktif selama ada aktivit
   assert.equal(pelapor.jumlahTulis, tulisAwal + 1, 'heartbeat terkirim');
   await maju(60_000);
   assert.equal(pelapor.daftarAktif().length, 1, 'tetap aktif selama heartbeat berjalan');
+  const tulisSaatDiam = pelapor.jumlahTulis;
   await maju(30_000);
-  assert.deepEqual(pelapor.daftarAktif(), [], 'ditutup setelah diam melewati batas');
+  await maju(31_000);
+  assert.equal(pelapor.jumlahTulis, tulisSaatDiam, 'tidak ada heartbeat maupun akhiri setelah diam melewati batas');
+  assert.deepEqual(pelapor.daftarAktif(), [], 'hilang dari daftar aktif setelah heartbeat berhenti');
+});
+
+test('req_4_2 penelepon yang diam lama lalu berbicara lagi tetap tercatat sebagai panggilan aktif', async () => {
+  const { pelapor, pantau, maju, tunggu } = siapkan({ heartbeatMs: 15_000, diamMs: 90_000 });
+  pantau.tahap(ID, TAHAP.MENJAWAB);
+  await tunggu();
+  for (let i = 0; i < 7; i++) await maju(15_000); // diam 105 detik, melewati diamMs
+  pantau.tahap(ID, TAHAP.MENDENGAR);
+  await tunggu();
+  assert.equal(pelapor.daftarAktif().length, 1, 'panggilan tidak ditutup permanen karena diam');
+  assert.equal(pelapor.daftarAktif()[0].tahap, 'mendengar');
 });
 
 test('req_4_2 penulisan di-throttle: perubahan tahap beruntun tidak ditulis satu per satu', async () => {
