@@ -46,3 +46,10 @@ test('req_7_1 Tambah Materi mengirim lewat proxy ini, bukan langsung ke Edge Fun
   assert.match(halaman, /fetch\('\/api\/simpan-materi'/);
   assert.doesNotMatch(halaman, /functions\/v1/);
 });
+
+test('req_7_1 Tambah Materi menolak kiriman kedua selama simpan masih berjalan', () => {
+  const halaman = readFileSync(new URL('../basis-pengetahuan.astro', import.meta.url), 'utf8');
+  // Penanda dipasang sebelum fetch dan dilepas sesudah respons, dan handler berhenti bila penanda masih terpasang.
+  assert.match(halaman, /e\.preventDefault\(\);\s*if \(mengirim\) return;/);
+  assert.match(halaman, /mengirim = true;[\s\S]*?fetch\('\/api\/simpan-materi'[\s\S]*?mengirim = false;/);
+});

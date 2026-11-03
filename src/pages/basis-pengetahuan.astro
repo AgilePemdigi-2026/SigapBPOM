@@ -214,8 +214,11 @@ const data = {
   field('judul').addEventListener('input', () => saveBtn.setAttribute('aria-disabled', String(!field('judul').value.trim())));
   field('rujukan').addEventListener('input', () => { err.hidden = true; field('rujukan').classList.remove('invalid'); });
 
+  // Simpan menulis ke basis data dan menunggu embedding; klik kedua atau Enter selama menunggu tidak boleh membuat materi ganda.
+  let mengirim = false;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (mengirim) return;
     const judul = field('judul').value.trim();
     const rujukan = field('rujukan').value.trim();
     if (!judul) return field('judul').focus();
@@ -223,6 +226,7 @@ const data = {
     const kategori = field('kategori').value;
     const isi = field('isi').value;
 
+    mengirim = true;
     saveBtn.setAttribute('aria-disabled', 'true');
     // Lewat proxy same-origin, yang melampirkan token sesi petugas dari cookie HttpOnly (src/pages/api/simpan-materi.ts).
     const respon = await fetch('/api/simpan-materi', {
@@ -231,6 +235,7 @@ const data = {
       body: JSON.stringify({ judul, rujukan, kategori, isi }),
     }).catch(() => null);
     const hasil = await respon?.json().catch(() => null);
+    mengirim = false;
     saveBtn.removeAttribute('aria-disabled');
     if (!respon?.ok || hasil?.status === 'error') {
       // REQ-7.1: jangan tampilkan sukses bila server tidak menyimpan materi. Dialog tetap terbuka agar isian tidak hilang.
