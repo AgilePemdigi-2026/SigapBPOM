@@ -2,6 +2,9 @@
 // Boundary UC-03 Melakukan Login Dashboard (REQ-3.1 sampai REQ-3.5).
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Orb from '../components/Orb.astro';
+
+// Akun demo hanya ada di sesi tiruan pengembangan lokal (syarat yang sama dengan middleware), jadi petunjuknya tidak tampil di produksi.
+const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
 ---
 <BaseLayout title="Login Petugas">
   <main class="login">
@@ -28,7 +31,7 @@ import Orb from '../components/Orb.astro';
         </div>
         <label class="field">
           <span class="field-label">Email</span>
-          <span class="input-wrap"><i class="icon-mail"></i><input id="email" name="email" type="email" autocomplete="username" placeholder="nama@pom.go.id" value="dewi.lestari@pom.go.id" /></span>
+          <span class="input-wrap"><i class="icon-mail"></i><input id="email" name="email" type="email" autocomplete="username" placeholder="nama@pom.go.id" value={demo ? 'dewi.lestari@pom.go.id' : undefined} /></span>
         </label>
         <label class="field">
           <span class="field-label">Password</span>
@@ -40,7 +43,7 @@ import Orb from '../components/Orb.astro';
         </div>
         <button type="submit" id="login-btn" class="btn-primary submit">Login<i class="icon-arrow-right"></i></button>
         <span class="help">Lupa password atau akun terkunci? Hubungi administrator.</span>
-        <span class="demo mono"><i class="icon-info"></i>demo · dewi.lestari@pom.go.id / sigap2026</span>
+        {demo && <span class="demo mono"><i class="icon-info"></i>demo · dewi.lestari@pom.go.id / sigap2026</span>}
       </form>
     </section>
   </main>
