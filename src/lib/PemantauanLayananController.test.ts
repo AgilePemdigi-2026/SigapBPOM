@@ -290,6 +290,10 @@ test('t_f5_1_02 REQ-4.1 sapaan mengikuti jam Asia/Jakarta', () => {
   );
 });
 
+test('t_f5_1_02 REQ-4.1 pesan gagal muat ringkasan persis kamus pesan', () => {
+  assert.equal(PESAN_PEMANTAUAN.ringkasanGagalDimuat, 'Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi.');
+});
+
 test('t_f5_1_02 tanpa data, ringkasan tetap jalan dengan angka nol', async () => {
   const r = await pantau({ percakapan: [], tiket: [], logTool: [] }).ringkasanLayanan(SEKARANG);
   assert.equal(r.statistik.panggilanHariIni, 0);

@@ -133,7 +133,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
           ))}
         </div>
         <span class="grow"></span>
-        <a href="/panggilan-berjalan" class="tile live-link" data-name="JumlahPanggilanBerjalan"><span class={berjalan ? 'dot-live' : 'dot-idle'}></span><span class="live-text">{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : 'Tidak ada panggilan berjalan'}</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
+        <a href="/panggilan-berjalan" class="tile live-link" data-name="JumlahPanggilanBerjalan"><span class={berjalan ? 'dot-live' : 'dot-idle'}></span><span class="live-text">{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : PESAN_PEMANTAUAN.tidakAdaPanggilan}</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
       </section>
     </div>
 
@@ -153,7 +153,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 
       <section class="panel card urgent" data-name="DaftarKasusPerluTindakLanjut">
         <div class="urgent-head"><h2 class="card-title sm">Kasus Perlu Tindak Lanjut</h2><a href="/tiket-eskalasi" class="pill round" aria-label="Lihat semua tiket eskalasi"><i class="icon-arrow-up-right"></i></a></div>
-        {gagal && <div class="empty-card" role="alert"><i class="icon-file-x"></i><span>{PESAN_PEMANTAUAN.detailGagalDimuat}</span></div>}
+        {gagal && <div class="empty-card" role="alert"><i class="icon-file-x"></i><span>{PESAN_PEMANTAUAN.ringkasanGagalDimuat}</span></div>}
         {!gagal && urgent.length === 0 && <div class="empty-card"><i class="icon-circle-check"></i><span>Tidak ada kasus yang perlu ditindaklanjuti.</span></div>}
         {urgent.map((u, i) => i === 0 ? (
           <div class="case-first">
@@ -173,7 +173,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 
       <section class="panel card">
         <div class="kat-head"><h2 class="card-title">Pertanyaan per Kategori</h2><span>7 hari terakhir · {gagal ? '—' : fmt(totalKategori)} pertanyaan</span></div>
-        {gagal && <div class="empty-card" role="alert"><i class="icon-file-x"></i><span>{PESAN_PEMANTAUAN.panggilanGagalDimuat}</span></div>}
+        {gagal && <div class="empty-card" role="alert"><i class="icon-file-x"></i><span>{PESAN_PEMANTAUAN.ringkasanGagalDimuat}</span></div>}
         {!gagal && KATEGORI.length === 0 && <div class="empty-card"><i class="icon-chart-column"></i><span>Belum ada pertanyaan dalam 7 hari terakhir.</span></div>}
         <div class="kat-list">
           {KATEGORI.map(({ label, persen: p }, i) => (
@@ -187,7 +187,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 
       <section class="panel card greet">
         <Orb size={104} />
-        <span class="greet-text">Selamat {sapaan(new Date())}, {namaDepan}<br />{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : 'Belum ada panggilan berjalan'}</span>
+        <span class="greet-text">Selamat {sapaan(new Date())}, {namaDepan}<br />{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : PESAN_PEMANTAUAN.tidakAdaPanggilan}</span>
         <div class="greet-actions">
           <a href="/tiket-eskalasi" class="pill sm"><i class="icon-ticket"></i>Antrean tiket</a>
           <a href="/basis-pengetahuan?tambah=1" class="pill sm"><i class="icon-plus"></i>Tambah Materi</a>

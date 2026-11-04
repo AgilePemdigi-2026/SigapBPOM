@@ -105,6 +105,7 @@ export const PESAN_PEMANTAUAN = {
   detailGagalDimuat: 'Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
   panggilanGagalDimuat: 'Data panggilan gagal dimuat.',
   antreanGagalDimuat: 'Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
+  ringkasanGagalDimuat: 'Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
 } as const;
 
 export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
