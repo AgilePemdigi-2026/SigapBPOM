@@ -114,7 +114,7 @@ Kebutuhan:
 - REQ-2.2 Data yang belum disebutkan ditanyakan kembali sampai lengkap.
 - REQ-2.3 Pengaduan dicatat di register, tiket diterbitkan, berkas masuk antrean tindak lanjut petugas.
 - REQ-2.4 Nomor tiket disampaikan beserta info tindak lanjut lewat SMS.
-- REQ-2.5 Panggilan diakhiri sebelum lengkap: simpan sebagai "pengaduan tidak lengkap" tanpa tiket.
+- REQ-2.5 Panggilan diakhiri sebelum lengkap: simpan sebagai "pengaduan tidak lengkap" tanpa tiket. Baris pengaduan tidak lengkap baru dibuat setelah penelepon menyebut minimal satu data pengaduan; panggilan yang berakhir sebelum ada data apa pun cukup tercatat sebagai percakapan.
 
 Kriteria penerimaan ringkas:
 
