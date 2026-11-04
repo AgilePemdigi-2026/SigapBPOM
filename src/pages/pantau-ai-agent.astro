@@ -37,9 +37,11 @@ const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString
         <span>Rata-rata latensi tool <span class="mono">{fmtMs(pantau.rataLatensiToolMs)}</span></span>
       </div>
       <div class="row-grid cols-head" aria-hidden="true"><span>WAKTU</span><span>TOOL</span><span>DURASI</span><span>HASIL</span></div>
-      {log.length === 0 && <div class="empty"><i class="icon-list"></i><span>Belum ada pemanggilan tool.</span></div>}
+      {/* Kamus belum punya pesan galat log tool; log yang gagal dibaca tidak boleh tampil sebagai log kosong. */}
+      {log === null && <div class="empty" role="alert"><i class="icon-file-x"></i><span>—</span></div>}
+      {log?.length === 0 && <div class="empty"><i class="icon-list"></i><span>Belum ada pemanggilan tool.</span></div>}
       <ol class="rows">
-        {log.map((l) => (
+        {(log ?? []).map((l) => (
           <li class="row-grid tile row">
             <span class="mono">{l.waktu}</span>
             <span class="mono">{l.namaTool}</span>

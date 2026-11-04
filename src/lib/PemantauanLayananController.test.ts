@@ -247,6 +247,10 @@ test('t_f5_2_01 REQ-4.2 pesan kosong persis kamus pesan', () => {
   assert.equal(PESAN_PEMANTAUAN.tidakAdaPanggilan, 'Tidak ada panggilan berjalan saat ini.');
 });
 
+test('t_f5_2_01 REQ-4.2 pesan gagal muat panggilan berjalan persis kamus pesan', () => {
+  assert.equal(PESAN_PEMANTAUAN.panggilanGagalDimuat, 'Data panggilan gagal dimuat.');
+});
+
 test('t_f5_2_01 NFR-13 nomor telepon utuh tidak pernah diteruskan ke halaman', async () => {
   const data = contohPemantauan(SEKARANG);
   data.percakapan[0].noTelp = '081234567890';
@@ -260,16 +264,28 @@ test('t_f5_2_01 kartu ringkasan panggilan: aktif, rata-rata, terlama, pemakaian 
   assert.deepEqual(ringkasPanggilan([], SEKARANG, 10), { aktif: 0, rataDurasiDetik: 0, terlamaDetik: 0, pemakaianSaluranPersen: 0 });
 });
 
-test('t_f5_2_01 adapter Supabase membaca panggilan berjalan dengan nomor dari penelepon_tersamar', async () => {
-  const { dipanggil, penyimpanan } = supabasePalsu((url) =>
-    url.pathname.endsWith('/percakapan')
-      ? Response.json([{ id: 'c1', penelepon_id: 'pn1', jenis_interaksi: 'informasi_produk', topik: 'Obat', waktu_mulai: '2026-10-30T02:59:00Z', tahap_ai: 'memproses' }])
-      : Response.json([{ id: 'pn1', no_telp: '0821****0098' }]),
+test('t_f5_2_01 NFR-4 pemakaian saluran dihitung terhadap 50 panggilan simultan', () => {
+  const p = { id: 'a', noTelp: '', jenis: '', topik: '', tahap: '', waktuMulai: SEKARANG.toISOString() };
+  assert.equal(ringkasPanggilan([p], SEKARANG).pemakaianSaluranPersen, 2);
+});
+
+test('t_f5_2_01 REQ-4.2 NFR-13 adapter Supabase membaca view panggilan_berjalan berbatas heartbeat dengan nomor tersamar', async () => {
+  const { dipanggil, penyimpanan } = supabasePalsu(() =>
+    Response.json([
+      { percakapan_id: 'c1', no_telp_tersamar: '0821****0098', jenis_layanan: 'informasi_produk', topik: 'Obat', waktu_mulai: '2026-10-30T02:59:00Z', durasi_detik: 60, tahap_ai: 'memproses' },
+    ]),
   );
+  assert.deepEqual(await penyimpanan.ambilPanggilanAktif(), [
+    { id: 'c1', noTelp: '0821****0098', jenisLayanan: 'informasi_produk', topik: 'Obat', waktuMulai: '2026-10-30T02:59:00Z', durasiDetik: 60, tahapAi: 'memproses' },
+  ]);
   const [p] = await new PemantauanLayananController(penyimpanan).panggilanBerjalan();
   assert.deepEqual(p, { id: 'c1', noTelp: '0821****0098', jenis: 'Informasi Produk', topik: 'Obat', waktuMulai: '2026-10-30T02:59:00Z', tahap: 'Memproses' });
-  assert.equal(dipanggil[0].url.searchParams.get('status_penyelesaian'), 'eq.berjalan');
-  assert.deepEqual(dipanggil.map((d) => d.url.pathname), ['/rest/v1/percakapan', '/rest/v1/penelepon_tersamar']);
+  // Satu request ke view per pembacaan; penelepon_id dan kolom mentah percakapan tidak diminta.
+  assert.deepEqual(dipanggil.map((d) => d.url.pathname), ['/rest/v1/panggilan_berjalan', '/rest/v1/panggilan_berjalan']);
+  const q = dipanggil[0].url.searchParams;
+  assert.equal(q.get('select'), 'percakapan_id,no_telp_tersamar,jenis_layanan,topik,waktu_mulai,durasi_detik,tahap_ai');
+  assert.equal(q.get('status_penyelesaian'), null);
+  assert.equal(q.get('order'), 'waktu_mulai.asc');
 });
 
 test('t_f5_3_03 REQ-4.4 detail tampil sesuai tiket dengan data pengaduan tersamar dan tautan transkrip', async () => {
@@ -410,6 +426,7 @@ test('t_f5_4_01 log tool terbaru tampil berurutan tanpa argumen tool', async () 
   const data = contohPemantauan(SEKARANG);
   data.logTool.reverse();
   const r = await pantau(data).pantauAgent();
+  assert.ok(r.log);
   assert.deepEqual(r.log.map((l) => l.id), [4, 3, 2, 1]);
   assert.deepEqual(Object.keys(r.log[0]).sort(), ['durasiMs', 'hasil', 'id', 'namaTool', 'waktu']);
   assert.equal(r.log[3].hasil, 'Gagal');
@@ -419,9 +436,19 @@ test('t_f5_4_01 log tool terbaru tampil berurutan tanpa argumen tool', async () 
 test('t_f5_4_01 adapter Supabase membaca log_tool terbaru lebih dulu', async () => {
   const { dipanggil, penyimpanan } = supabasePalsu(() => Response.json([{ id: 9, nama_tool: 'cek_registrasi_bpom', durasi_ms: 700, berhasil: true, waktu: '2026-10-30T02:59:00Z' }]));
   const r = await new PemantauanLayananController(penyimpanan).pantauAgent();
+  assert.ok(r.log);
   assert.deepEqual(r.log.map((l) => [l.id, l.namaTool, l.hasil]), [[9, 'cek_registrasi_bpom', 'Berhasil']]);
   assert.equal(dipanggil[0].url.pathname, '/rest/v1/log_tool');
   assert.equal(dipanggil[0].url.searchParams.get('select'), 'id,nama_tool,durasi_ms,berhasil,waktu');
+});
+
+test('t_f5_4_01 log tool gagal dibaca dibedakan dari log kosong', async () => {
+  const rusak = supabasePalsu(() => new Response('bad gateway', { status: 502 }));
+  const r = await new PemantauanLayananController(rusak.penyimpanan, new PemeriksaKesehatanTiruan()).pantauAgent();
+  assert.equal(r.log, null);
+  assert.equal(r.rataLatensiToolMs, null);
+  assert.equal(r.komponen.length, 4);
+  assert.deepEqual((await new PemantauanLayananController(new PenyimpananPemantauanMock()).pantauAgent()).log, []);
 });
 
 test('t_f5_4_01 adapter gateway membaca /voice/kesehatan dan mengukur latensinya', async () => {

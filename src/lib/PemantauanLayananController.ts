@@ -31,7 +31,7 @@ export type DataRingkasanLayanan = {
   kasusPerluTindakLanjut: KasusPerluTindakLanjut[];
 };
 
-/** Percakapan berstatus berjalan. noTelp sudah disamarkan di server (NFR-13, view penelepon_tersamar). */
+/** Percakapan berstatus berjalan. noTelp sudah disamarkan di server (NFR-13, view panggilan_berjalan). */
 export interface PanggilanAktif {
   id: string;
   noTelp: string | null;
@@ -149,6 +149,7 @@ export const PESAN_PEMANTAUAN = {
   tidakAdaPanggilan: 'Tidak ada panggilan berjalan saat ini.',
   tiketTidakDitemukan: 'Tiket tidak ditemukan.',
   detailGagalDimuat: 'Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
+  panggilanGagalDimuat: 'Data panggilan gagal dimuat.',
 } as const;
 
 export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
@@ -176,8 +177,9 @@ export const TOOL_CEK_REGISTRASI = 'cek_registrasi_bpom';
 // REQ-4.1: tabel Kasus Perlu Tindak Lanjut di ringkasan memuat beberapa tiket teratas saja.
 export const BATAS_KASUS_RINGKASAN = 3;
 export const BATAS_LOG_TOOL = 20;
-// Kartu "pemakaian saluran" membandingkan panggilan aktif dengan kapasitas saluran Voice Gateway.
-export const KAPASITAS_SALURAN_BAWAAN = 10;
+// Kartu "pemakaian saluran" membandingkan panggilan aktif dengan kapasitas saluran. NFR-4: target paling sedikit 50 panggilan
+// simultan; kapasitas nyata (batas paket STT/TTS dan Hermes) belum dilaporkan gateway.
+export const KAPASITAS_SALURAN_BAWAAN = 50;
 // Format nomor tiket mengikuti check constraint tabel tiket.
 const POLA_NO_TIKET = /^(ADU|ESK)-[0-9]{8}-[0-9]{4}$/;
 
@@ -224,7 +226,8 @@ export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan'; late
 
 export type LogTool = { id: number; namaTool: string; durasiMs: number; hasil: 'Berhasil' | 'Gagal'; waktu: string };
 
-export type PantauAgent = { komponen: StatusKomponen[]; rataLatensiToolMs: number | null; log: LogTool[] };
+/** log null berarti log_tool gagal dibaca, dibedakan dari log yang memang kosong. */
+export type PantauAgent = { komponen: StatusKomponen[]; rataLatensiToolMs: number | null; log: LogTool[] | null };
 
 const jamTampil = (iso: string) =>
   new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(iso)).replace(/\./g, ':');
@@ -400,12 +403,13 @@ export class PemantauanLayananController {
       // Gateway tidak terjangkau berarti semua komponen di belakangnya tidak bisa dipastikan sehat.
       (this.kesehatan?.periksa() ?? Promise.resolve([])).catch((): KomponenTersimpan[] => []),
       // Log yang gagal dibaca tidak boleh menutupi status komponen.
-      (this.penyimpanan.ambilLogTool?.(BATAS_LOG_TOOL) ?? Promise.resolve([])).catch((): LogToolTersimpan[] => []),
+      (this.penyimpanan.ambilLogTool?.(BATAS_LOG_TOOL) ?? Promise.resolve([])).catch(() => null),
     ]);
+    const daftar = log ?? [];
     const perNama = new Map(hasil.map((k) => [k.nama, k]));
     // cekbpom dipanggil lewat tool cek registrasi, jadi kondisinya diambil dari pemanggilan tool terakhir, selama
     // gateway terjangkau dan belum melaporkannya sendiri.
-    const cekTerakhir = log.reduce<LogToolTersimpan | null>((t, l) => (l.namaTool === TOOL_CEK_REGISTRASI && (!t || l.waktu > t.waktu) ? l : t), null);
+    const cekTerakhir = daftar.reduce<LogToolTersimpan | null>((t, l) => (l.namaTool === TOOL_CEK_REGISTRASI && (!t || l.waktu > t.waktu) ? l : t), null);
     if (hasil.length && cekTerakhir && !perNama.has('cekbpom')) {
       perNama.set('cekbpom', { nama: 'cekbpom', sehat: cekTerakhir.berhasil, latensiMs: cekTerakhir.durasiMs });
     }
@@ -415,11 +419,11 @@ export class PemantauanLayananController {
         return { nama, status: k?.sehat ? 'Normal' : 'Gangguan', latensiMs: k?.latensiMs ?? null };
       },
     );
-    const urut = [...log].sort((a, b) => b.waktu.localeCompare(a.waktu) || b.id - a.id);
+    const urut = [...daftar].sort((a, b) => b.waktu.localeCompare(a.waktu) || b.id - a.id);
     return {
       komponen,
       rataLatensiToolMs: urut.length ? Math.round(urut.reduce((n, l) => n + l.durasiMs, 0) / urut.length) : null,
-      log: urut.map((l) => ({ id: l.id, namaTool: l.namaTool, durasiMs: l.durasiMs, hasil: l.berhasil ? 'Berhasil' : 'Gagal', waktu: jamTampil(l.waktu) })),
+      log: log && urut.map((l) => ({ id: l.id, namaTool: l.namaTool, durasiMs: l.durasiMs, hasil: l.berhasil ? 'Berhasil' : 'Gagal', waktu: jamTampil(l.waktu) })),
     };
   }
 }
