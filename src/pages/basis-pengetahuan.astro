@@ -66,8 +66,8 @@ const data = {
           <div class="index-split">
             <div class="tile-flat"><span>Aktif</span><span class="v ok" id="kb-aktif">{KB_TOTAL.aktif.toLocaleString('id-ID')}</span></div>
             <div class="tile-flat"><span>Tidak aktif</span><span class="v" id="kb-nonaktif">{KB_TOTAL.nonaktif.toLocaleString('id-ID')}</span></div>
+            <div class="tile-flat wide"><span>Pemutakhiran</span><span class="v" id="kb-tgl">{MATERI[0]?.tgl ?? '–'}</span></div>
           </div>
-          <div class="sync idle"><i class="icon-refresh-cw"></i>Indeks RAG belum berisi materi</div>
         </section>
         <section class="panel rules">
           <h2>Aturan materi</h2>
@@ -193,6 +193,7 @@ const data = {
     // Basis data mencatat waktu penonaktifan sebagai pemutakhiran.
     m.aktif = false;
     m.tgl = hariIni();
+    document.getElementById('kb-tgl')!.textContent = m.tgl;
     st.deact++;
     render();
     toast(hasil.message);
@@ -295,6 +296,7 @@ const data = {
       return;
     }
     materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl: hariIni(), aktif: true });
+    document.getElementById('kb-tgl')!.textContent = materi[0].tgl;
     st.added++;
     st.tab = 'Semua'; st.q = '';
     (document.getElementById('kb-q') as HTMLInputElement).value = '';
@@ -357,10 +359,9 @@ const data = {
   .index-split span:first-child { font-size: 13px; color: var(--muted); }
   .v { font-size: 22px; font-weight: 500; color: #475060; }
   .v.ok { color: #15803d; }
-  .sync.idle { background: #e9ebef; color: #475060; }
+  .wide { grid-column: 1 / -1; }
   .graph-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 32px; background: var(--panel); border: 1px dashed #dde0e5; color: var(--ink-3); font-size: 16px; text-align: center; padding: 24px; }
   .graph-empty i { font-size: 28px; color: var(--muted-2); }
-  .sync { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #dcf5e6; color: #15803d; font-size: 14.5px; }
   .rules { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
   .rules h2 { font-size: 20px; font-weight: 500; }
   .rules span { display: flex; gap: 10px; font-size: 15px; line-height: 1.5; color: var(--ink-3); }
