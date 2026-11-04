@@ -7,6 +7,9 @@ supabase/
 ├── migrations/                      Entity: tabel, enum, constraint, RLS
 └── functions/
     ├── cek-registrasi/              Boundary: tool cek_registrasi_bpom
+    ├── cari-pengetahuan/            Boundary: tool cari_basis_pengetahuan (UC-01)
+    ├── katalog-materi/              Boundary: katalog materi untuk Voice Gateway (UC-07)
+    ├── simpan-materi/               Boundary: simpan dan indeks materi dari dashboard (UC-07)
     ├── terbitkan-tiket-eskalasi/    Boundary: tool terbitkan_tiket_eskalasi
     ├── terbitkan-tiket-pengaduan/   Boundary: tool terbitkan_tiket_pengaduan (UC-02)
     ├── simpan-pengaduan-tidak-lengkap/  Boundary: simpan pengaduan tanpa tiket (UC-02)
@@ -34,6 +37,9 @@ fungsi yang dipanggil browser, jadi tidak ada header CORS. Salin `functions/.env
 | `laporkan-panggilan-aktif` | `{ aksi: 'laporkan', percakapanId, jenisLayanan?, topik?, tahap? }` atau `{ aksi: 'akhiri', percakapanId }` | `{ tersimpan }` atau `{ ditutup }`. Tahap: `mendengar`, `memproses`, `menjawab`. Heartbeat tiap 15 detik; panggilan tanpa heartbeat 60 detik tidak tampil di view `panggilan_berjalan` dan ditutup otomatis. |
 | `login` | `{ email, password }` | `{ sesi, petugas }` — 401 membawa pesan kamus UC-03 (isian kosong, kredensial salah, akun terkunci); 503 bila Supabase Auth bermasalah (rate limit, 5xx, jaringan), tanpa menambah penghitung gagal. Email dinormalkan ke huruf kecil. |
 | `catat-percakapan` | `{ aksi: 'ucapan', percakapanId, pembicara, teks }` atau `{ aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil }` | `{ urutan }` atau `{ tersimpan }`. Pembicara: `sistem`, `penelepon`; urutan dan detik ke- dihitung basis data; nomor telepon di teks disamarkan. Tool: `cek_registrasi_bpom`, `cari_basis_pengetahuan`, tanpa argumen. 404 bila percakapan belum ada, 409 bila sudah berakhir lebih dari 2 menit. |
+| `cari-pengetahuan` | `{ pertanyaan, percakapanId?, ambang?, batas? }` | `{ potongan: [{ teks, judul, rujukanSumber, skor }] }` — 422 bila pertanyaan kosong. Gateway memanggilnya dengan `x-sigap-kunci`, hanya bila `PENGETAHUAN_VEKTOR=1`. |
+| `katalog-materi` | `{ offset?, batas? }`, batas paling banyak 1000 | `{ materi: [{ judul, rujukan_sumber, status, isi? }] }` — `isi` hanya untuk materi aktif. Gateway menyinkronkannya berkala dengan `x-sigap-kunci` untuk kutipan CS AI. |
+| `simpan-materi` | `{ judul, kategori?, isi?, rujukan }` dengan `Authorization: Bearer <token sesi petugas>`, bukan `x-sigap-kunci` | `MateriPengetahuan` (`id`, `judul`, `kategori`, `rujukan_sumber`, `isi`, `status`, `terindeks`, `diperbarui_oleh`, `diperbarui_pada`) — dipanggil server Astro lewat `/api/simpan-materi`. 400 isian tidak valid, 401 tanpa sesi sah, 403 bukan petugas, 405 selain POST, 422 rujukan sumber kosong, 500 galat sistem. |
 
 Tes control tanpa basis data: `npm test`. Uji lokal penuh (butuh Docker, tanpa akun):
 `supabase start`, `supabase db reset`, `supabase functions serve`.
