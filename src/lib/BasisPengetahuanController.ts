@@ -19,8 +19,8 @@ export type KueriPenyimpanan = { status?: StatusMateri; cari?: string; offset: n
 export interface PenyimpananMateri {
   /** Satu halaman materi, terbaru lebih dulu, beserta jumlah seluruh materi yang cocok dengan filter. */
   daftar(kueri: KueriPenyimpanan): Promise<{ baris: MateriTersimpan[]; total: number }>;
-  /** Potongan teks terindeks per materi, untuk detail simpul graf. */
-  potongan(materiIds: string[]): Promise<Record<string, string[]>>;
+  /** Potongan teks terindeks per materi menurut urutannya, paling banyak `batas` per materi, untuk detail simpul graf. */
+  potongan(materiIds: string[], batas: number): Promise<Record<string, string[]>>;
   /** Menandai materi tidak aktif dan memperbarui waktunya; tidak pernah DELETE (BR-5). False bila materi tidak ada. */
   nonaktifkan(materiId: string): Promise<boolean>;
 }
@@ -171,7 +171,7 @@ export class BasisPengetahuanController {
       const baris = await bacaSemua(this.penyimpanan, 'aktif');
       const awal = susunGraf(baris, {});
       const ids = awal.simpul.filter((n) => !n.hub).map((n) => n.id);
-      return susunGraf(baris, await this.penyimpanan.potongan(ids));
+      return susunGraf(baris, await this.penyimpanan.potongan(ids, BAGIAN_PER_SIMPUL));
     } catch {
       return { gagal: PESAN_MATERI.gagalDimuat };
     }

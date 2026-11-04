@@ -38,6 +38,27 @@ fungsi yang dipanggil browser, jadi tidak ada header CORS. Salin `functions/.env
 Tes control tanpa basis data: `npm test`. Uji lokal penuh (butuh Docker, tanpa akun):
 `supabase start`, `supabase db reset`, `supabase functions serve`.
 
+Seed hanya mengisi `materi_pengetahuan`. Setelah `supabase db reset`, isi `materi_potongan` dari korpus `knowledge/`
+dengan indeks ulang (materi yang sudah terindeks dilewati, jadi aman diulang):
+
+```bash
+eval "$(npx supabase status -o env)"
+SUPABASE_URL=$API_URL SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/indeks-materi.ts
+```
+
+## Deploy indeks ulang materi (urutan potongan)
+
+Fungsi `simpan-materi` menulis kolom `materi_potongan.urutan`, dan dashboard membaca potongan berdasarkan kolom itu.
+Migrasi `20261030090000_url_sumber_materi.sql` sudah tercatat di Supabase Cloud, jadi tidak diterapkan ulang. Urutan:
+
+1. Terapkan migrasi `20261104090100_indeks_ulang_materi.sql` ke Supabase Cloud. Tanpa kolom `urutan`, dashboard baru
+   gagal memuat Graf Pengetahuan dan fungsi `simpan-materi` baru meninggalkan materi baru belum terindeks.
+2. Deploy fungsi: `supabase functions deploy simpan-materi`.
+3. Deploy dashboard (`main`) ke VPS.
+4. Indeks ulang cloud dengan `scripts/indeks-materi.ts` dan kunci service_role cloud, hanya setelah kapasitas basis data
+   diperiksa: korpus penuh sekitar 40 ribu potongan vector(1536) beserta indeks HNSW-nya. Isi `url_sumber` materi cloud
+   harus sama dengan manifest korpus agar materi senama tidak tertukar.
+
 ## Deploy fungsi login dengan SIGAP_KUNCI_LOGIN
 
 Fungsi `login` memakai RPC dari migrasi `20261104090000_perketat_login.sql` dan membalas format

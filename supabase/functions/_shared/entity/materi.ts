@@ -17,6 +17,8 @@ export interface MateriPengetahuan {
 export interface MateriPotongan {
   id: string;
   materi_id: string;
+  /** Urutan potongan dalam materinya, mulai 0. */
+  urutan: number;
   teks: string;
   embedding: number[];
 }
