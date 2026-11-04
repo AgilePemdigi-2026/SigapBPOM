@@ -239,7 +239,7 @@ async function sttElevenLabs(audio, tipe) {
   const r = await fetch(`${ELEVENLABS_URL}/v1/speech-to-text`, {
     method: 'POST', headers: { 'xi-api-key': ELEVENLABS_KEY }, body: form, signal: AbortSignal.timeout(BATAS_WAKTU_STT_MS),
   });
-  if (!r.ok) throw new Error(`stt ${r.status}`);
+  if (!r.ok) throw Object.assign(new Error(`stt ${r.status}`), { status: r.status });
   const d = await r.json();
   return String(d.text ?? '').replace(/\s+/g, ' ').trim().slice(0, PANJANG_MAKS_UCAPAN);
 }
@@ -304,7 +304,7 @@ function ttsElevenLabs(teks) {
       }),
       signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
     });
-    if (!r.ok || !r.body) throw new Error(`tts ${r.status}`);
+    if (!r.ok || !r.body) throw Object.assign(new Error(`tts ${r.status}`), { status: r.status });
     return r.body;
   });
 }

@@ -22,11 +22,32 @@ test('nfr_16 t_f5_4_01 kondisi layanan null sampai dipanggil lalu mencerminkan h
   assert.equal(kondisi.terakhir.tts, null);
 });
 
+test('nfr_16 t_f5_4_01 penolakan masukan 400, 413, 415, 422 tidak menandai layanan gangguan; 401, 403, 429, 5xx, dan galat jaringan menandainya', async () => {
+  const kondisi = new KondisiLayanan();
+  const galat = (status) => Object.assign(new Error(`stt ${status}`), { status });
+  await kondisi.ukur('stt', async () => 'halo');
+  for (const status of [400, 413, 415, 422]) {
+    await assert.rejects(kondisi.ukur('stt', async () => { throw galat(status); }), { status });
+    assert.equal(kondisi.terakhir.stt.sehat, true, String(status));
+  }
+  for (const e of [galat(401), galat(403), galat(429), galat(500), galat(503), new DOMException('timeout', 'TimeoutError'), new TypeError('fetch failed')]) {
+    await kondisi.ukur('stt', async () => 'halo');
+    await assert.rejects(kondisi.ukur('stt', async () => { throw e; }));
+    assert.equal(kondisi.terakhir.stt.sehat, false, e.message);
+  }
+  // Penolakan masukan tidak dicatat sama sekali, jadi juga tidak bisa menutupi gangguan nyata sebelumnya.
+  const baru = new KondisiLayanan();
+  await assert.rejects(baru.ukur('stt', async () => { throw galat(400); }));
+  assert.equal(baru.terakhir.stt, null);
+});
+
 test('nfr_1 nfr_16 t_f5_4_01 server.mjs mengukur setiap panggilan Hermes, STT, dan TTS lalu melaporkannya di /voice/kesehatan', () => {
   const server = readFileSync(new URL('./server.mjs', import.meta.url), 'utf8');
   assert.match(server, /kondisi\.ukur\('stt', \(\) => sttElevenLabs\(audio, tipe\)\)/);
   assert.match(server, /kondisi\.ukur\('stt', \(\) => buatTokenSttRealtime\(ELEVENLABS_KEY\)\)/);
   assert.match(server, /function ttsElevenLabs\(teks\) \{\n {2}return kondisi\.ukur\('tts', /);
+  assert.match(server, /throw Object\.assign\(new Error\(`stt \$\{r\.status\}`\), \{ status: r\.status \}\)/, 'status STT ikut dilempar');
+  assert.match(server, /throw Object\.assign\(new Error\(`tts \$\{r\.status\}`\), \{ status: r\.status \}\)/, 'status TTS ikut dilempar');
   assert.equal(server.match(/kondisi\.catat\('hermes'/g)?.length, 2, 'jawaban selesai dan galat Hermes sama-sama dicatat');
   assert.match(server, /kondisi\.catat\('cekbpom', /);
   assert.match(server, /hermes: kondisi\.terakhir\.hermes, stt: kondisi\.terakhir\.stt, tts: kondisi\.terakhir\.tts,/);
