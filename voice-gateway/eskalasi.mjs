@@ -46,12 +46,12 @@ export function nomorTeleponDariUcapan(ucapan) {
   return /^08\d{8,11}$/.test(nomor) ? nomor : null;
 }
 
-// Deret nomor seluler (08…, +62 8…) berupa angka atau kata, termasuk yang belum lengkap. Angka tepat setelah kode izin edar
+// Deret nomor seluler (08…, +62 8…) berupa angka atau kata (termasuk "tiga belas", "dua puluh satu"), juga yang belum lengkap. Angka tepat setelah kode izin edar
 // ("TR 083 245 461") atau yang menempel pada huruf, angka, atau tanda hubung (tiket ESK, tanggal 15-08-2026) tidak tersentuh.
 // ponytail: tanggal berawalan 08 (08-06-2026) ikut tersamar; bedakan format tanggal bila mengganggu.
 const POLA_DERET_TELEPON = new RegExp(
   `(?<![\\p{L}\\p{N}-]|\\b(?:${KODE_IZIN_EDAR})\\s?-?\\s?)(?:\\+?62\\s?|0)8[\\d\\s-]*\\d`
-  + `|\\b(?:nol|kosong|plus enam dua)\\s+delapan(?:\\s+(?:${Object.keys(ANGKA).join('|')}))+\\b`,
+  + `|\\b(?:nol|kosong|plus enam dua)\\s+delapan(?:\\s+(?:${Object.keys(ANGKA).join('|')}|sepuluh|sebelas|belas|puluh))+\\b`,
   'giu',
 );
 

@@ -63,7 +63,10 @@ test('req_1_3 nfr_6 pertanyaan legalitas produk anak dan bayi dicek di cekbpom, 
 });
 
 test('nfr_13 deret nomor telepon disamarkan, nomor izin edar, tanggal, dan tiket tidak', () => {
-  for (const u of ['0812 345', '0812-3456-7890', '+62 812 3456 7890', 'nol delapan satu dua tiga', 'kosong delapan satu dua']) {
+  for (const u of [
+    '0812 345', '0812-3456-7890', '+62 812 3456 7890', 'nol delapan satu dua tiga', 'kosong delapan satu dua',
+    'nol delapan satu tiga belas dua puluh satu empat lima enam tujuh', 'nol delapan sebelas sepuluh dua',
+  ]) {
     assert.equal(samarkanDeretTelepon(u), '(nomor telepon)', u);
   }
   assert.equal(samarkanDeretTelepon('Apakah obat X aman untuk ibu hamil? nomor saya 0812-3456-7890'), 'Apakah obat X aman untuk ibu hamil? nomor saya (nomor telepon)');
