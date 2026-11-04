@@ -31,6 +31,14 @@ test('nfr_6 pertanyaan medis dan keamanan konsumsi diteruskan ke petugas', () =>
     'Apakah obat X yang terdaftar bisa diminum anak?',
     'Apakah obat X terdaftar dan bisa untuk anak?',
     'Apakah jamu ini cocok untuk ibu hamil?',
+    // Kata registrasi atau nomor izin edar tidak membuat pertanyaan kecocokan untuk kondisi tertentu dijawab lewat cekbpom.
+    'Apakah obat MD 123456789012 cocok untuk ibu hamil?',
+    'Apakah produk yang sudah terdaftar ini cocok untuk penderita diabetes?',
+    'Apakah jamu terdaftar ini cocok untuk lansia?',
+    'Apakah suplemen ini sudah terdaftar dan cocok untuk anak?',
+    'Apakah jamu resmi ini cocok untuk penderita darah tinggi?',
+    'Apakah obat legal ini cocok untuk anak?',
+    'Apakah jamu terdaftar ini untuk penderita diabetes?',
   ]) assert.ok(butuhPetugas(u), u);
   for (const u of [
     'Apa bedanya obat bebas dan obat keras?',

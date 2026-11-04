@@ -14,7 +14,9 @@ const sederhanakan = (s) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}\
 const KONDISI = 'hamil|menyusui|bayi|balita|anak|lansia|penderita|darah tinggi|diabetes|maag|asma|jantung|ginjal';
 // Nasihat medis, dosis, dan penilaian keamanan konsumsi untuk kondisi tertentu butuh penilaian petugas (NFR-6).
 const POLA_MEDIS = [
-  new RegExp(`\\b(aman|bahaya|berbahaya|boleh|bisa)\\b.*\\b(${KONDISI})\\b`),
+  new RegExp(`\\b(aman|bahaya|berbahaya|boleh|bisa|cocok|sesuai)\\b.*\\b(${KONDISI})\\b`),
+  // "... untuk ibu hamil", "bagi penderita diabetes": kondisi sebagai sasaran pemakaian tetap medis walau ada kata registrasi.
+  new RegExp(`\\b(untuk|bagi|buat)\\b( ibu| orang| pasien)? (${KONDISI})\\b`),
   /\b(aman|boleh|bahaya|berbahaya)\b.*\b(diminum|dikonsumsi|dimakan|dipakai|digunakan|minum|konsumsi)\b/,
   /\b(dosis|takaran|aturan minum|efek samping|overdosis|interaksi obat|alergi|keracunan|diagnosis)\b/,
   /\bobat (apa|yang cocok|yang bagus|yang ampuh)\b/,
