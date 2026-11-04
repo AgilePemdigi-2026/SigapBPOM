@@ -458,6 +458,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 07 | Belum ada materi | Belum ada materi. Tambahkan materi pertama. |
 | 07 | Pencarian materi tanpa hasil | Belum ada materi yang cocok. |
 | 07 | Graf kosong | Graf terbentuk setelah ada materi di basis pengetahuan. |
+| 07 | Simpul graf tanpa bagian dokumen terindeks | Belum ada bagian dokumen terindeks. |
 | 07 | Konfirmasi menonaktifkan materi | Tandai "[judul materi]" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban. |
 | 08 | Periode kosong | Data tidak tersedia pada periode tersebut. |
 | 08 | Unduh sukses | Laporan berhasil diunduh. |
@@ -471,7 +472,7 @@ Tombol: "Telepon CS AI", "Akhiri Panggilan", "Login", "Buka Kasus", "Lihat Trans
 
 Field: "Email", "Password", "Catatan Pemeriksaan", "Tindak Lanjut", "Catatan Tindak Lanjut", "Tanggal Pemeriksaan", "Unit Pelaksana", "Tanggapan", "Judul Materi", "Rujukan Sumber", "Periode", "Format Berkas".
 
-Tombol menu layanan di panel suara (UC-01, UC-02): "Informasi Produk" (tekan 1), "Pengaduan Produk" (tekan 2).
+Tombol menu layanan di panel suara (UC-01, UC-02): "Informasi Produk" (tekan 1), "Pengaduan Produk" (tekan 2, juga pada kartu produk tidak ditemukan).
 
 Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber".
 

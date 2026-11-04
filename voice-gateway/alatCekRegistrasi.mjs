@@ -19,7 +19,7 @@ export const pesanProdukDitemukan = (p) => `${p.nama} terdaftar dengan nomor izi
 export const PESAN_TIDAK_DITEMUKAN = 'Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan.';
 /** Kamus pesan Lampiran A (UC-01 "Nama tidak jelas"). */
 export const PESAN_NAMA_TIDAK_JELAS = 'Maaf, nama produk kurang jelas. Mohon sebutkan kembali.';
-/** SRS Tabel B.2 Alternative Path 4 (REQ-1.5, BR-7): "A atau B", "A, B, atau C". Belum ada di kamus PRD Lampiran A. */
+/** Kamus pesan Lampiran A (UC-01 hasil ganda), SRS Tabel B.2 Alternative Path 4 (REQ-1.5, BR-7): "A atau B", "A, B, atau C". */
 export const pesanHasilGanda = (total, kandidat) =>
   `Ditemukan ${total} produk. Pilih salah satu: ${new Intl.ListFormat('id', { type: 'disjunction' }).format(kandidat.map((p) => p.nama))}.`;
 
