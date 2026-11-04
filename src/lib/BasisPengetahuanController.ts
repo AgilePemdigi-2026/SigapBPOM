@@ -62,6 +62,7 @@ const tglTampil = (iso: string) =>
   new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(iso)).replace('.', '');
 
 const potong = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+const bagianDari = (teks: string[]) => teks.slice(0, BAGIAN_PER_SIMPUL).map((t) => potong(t.trim(), PANJANG_BAGIAN));
 
 export function keTampilan(m: MateriTersimpan): Materi {
   return { id: m.id, judul: m.judul, kategori: m.kategori, rujukan: m.rujukanSumber, tgl: tglTampil(m.diperbaruiPada), aktif: m.status === 'aktif' };
@@ -99,7 +100,18 @@ export function susunGraf(materi: MateriTersimpan[], potongan: Record<string, st
     const hy = 50 + JARAK_HUB * Math.sin(sudut);
     const anggota = perKategori.get(k)!;
     const hub = `kategori:${k}`;
-    simpul.push({ id: hub, label: k, x: bulat(hx), y: bulat(hy), r: R_HUB, hub: true, rujukan: `Kategori ${k}`, bagian: anggota.map((m) => m.judul), links: 0 });
+    // SRS UC-07 AP2 langkah 6: simpul topik menampilkan bagian dokumen terindeks dari materinya, satu potongan per materi.
+    simpul.push({
+      id: hub,
+      label: k,
+      x: bulat(hx),
+      y: bulat(hy),
+      r: R_HUB,
+      hub: true,
+      rujukan: [...new Set(anggota.map((m) => m.rujukanSumber))].join(', '),
+      bagian: bagianDari(anggota.flatMap((m) => (potongan[m.id] ?? []).slice(0, 1))),
+      links: 0,
+    });
     anggota.forEach((m, j) => {
       // Materi disebar di sisi luar kategori agar tidak menumpuk di tengah kanvas.
       const a = sudut + ((j - (anggota.length - 1) / 2) * Math.PI) / 4;
@@ -110,7 +122,7 @@ export function susunGraf(materi: MateriTersimpan[], potongan: Record<string, st
         y: bulat(Math.min(92, Math.max(8, hy + JARAK_MATERI * Math.sin(a)))),
         r: R_MATERI,
         rujukan: m.rujukanSumber,
-        bagian: (potongan[m.id] ?? []).slice(0, BAGIAN_PER_SIMPUL).map((t) => potong(t.trim(), PANJANG_BAGIAN)),
+        bagian: bagianDari(potongan[m.id] ?? []),
         links: 0,
       });
       sisi.push([hub, m.id]);

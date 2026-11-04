@@ -101,7 +101,7 @@ const data = {
         </div>
         <div class="tile-flat ruj"><span>Rujukan Sumber</span><span class="ruj-v"><i class="icon-link"></i><span id="node-rujukan">{awal.rujukan}</span></span></div>
         <span class="bagian-title">Bagian dokumen terindeks</span>
-        <div id="node-bagian" class="bagian">{awal.bagian.map((b) => <div class="tile-flat"><i class="icon-file-text"></i>{b}</div>)}</div>
+        <div id="node-bagian" class="bagian"></div>
         <span class="grow"></span>
         <span class="links"><i class="icon-waypoints"></i>Terhubung ke <span id="node-links">{awal.links}</span> materi lain</span>
       </section>}
@@ -212,7 +212,9 @@ const data = {
     }
     document.getElementById('node-rujukan')!.textContent = n.rujukan;
     document.getElementById('node-links')!.textContent = String(n.links);
-    document.getElementById('node-bagian')!.innerHTML = n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('');
+    document.getElementById('node-bagian')!.innerHTML = n.bagian.length
+      ? n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('')
+      : '<div class="tile-flat kosong">Belum ada bagian dokumen terindeks.</div>';
   }
   document.querySelectorAll<HTMLElement>('[data-node]').forEach((b) => b.addEventListener('click', () => pilih(b.dataset.node!)));
   if (D.simpul.length) pilih(D.simpul[0].id);
@@ -360,6 +362,7 @@ const data = {
   .bagian { display: flex; flex-direction: column; gap: 14px; }
   .bagian :global(.tile-flat) { padding: 12px 16px; font-size: 15.5px; flex-direction: row; gap: 10px; align-items: center; }
   .bagian :global(i) { color: var(--muted-2); }
+  .bagian :global(.kosong) { color: var(--muted); }
   .links { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: #e3ecff; color: var(--blue-ink); font-size: 15px; }
 
   /* Dialog berada di top layer, di luar kanvas, jadi diskalakan sendiri. */
