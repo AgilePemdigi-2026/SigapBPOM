@@ -53,3 +53,11 @@ test('req_7_1 Tambah Materi menolak kiriman kedua selama simpan masih berjalan',
   assert.match(halaman, /e\.preventDefault\(\);\s*if \(mengirim\) return;/);
   assert.match(halaman, /mengirim = true;[\s\S]*?fetch\('\/api\/simpan-materi'[\s\S]*?mengirim = false;/);
 });
+
+test('req_7_1 req_7_2 gagal simpan tidak meneruskan pesan API internal dan ikon galat tetap ada', () => {
+  const halaman = readFileSync(new URL('../basis-pengetahuan.astro', import.meta.url), 'utf8');
+  // Teks galat ditulis ke span di samping ikon, bukan menimpa isi #add-err beserta ikonnya.
+  assert.match(halaman, /<i class="icon-circle-alert"><\/i><span id="add-err-text">/);
+  assert.doesNotMatch(halaman, /\berr\.textContent/);
+  assert.match(halaman, /errTeks\.textContent = rujukanKosong \? 'Rujukan sumber wajib diisi\.' : D\.pesan\.gagalDi(muat|simpan);/);
+});

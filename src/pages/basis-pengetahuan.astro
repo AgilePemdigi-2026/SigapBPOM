@@ -110,7 +110,7 @@ const data = {
       <label class="f"><span>Kategori</span><select name="kategori">{KATEGORI_MATERI.map((k) => <option>{k}</option>)}</select></label>
       <label class="f"><span>Isi Materi</span><textarea name="isi" placeholder="Tempel atau tulis isi materi edukasi…"></textarea></label>
       <label class="f"><span>Rujukan Sumber</span><input name="rujukan" placeholder="mis. KataBPOM, Peraturan BPOM, Public Warning" aria-describedby="add-err" /></label>
-      <span class="ferr" id="add-err" role="alert" hidden><i class="icon-circle-alert"></i>Rujukan sumber wajib diisi.</span>
+      <span class="ferr" id="add-err" role="alert" hidden><i class="icon-circle-alert"></i><span id="add-err-text">Rujukan sumber wajib diisi.</span></span>
       <div class="modal-actions">
         <button type="button" class="pill" data-close>Batal</button>
         <button type="submit" class="btn-primary save" id="save-btn" aria-disabled="true">Simpan</button>
@@ -208,6 +208,7 @@ const data = {
   const dialog = document.getElementById('add-dialog') as HTMLDialogElement;
   const form = document.getElementById('add-form') as HTMLFormElement;
   const err = document.getElementById('add-err')!;
+  const errTeks = document.getElementById('add-err-text')!;
   const saveBtn = document.getElementById('save-btn')!;
   const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
 
@@ -227,7 +228,7 @@ const data = {
     const judul = field('judul').value.trim();
     const rujukan = field('rujukan').value.trim();
     if (!judul) return field('judul').focus();
-    if (!rujukan) { err.textContent = 'Rujukan sumber wajib diisi.'; err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
+    if (!rujukan) { errTeks.textContent = 'Rujukan sumber wajib diisi.'; err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
     const kategori = field('kategori').value;
     const isi = field('isi').value;
 
@@ -244,8 +245,9 @@ const data = {
     saveBtn.removeAttribute('aria-disabled');
     if (!respon?.ok || hasil?.status === 'error') {
       // REQ-7.1: jangan tampilkan sukses bila server tidak menyimpan materi. Dialog tetap terbuka agar isian tidak hilang.
+      // Pesan API internal ("Akses ditolak.", "Permintaan tidak valid.") tidak ada di kamus, jadi tidak ditampilkan.
       const rujukanKosong = respon?.status === 422;
-      err.textContent = hasil?.message || (rujukanKosong ? 'Rujukan sumber wajib diisi.' : 'Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi.');
+      errTeks.textContent = rujukanKosong ? 'Rujukan sumber wajib diisi.' : D.pesan.gagalDimuat;
       err.hidden = false;
       field('rujukan').classList.toggle('invalid', rujukanKosong);
       return;
