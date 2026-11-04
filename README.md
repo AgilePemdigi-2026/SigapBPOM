@@ -239,7 +239,7 @@ Database adalah Postgres milik Supabase. Migrasi dikelola lewat Supabase CLI.
 
 | Tabel | Kolom utama | Catatan |
 |---|---|---|
-| `percakapan` | `id`, `penelepon_id` (nullable), `waktu_mulai`, `waktu_selesai`, `jenis_interaksi` enum (`informasi_produk`, `pengaduan`), `status_penyelesaian` enum (`berjalan`, `selesai_ai`, `dieskalasi`, `tiket_terbit`, `pengaduan_tidak_lengkap`), `tahap_ai`, `topik`, `ringkasan` | Satu baris per sesi panggilan. Diindeks pada `waktu_mulai` dan `status_penyelesaian`. |
+| `percakapan` | `id`, `penelepon_id` (nullable), `waktu_mulai`, `waktu_selesai`, `jenis_interaksi` enum (`informasi_produk`, `pengaduan`), `status_penyelesaian` enum (`berjalan`, `selesai_ai`, `dieskalasi`, `tiket_terbit`, `pengaduan_tidak_lengkap`, `terputus`), `tahap_ai`, `topik`, `ringkasan` | Satu baris per sesi panggilan. Diindeks pada `waktu_mulai` dan `status_penyelesaian`. |
 | `ucapan` | `percakapan_id`, `urutan`, `pembicara` enum (`sistem`, `penelepon`), `teks`, `detik_ke` | Transkrip per baris ucapan. |
 | `log_tool` | `percakapan_id`, `nama_tool`, `durasi_ms`, `berhasil`, `waktu` | Rekam pemanggilan tool agen untuk halaman AI Agent. |
 

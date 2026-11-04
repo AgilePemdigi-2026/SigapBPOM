@@ -270,7 +270,7 @@ Catatan implementasi:
 Enumerasi:
 
 - `status_pengaduan`: Belum Ditelaah, Sedang Ditelaah, Menunggu Pemeriksaan, Tanggapan Disusun, Selesai, Diteruskan ke Instansi Lain.
-- `status_penyelesaian` percakapan: selesai oleh AI, dieskalasi, tiket terbit, pengaduan tidak lengkap.
+- `status_penyelesaian` percakapan: selesai oleh AI, dieskalasi, tiket terbit, pengaduan tidak lengkap, terputus. Terputus dipakai untuk panggilan yang berakhir tanpa diselesaikan, misalnya penelepon menutup panggilan sebelum dijawab atau panggilan ditutup otomatis sebelum dijawab. Panggilan terputus tidak dihitung sebagai dijawab otomatis oleh AI.
 - `jenis_Tiket`: pengaduan (prefiks ADU), eskalasi (prefiks ESK). Format final belum ditetapkan.
 - `keputusan_tindak_lanjut`: Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM.
 - `status_materi`: aktif, tidak aktif.
