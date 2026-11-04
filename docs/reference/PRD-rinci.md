@@ -438,6 +438,11 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 04 | Antrean tiket gagal dimuat | Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 04 | Ringkasan layanan gagal dimuat | Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 04 | Kategori pertanyaan kosong | Belum ada pertanyaan dalam 7 hari terakhir. |
+| 04 | Statistik Panggilan Hari Ini kosong | Belum ada panggilan |
+| 04 | Grafik Beban Panggilan kosong | Belum ada panggilan pada periode ini. |
+| 04 | Grafik Beban Panggilan kosong, keterangan | Grafik terisi otomatis begitu penelepon menghubungi CS AI. |
+| 04 | Tingkat Penyelesaian kosong | Belum ada data |
+| 04 | Tingkat Penyelesaian kosong, keterangan | Persentase pertanyaan yang dijawab AI tampil setelah ada panggilan. |
 | 04 | Pencarian di topbar dashboard tanpa hasil | Tidak ada hasil untuk pencarian ini. |
 | 04 | Notifikasi kosong | Belum ada notifikasi. |
 | 05 | Catatan tersimpan | Catatan pemeriksaan tersimpan. |
@@ -474,7 +479,7 @@ Field: "Email", "Password", "Catatan Pemeriksaan", "Tindak Lanjut", "Catatan Tin
 
 Tombol menu layanan di panel suara (UC-01, UC-02): "Informasi Produk" (tekan 1), "Pengaduan Produk" (tekan 2, juga pada kartu produk tidak ditemukan).
 
-Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber".
+Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber", dan judul kartu kandidat produk "[jumlah] hasil ditemukan, [jumlah ditampilkan] teratas. Sebutkan nomor pilihan Anda." (paling banyak 3 ditampilkan; bagian ", [jumlah ditampilkan] teratas" tidak ada bila semua hasil tampil).
 
 Elemen bernama untuk uji penerimaan: PanelPercakapanSuara, TranskripPercakapan, RingkasanPercakapan, StepperPenanganan, GrafPengetahuan, GrafikRekapitulasi, TabelRekapitulasi.
 
