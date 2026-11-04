@@ -232,7 +232,7 @@ Database adalah Postgres milik Supabase. Migrasi dikelola lewat Supabase CLI.
 
 | Tabel | Kolom utama | Catatan |
 |---|---|---|
-| `petugas` | `id uuid` (sama dengan `auth.users`), `nama`, `email` (unik), `hak_ekspor boolean`, `gagal_login int`, `terkunci_sampai timestamptz`, `aktif boolean` | Menyimpan penghitung gagal login untuk penguncian akun. Fungsi helper `is_petugas()` dipakai kebijakan RLS seluruh tabel dashboard. |
+| `petugas` | `id uuid` (sama dengan `auth.users`), `nama`, `hak_ekspor boolean`, `gagal_login int`, `terkunci_sampai timestamptz` | Email dan hash password disimpan Supabase Auth di `auth.users`. Menyimpan penghitung gagal login untuk penguncian akun. Fungsi helper `is_petugas()` dipakai kebijakan RLS seluruh tabel dashboard. |
 | `penelepon` | `id uuid`, `no_telp`, `nama_pelapor`, `nik_pelapor` (nullable) | Hanya dibuka oleh Edge Functions. Dashboard membaca view `penelepon_tersamar` yang mengembalikan nama dan nomor yang sudah disamarkan. |
 
 ### Percakapan

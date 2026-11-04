@@ -107,7 +107,7 @@ flowchart LR
 
 ## Database Schema
 
-**petugas** menyimpan akun layanan yang terhubung ke `auth.users`: `id uuid` (sama dengan id auth), `nama text`, `email text unik`, `hak_ekspor boolean`, `gagal_login int`, `terkunci_sampai timestamptz`, dan `aktif boolean`. Fungsi helper `is_petugas()` dipakai kebijakan RLS seluruh tabel dashboard.
+**petugas** menyimpan akun layanan yang terhubung ke `auth.users`: `id uuid` (sama dengan id auth), `nama text`, `hak_ekspor boolean`, `gagal_login int`, dan `terkunci_sampai timestamptz`. Email dan hash password disimpan Supabase Auth di `auth.users`. Fungsi helper `is_petugas()` dipakai kebijakan RLS seluruh tabel dashboard.
 
 **penelepon** menyimpan identitas pelapor yang hanya dibuka oleh Edge Functions: `id uuid`, `no_telp text`, `nama_pelapor text`, `nik_pelapor text nullable`. Dashboard tidak pernah membaca tabel ini langsung; tampilan memakai view `penelepon_tersamar` yang mengembalikan nama dan nomor yang sudah disamarkan.
 
