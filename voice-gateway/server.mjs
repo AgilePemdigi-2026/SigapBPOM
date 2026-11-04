@@ -32,6 +32,8 @@ const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
 const ASAL_SITUS = env('SITE_ORIGIN', '');
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
+// Hanya diganti oleh uji beban (ujiKinerja.mjs) agar STT dan TTS mengarah ke ElevenLabs tiruan.
+const ELEVENLABS_URL = env('ELEVENLABS_URL', 'https://api.elevenlabs.io');
 // Transkrip live lewat STT realtime ElevenLabs (sttRealtime.mjs). STT_REALTIME=0 mengembalikan panel ke rekam lalu unggah.
 const STT_REALTIME = env('STT_REALTIME', '1') !== '0';
 // Suara "Zaak" dari library ElevenLabs: penutur asli, jelas, cocok untuk IVR.
@@ -229,7 +231,7 @@ async function sttElevenLabs(audio, tipe) {
   form.append('language_code', 'ind');
   form.append('tag_audio_events', 'false');
   form.append('file', new Blob([audio], { type: tipe }), 'ucapan');
-  const r = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+  const r = await fetch(`${ELEVENLABS_URL}/v1/speech-to-text`, {
     method: 'POST', headers: { 'xi-api-key': ELEVENLABS_KEY }, body: form, signal: AbortSignal.timeout(BATAS_WAKTU_STT_MS),
   });
   if (!r.ok) throw new Error(`stt ${r.status}`);
@@ -288,7 +290,7 @@ const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
 // Semua render TTS (token suara, pesan statis, render saat mulai) lewat sini, jadi kondisinya terukur di satu tempat.
 function ttsElevenLabs(teks) {
   return kondisi.ukur('tts', async () => {
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
+    const url = `${ELEVENLABS_URL}/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
@@ -361,7 +363,8 @@ async function giliran(req, res, url) {
     const tulis = (baris) => res.write(`${JSON.stringify(baris)}\n`);
     // NFR-20: kalimat yang diucapkan ke penelepon dikumpulkan lalu dicatat bersama ucapannya di finally, satu titik untuk semua jalur.
     const terucap = [];
-    const ucapkan = (teks, suara) => { terucap.push(teks); tulis({ jenis: 'kalimat', teks, suara }); };
+    let tKalimat1 = null;
+    const ucapkan = (teks, suara) => { tKalimat1 ??= Date.now() - mulai; terucap.push(teks); tulis({ jenis: 'kalimat', teks, suara }); };
     try {
       if (!transkrip) {
         tulis({ jenis: 'transkrip', transkrip: '' });
@@ -526,11 +529,7 @@ async function giliran(req, res, url) {
       }
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
-      let tKalimat1 = 0;
-      const ucapkanKalimat = (ucap) => {
-        if (!tKalimat1) tKalimat1 = Date.now() - mulai;
-        ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
-      };
+      const ucapkanKalimat = (ucap) => ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
       // NFR-1: latensi Hermes di Pantau AI Agent adalah waktu sampai kalimat pertama siap, bukan sampai jawaban selesai.
       // Panggilan yang dibatalkan penelepon tidak dinilai; jawaban kosong dan pemberitahuan galat Hermes dihitung gangguan.
       const tHermes = Date.now();
@@ -599,6 +598,9 @@ async function giliran(req, res, url) {
       tulis({ jenis: 'galat', message: e instanceof ErrorGateway ? e.message : PESAN_GANGGUAN });
     } finally {
       pencatat.giliran(id, transkrip, terucap.join(' '));
+      // NFR-1 untuk semua jalur: waktu kalimat pertama dikirim, sebelum render TTS-nya selesai (batas bawah, lihat ADR 0005).
+      // null berarti tidak ada yang terucap (galat atau batal).
+      if (transkrip) console.info(JSON.stringify({ ev: 'respons', stt_ms: tStt, kalimat1_ms: tKalimat1 }));
       res.end();
     }
   } finally {
