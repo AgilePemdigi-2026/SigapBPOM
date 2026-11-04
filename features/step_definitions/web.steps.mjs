@@ -76,11 +76,14 @@ Given('I am logged in as a HaloBPOM officer', async function () {
 });
 
 Given('I have failed to log in two times in a row', async function () {
+  // Kedua kegagalan menampilkan teks yang sama, jadi respons 401 dari server yang menjadi penanda tiap percobaan.
   for (let i = 0; i < 2; i++) {
     await isi(this.page, 'Email', AKUN_UJI.email);
     await isi(this.page, 'Password', 'salahpassword');
+    const jawaban = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/login', { timeout: TUNGGU_MS });
     await tekan(this.page, 'Login');
-    await tunggu(this.page.getByText(`Percobaan gagal ${i + 1} dari 3`), `percobaan gagal ke-${i + 1}`);
+    const status = (await jawaban).status();
+    if (status !== 401) throw new Error(`Percobaan gagal ke-${i + 1} dijawab ${status}, bukan 401`);
   }
 });
 
@@ -121,7 +124,8 @@ Then('I should be on {string}', async function (path) {
 });
 
 Then('I should see the message {string}', async function (pesan) {
-  await tunggu(this.page.getByText(pesan).filter({ visible: true }).first(), `pesan "${pesan}"`);
+  // Persis, karena kotak informasi login mengutip pesan "Akses dikunci" yang belum tentu muncul.
+  await tunggu(this.page.getByText(pesan, { exact: true }).filter({ visible: true }).first(), `pesan "${pesan}"`);
 });
 
 Then('I should see the {string} element', async function (nama) {
