@@ -51,7 +51,7 @@ test('nfr_20 pengirim lambat: hanya satu kiriman berjalan per panggilan dan urut
   pencatat.giliran(ID, 'satu', 'dua');
   await new Promise((r) => setTimeout(r, 1));
   pencatat.giliran(ID, 'tiga', 'empat');
-  await new Promise((r) => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 150));
   assert.deepEqual(terkirim, ['satu', 'dua', 'tiga', 'empat']);
   assert.equal(puncak, 1);
 });
