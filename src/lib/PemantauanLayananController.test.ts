@@ -443,6 +443,19 @@ test('t_f5_4_01 adapter gateway membaca /voice/kesehatan dan mengukur latensinya
   assert.deepEqual(belumSiap.map((k) => k.sehat), [true, false, false]);
 });
 
+test('nfr_16 t_f5_4_01 adapter gateway menilai Hermes dan STT/TTS dari hasil panggilan terakhir, bukan dari kunci', async () => {
+  const periksa = async (data: unknown) =>
+    new PemeriksaKesehatanGateway({ url: 'http://gw', fetch: (async () => Response.json({ data })) as unknown as typeof fetch }).periksa();
+  const komponen = async (data: unknown, nama: string) => (await periksa(data)).find((k) => k.nama === nama);
+  const sehat = { siap: true, hermes: { sehat: false, latensiMs: 60000 }, stt: { sehat: true, latensiMs: 210 }, tts: { sehat: true, latensiMs: 480 } };
+  assert.deepEqual(await komponen(sehat, 'Hermes'), { nama: 'Hermes', sehat: false, latensiMs: 60000 });
+  assert.deepEqual(await komponen(sehat, 'STT/TTS'), { nama: 'STT/TTS', sehat: true, latensiMs: 480 });
+  assert.equal((await komponen({ ...sehat, tts: { sehat: false, latensiMs: 30000 } }, 'STT/TTS'))?.sehat, false, 'TTS gagal membuat STT/TTS gangguan');
+  // Belum ada panggilan sejak gateway mulai: memakai `siap`.
+  assert.deepEqual(await komponen({ siap: true, hermes: null, stt: null, tts: null }, 'Hermes'), { nama: 'Hermes', sehat: true, latensiMs: null });
+  assert.deepEqual(await komponen({ siap: true, stt: null, tts: { sehat: true, latensiMs: 480 } }, 'STT/TTS'), { nama: 'STT/TTS', sehat: true, latensiMs: 480 });
+});
+
 test('t_f5_4_01 adapter gateway membaca kondisi cekbpom dari pencarian terakhir gateway', async () => {
   const dengan = (cekbpom: unknown) =>
     new PemeriksaKesehatanGateway({ url: 'http://gw', fetch: (async () => Response.json({ data: { siap: true, cekbpom } })) as unknown as typeof fetch });

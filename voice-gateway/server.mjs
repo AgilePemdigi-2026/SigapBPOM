@@ -26,6 +26,7 @@ import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TA
 import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
 import { kirimAudio } from './audio.mjs';
 import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
+import { KondisiLayanan } from './kesehatan.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -72,8 +73,8 @@ const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
-// T-F5.4-01: hasil pencarian cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada pencarian.
-let kondisiCekbpom = null;
+// T-F5.4-01: hasil panggilan Hermes, STT, TTS, dan cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada panggilan.
+const kondisi = new KondisiLayanan();
 // Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
 // (embedding produksi belum ada); selain itu dipakai korpus lokal.
 const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
@@ -284,18 +285,21 @@ async function* aliranHermes(id, kutipan, hasil, sinyal) {
 /** Pemberitahuan internal Hermes (misalnya "⚠️ No reply: every provider ... failed"), bukan jawaban model. */
 const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
 
-async function ttsElevenLabs(teks) {
-  const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { stability: ELEVENLABS_STABILITAS },
-    }),
-    signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
+// Semua render TTS (token suara, pesan statis, render saat mulai) lewat sini, jadi kondisinya terukur di satu tempat.
+function ttsElevenLabs(teks) {
+  return kondisi.ukur('tts', async () => {
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { stability: ELEVENLABS_STABILITAS },
+      }),
+      signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
+    });
+    if (!r.ok || !r.body) throw new Error(`tts ${r.status}`);
+    return r.body;
   });
-  if (!r.ok || !r.body) throw new Error(`tts ${r.status}`);
-  return r.body;
 }
 
 /** POST /voice/giliran: JSON {id, pilih} untuk tombol menu, JSON {id, teks} untuk pesan diketik, atau audio mentah (?id=) untuk ucapan. */
@@ -346,7 +350,7 @@ async function giliran(req, res, url) {
     }
 
     const mulai = Date.now();
-    const transkrip = ketik ?? await sttElevenLabs(audio, tipe);
+    const transkrip = ketik ?? await kondisi.ukur('stt', () => sttElevenLabs(audio, tipe));
     const tStt = Date.now() - mulai;
     // Penelepon sudah memutus panggilan: Hermes belum dipanggil, jadi cadangan token dikembalikan di finally luar.
     if (batal.signal.aborted) return;
@@ -494,7 +498,7 @@ async function giliran(req, res, url) {
         const ms = Date.now() - tCek;
         console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms }));
         if (cek.kueri) {
-          kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
+          kondisi.catat('cekbpom', !cek.galat, ms);
           pencatat.tool(id, TOOL_CEK_REGISTRASI, ms, !cek.galat);
         }
         konteks = cek.konteks;
@@ -527,8 +531,15 @@ async function giliran(req, res, url) {
         if (!tKalimat1) tKalimat1 = Date.now() - mulai;
         ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
       };
+      // NFR-1: latensi Hermes di Pantau AI Agent adalah waktu sampai kalimat pertama siap, bukan sampai jawaban selesai.
+      // Panggilan yang dibatalkan penelepon tidak dinilai; jawaban kosong dan pemberitahuan galat Hermes dihitung gangguan.
+      const tHermes = Date.now();
       try {
         await alirkanJawaban(aliranHermes(id, konteks, hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
+        if (!batal.signal.aborted) kondisi.catat('hermes', hasil.karKeluaran > 0, (tKalimat1 ? mulai + tKalimat1 : Date.now()) - tHermes);
+      } catch (e) {
+        kondisi.catat('hermes', false, Date.now() - tHermes);
+        throw e;
       } finally {
         hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
@@ -608,7 +619,7 @@ async function sesiSttRealtime(req, res) {
   let body;
   try { body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8')); } catch { throw new ErrorGateway(400, 'Permintaan tidak valid.'); }
   if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
-  const token = await buatTokenSttRealtime(ELEVENLABS_KEY);
+  const token = await kondisi.ukur('stt', () => buatTokenSttRealtime(ELEVENLABS_KEY));
   return kirim(res, 200, 'success', 'OK', { url: alamatSttRealtime(token) });
 }
 
@@ -644,7 +655,8 @@ const server = createServer(async (req, res) => {
           status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0,
           tanpaKatalog: katalog.tanpaKatalog ?? 0,
         },
-        cekbpom: { aktif: Boolean(cekBpom), ...(kondisiCekbpom ?? {}) },
+        hermes: kondisi.terakhir.hermes, stt: kondisi.terakhir.stt, tts: kondisi.terakhir.tts,
+        cekbpom: { aktif: Boolean(cekBpom), ...(kondisi.terakhir.cekbpom ?? {}) },
       });
     }
     if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
