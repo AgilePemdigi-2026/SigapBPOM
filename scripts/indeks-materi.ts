@@ -2,14 +2,15 @@
 // Jalankan dari akar repo setelah `supabase db reset`, dengan kunci service_role Supabase lokal:
 //   eval "$(npx supabase status -o env)"
 //   SUPABASE_URL=$API_URL SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/indeks-materi.ts
-// Materi korpus diindeks dari berkas lengkapnya di knowledge/, materi lain dari isinya atau judulnya.
+// Materi korpus diindeks dari berkas lengkapnya di knowledge/, materi lain dari isinya atau judulnya. Materi korpus yang
+// berkasnya tidak bisa dipastikan dihitung gagal, karena isinya hanya cuplikan (scripts/seed-materi.ts).
 // Hanya materi terindeks = false yang diproses, jadi aman dijalankan ulang. Urutan deploy ke cloud: supabase/README.md.
 import { readFileSync } from 'node:fs';
 import { buatPenyediaEmbedding } from '../supabase/functions/_shared/adapter/embedding.ts';
 import type { PenyimpananPengetahuan } from '../supabase/functions/_shared/adapter/penyimpananPengetahuan.ts';
 import { BasisPengetahuanController } from '../supabase/functions/_shared/control/BasisPengetahuanController.ts';
 import { DOKUMEN_KORPUS } from '../src/lib/mock/materiTiruan.ts';
-import { kunciMateri } from '../voice-gateway/pengetahuan.mjs';
+import { pemetaBerkasKorpus } from './berkasKorpus.ts';
 
 const { SUPABASE_URL: url = '', SUPABASE_SERVICE_ROLE_KEY: kunci = '' } = process.env;
 if (!url || !kunci) {
@@ -42,9 +43,7 @@ const penyimpanan: PenyimpananPengetahuan = {
   },
 };
 
-// Judul dan rujukan saja tidak unik di korpus (dokumen senama dari tahun berbeda), jadi tautan sumber ikut jadi kunci.
-const kunciKorpus = (judul: string, rujukan: string, urlSumber: string | null) => `${kunciMateri(judul, rujukan)}|${urlSumber ?? ''}`;
-const berkasKorpus = new Map(DOKUMEN_KORPUS.map((d) => [kunciKorpus(d.judul, d.rujukanSumber, d.urlSumber), d.berkas]));
+const berkasKorpus = pemetaBerkasKorpus(DOKUMEN_KORPUS);
 const isiBerkas = (berkas: string) => readFileSync(berkas, 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '');
 
 type BarisMateri = { id: string; judul: string; rujukan_sumber: string; url_sumber: string | null; isi: string };
@@ -59,7 +58,12 @@ for (let terakhir = ''; ;) {
   const baris = (await (await rest(`materi_pengetahuan?${p}`)).json()) as BarisMateri[];
   if (!baris.length) break;
   for (const m of baris) {
-    const berkas = berkasKorpus.get(kunciKorpus(m.judul, m.rujukan_sumber, m.url_sumber));
+    const berkas = berkasKorpus(m.judul, m.rujukan_sumber, m.url_sumber);
+    if (berkas === null) {
+      console.warn(`Berkas korpus tidak bisa dipastikan, isi url_sumber sesuai manifest: ${m.judul} (${m.rujukan_sumber})`);
+      gagal++;
+      continue;
+    }
     // Potongan sisa percobaan yang gagal dibuang dulu agar tidak berlipat.
     await rest(`materi_potongan?materi_id=eq.${m.id}`, { method: 'DELETE' });
     if (await controller.indeksMateri(m.id, berkas ? isiBerkas(berkas) : m.isi || m.judul)) terindeks++;

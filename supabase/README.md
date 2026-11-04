@@ -63,7 +63,9 @@ Migrasi `20261030090000_url_sumber_materi.sql` sudah tercatat di Supabase Cloud,
 3. Deploy dashboard (`main`) ke VPS.
 4. Indeks ulang cloud dengan `scripts/indeks-materi.ts` dan kunci service_role cloud, hanya setelah kapasitas basis data
    diperiksa: korpus penuh sekitar 40 ribu potongan vector(1536) beserta indeks HNSW-nya. Isi `url_sumber` materi cloud
-   harus sama dengan manifest korpus agar materi senama tidak tertukar.
+   harus sama dengan manifest korpus agar materi senama tidak tertukar. Materi tanpa `url_sumber` memakai dokumen
+   manifest yang judul dan rujukannya unik; materi korpus lain yang berkasnya tidak bisa dipastikan dihitung gagal dan
+   tetap belum terindeks sampai `url_sumber`-nya diisi.
 
 ## Deploy fungsi login dengan SIGAP_KUNCI_LOGIN
 
