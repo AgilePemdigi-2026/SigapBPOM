@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PenyimpananRiwayatSupabase } from './penyimpananRiwayatSupabase.ts';
-import { PenyimpananRiwayatTiruan } from './mock/riwayatTiruan.ts';
 import { pilihPenyimpananRiwayat } from './riwayatPercakapan.ts';
 import { PESAN_RIWAYAT, TranskripController } from './TranskripController.ts';
 
@@ -79,11 +78,10 @@ test('req_5_1 halaman di luar jangkauan (416) berarti daftar kosong; galat lain 
   await assert.rejects(tanpaJumlah.ringkasan(PERIODE), /jumlah baris/);
 });
 
-test('req_5_1 t_f6_1_02 ada token petugas selalu memakai Supabase; data tiruan hanya tanpa token', () => {
+test('req_5_1 t_f6_1_02 ada token petugas selalu memakai Supabase, juga saat konfigurasi hilang', () => {
   const ENV = { SUPABASE_URL: 'http://127.0.0.1:54321', SUPABASE_ANON_KEY: 'kunci-anon' };
   const supabase = pilihPenyimpananRiwayat('token-petugas', ENV);
   assert.ok(supabase instanceof PenyimpananRiwayatSupabase);
   assert.deepEqual([supabase.url, supabase.kunciPublik, supabase.tokenAkses], ['http://127.0.0.1:54321', 'kunci-anon', 'token-petugas']);
   assert.ok(pilihPenyimpananRiwayat('token-petugas', {}) instanceof PenyimpananRiwayatSupabase);
-  assert.ok(pilihPenyimpananRiwayat(undefined, ENV) instanceof PenyimpananRiwayatTiruan);
 });

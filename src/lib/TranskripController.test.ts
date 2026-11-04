@@ -46,7 +46,7 @@ test('req_5_1 t_f6_1_02 kartu ringkasan periode menghitung total, informasi prod
 });
 
 test('req_5_1 status penyelesaian tampil dengan label baku PRD-rinci Bagian 9', async () => {
-  assert.deepEqual(Object.values(LABEL_STATUS_PENYELESAIAN), ['selesai oleh AI', 'dieskalasi', 'tiket terbit', 'pengaduan tidak lengkap']);
+  assert.deepEqual(Object.values(LABEL_STATUS_PENYELESAIAN), ['selesai oleh AI', 'dieskalasi', 'tiket terbit', 'pengaduan tidak lengkap', 'terputus']);
   const data = Object.keys(LABEL_STATUS_PENYELESAIAN).map((s, i) => baris(`s-${i}`, `2026-11-02T0${i}:00:00Z`, { statusPenyelesaian: s }));
   const hasil = await controller(data).ambilDaftarPercakapan({}, SEKARANG);
   assert.ok('percakapan' in hasil);

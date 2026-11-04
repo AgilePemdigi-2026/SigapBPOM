@@ -4,7 +4,7 @@
 import { LABEL_JENIS_INTERAKSI } from './PemantauanLayananController.ts';
 
 /** Status percakapan yang sudah berakhir. Percakapan berstatus berjalan bukan bagian riwayat. */
-export type StatusPenyelesaian = 'selesai_ai' | 'dieskalasi' | 'tiket_terbit' | 'pengaduan_tidak_lengkap';
+export type StatusPenyelesaian = 'selesai_ai' | 'dieskalasi' | 'tiket_terbit' | 'pengaduan_tidak_lengkap' | 'terputus';
 
 /** Baris view riwayat_percakapan (T-F6.1-01) yang tampil di Daftar Percakapan. */
 export type PercakapanTersimpan = {
@@ -33,6 +33,7 @@ export const LABEL_STATUS_PENYELESAIAN: Record<StatusPenyelesaian, string> = {
   dieskalasi: 'dieskalasi',
   tiket_terbit: 'tiket terbit',
   pengaduan_tidak_lengkap: 'pengaduan tidak lengkap',
+  terputus: 'terputus',
 };
 
 /** Kamus pesan PRD-rinci Lampiran A. UC-05 belum punya pesan untuk daftar, jadi dipakai pesan terdekat (UC-04, UC-08). */
