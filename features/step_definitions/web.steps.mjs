@@ -145,7 +145,7 @@ Given('there is an active call', function () {
 });
 
 Given('there is no active call', function () {
-  sqlLokal("select public.akhiri_panggilan_aktif(id) from public.percakapan where status_penyelesaian = 'berjalan'");
+  sqlLokal('select public.akhiri_panggilan_aktif(id) from public.percakapan where waktu_selesai is null');
 });
 
 Given('there is a complaint ticket waiting for review', function () {
