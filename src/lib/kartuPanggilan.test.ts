@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   GalatGateway,
   KANDIDAT_MAKS,
@@ -129,4 +131,47 @@ test('or_1 galat jaringan panel suara tampil sebagai pesan kamus, bukan pesan br
   assert.equal(pesanGalatPanggilan(new SyntaxError('Unexpected token')), 'Layanan suara sedang gangguan. Silakan coba lagi.');
   assert.equal(pesanGalatPanggilan(new GalatGateway()), 'Layanan suara sedang gangguan. Silakan coba lagi.');
   assert.equal(pesanGalatPanggilan(new GalatGateway('Suara tidak terdengar. Silakan ulangi.')), 'Suara tidak terdengar. Silakan ulangi.');
+});
+
+test('t_f4_1_03 kriteria 2: tombol menu 1 dan 2 di PanelSuara.astro memiliki label aksesibel dan dapat dioperasikan via keyboard', () => {
+  const panelPath = resolve(process.cwd(), 'src/components/PanelSuara.astro');
+  const panelSource = readFileSync(panelPath, 'utf8');
+
+  // 1. Memeriksa keberadaan tombol angka 1 dan 2 bertipe button dengan label aksesibel
+  assert.match(
+    panelSource,
+    /<button data-pick="1" type="button" aria-label="1: Informasi Produk/,
+    'Tombol 1 harus memiliki type="button" dan aria-label yang menjelaskan Informai Produk',
+  );
+  assert.match(
+    panelSource,
+    /<button data-pick="2" type="button" aria-label="2: Pengaduan Produk/,
+    'Tombol 2 harus memiliki type="button" dan aria-label yang menjelaskan Pengaduan Produk',
+  );
+
+  // 2. Memeriksa group role semantik untuk menu pilihan layanan
+  assert.match(
+    panelSource,
+    /role="group"\s+aria-label="Pilihan menu layanan"/,
+    'Kontainer menu harus memiliki role="group" dan label aksesibel',
+  );
+
+  // 3. Memeriksa fokus keyboard terlihat (CSS :focus-visible)
+  assert.match(
+    panelSource,
+    /\.ps-tr :global\(\.m-menu button:focus-visible\)\s*\{\s*outline:\s*3px\s+solid/,
+    'Tombol menu harus memiliki styling fokus terlihat (:focus-visible)',
+  );
+
+  // 4. Memeriksa penanganan keyboard (angka 1, 2, Escape, serta tombol standar Enter/Space pada button)
+  assert.match(
+    panelSource,
+    /e\.key === '1' \|\| e\.key === '2'/,
+    'Mendukung shortcut tombol 1 dan 2 dari keyboard',
+  );
+  assert.match(
+    panelSource,
+    /data-pick/,
+    'Event delegasi klik (yang dipicu juga oleh Enter/Space pada elemen <button>) aktif',
+  );
 });

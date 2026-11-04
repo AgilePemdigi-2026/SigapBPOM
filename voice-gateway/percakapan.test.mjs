@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
+  BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
   AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
   menuDariUcapan, pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
 } from './percakapan.mjs';
@@ -23,6 +23,9 @@ function alirkan(teks, ukuran = 7) {
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
 test('req_1_1 pilihan menu 1 dan 2 memakai pesan baku kamus PRD', () => {
+  assert.equal(PESAN_MENU, 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.');
+  assert.equal(PESAN_LAYANAN_1, 'Silakan sebutkan nama produk atau pertanyaan Anda.');
+  assert.equal(PESAN_LAYANAN_2, 'Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda.');
   assert.equal(pesanLayanan(1), PESAN_LAYANAN_1);
   assert.equal(pesanLayanan(2), PESAN_LAYANAN_2);
   assert.equal(pesanLayanan(3), null);
