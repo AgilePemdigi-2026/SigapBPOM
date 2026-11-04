@@ -39,6 +39,7 @@ export const PESAN_MATERI = {
   gagalDimuat: 'Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
   dinonaktifkan: 'Materi ditandai tidak aktif.',
   gagalDinonaktifkan: 'Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi.',
+  gagalDisimpan: 'Materi gagal disimpan. Muat ulang halaman untuk mencoba lagi.',
 } as const;
 
 export const UKURAN_HALAMAN_BAWAAN = 25;

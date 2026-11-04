@@ -307,7 +307,8 @@ const data = {
       // REQ-7.1: jangan tampilkan sukses bila server tidak menyimpan materi. Dialog tetap terbuka agar isian tidak hilang.
       // Pesan API internal ("Akses ditolak.", "Permintaan tidak valid.") tidak ada di kamus, jadi tidak ditampilkan.
       const rujukanKosong = respon?.status === 422;
-      errTeks.textContent = rujukanKosong ? 'Rujukan sumber wajib diisi.' : D.pesan.gagalDimuat;
+      // Pesan server (mis. "Akses ditolak.") tidak ditampilkan apa adanya; 422 hanya dipakai untuk rujukan kosong.
+      errTeks.textContent = rujukanKosong ? 'Rujukan sumber wajib diisi.' : D.pesan.gagalDisimpan;
       err.hidden = false;
       field('rujukan').classList.toggle('invalid', rujukanKosong);
       return;
