@@ -2,9 +2,12 @@
 // Panel suara tidak bisa didengar atau diajak bicara oleh browser uji, jadi:
 // - "I should hear ..." memeriksa kalimat agen di transkrip panel, karena setiap kalimat yang diucapkan juga ditampilkan;
 // - "I say ..." mengetik ucapan di kolom ketik panel, yang diproses gateway dengan alur yang sama seperti ucapan suara;
-// - nomor tiket contoh di SRS (mis. ADU-0456) dicocokkan dengan nomor tiket yang benar-benar terbit (ADU-YYYYMMDD-NNNN).
+// - nomor tiket contoh di SRS (ADU-0456, ESK-0123) dicocokkan dengan nomor tiket yang benar-benar terbit (ADU-YYYYMMDD-NNNN,
+//   ESK-YYYYMMDD-NNNN).
 import { randomUUID } from 'node:crypto';
 import { Given, Then, When } from '@cucumber/cucumber';
+import { buatVektorTiruan } from '../../supabase/functions/_shared/adapter/embedding.ts';
+import { mulaiTiruan, tiruan } from '../support/tiruan.mjs';
 import { AKUN_UJI, URL_DASAR, sqlLokal } from '../support/ui.mjs';
 
 const TUNGGU_MS = 15_000;
@@ -138,7 +141,7 @@ Then('I should see {string} in the {string} element', async function (teks, nama
 });
 
 Then('I should hear {string}', async function (kalimat) {
-  const pola = new RegExp(regexTeks(kalimat).replace(/ADU-\d+/g, 'ADU-[0-9-]+'));
+  const pola = new RegExp(regexTeks(kalimat).replace(/\b(ADU|ESK)-\d+/g, '$1-[0-9-]+'));
   const transkrip = this.page.locator('[data-name="TranskripPercakapan"]').filter({ visible: true }).filter({ hasText: pola }).first();
   await tunggu(transkrip, `kalimat agen "${kalimat}" di TranskripPercakapan`);
 });
@@ -159,6 +162,25 @@ Given('there is a complaint ticket waiting for review', function () {
     `select public.terbitkan_tiket_pengaduan('${id}', 'Krim Wajah Glowing', 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
       'Budi Santoso', '081234567890', 'Krim Wajah Glowing membuat kulit iritasi')`,
   );
+});
+
+// Layanan luar untuk Voice Gateway: cekbpom dan Hermes tiruan di features/support/tiruan.mjs.
+Given('the BPOM registration data contains:', async function (tabel) {
+  tiruan.data = tabel.hashes();
+  await mulaiTiruan();
+});
+
+Given('the AI agent answers:', async function (tabel) {
+  tiruan.jawaban = new Map(tabel.hashes().map((b) => [b.pertanyaan, b.jawaban]));
+  await mulaiTiruan();
+});
+
+// Materi tanpa isi diindeks dari judulnya dengan embedding tiruan yang sama dengan simpan-materi (SRS Tabel B.8 Basic Path),
+// jadi Edge Function cari-pengetahuan menemukannya bila gateway berjalan dengan PENGETAHUAN_VEKTOR=1.
+Given('the material {string} with reference {string} is ready to use', function (judul, rujukan) {
+  const [j, r] = [judul, rujukan].map((s) => s.replace(/'/g, "''"));
+  sqlLokal(`with m as (insert into public.materi_pengetahuan (judul, rujukan_sumber, isi, terindeks) values ('${j}', '${r}', '', true) returning id)
+    insert into public.materi_potongan (materi_id, teks, embedding) select id, '${j}', '[${buatVektorTiruan(judul)}]' from m`);
 });
 
 Given('the material {string} exists', function (judul) {

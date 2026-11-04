@@ -74,7 +74,8 @@ jobs:
           SIGAP_UJI_PASSWORD: halobpom2026
       - name: Gateway dan dashboard
         run: |
-          PORT=8090 SUPABASE_URL=$API_URL KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 \
+          PORT=8090 SUPABASE_URL=$API_URL KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 PENGETAHUAN_VEKTOR=1 \
+            CEKBPOM_AKTIF=1 CEKBPOM_BASE_URL=http://127.0.0.1:8091 HERMES_URL=http://127.0.0.1:8091 \
             nohup node voice-gateway/server.mjs > test-results/gateway.log 2>&1 &
           SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY LOGIN_PERCOBAAN_MAKS=1000 \
             nohup npm run dev > test-results/dashboard.log 2>&1 &
