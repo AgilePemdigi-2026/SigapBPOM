@@ -1,5 +1,5 @@
 // Uji integrasi terhadap Supabase lokal (`supabase start` lalu `supabase db reset`). Dilewati bila variabel
-// SIGAP_UJI_* tidak diisi, karena CI belum menjalankan Supabase. Contoh:
+// SIGAP_UJI_* tidak diisi; job `supabase` di .github/workflows/ci.yml mengisinya. Contoh:
 //   SIGAP_UJI_SUPABASE_URL=http://127.0.0.1:54321 SIGAP_UJI_KUNCI_PUBLIK=<anon key> \
 //   SIGAP_UJI_EMAIL=<email seed> SIGAP_UJI_PASSWORD=<password seed> npm test
 // Uji bagian dokumen terindeks butuh materi_potongan terisi: jalankan scripts/indeks-materi.ts setelah db reset.

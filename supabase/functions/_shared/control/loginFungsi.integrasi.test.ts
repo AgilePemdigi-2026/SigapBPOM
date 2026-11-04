@@ -1,7 +1,7 @@
 // Uji integrasi Edge Function login sungguhan (`supabase start`, `supabase db reset`, lalu
 // `supabase functions serve --env-file supabase/functions/.env` dengan SIGAP_KUNCI_LOGIN terisi). Dilewati bila
-// SIGAP_UJI_FUNGSI_LOGIN tidak diisi, karena CI belum menjalankan Supabase. Tes ini mengubah penghitung gagal akun
-// seed, jadi pakai akun uji saja. SIGAP_UJI_KUNCI_LOGIN sama dengan SIGAP_KUNCI_LOGIN fungsi. Contoh:
+// SIGAP_UJI_FUNGSI_LOGIN tidak diisi; job `supabase` di .github/workflows/ci.yml mengisinya. Tes ini mengubah
+// penghitung gagal akun seed, jadi pakai akun uji saja. SIGAP_UJI_KUNCI_LOGIN sama dengan SIGAP_KUNCI_LOGIN fungsi. Contoh:
 //   SIGAP_UJI_FUNGSI_LOGIN=1 SIGAP_UJI_SUPABASE_URL=http://127.0.0.1:54321 SIGAP_UJI_KUNCI_PUBLIK=<anon key> \
 //   SIGAP_UJI_KUNCI_LOGIN=<kunci login> SIGAP_UJI_EMAIL=<email seed> SIGAP_UJI_PASSWORD=<password seed> npm test
 import { test } from 'node:test';
