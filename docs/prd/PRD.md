@@ -70,9 +70,9 @@ flowchart TD
 
 ## Architecture
 
-SIGAP memakai arsitektur berlapis. Lapisan presentasi adalah aplikasi Astro yang memuat halaman publik dengan panel panggilan suara dan dashboard petugas; batas layer frontend ada di sini, termasuk komponen interaktif panel dan tabel live. Lapisan layanan suara terdiri atas Voice Gateway, sebuah layanan Node kecil yang menerima audio mikrofon dari browser lewat WebSocket Secure, meneruskannya ke ElevenLabs Speech-to-Text secara streaming, mengirim teks ke Hermes Agent, lalu mengalirkan balik suara dari ElevenLabs Text-to-Speech. Hermes Agent menjalankan model GPT melalui langganan, menyusun jawaban, dan memanggil tool SIGAP.
+SIGAP memakai arsitektur berlapis. Lapisan presentasi adalah aplikasi Astro yang memuat halaman publik dengan panel panggilan suara dan dashboard petugas; batas layer frontend ada di sini, termasuk komponen interaktif panel dan tabel live. Lapisan layanan suara terdiri atas Voice Gateway, sebuah layanan Node kecil yang melayani satu giliran percakapan per permintaan HTTPS. Selama penelepon bicara, panel mengalirkan audio mikrofon lewat WebSocket Secure langsung ke ElevenLabs Speech-to-Text realtime dengan token sekali pakai dari gateway; teks finalnya dikirim ke gateway, yang meneruskannya ke Hermes Agent lalu mengirim balik jawaban per kalimat beserta suara MP3 dari ElevenLabs Text-to-Speech. Percakapan bersifat half-duplex (ADR 0003). Hermes Agent menjalankan model GPT melalui langganan dan menyusun jawaban, sedangkan gateway menjalankan tool SIGAP atas nama agen.
 
-Batas layer backend adalah Supabase. Edge Functions berperan sebagai lapisan control dan REST API untuk tool agen (cek registrasi, cari basis pengetahuan, terbitkan tiket, catat pengaduan) dan untuk aksi dashboard yang butuh aturan bisnis (login dengan penguncian, tutup tiket, ekspor laporan). Postgres menyimpan seluruh register layanan dengan Row Level Security, pgvector menyimpan potongan materi untuk RAG, Realtime mengalirkan perubahan panggilan berjalan dan antrean ke dashboard, Auth menangani sesi petugas, dan Storage menyimpan berkas laporan. Layanan eksternal cekbpom.pom.go.id, ElevenLabs, model GPT, dan SMS Gateway selalu diakses lewat adapter yang memiliki implementasi tiruan, sehingga penyedia bisa diganti tanpa menyentuh kode use case. Kunci `service_role` hanya dipakai di Edge Functions dan Voice Gateway, tidak pernah di browser.
+Batas layer backend adalah Supabase. Edge Functions berperan sebagai lapisan control dan REST API untuk tool agen (cek registrasi, cari basis pengetahuan, terbitkan tiket, catat pengaduan) dan untuk aksi dashboard yang butuh aturan bisnis (login dengan penguncian, tutup tiket, ekspor laporan). Postgres menyimpan seluruh register layanan dengan Row Level Security, pgvector menyimpan potongan materi untuk RAG, Auth menangani sesi petugas, dan Storage menyimpan berkas laporan. Dashboard tidak memakai Realtime: halaman Panggilan Berjalan memperbarui datanya dengan polling setiap 5 detik. Layanan eksternal cekbpom.pom.go.id, ElevenLabs, model GPT, dan SMS Gateway selalu diakses lewat adapter yang memiliki implementasi tiruan, sehingga penyedia bisa diganti tanpa menyentuh kode use case. Kunci `service_role` hanya dipakai di Edge Functions dan Voice Gateway, tidak pernah di browser.
 
 ```mermaid
 flowchart LR
@@ -81,28 +81,28 @@ flowchart LR
     D[Astro: dashboard petugas]
   end
   subgraph VPS
-    G[Voice Gateway WSS]
+    W[Server Astro + /api]
+    G[Voice Gateway]
     H[Hermes Agent + GPT]
   end
   subgraph Supabase
-    EF[Edge Functions: control + REST]
+    EF[Edge Functions: control]
     DB[(Postgres + RLS + pgvector)]
-    RT[Realtime]
     AU[Auth]
-    ST[Storage]
   end
-  P -- audio WSS --> G
-  G -- STT/TTS --> EL[ElevenLabs]
+  P -- giliran HTTPS NDJSON, suara MP3 --> G
+  P -- audio WSS, STT realtime --> EL[ElevenLabs]
+  G -- STT unggahan, TTS --> EL
   G -- teks --> H
-  H -- tool calling --> EF
+  G -- scraping --> CB[cekbpom.pom.go.id]
+  G -- tiket, transkrip, panggilan aktif, katalog --> EF
+  G -. adapter tiruan .-> SMS[SMS Gateway]
+  D -- HTTPS --> W
+  W -- login, simpan materi --> EF
+  W -- PostgREST, token petugas --> DB
+  W -- sesi --> AU
+  W -- kesehatan --> G
   EF --> DB
-  EF -- adapter --> CB[cekbpom.pom.go.id]
-  EF -- adapter --> SMS[SMS Gateway]
-  D -- HTTPS --> EF
-  D -- sesi --> AU
-  RT -- perubahan live --> D
-  DB --> RT
-  EF --> ST
 ```
 
 ## Database Schema
@@ -147,4 +147,4 @@ Backend memakai Supabase: Edge Functions (Deno, TypeScript) untuk lapisan contro
 
 Database adalah Postgres milik Supabase dengan ekstensi pgvector untuk indeks basis pengetahuan dan Row Level Security di setiap tabel. Migrasi dikelola lewat Supabase CLI. Selama pengembangan dipakai Supabase Cloud region Singapura; sebelum produksi, lokasi data dikonfirmasi ke dosen atau BPOM atau Supabase di-self-host di server Indonesia.
 
-Deployment: aplikasi Astro, Voice Gateway, dan Hermes Agent berjalan di satu VPS Linux di Indonesia dengan Docker dan Nginx sebagai reverse proxy HTTPS dan WSS, sedangkan Supabase dikelola terpisah. Uji penerimaan memakai skenario Gherkin dari SRS Appendix F; kerangkanya (misalnya Playwright dengan Cucumber) ditetapkan lewat ADR berikutnya karena Behat tidak cocok dengan stack TypeScript.
+Deployment: aplikasi Astro, Voice Gateway, dan Hermes Agent berjalan di satu VPS Linux di Indonesia dengan Docker dan Caddy sebagai reverse proxy HTTPS (ADR 0004), sedangkan Supabase dikelola terpisah. Uji penerimaan memakai skenario Gherkin dari SRS Appendix F yang dijalankan dengan Cucumber.js dan Playwright (ADR 0002), karena Behat tidak cocok dengan stack TypeScript.
