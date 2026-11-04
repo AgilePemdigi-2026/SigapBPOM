@@ -154,6 +154,7 @@ export const PESAN_PEMANTAUAN = {
   tiketTidakDitemukan: 'Tiket tidak ditemukan.',
   detailGagalDimuat: 'Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
   panggilanGagalDimuat: 'Data panggilan gagal dimuat.',
+  antreanGagalDimuat: 'Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
 } as const;
 
 export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
@@ -456,8 +457,7 @@ export class PemantauanLayananController {
     try {
       baris = await this.ambilAntreanTiket();
     } catch {
-      // Kamus belum punya pesan khusus antrean; dipakai pesan gagal muat terdekat (UC-04).
-      return { gagal: PESAN_PEMANTAUAN.detailGagalDimuat };
+      return { gagal: PESAN_PEMANTAUAN.antreanGagalDimuat };
     }
     const belum = (t: TiketAntrean) => (t.status === 'belum_ditelaah' ? 0 : 1);
     return {

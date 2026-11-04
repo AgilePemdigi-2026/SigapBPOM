@@ -477,7 +477,8 @@ test('t_f5_3_02 REQ-4.3 antrean memuat kolom tabel, belum ditelaah di urutan ter
 test('t_f5_3_02 antrean kosong dan penyimpanan gagal dibedakan', async () => {
   assert.deepEqual(await new PemantauanLayananController(new PenyimpananPemantauanMock()).antreanTiket(), { tiket: [] });
   const rusak = supabasePalsu(() => new Response('bad gateway', { status: 502 }));
-  assert.deepEqual(await new PemantauanLayananController(rusak.penyimpanan).antreanTiket(), { gagal: PESAN_PEMANTAUAN.detailGagalDimuat });
+  assert.deepEqual(await new PemantauanLayananController(rusak.penyimpanan).antreanTiket(), { gagal: PESAN_PEMANTAUAN.antreanGagalDimuat });
+  assert.equal(PESAN_PEMANTAUAN.antreanGagalDimuat, 'Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi.');
 });
 
 test('t_f5_3_02 NFR-13 adapter Supabase membaca antrean_tiket_petugas hanya dengan nomor tersamar', async () => {
