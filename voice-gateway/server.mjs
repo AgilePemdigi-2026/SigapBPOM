@@ -69,9 +69,14 @@ const SUARA_STATIS = {
 // Kutipan RAG yang dikirim ke AI. Lebih sedikit kutipan berarti prompt lebih pendek dan token pertama lebih cepat.
 const KUTIPAN_MAKS = 2;
 const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
-// Tiket eskalasi lewat Edge Function bila Supabase dikonfigurasi, selain itu tiket tiruan di memori (#30).
+// Tiket, pengaduan, transkrip, dan panggilan aktif lewat Edge Function. Tiruan di memori hanya untuk pengembangan lokal;
+// di produksi gateway berhenti saat start agar penelepon tidak menerima nomor tiket tiruan.
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
+if (env('NODE_ENV', '') === 'production' && !(SUPABASE_URL && SIGAP_KUNCI_INTERNAL)) {
+  console.error(JSON.stringify({ ev: 'env_supabase_kurang' }));
+  process.exit(1);
+}
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;

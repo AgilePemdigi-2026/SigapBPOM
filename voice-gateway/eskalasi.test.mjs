@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan, pesanTiketEskalasi,
   samarkanDeretTelepon,
@@ -124,4 +126,13 @@ test('kuota tiket dipesan sebelum penerbitan dan dikembalikan bila gagal', () =>
   assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), 'panggilan');
   b.batalkan('p1', 'ip1', '081234567890');
   assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), null);
+});
+
+test('req_1_7 req_2_3 gateway produksi tanpa SUPABASE_URL atau SIGAP_KUNCI_INTERNAL berhenti saat start, bukan menerbitkan tiket tiruan', () => {
+  const server = fileURLToPath(new URL('./server.mjs', import.meta.url));
+  for (const sebagian of [{}, { SUPABASE_URL: 'http://127.0.0.1:54321' }, { SIGAP_KUNCI_INTERNAL: 'kunci-uji' }]) {
+    const hasil = spawnSync(process.execPath, [server], { env: { NODE_ENV: 'production', PORT: '0', ...sebagian }, encoding: 'utf8', timeout: 5000 });
+    assert.equal(hasil.status, 1, JSON.stringify(sebagian));
+    assert.match(hasil.stderr, /env_supabase_kurang/);
+  }
 });
