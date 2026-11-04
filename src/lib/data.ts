@@ -39,4 +39,5 @@ export const NAV = [
   { href: '/pengaduan', label: 'Daftar Pengaduan', icon: 'icon-clipboard-list', badge: '' },
   { href: '/basis-pengetahuan', label: 'Basis Pengetahuan', icon: 'icon-book-open', badge: '' },
   { href: '/rekap-laporan', label: 'Rekap & Laporan', icon: 'icon-chart-column', badge: '' },
+  { href: '/pantau-ai-agent', label: 'Pantau AI Agent', icon: 'icon-bot', badge: '' },
 ];
