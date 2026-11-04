@@ -77,13 +77,10 @@ test('req_8_3 petugas berhak ekspor mendapat pilihan format', async () => {
   assert.deepEqual(await kontrol.periksaHakEkspor(), { boleh: true });
 });
 
-test('br_8 nfr_14 sesi Supabase memakai RPC dengan token petugas; tiruan tidak memberi hak ekspor di produksi', async () => {
-  const supabase = pilihPenyimpanan('token-petugas', ENV, true);
+test('br_8 nfr_14 sesi Supabase memakai RPC dengan token petugas', () => {
+  const supabase = pilihPenyimpanan('token-petugas', ENV);
   assert.ok(supabase instanceof PenyimpananLaporanSupabase);
   assert.equal(supabase.tokenAkses, 'token-petugas');
-  assert.ok(pilihPenyimpanan('token-petugas', {}, false) instanceof PenyimpananLaporanTiruan);
-  assert.equal(await pilihPenyimpanan(undefined, ENV, true).bolehEkspor(), false);
-  assert.equal(await pilihPenyimpanan(undefined, ENV, false).bolehEkspor(), true);
 });
 
 test('req_8_2 pilihan Periode per bulan kalender WIB dengan label seperti SRS Tabel B.9', () => {

@@ -31,6 +31,8 @@ const rentang = (a: string, z: string) => (a === z ? tgl(a) : a.slice(0, 7) === 
 
 // Grafik: tinggi batang = panggilan, bagian atasnya kasus tereskalasi dan sisanya dijawab AI. Batang tertinggi mengisi 90%
 // tinggi plot seperti di mockup. Hanya skala tampilan; angkanya tetap hasil RPC.
+// ponytail: "Dijawab AI" = panggilan dikurangi tereskalasi, seperti SRS Gambar 3.17, sehingga panggilan berstatus
+// terputus ikut terhitung. Pakai jumlah selesai_ai bila rekap_layanan (T-F8.1-01) kelak mengembalikannya.
 const maks = Math.max(1, ...(rekap?.perMinggu ?? []).map((m) => m.panggilan)) / 0.9;
 const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%`;
 ---
