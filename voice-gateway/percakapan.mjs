@@ -2,6 +2,7 @@
 // Tanpa I/O agar bisa diuji dengan `node --test`.
 import { PESAN_BUTUH_PETUGAS, samarkanDeretTelepon } from './eskalasi.mjs';
 import { LAYANAN_PENGADUAN, jenisInteraksiDariMenu } from './pengaduan.mjs';
+import { TAHAP } from './panggilanAktif.mjs';
 
 /** Kamus pesan PRD-rinci Lampiran A (UC-01, UC-02 "Panggilan tersambung", REQ-1.1). */
 export const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.';
@@ -60,10 +61,12 @@ export function pesanLayanan(nomor) {
 /**
  * Penelepon memilih menu dari panel, atau lewat ucapan setelah tawaran tekan 2 (REQ-1.1, REQ-2.1). Memilih 2 menandai
  * percakapan `pengaduan` dan memulai pengumpulan data; memilih 1 tetap alur UC-01 dan membuang alur pengaduan yang mungkin
- * sedang berjalan. Keadaan tool cek registrasi (BR-6, REQ-1.5) dimulai dari awal.
+ * sedang berjalan. Keadaan tool cek registrasi (BR-6, REQ-1.5) dimulai dari awal. Bila `pantau` diberikan, panggilan
+ * langsung dilaporkan ke dashboard dengan layanan barunya (REQ-4.2), sehingga penelepon yang menutup setelah memilih
+ * tetap terhitung.
  * Mengembalikan pesan pembuka dan alamat suara statis (jalur TTS yang sudah ada), atau null bila pilihan tidak dikenal.
  */
-export function pilihMenu(riwayat, pengaduan, id, nomor) {
+export function pilihMenu(riwayat, pengaduan, id, nomor, pantau = null) {
   const jawaban = pesanLayanan(nomor);
   if (!jawaban) return null;
   riwayat.pilihLayanan(id, nomor);
@@ -72,6 +75,7 @@ export function pilihMenu(riwayat, pengaduan, id, nomor) {
   if (nomor === LAYANAN_PENGADUAN) pengaduan.mulai(id); else pengaduan.batal(id);
   riwayat.tambah(id, 'user', `Saya memilih layanan ${nomor}.`);
   riwayat.tambah(id, 'assistant', jawaban);
+  pantau?.tahap(id, TAHAP.MENDENGAR);
   return { jawaban, suara: `/voice/statis/layanan-${nomor}` };
 }
 

@@ -312,10 +312,8 @@ async function giliran(req, res, url) {
     if (urai.galat) throw new ErrorGateway(urai.galat.kode, urai.galat.pesan);
     id = urai.id;
     if (urai.jenis === 'pilih') {
-      const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih);
+      const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih, pantau);
       if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
-      // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
-      // pertama yang sudah melewati kuota dan pembatas laju.
       // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
       pencatat.giliran(id, null, PESAN_MENU);
       pencatat.giliran(id, null, menu.jawaban);
