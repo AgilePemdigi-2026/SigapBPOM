@@ -1,6 +1,7 @@
 // Berawalan "_" agar Astro tidak menjadikannya route.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { POST } from './nonaktifkan.ts';
 
 process.env.SUPABASE_URL = 'http://supabase.uji';
@@ -37,4 +38,11 @@ test('req_7_3 tanpa token sesi (pengembangan lokal) penyimpanan tiruan dipakai d
   const { hasil, panggilan } = nonaktifkan('tiruan-1', undefined, []);
   assert.equal((await hasil).status, 200);
   assert.equal(panggilan.length, 0);
+});
+
+test('req_7_3 gagal menonaktifkan tampil sebagai toast galat berpesan kamus, bukan ikon sukses', () => {
+  const halaman = readFileSync(new URL('../../../basis-pengetahuan.astro', import.meta.url), 'utf8');
+  assert.match(halaman, /sigapToast\?\.\(msg, kind\)/);
+  assert.match(halaman, /toast\(D\.pesan\.gagalDinonaktifkan, 'err'\)/);
+  assert.doesNotMatch(halaman, /hasil\?\.message \|\| 'Materi gagal dinonaktifkan/, 'pesan API seperti "Akses ditolak." tidak diteruskan ke petugas');
 });

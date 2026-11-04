@@ -2,7 +2,7 @@
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { KATEGORI_MATERI, chip } from '../lib/data';
-import { BasisPengetahuanController, type Materi } from '../lib/BasisPengetahuanController';
+import { BasisPengetahuanController, PESAN_MATERI, type Materi } from '../lib/BasisPengetahuanController';
 import { PenyimpananMateriTiruan } from '../lib/mock/materiTiruan';
 import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
 import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
@@ -29,6 +29,7 @@ const data = {
   materi: MATERI,
   total: KB_TOTAL,
   gagal,
+  pesan: PESAN_MATERI,
   simpul: SIMPUL,
   chipAktif: chip('Aktif'),
   chipNonaktif: chip('Tidak Aktif'),
@@ -125,8 +126,9 @@ const data = {
   type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
   const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
   const materi: Materi[] = D.materi;
-  const toast = (msg: string) => (window as any).sigapToast?.(msg);
+  const toast = (msg: string, kind?: 'err') => (window as any).sigapToast?.(msg, kind);
   const fmt = (n: number) => n.toLocaleString('id-ID');
+  const hariIni = () => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
   const st = { tab: 'Semua', q: '', added: 0, deact: 0 };
 
@@ -170,9 +172,12 @@ const data = {
     const hasil = await res?.json().catch(() => null);
     if (!res?.ok) {
       btn.removeAttribute('aria-disabled');
-      return toast(hasil?.message || 'Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi.');
+      // Pesan API (mis. "Akses ditolak." dari middleware) tidak ada di kamus, jadi tidak ditampilkan ke petugas.
+      return toast(D.pesan.gagalDinonaktifkan, 'err');
     }
+    // Basis data mencatat waktu penonaktifan sebagai pemutakhiran.
     m.aktif = false;
+    m.tgl = hariIni();
     st.deact++;
     render();
     toast(hasil.message);
@@ -245,8 +250,7 @@ const data = {
       field('rujukan').classList.toggle('invalid', rujukanKosong);
       return;
     }
-    const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
-    materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl, aktif: true });
+    materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl: hariIni(), aktif: true });
     st.added++;
     st.tab = 'Semua'; st.q = '';
     (document.getElementById('kb-q') as HTMLInputElement).value = '';
