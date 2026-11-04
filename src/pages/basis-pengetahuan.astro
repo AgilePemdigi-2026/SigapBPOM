@@ -80,15 +80,24 @@ const data = {
     <div class="view-graph" id="view-graph" hidden>
       <section class="panel graph" data-name="GrafPengetahuan">
         <div class="graph-head"><h2>Graf Pengetahuan</h2><span>Pilih simpul untuk melihat rujukan dan bagian dokumen terindeks</span></div>
-        <div class="canvas">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            {SISI.map(([a, b]) => (
-              <line x1={byId[a].x} y1={byId[a].y} x2={byId[b].x} y2={byId[b].y} data-a={a} data-b={b} vector-effect="non-scaling-stroke" />
+        <div class="canvas" id="graf-canvas">
+          <div class="zoom">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {SISI.map(([a, b]) => (
+                <line x1={byId[a].x} y1={byId[a].y} x2={byId[b].x} y2={byId[b].y} data-a={a} data-b={b} vector-effect="non-scaling-stroke" />
+              ))}
+            </svg>
+            {SIMPUL.map((n) => (
+              <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal?.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
             ))}
-          </svg>
-          {SIMPUL.map((n) => (
-            <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal?.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
-          ))}
+          </div>
+        </div>
+        <div class="graph-foot">
+          <span class="legend"><span class="sw hub"></span>Topik</span>
+          <span class="legend"><span class="sw"></span>Materi edukasi</span>
+          <span class="grow"></span>
+          <button class="tab zoom-btn" data-zoom="-1" aria-label="Perkecil graf" disabled><i class="icon-zoom-out"></i></button>
+          <button class="tab zoom-btn" data-zoom="1" aria-label="Perbesar graf"><i class="icon-zoom-in"></i></button>
         </div>
       </section>
       {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>{gagalGraf || 'Graf terbentuk setelah ada materi di basis pengetahuan.'}</span></div>}
@@ -219,6 +228,24 @@ const data = {
   document.querySelectorAll<HTMLElement>('[data-node]').forEach((b) => b.addEventListener('click', () => pilih(b.dataset.node!)));
   if (D.simpul.length) pilih(D.simpul[0].id);
 
+  // F2.4, T-F2.4-01: zoom merenggangkan jarak antarsimpul dan kanvas bisa digulir; ukuran simpul tetap agar label terbaca.
+  const ZOOM_MIN = 1;
+  const ZOOM_MAKS = 3;
+  const ZOOM_LANGKAH = 0.5;
+  const kanvas = document.getElementById('graf-canvas')!;
+  const tombolZoom = document.querySelectorAll<HTMLButtonElement>('[data-zoom]');
+  let zoom = ZOOM_MIN;
+  tombolZoom.forEach((b) => b.addEventListener('click', () => {
+    const baru = Math.min(ZOOM_MAKS, Math.max(ZOOM_MIN, zoom + Number(b.dataset.zoom) * ZOOM_LANGKAH));
+    // Titik di tengah tampilan tetap di tengah setelah zoom.
+    const cx = (kanvas.scrollLeft + kanvas.clientWidth / 2) * (baru / zoom);
+    const cy = (kanvas.scrollTop + kanvas.clientHeight / 2) * (baru / zoom);
+    zoom = baru;
+    kanvas.style.setProperty('--z', String(zoom));
+    kanvas.scrollTo(cx - kanvas.clientWidth / 2, cy - kanvas.clientHeight / 2);
+    tombolZoom.forEach((t) => (t.disabled = t.dataset.zoom === '1' ? zoom >= ZOOM_MAKS : zoom <= ZOOM_MIN));
+  }));
+
   // REQ-7.1, REQ-7.2, BR-4: tambah materi.
   const dialog = document.getElementById('add-dialog') as HTMLDialogElement;
   const form = document.getElementById('add-form') as HTMLFormElement;
@@ -344,12 +371,20 @@ const data = {
   .graph-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .graph-head h2 { font-size: 26px; }
   .graph-head span { font-size: 14.5px; color: var(--muted); }
-  .canvas { flex: 1; position: relative; border-radius: 24px; background: radial-gradient(circle at 50% 48%, #f7f9ff 0%, #eceef2 70%); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); overflow: hidden; min-height: 420px; }
+  .canvas { flex: 1; position: relative; border-radius: 24px; background: radial-gradient(circle at 50% 48%, #f7f9ff 0%, #eceef2 70%); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); overflow: auto; min-height: 420px; }
+  .zoom { position: absolute; left: 0; top: 0; width: calc(100% * var(--z, 1)); height: calc(100% * var(--z, 1)); }
   .canvas svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .canvas line { stroke: #c3c9d3; stroke-width: 1.4; stroke-dasharray: 4 4; }
   .canvas line.hot { stroke: var(--blue); stroke-width: 2; stroke-dasharray: none; }
   .node { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; border: 1px solid #fff; background: var(--surface); color: var(--ink); box-shadow: 0 6px 16px rgba(16, 24, 40, .1); display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; font-size: 14px; font-weight: 500; line-height: 1.2; }
   .node.hub { background: radial-gradient(circle at 35% 30%, #ffffff, #dfe8fd); font-size: 16px; }
+  .graph-foot { display: flex; align-items: center; gap: 18px; font-size: 14.5px; color: var(--muted); }
+  .legend { display: flex; align-items: center; gap: 8px; }
+  /* Legenda meniru simpul: topik lebih besar dan bergradasi biru, materi lebih kecil dan putih. */
+  .sw { width: 14px; height: 14px; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 1px #c3c9d3; }
+  .sw.hub { width: 20px; height: 20px; background: radial-gradient(circle at 35% 30%, #ffffff, #dfe8fd); box-shadow: 0 0 0 1px #aebfe8; }
+  .zoom-btn { width: 44px; padding: 0; justify-content: center; font-size: 18px; }
+  .zoom-btn:disabled { opacity: .45; }
   .node[aria-pressed='true'] { background: radial-gradient(circle at 35% 30%, #8fb6ff, #2f6bf5 70%); color: #fff; border: 2px solid #fff; box-shadow: 0 12px 28px rgba(47, 107, 245, .4); }
   .detail { padding: 26px; display: flex; flex-direction: column; gap: 14px; }
   .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
