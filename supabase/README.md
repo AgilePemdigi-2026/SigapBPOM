@@ -52,10 +52,44 @@ eval "$(npx supabase status -o env)"
 SUPABASE_URL=$API_URL SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/indeks-materi.ts
 ```
 
+## Checklist deploy ke Supabase Cloud dan VPS
+
+Urutan lengkap membawa `main` ke Supabase Cloud dan VPS. Alasan urutan materi dan login ada di dua bagian berikutnya.
+
+1. Cadangkan basis data cloud (`supabase db dump --linked -f cadangan.sql`, lalu dengan `--data-only` ke berkas lain) dan
+   tunjukkan SQL setiap migrasi kepada pemilik proyek sebelum diterapkan.
+2. Terapkan migrasi `20261104090000` sampai `20261104090500` sesuai urutan timestamp, satu berkas per transaksi. Migrasi
+   `20261030090000_url_sumber_materi.sql` sudah tercatat di Supabase Cloud, jadi tidak diterapkan ulang. Migrasi yang
+   diterapkan lewat SQL Editor dicatat dengan `supabase migration repair --status applied <versi>`.
+   - `090200` harus sudah di-commit sebelum `090300`: nilai enum baru `terputus` tidak boleh dipakai di transaksi yang
+     menambahkannya, jadi keduanya gagal bila ditempel dalam satu eksekusi SQL Editor.
+   - Sebelum `090300`, pastikan pg_cron aktif (Database > Extensions) dan catat jumlah tiket ADU yang ringkasannya ditulis
+     ulang backfill-nya: `select count(distinct t.id) from public.tiket t join public.pengaduan pg on pg.tiket_id = t.id;`.
+     Ringkasan lama hanya bisa dikembalikan dari cadangan langkah 1. Sesudahnya, `select jobname, schedule, active from
+     cron.job where jobname = 'tutup-panggilan-yatim';` mengembalikan satu baris `* * * * *` yang aktif.
+   - Tanpa `090400`, panel Beban Panggilan di Ringkasan menampilkan "Data panggilan gagal dimuat.". Tanpa `090500`, setiap
+     potongan di `cari_potongan` berskor 1, sehingga pencarian pengetahuan tidak berurutan.
+3. Pastikan secret cekbpom bernama `CEKBPOM_ADAPTER` (`supabase secrets list`). Fungsi baru tidak lagi membaca ejaan lama
+   `CEKBPM_ADAPTER`, dan tanpa `CEKBPOM_ADAPTER=resmi` cekbpom memakai adapter tiruan.
+4. Deploy ulang semua fungsi selain `login` (langkah 6), karena semuanya mengimpor kode `_shared` yang berubah, misalnya
+   `boundary/http.ts` dan `adapter/cekbpom.ts`:
+
+   ```bash
+   supabase functions deploy cek-registrasi cari-pengetahuan katalog-materi simpan-materi terbitkan-tiket-eskalasi \
+     terbitkan-tiket-pengaduan simpan-pengaduan-tidak-lengkap laporkan-panggilan-aktif catat-percakapan
+   ```
+5. Deploy `main` ke VPS (container web dan voice) setelah memastikan environment compose: service voice berisi
+   `SUPABASE_URL` dan `SIGAP_KUNCI_INTERNAL` (gateway produksi berhenti saat start tanpa keduanya), service web berisi
+   `SIGAP_KUNCI_LOGIN` (langkah 2 bagian login).
+6. Deploy fungsi `login` (langkah 3 bagian login).
+7. Isi secret `SIGAP_KUNCI_LOGIN` (langkah 4 bagian login). Setelah secret terkonfirmasi di cloud, commit lanjutan menghapus
+   `opsional: true` di `functions/login/index.ts` agar fungsi gagal tertutup seperti fungsi lain, lalu `login` dideploy
+   ulang.
+8. Indeks ulang cloud (langkah 4 bagian urutan potongan), setelah prasyarat `url_sumber`-nya terpenuhi.
+
 ## Deploy indeks ulang materi (urutan potongan)
 
-Fungsi `simpan-materi` menulis kolom `materi_potongan.urutan`, dan dashboard membaca potongan berdasarkan kolom itu.
-Migrasi `20261030090000_url_sumber_materi.sql` sudah tercatat di Supabase Cloud, jadi tidak diterapkan ulang. Urutan:
+Fungsi `simpan-materi` menulis kolom `materi_potongan.urutan`, dan dashboard membaca potongan berdasarkan kolom itu. Urutan:
 
 1. Terapkan migrasi `20261104090100_indeks_ulang_materi.sql` ke Supabase Cloud. Tanpa kolom `urutan`, dashboard baru
    gagal memuat Graf Pengetahuan dan fungsi `simpan-materi` baru meninggalkan materi baru belum terindeks.
