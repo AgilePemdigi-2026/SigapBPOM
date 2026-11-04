@@ -15,12 +15,13 @@ import {
   NAMA_TOOL as TOOL_PENGETAHUAN, PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel,
 } from './alatPengetahuan.mjs';
 import {
-  BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
+  BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, SUARA_PENGADUAN,
+  prosesGiliranPengaduan,
 } from './pengaduan.mjs';
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import {
-  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
-  pesanTiketEskalasi,
+  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, mintaUlangTelepon,
+  nomorTeleponDariUcapan, pesanTiketEskalasi,
 } from './eskalasi.mjs';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
@@ -62,7 +63,11 @@ const SUARA_STATIS = {
   'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON, 'tawaran-penutup': PESAN_TAWARAN_PENUTUP, jeda: PESAN_JEDA,
   'minta-nama-produk': PESAN_MINTA_NAMA_PRODUK, 'minta-kronologi': PESAN_MINTA_KRONOLOGI, 'minta-nama': PESAN_MINTA_NAMA_PELAPOR,
   'tidak-ditemukan': PESAN_TIDAK_DITEMUKAN, 'nama-tidak-jelas': PESAN_NAMA_TIDAK_JELAS,
+  // Prompt gabungan data pengaduan yang kurang dan penjelasan nomor telepon yang ditolak.
+  ...SUARA_PENGADUAN,
 };
+// Gabungan data kurang ada belasan; dirender saat pertama diminta, bukan saat gateway menyala, agar hemat kuota TTS.
+const SUARA_STATIS_SAAT_DIPAKAI = (nama) => nama.startsWith('kurang-');
 // Kutipan RAG yang dikirim ke AI. Lebih sedikit kutipan berarti prompt lebih pendek dan token pertama lebih cepat.
 const KUTIPAN_MAKS = 2;
 const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
@@ -427,8 +432,10 @@ async function giliran(req, res, url) {
             // Tiket tetap terbit walau penelepon sudah memutus; hanya render suaranya yang dilewati.
             suara = batal.signal.aborted ? null : terbitkanTokenSuara(jawaban, ip);
           } else {
-            jawaban = PESAN_MINTA_ULANG_TELEPON;
-            suara = '/voice/statis/ulang-telepon';
+            // Penjelasan bila angka terdengar tetapi bukan nomor yang sah (kurang, kelebihan, atau bukan 08).
+            const ulang = mintaUlangTelepon(transkrip);
+            jawaban = ulang.pesan;
+            suara = `/voice/statis/${ulang.suara}`;
           }
         }
         riwayat.tambah(id, 'assistant', jawaban);
@@ -656,5 +663,5 @@ server.requestTimeout = 90_000;
 server.listen(PORT, () => {
   console.info(JSON.stringify({ ev: 'siap', port: PORT, siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) }));
   // Render pesan tetap sekali saat mulai, supaya tidak ada render bersamaan dari permintaan pengguna.
-  if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS)) statis({ writeHead() {}, end() {} }, nama).catch(() => {});
+  if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS).filter((n) => !SUARA_STATIS_SAAT_DIPAKAI(n))) statis({ writeHead() {}, end() {} }, nama).catch(() => {});
 });
