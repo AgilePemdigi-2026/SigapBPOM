@@ -19,7 +19,7 @@ Skenario `@ui` yang ada: UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5)
    supabase db reset
    ```
 
-2. Edge Functions dengan kunci internal lokal. Isi `supabase/functions/.env` (salin dari `.env.example`), misalnya `SIGAP_KUNCI_INTERNAL=kunci-uji-lokal`, lalu:
+2. Edge Functions dengan kunci internal lokal. Isi `supabase/functions/.env` (salin dari `.env.example`), misalnya `SIGAP_KUNCI_INTERNAL=kunci-uji-lokal` dan `SIGAP_KUNCI_LOGIN=kunci-login-lokal`, lalu:
 
    ```bash
    supabase functions serve --env-file supabase/functions/.env
@@ -34,7 +34,7 @@ Skenario `@ui` yang ada: UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5)
 4. Dashboard. `SUPABASE_URL` dan `SUPABASE_ANON_KEY` harus ada di environment proses (lihat `supabase status -o env`), bukan hanya di `.env`. Batas login per IP dilonggarkan karena satu run login belasan kali. Dev server meneruskan `/voice/*` ke gateway di port 8090.
 
    ```bash
-   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=<anon key lokal> LOGIN_PERCOBAAN_MAKS=1000 npm run dev
+   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=<anon key lokal> SIGAP_KUNCI_LOGIN=kunci-login-lokal LOGIN_PERCOBAAN_MAKS=1000 npm run dev
    ```
 
 5. Jalankan skenario:

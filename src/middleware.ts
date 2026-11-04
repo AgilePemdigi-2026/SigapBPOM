@@ -11,7 +11,7 @@ import { AdapterSesiTiruan } from './lib/sesiTiruan';
 function buatAdapter(): AdapterSesi {
   if (!import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan') return new AdapterSesiTiruan();
   const konfigurasi = bacaKonfigurasiSupabase() ?? { url: '', kunciAnon: '' };
-  return new SesiSupabase({ ...konfigurasi, secure: import.meta.env.PROD });
+  return new SesiSupabase({ ...konfigurasi, kunciLogin: (process.env.SIGAP_KUNCI_LOGIN ?? '').trim(), secure: import.meta.env.PROD });
 }
 
 // NFR-12: SESI_IDLE_MENIT bisa diperkecil untuk pengujian, misalnya 1.
