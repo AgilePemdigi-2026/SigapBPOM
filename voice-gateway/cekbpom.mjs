@@ -13,8 +13,9 @@ const KATA_MEREK_MAKS = 3;
 const BARIS_MEREK_MAKS = 50;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
-// Pola nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
-const POLA_NOMOR = /\b(MD|ML|PIRT|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL|DBL|DKL|DTL|DPL|GBL|GKL|GTL)\s?-?\s?(\d[\d\s]{5,16}\d)\b/i;
+// Kode nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
+export const KODE_IZIN_EDAR = 'MD|ML|PIRT|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL|DBL|DKL|DTL|DPL|GBL|GKL|GTL';
+const POLA_NOMOR = new RegExp(`\\b(${KODE_IZIN_EDAR})\\s?-?\\s?(\\d[\\d\\s]{5,16}\\d)\\b`, 'i');
 const POLA_NIAT = /\b(terdaftar|daftar|izin edar|nomor (izin|registrasi|bpom|edar)|registrasi|legal|resmi|cek ?bpom|ada bpom|sudah bpom|udah bpom|bpom nya|bpomnya|cek produk|cekin|cek(kan)?)\b/i;
 // Pertanyaan cara atau alasan ("bagaimana cara cek nomor registrasi?") dijawab dari korpus, bukan dicari di cekbpom.
 const POLA_EDUKASI = /\b(bagaimana|gimana|cara|kenapa|mengapa|apa itu|apa arti|artinya|maksudnya|syarat|biaya|berapa lama)\b/i;

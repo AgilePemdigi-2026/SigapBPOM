@@ -12,7 +12,7 @@ import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, labelKueri, tabelCek } from './cekbpom.mjs';
 import { NAMA_TOOL as TOOL_CEK_REGISTRASI, PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
 import {
-  NAMA_TOOL as TOOL_PENGETAHUAN, PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel,
+  NAMA_TOOL as TOOL_PENGETAHUAN, PencariPengetahuanSupabase, cariBasisPengetahuan, kalimatSumber, pesanBasisPengetahuan, sumberUntukPanel,
 } from './alatPengetahuan.mjs';
 import {
   BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
@@ -412,6 +412,12 @@ async function giliran(req, res, url) {
         if (pertanyaanEskalasi === null) {
           riwayat.mulaiEskalasi(id, transkrip);
           riwayat.tambah(id, 'user', transkrip);
+          // SRS Tabel B.2 Alternative Path 2 langkah 7: basis pengetahuan dicari dan tercatat di log_tool, tetapi hasilnya
+          // dibuang karena pertanyaan medis tidak dijawab AI (NFR-6). Status eskalasi sudah diambil sebelum await.
+          await cariBasisPengetahuan({
+            pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)),
+            saatLokal: (ms, berhasil) => pencatat.tool(id, TOOL_PENGETAHUAN, ms, berhasil),
+          });
           jawaban = PESAN_BUTUH_PETUGAS;
           suara = '/voice/statis/butuh-petugas';
         } else {
@@ -500,7 +506,7 @@ async function giliran(req, res, url) {
           saatLokal: (ms, berhasil) => pencatat.tool(id, TOOL_PENGETAHUAN, ms, berhasil),
         });
         kutipan = basis.kutipan.slice(0, KUTIPAN_MAKS);
-        konteks = pesanBasisPengetahuan(kutipan, basis.mode);
+        konteks = pesanBasisPengetahuan(kutipan);
       }
       if (batal.signal.aborted) return;
       if (cek?.jawaban) {
@@ -558,8 +564,14 @@ async function giliran(req, res, url) {
       } else if (!susunan.isi.length) {
         jawaban = 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
         ucapkan(jawaban, terbitkanTokenSuara(jawaban, ip));
-      } else if (susunan.tawaran) {
-        ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
+      } else {
+        // NFR-8: jawaban edukasi ditutup kalimat Sumber dari rujukan kutipan, sebelum tawaran penutup.
+        const sumberLisan = susunan.lengkapiSumber(kalimatSumber(kutipan));
+        if (sumberLisan) {
+          ucapkan(sumberLisan, terbitkanTokenSuara(sumberLisan, ip));
+          jawaban = susunan.teks;
+        }
+        if (susunan.tawaran) ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
       }
       riwayat.tambah(id, 'assistant', jawaban);
       console.info(JSON.stringify({

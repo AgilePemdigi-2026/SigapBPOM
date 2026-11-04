@@ -1,6 +1,6 @@
 // Control UC-01/UC-02 Voice Gateway: aturan percakapan, riwayat per panggilan, dan pembatas laju.
 // Tanpa I/O agar bisa diuji dengan `node --test`.
-import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
+import { PESAN_BUTUH_PETUGAS, samarkanDeretTelepon } from './eskalasi.mjs';
 import { LAYANAN_PENGADUAN, jenisInteraksiDariMenu } from './pengaduan.mjs';
 
 /** Kamus pesan PRD-rinci Lampiran A (UC-01, UC-02 "Panggilan tersambung", REQ-1.1). */
@@ -35,11 +35,11 @@ const SESI_MAKS = 200;
 export const PROMPT_SISTEM = `Anda adalah CS AI HaloBPOM, asisten suara resmi layanan HaloBPOM (Badan Pengawas Obat dan Makanan).
 Anda berbicara lewat telepon, jadi tulis jawaban persis seperti petugas call center yang ramah sedang bicara, bukan seperti menulis artikel:
 - Pakai bahasa Indonesia lisan yang sopan dan luwes, seperti mengobrol, bukan membacakan teks. Hindari kata Anda; bila perlu menyapa, pakai Bapak atau Ibu tanpa menebak salah satunya.
-- Paling banyak dua kalimat pendek, masing-masing kira-kira lima belas kata, belum termasuk kalimat penutup. Kalimat pertama langsung menjawab inti pertanyaan. Jangan pakai titik koma, tanda kurung, garis miring, atau kata kaku seperti berupa, serta, adapun, dan tersebut. Jangan mengawali setiap jawaban dengan kata yang sama.
-- Contoh gaya yang diharapkan: "BPOM itu lembaga yang mengawasi obat, makanan, dan kosmetik di Indonesia. Tugasnya memastikan produk yang beredar aman dipakai."
+- Paling banyak dua kalimat pendek, masing-masing kira-kira lima belas kata, belum termasuk kalimat sumber dan kalimat penutup. Kalimat pertama langsung menjawab inti pertanyaan. Jangan pakai titik koma, tanda kurung, garis miring, atau kata kaku seperti berupa, serta, adapun, dan tersebut. Jangan mengawali setiap jawaban dengan kata yang sama.
+- Contoh gaya yang diharapkan: "Suplemen kesehatan wajib memiliki izin edar BPOM sebelum diedarkan."
 - Jangan pakai markdown, daftar, emoji, atau tautan panjang. Tulis angka seperti diucapkan.
-Layanan 1, informasi produk: cek status registrasi produk dan jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM.
-Bila diberi kutipan peraturan BPOM, utamakan isi kutipan dan sebutkan peraturannya secara singkat. Bila kutipan tidak menjawab dan Anda tidak yakin, katakan belum bisa memastikan dan sarankan menghubungi petugas HaloBPOM.
+Layanan 1, informasi produk: cek status registrasi produk dan jawab pertanyaan edukasi umum tentang obat, makanan, kosmetik, dan tugas BPOM hanya dari kutipan basis pengetahuan.
+Bila diberi kutipan peraturan BPOM, jawab dari isi kutipan dan sebutkan peraturannya secara singkat. Pertanyaan edukasi yang tidak terjawab oleh kutipan dijawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}
 Aturan wajib:
 - Status registrasi dan nomor izin edar hanya boleh disebut bila ada pesan sistem berjudul Hasil pencarian data registrasi BPOM, dan hanya data dari pesan itu. Tanpa pesan itu, JANGAN menyebut status atau nomor apa pun. Minta penelepon menyebutkan nama produk atau nomor izin edar di kemasan, atau sarankan memeriksa di cekbpom.pom.go.id.
 - Jangan memberi nasihat medis, dosis, diagnosis, atau penilaian aman tidaknya suatu produk untuk kondisi tertentu. Untuk pertanyaan seperti itu, jawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}
@@ -171,10 +171,23 @@ export class SusunanJawaban {
     if (ringkas.includes('diteruskan kepada petugas')
       || (ringkas.length >= 20 && sederhanakan(this.pesanButuhPetugas).startsWith(ringkas))) { this.khusus = 'butuh_petugas'; return null; }
     if (POLA_TAWARAN.test(ringkas)) { this.tawaran = true; return null; }
+    // Kalimat Sumber dari AI menutup isi jawaban dan tidak diucapkan; gateway mengucapkan Sumber baku dari rujukan kutipan (NFR-8).
+    if (/^sumber\s*:/i.test(k)) { this.maks = this.isi.length; return null; }
     if (this.isi.length >= this.maks) return null;
     if (k.length > KALIMAT_MAKS_KAR) k = `${k.slice(0, KALIMAT_MAKS_KAR).replace(/\s+\S*$/, '')}…`;
     this.isi.push(k);
     return k;
+  }
+
+  /**
+   * NFR-8, REQ-1.6: tambahkan kalimat "Sumber: <rujukan>." setelah isi jawaban edukasi, sebelum tawaran penutup.
+   * Tidak ditambahkan pada jawaban baku, jawaban kosong, atau jawaban yang merujuk ke cekbpom. Mengembalikan kalimat yang
+   * harus diucapkan, atau null.
+   */
+  lengkapiSumber(kalimat) {
+    if (!kalimat || this.khusus || !this.isi.length || /cekbpom/i.test(this.teks)) return null;
+    this.isi.push(kalimat);
+    return kalimat;
   }
 
   /** Teks yang benar-benar diucapkan, untuk riwayat dan log. */
@@ -343,7 +356,8 @@ export class RiwayatPanggilan {
 
   tambah(id, peran, isi) {
     const pesan = this.ambil(id);
-    pesan.push({ role: peran, content: isi });
+    // NFR-13: deret nomor telepon penelepon tidak ikut dikirim ke model.
+    pesan.push({ role: peran, content: peran === 'user' ? samarkanDeretTelepon(isi) : isi });
     if (pesan.length > GILIRAN_RIWAYAT_MAKS * 2) pesan.splice(0, pesan.length - GILIRAN_RIWAYAT_MAKS * 2);
   }
 
@@ -395,9 +409,10 @@ export class RiwayatPanggilan {
     return this.sesi.get(id).eskalasi;
   }
 
+  /** `pertanyaan` menjadi ringkasan tiket ESK untuk petugas, jadi deret nomor telepon di dalamnya disamarkan (NFR-13). */
   mulaiEskalasi(id, pertanyaan) {
     this.ambil(id);
-    this.sesi.get(id).eskalasi = pertanyaan;
+    this.sesi.get(id).eskalasi = samarkanDeretTelepon(pertanyaan);
   }
 
   selesaiEskalasi(id) {

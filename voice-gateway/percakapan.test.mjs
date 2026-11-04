@@ -33,6 +33,12 @@ test('nfr_7 prompt sistem melarang menyebut status legalitas tanpa data registra
   assert.match(PROMPT_SISTEM, /Jangan pernah mengarang nomor tiket/);
 });
 
+test('req_1_7 nfr_8 prompt sistem mengeskalasi pertanyaan edukasi yang tidak terjawab dan tidak memberi contoh jawaban tanpa sumber', () => {
+  assert.doesNotMatch(PROMPT_SISTEM, /sarankan menghubungi petugas/);
+  assert.doesNotMatch(PROMPT_SISTEM, /BPOM itu lembaga/);
+  assert.ok(PROMPT_SISTEM.includes(`Pertanyaan edukasi yang tidak terjawab oleh kutipan dijawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}`));
+});
+
 test('req_2_1 prompt sistem mengarahkan pengaduan ke tekan 2 dan tidak mengumpulkan data pengaduan', () => {
   assert.doesNotMatch(PROMPT_SISTEM, /tanyakan satu per satu/);
   assert.doesNotMatch(PROMPT_SISTEM, /pengaduan selesai diringkas/);
@@ -186,6 +192,28 @@ test('jawaban baku butuh petugas atau di luar topik setelah kalimat isi tetap di
   assert.equal(luar.susunan.khusus, 'di_luar_topik');
 });
 
+test('nfr_8 req_1_6 kalimat Sumber dari AI dilewati dan gateway menutup isi dengan sumber baku', () => {
+  const isi = 'Suplemen kesehatan wajib memiliki izin edar BPOM sebelum diedarkan.';
+  // Rujukan bergaya "No." terpecah di singkatannya; sisa kalimat Sumber tidak boleh terucap sebagai isi.
+  const { diucapkan, susunan } = alirkan(`${isi} Sumber: Peraturan BPOM No. 17 Tahun 2019. ${PESAN_TAWARAN_PENUTUP}`);
+  assert.deepEqual(diucapkan, [isi]);
+  assert.ok(susunan.tawaran);
+  const sumber = 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019.';
+  assert.equal(susunan.lengkapiSumber(sumber), sumber);
+  // SRS Tabel B.2 Alternative Path 1.
+  assert.equal(susunan.teks, `${isi} ${sumber} ${PESAN_TAWARAN_PENUTUP}`);
+  assert.deepEqual(alirkan(`${isi} Sumber: Peraturan BPOM No. 17 Tahun 2019.`).diucapkan, [isi]);
+});
+
+test('nfr_8 sumber tidak ditambahkan pada jawaban baku, jawaban cekbpom, atau jawaban kosong', () => {
+  const sumber = 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019.';
+  assert.equal(alirkan('Suplemen kesehatan wajib memiliki izin edar BPOM sebelum diedarkan.').susunan.lengkapiSumber(null), null);
+  assert.equal(alirkan(PESAN_BUTUH_PETUGAS).susunan.lengkapiSumber(sumber), null);
+  assert.equal(alirkan(PESAN_DI_LUAR_TOPIK).susunan.lengkapiSumber(sumber), null);
+  assert.equal(new SusunanJawaban(PESAN_BUTUH_PETUGAS).lengkapiSumber(sumber), null);
+  assert.equal(alirkan('Nomor izin edar bisa diperiksa langsung di cekbpom.pom.go.id ya.').susunan.lengkapiSumber(sumber), null);
+});
+
 /** Stream AI tiruan yang mencatat berapa potongan sudah dibaca dan apakah stream sudah ditutup. */
 function aliranTiruan(potongan) {
   const jejak = { dibaca: 0, ditutup: false };
@@ -283,6 +311,19 @@ test('riwayat panggilan menyimpan giliran, dibatasi, dan kedaluwarsa', () => {
   assert.equal(r.ambil(ID).length, 24);
   t += 16 * 60 * 1000;
   assert.equal(r.ambil(ID).length, 0);
+});
+
+test('nfr_13 riwayat model dan ringkasan tiket ESK tidak memuat deret nomor telepon', () => {
+  const r = new RiwayatPanggilan();
+  r.tambah(ID, 'user', '0812 345');
+  r.tambah(ID, 'user', 'nol delapan satu dua tiga');
+  r.tambah(ID, 'user', 'Apakah obat X aman untuk ibu hamil? nomor saya 0812-3456-7890');
+  r.tambah(ID, 'user', 'Apakah POM TR 083 245 461 terdaftar?');
+  const model = JSON.stringify(r.untukModel(ID));
+  assert.doesNotMatch(model, /0812|nol delapan/);
+  assert.ok(model.includes('Apakah POM TR 083 245 461 terdaftar?'));
+  r.mulaiEskalasi(ID, 'Apakah obat X aman untuk ibu hamil? nomor saya 0812-3456-7890');
+  assert.equal(r.eskalasi(ID), 'Apakah obat X aman untuk ibu hamil? nomor saya (nomor telepon)');
 });
 
 test('pembatas laju menolak setelah batas lalu pulih setelah jendela', () => {
