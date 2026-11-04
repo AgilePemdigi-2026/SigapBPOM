@@ -13,7 +13,7 @@ Semua endpoint kecuali `/api/login` berada di balik middleware sesi (`src/middle
 | `POST /api/login` | `{ email, password }` | `{ nama }`, pesan "Login berhasil!" | 400 body bukan objek JSON; 422 "Login gagal. Semua field harus diisi!"; 401 "Login gagal. Email atau password Anda salah." atau "Akses dikunci sementara. Hubungi administrator."; 429 batas laju per IP (20 per 15 menit, `LOGIN_PERCOBAAN_MAKS`); 503 "Terjadi kesalahan pada sistem." |
 | `POST /api/keluar` | - | `null` | - |
 | `POST /api/sesi` | - | `null`. Dipanggil browser untuk melaporkan aktivitas petugas | 401 bila sesi sudah berakhir |
-| `GET /api/panggilan-berjalan` | - | `{ panggilan: [{ id, noTelp, jenis, topik, waktuMulai, tahap }] }`, nomor telepon tersamar. Di-polling halaman Panggilan Berjalan setiap 5 detik dan tidak dihitung sebagai aktivitas | 500 "Data panggilan gagal dimuat." |
+| `GET /api/panggilan-berjalan` | - | `{ panggilan: [{ id, noTelp, jenis, topik, waktuMulai, tahap }] }`, nomor telepon tersamar. Di-polling halaman Panggilan Berjalan setiap 5 detik dan pill topbar di setiap halaman dashboard setiap 15 detik, tanpa dihitung sebagai aktivitas | 500 "Data panggilan gagal dimuat." |
 | `POST /api/simpan-materi` | `{ judul, kategori?, isi?, rujukan }`, paling besar 256 KB | Diteruskan dari Edge Function `simpan-materi` beserta kodenya | 400 body kosong atau terlalu besar; 4xx dari Edge Function; 500 "Terjadi kesalahan pada sistem." |
 | `POST /api/materi/:id/nonaktifkan` | - | `null`, pesan "Materi ditandai tidak aktif." | 400, 404, atau 500 dengan pesan "Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi." |
 
@@ -38,7 +38,7 @@ Dilayani `voice-gateway/server.mjs` di balik reverse proxy (ADR 0004). Alasan be
 
 | Metode dan path | Body | Respons sukses | Galat |
 |---|---|---|---|
-| `GET /voice/kesehatan` | - | `data: { siap, korpus, katalog: { status, materi, nonaktif, tambahan, tanpaKatalog }, cekbpom: { aktif, sehat?, latensiMs?, waktu? } }`. `siap` bernilai true bila kunci ElevenLabs dan Hermes terpasang. Dibaca server dashboard untuk halaman Pantau AI Agent | - |
+| `GET /voice/kesehatan` | - | `data: { siap, korpus, katalog: { status, materi, nonaktif, tambahan, tanpaKatalog }, hermes, stt, tts, cekbpom: { aktif, sehat?, latensiMs?, waktu? } }`. `hermes`, `stt`, dan `tts` bernilai `{ sehat, latensiMs, waktu }` dari panggilan nyata terakhir, atau null sebelum panggilan pertama sejak gateway mulai. `siap` bernilai true bila kunci ElevenLabs dan Hermes terpasang. Dibaca server dashboard untuk halaman Pantau AI Agent | - |
 | `GET /voice/statis/:nama` | - | `audio/mpeg` pesan tetap, dirender sekali lalu di-cache 1 jam. `nama`: `menu`, `layanan-1`, `layanan-2`, `di-luar-topik`, `penutup`, `butuh-petugas`, `ulang-telepon`, `tawaran-penutup`, `jeda`, `minta-nama-produk`, `minta-kronologi`, `minta-nama`, `tidak-ditemukan`, `nama-tidak-jelas` | 404 "Suara tidak ditemukan." |
 | `GET /voice/suara/:token` | - | `audio/mpeg` satu kalimat jawaban. Token berasal dari baris `kalimat`, berlaku 2 menit, dan bisa diminta ulang dengan header `Range` | 404 "Suara tidak ditemukan.", 416 rentang tidak valid |
 | `POST /voice/giliran` | JSON `{ id, pilih }`, `pilih` 1 atau 2 | `data: { transkrip: null, jawaban, suara }` | 400 "Permintaan tidak valid.", 422 "Pilihan layanan tidak dikenal.", 429 "Terlalu banyak permintaan. Coba lagi sebentar lagi." |
@@ -57,5 +57,5 @@ Respons dimulai dengan status 200 dan `content-type: application/x-ndjson`. Seti
 | `cek` | `kueri`, `total`, `dibaca`, `galat`, `baris` | Tabel hasil cekbpom |
 | `kalimat` | `teks`, `suara` | Satu kalimat jawaban. `suara` adalah `/voice/suara/:token`, `/voice/statis/:nama`, atau null bila kuota suara habis |
 | `ganti` | - | Kalimat yang sudah dikirim dibuang karena jawaban diganti pesan baku |
-| `selesai` | `sumber?`, `produk?`, `tiket?`, `pengaduan?`, `akhiri?` | Baris terakhir. `akhiri: true` berarti panel menutup panggilan |
+| `selesai` | `sumber?`, `produk?`, `tiket?`, `pengaduan?`, `akhiri?`, `layanan?` | Baris terakhir. `akhiri: true` berarti panel menutup panggilan. `layanan` (1 atau 2) berarti ucapan penelepon memilih menu itu, dan panel berpindah ke layanan tersebut. Gateway saat ini hanya mengirim 2, dari ucapan "dua" atau niat mengadu setelah tawaran tekan 2 |
 | `galat` | `message` | Galat setelah aliran dimulai, dengan pesan dari kamus Lampiran A |
