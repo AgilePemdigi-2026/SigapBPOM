@@ -1,11 +1,10 @@
 ---
 // Boundary UC-04 Memantau Layanan, halaman Ringkasan Layanan (REQ-4.1, T-F5.1-02).
-// Grafik beban panggilan dan kinerja AI belum punya sumber data; keduanya tetap kosong.
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Orb from '../components/Orb.astro';
-import { KB_TOTAL } from '../lib/data';
+import { KB_TOTAL, chip } from '../lib/data';
 import { pemantauanLayanan } from '../lib/pemantauan';
-import { PESAN_PEMANTAUAN } from '../lib/PemantauanLayananController';
+import { PESAN_PEMANTAUAN, sapaan } from '../lib/PemantauanLayananController';
 import { BasisPengetahuanController } from '../lib/BasisPengetahuanController';
 import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
 import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
@@ -16,6 +15,8 @@ const PERIODE = [
   ['bulanan', 'Bulanan', 'Panggilan masuk per hari · bulan ini'],
 ] as const;
 const AWAL = 'mingguan';
+// Label sumbu grafik beban paling banyak sekian, agar 24 jam atau 31 hari tidak saling tumpuk.
+const LABEL_SUMBU_MAKS = 8;
 
 const fmt = (n: number) => n.toLocaleString('id-ID');
 const konfigurasi = bacaKonfigurasiSupabase();
@@ -26,9 +27,13 @@ const materiTotal = async () => {
   const hasil = await new BasisPengetahuanController(new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })).daftarMateri({ ukuran: 1 });
   return 'total' in hasil ? hasil.total : null;
 };
-const [ringkasan, jumlahMateri] = await Promise.all([
-  pemantauanLayanan(token).ringkasanLayanan().catch(() => null),
+const pemantauan = pemantauanLayanan(token);
+const [ringkasan, jumlahMateri, beban, agent] = await Promise.all([
+  pemantauan.ringkasanLayanan().catch(() => null),
   materiTotal().catch(() => null),
+  // null juga bila view beban_panggilan_per_jam belum diterapkan di basis data.
+  pemantauan.bebanPanggilan().catch(() => null),
+  pemantauan.pantauAgent(),
 ]);
 // Ringkasan gagal dimuat dibedakan dari layanan yang memang belum punya data.
 const gagal = ringkasan === null;
@@ -39,6 +44,9 @@ const WARNA_KATEGORI = ['#2f6bf5', '#16a34a', '#f5b70f', '#6d4aff', '#0e9fb8', '
 const totalKategori = KATEGORI.reduce((n, k) => n + k.jumlah, 0);
 const maxKategori = Math.max(1, ...KATEGORI.map((k) => k.persen));
 const berjalan = st?.panggilanBerjalan ?? 0;
+const kinerja = ringkasan?.kinerja;
+const lebarBar = (n: number) => Math.min(100, (n / Math.max(1, st?.panggilanHariIni ?? 0)) * 100);
+const agentNormal = agent.komponen.every((k) => k.status === 'Normal');
 const STATISTIK = [
   { label: 'Panggilan Hari Ini', value: st?.panggilanHariIni, sub: st?.panggilanHariIni ? 'Sejak 00.00 WIB' : 'Belum ada panggilan', icon: 'icon-phone-incoming', bg: '#e3ecff', fg: '#2f6bf5' },
   { label: 'Dijawab Otomatis AI', value: st?.jawabanOtomatisAi, sub: st?.jawabanOtomatisAi ? 'Selesai tanpa petugas' : 'Belum ada jawaban AI', icon: 'icon-bot', bg: '#dcf5e6', fg: '#16a34a' },
@@ -54,20 +62,47 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         <div class="load-head">
           <div class="load-title">
             <h1 class="eyebrow" id="load-title">BEBAN PANGGILAN</h1>
-            <div class="load-total"><span class="big">0</span><span class="unit">panggilan</span></div>
+            {PERIODE.map(([k]) => <div class="load-total" data-periode={k} hidden={k !== AWAL}><span class="big">{beban ? fmt(beban[k].total) : '—'}</span><span class="unit">panggilan</span></div>)}
             {PERIODE.map(([k, , sub]) => <span class="muted" data-periode={k} hidden={k !== AWAL}>{sub}</span>)}
           </div>
           <div class="seg" role="group" aria-label="Periode beban panggilan">
             {PERIODE.map(([k, label]) => <button data-load={k} aria-pressed={k === AWAL ? 'true' : 'false'}>{label}</button>)}
           </div>
         </div>
-        <div class="chart empty">
-          <i class="icon-phone-incoming"></i>
-          <span>Belum ada panggilan pada periode ini.</span>
-          <span class="muted">Grafik terisi otomatis begitu penelepon menghubungi CS AI.</span>
-        </div>
+        {PERIODE.map(([k]) => {
+          const b = beban?.[k];
+          if (!b?.total) return (
+            <div class="chart empty" data-periode={k} hidden={k !== AWAL}>
+              {beban ? (
+                <Fragment><i class="icon-phone-incoming"></i><span>Belum ada panggilan pada periode ini.</span><span class="muted">Grafik terisi otomatis begitu penelepon menghubungi CS AI.</span></Fragment>
+              ) : (
+                <Fragment><i class="icon-file-x"></i><span>{PESAN_PEMANTAUAN.panggilanGagalDimuat}</span></Fragment>
+              )}
+            </div>
+          );
+          const maks = Math.max(...b.kolom.map((x) => x.total));
+          const langkah = Math.ceil(b.kolom.length / LABEL_SUMBU_MAKS);
+          // Kolom bertumpuk dari bawah: dijawab AI, dieskalasi, lalu sisa (berjalan, tiket terbit, status lain) abu-abu.
+          return (
+            <div class="chart plot" data-periode={k} hidden={k !== AWAL} aria-hidden="true">
+              {b.kolom.map((x, i) => (
+                <div class="col" title={`${x.label} · ${fmt(x.total)} panggilan`}>
+                  <div class="area">
+                    <div class="stack" style={`height:${(x.total / maks) * 100}%`}>
+                      {[[x.dijawabAi, '#3b74f6'], [x.dieskalasi, '#f5b70f'], [x.total - x.dijawabAi - x.dieskalasi, '#c9ced6']].map(([n, warna]) => n ? <span style={`flex:${n};background:${warna}`}></span> : null)}
+                    </div>
+                  </div>
+                  <span class="tick">{i % langkah === 0 ? x.label : ''}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
         <div class="legend">
-          <span class="leg"><span class="dot" style="width:8px;height:8px;background:#22c55e"></span>Puncak panggilan: —</span>
+          {PERIODE.map(([k]) => {
+            const p = beban?.[k].puncak;
+            return <span class="leg" data-periode={k} hidden={k !== AWAL}><span class="dot" style="width:8px;height:8px;background:#22c55e"></span>Puncak panggilan: {p ? `${p.label} · ${fmt(p.total)} panggilan` : '—'}</span>;
+          })}
           <span class="grow"></span>
           <span class="leg"><span class="dot" style="background:#3b74f6"></span>Dijawab AI</span>
           <span class="leg"><span class="dot" style="background:#f5b70f"></span>Dieskalasi</span>
@@ -80,14 +115,26 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
           <a href="/riwayat-percakapan" class="link">Lihat detail<i class="icon-chevron-right"></i></a>
         </div>
         <div class="donut-row">
-          <div class="donut" style="background:#e4e7ec" role="img" aria-label="Belum ada data penyelesaian">
-            <div><span>—</span><span>%</span></div>
-          </div>
-          <div class="donut-text"><span>Belum ada data</span><span>Persentase pertanyaan yang dijawab AI tampil setelah ada panggilan.</span></div>
+          {kinerja?.persen == null ? (
+            <div class="donut" style="background:#e4e7ec" role="img" aria-label="Belum ada data penyelesaian">
+              <div><span>—</span><span>%</span></div>
+            </div>
+          ) : (
+            <div class="donut" style={`background:conic-gradient(#3b74f6 ${kinerja.persen * 3.6}deg, #e4e7ec 0)`} role="img" aria-label={`Tingkat Penyelesaian ${kinerja.persen}%`}>
+              <div><span>{kinerja.persen}</span><span>%</span></div>
+            </div>
+          )}
+          {/* Saat gagal dimuat, tile panggilan berjalan di bawah sudah menampilkan pesan kamus. */}
+          {kinerja && (kinerja.persen == null ? (
+            <div class="donut-text"><span>Belum ada data</span><span>Persentase pertanyaan yang dijawab AI tampil setelah ada panggilan.</span></div>
+          ) : (
+            <div class="donut-text"><span>Selesai tanpa petugas</span><span>{fmt(kinerja.jawabanAi)} dari {fmt(st!.panggilanHariIni)} panggilan hari ini</span></div>
+          ))}
         </div>
         <div class="bars">
-          <div class="bar"><div class="bar-row"><span>Jawaban AI</span><span class="mono">0</span></div><div class="track"></div></div>
-          <div class="bar"><div class="bar-row"><span>Eskalasi petugas</span><span class="mono">0</span></div><div class="track"></div></div>
+          {([['Jawaban AI', kinerja?.jawabanAi, '#3b74f6'], ['Eskalasi petugas', kinerja?.eskalasi, '#f5b70f']] as const).map(([nama, n, warna]) => (
+            <div class="bar"><div class="bar-row"><span>{nama}</span><span class="mono">{n === undefined ? '—' : fmt(n)}</span></div><div class="track">{n ? <div style={`width:${lebarBar(n)}%;background:${warna}`}></div> : null}</div></div>
+          ))}
         </div>
         <span class="grow"></span>
         <a href="/panggilan-berjalan" class="tile live-link" data-name="JumlahPanggilanBerjalan"><span class={berjalan ? 'dot-live' : 'dot-idle'}></span><span class="live-text">{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : 'Tidak ada panggilan berjalan'}</span><span class="live-go">Lihat<i class="icon-arrow-up-right"></i></span></a>
@@ -114,13 +161,14 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         {!gagal && urgent.length === 0 && <div class="empty-card"><i class="icon-circle-check"></i><span>Tidak ada kasus yang perlu ditindaklanjuti.</span></div>}
         {urgent.map((u, i) => i === 0 ? (
           <div class="case-first">
-            <div class="case-row"><span class="mono case-no">{u.noTiket}</span><span class="grow"></span><span class="case-wait"><span></span>{u.menunggu}</span></div>
+            <div class="case-row"><span class="mono case-no">{u.noTiket}</span><span class="chip" style={`background:${chip(u.status).bg};color:${chip(u.status).fg}`}>{u.status}</span><span class="grow"></span><span class="case-wait"><span></span>{u.menunggu}</span></div>
             <span class="case-ring">{u.ringkasan}</span>
             <div class="case-row"><span class="case-meta"><i class="icon-clock"></i>{u.waktu}</span><span class="case-meta"><i class="icon-tag"></i>{u.jenis}</span><span class="grow"></span><a href={`/pengaduan/detail?tiket=${u.noTiket}`} class="case-open">Buka Kasus</a></div>
           </div>
         ) : (
           <div class="tile case-rest">
             <span class="case-rest-text"><span class="mono">{u.noTiket} · {u.waktu}</span><span>{u.ringkasan}</span></span>
+            <span class="chip" style={`background:${chip(u.status).bg};color:${chip(u.status).fg}`}>{u.status}</span>
             <a href={`/pengaduan/detail?tiket=${u.noTiket}`} class="case-open alt">Buka Kasus</a>
           </div>
         ))}
@@ -143,7 +191,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 
       <section class="panel card greet">
         <Orb size={104} />
-        <span class="greet-text">Selamat pagi, {namaDepan}<br />{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : 'Belum ada panggilan berjalan'}</span>
+        <span class="greet-text">Selamat {sapaan(new Date())}, {namaDepan}<br />{gagal ? PESAN_PEMANTAUAN.panggilanGagalDimuat : berjalan ? `${fmt(berjalan)} panggilan berjalan` : 'Belum ada panggilan berjalan'}</span>
         <div class="greet-actions">
           <a href="/tiket-eskalasi" class="pill sm"><i class="icon-ticket"></i>Antrean tiket</a>
           <a href="/basis-pengetahuan?tambah=1" class="pill sm"><i class="icon-plus"></i>Tambah Materi</a>
@@ -151,7 +199,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         </div>
         <span class="grow"></span>
         <a href="/pantau-ai-agent" class="tile agent">
-          <span class="dot-idle"></span>
+          <span class={agentNormal ? 'dot-live' : 'dot-idle'}></span>
           <span class="agent-text"><span>Pantau AI Agent</span><span>Basis pengetahuan · {jumlahMateri === null ? '—' : fmt(jumlahMateri)} materi</span></span>
           <i class="icon-arrow-up-right"></i>
         </a>
@@ -161,12 +209,36 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 </DashboardLayout>
 
 <script>
-  // Tab periode beban panggilan.
-  document.querySelectorAll<HTMLElement>('[data-load]').forEach((b) => b.addEventListener('click', () => {
-    const p = b.dataset.load!;
-    document.querySelectorAll<HTMLElement>('[data-load]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  // Tab periode beban panggilan. Delegasi di document, karena isi halaman diganti saat pembaruan otomatis.
+  let periode = document.querySelector<HTMLElement>('[data-load][aria-pressed="true"]')!.dataset.load!;
+  function pilih(p: string) {
+    periode = p;
+    document.querySelectorAll<HTMLElement>('[data-load]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.load === p)));
     document.querySelectorAll<HTMLElement>('[data-periode]').forEach((el) => (el.hidden = el.dataset.periode !== p));
-  }));
+  }
+  document.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest<HTMLElement>('[data-load]');
+    if (b) pilih(b.dataset.load!);
+  });
+
+  // Pembaruan otomatis ringkasan: halaman diambil ulang sebagai request latar (X-Sigap-Latar, tidak dihitung aktivitas
+  // NFR-12), lalu isi .page diganti. Dilewati saat tab tersembunyi atau fokus keyboard berada di halaman, agar fokus tidak
+  // hilang. Badge sidebar dan notifikasi baru diperbarui saat navigasi berikutnya.
+  const JEDA_SEGAR_RINGKASAN_MS = 30_000;
+  setInterval(async () => {
+    if (document.hidden || document.querySelector('.page :focus-visible')) return;
+    try {
+      const r = await fetch(location.pathname, { headers: { 'X-Sigap-Latar': '1' }, cache: 'no-store' });
+      if (r.redirected) return location.replace('/login');
+      if (!r.ok) return;
+      const baru = new DOMParser().parseFromString(await r.text(), 'text/html').querySelector('.page');
+      if (!baru) return;
+      document.querySelector('.page')!.replaceWith(baru);
+      pilih(periode);
+    } catch {
+      // Galat jaringan: isi lama tetap tampil sampai jeda berikutnya.
+    }
+  }, JEDA_SEGAR_RINGKASAN_MS);
 </script>
 
 <style>
@@ -190,6 +262,13 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .seg button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent; background: transparent; font-size: 15px; color: #4b5260; }
   .seg button[aria-pressed='true'] { border-color: #fff; background: var(--surface); box-shadow: 0 2px 8px rgba(16, 24, 40, .1); font-weight: 500; color: var(--ink); }
   .chart { flex: 1; min-height: 0; position: relative; }
+  .plot { display: flex; gap: 4px; }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .area { flex: 1; min-height: 0; display: flex; align-items: flex-end; }
+  .stack { width: 100%; display: flex; flex-direction: column-reverse; gap: 2px; }
+  .stack span { min-height: 2px; border-radius: 2px; }
+  .stack span:last-child { border-radius: 4px 4px 2px 2px; }
+  .tick { height: 16px; font-size: 12px; color: var(--muted); text-align: center; white-space: nowrap; }
   .chart.empty, .empty-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: 16px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; }
   .chart.empty i, .empty-card i { font-size: 26px; color: var(--muted-2); }
   .empty-card { flex: 1; padding: 20px; }

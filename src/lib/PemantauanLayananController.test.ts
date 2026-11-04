@@ -5,6 +5,8 @@ import {
   PemantauanLayananController,
   PenyimpananPemantauanMock,
   ringkasPanggilan,
+  sapaan,
+  susunBeban,
   type DataRingkasanLayanan,
   type PemeriksaKesehatanAgent,
 } from './PemantauanLayananController.ts';
@@ -186,7 +188,8 @@ const supabasePalsu = (tanggapi: (url: URL, init: RequestInit) => Response) => {
 test('t_f5_1_02 REQ-4.1 adapter tiruan mengembalikan statistik sesuai data dummy', async () => {
   const r = await pantau().ringkasanLayanan(SEKARANG);
   assert.deepEqual(r.statistik, { panggilanHariIni: 5, jawabanOtomatisAi: 1, tiketEskalasiBaru: 1, pengaduanSelesai: 1, panggilanBerjalan: 2 });
-  assert.equal(r.tiketBelumDitelaah, 2);
+  // Hanya ESK-20261030-0001; ADU-20261030-0001 tiket pengaduan.
+  assert.equal(r.tiketBelumDitelaah, 1);
   // p-6 (30 jam lalu) dan p-7 (3 hari lalu) masih dalam tujuh hari terakhir; p-2 belum punya topik.
   assert.deepEqual(r.kategori, [
     { label: 'Kosmetik', jumlah: 3, persen: 50 },
@@ -202,6 +205,90 @@ test('t_f5_1_02 REQ-4.1 kasus perlu tindak lanjut hanya tiket belum ditelaah, te
     ['ADU-20261030-0001', 'Pengaduan', '38 menit'],
     ['ESK-20261030-0001', 'Eskalasi AI', '1 jam'],
   ]);
+});
+
+test('t_f5_1_02 REQ-4.1 sub-label belum ditelaah hanya menghitung tiket eskalasi terbit hari ini', async () => {
+  const data = contohPemantauan(SEKARANG);
+  const tiket = (id: string, jenis: 'pengaduan' | 'eskalasi', status: 'belum_ditelaah' | 'sedang_ditelaah', tglTerbit: string) =>
+    ({ id, noTiket: `${jenis === 'eskalasi' ? 'ESK' : 'ADU'}-20261030-000${id}`, jenis, percakapanId: 'p-4', ringkasan: '', status, tglTerbit });
+  data.tiket = [
+    tiket('1', 'eskalasi', 'belum_ditelaah', '2026-10-30T01:00:00Z'),
+    tiket('2', 'pengaduan', 'belum_ditelaah', '2026-10-30T01:00:00Z'),
+    // 29 Okt 23.00 WIB: kemarin menurut Asia/Jakarta walau tanggal UTC-nya sama dengan tiket lain.
+    tiket('3', 'eskalasi', 'belum_ditelaah', '2026-10-29T16:00:00Z'),
+    tiket('4', 'eskalasi', 'sedang_ditelaah', '2026-10-30T01:00:00Z'),
+  ];
+  assert.equal((await pantau(data).ringkasanLayanan(SEKARANG)).tiketBelumDitelaah, 1);
+});
+
+test('t_f5_1_02 REQ-4.1 SRS 3.1.4 kasus perlu tindak lanjut memuat status', async () => {
+  const r = await pantau().ringkasanLayanan(SEKARANG);
+  assert.ok(r.kasus.length > 0);
+  assert.ok(r.kasus.every((k) => k.status === 'Belum Ditelaah'));
+});
+
+test('t_f5_1_02 REQ-4.1 Kinerja AI dihitung dari kartu Statistik Hari Ini', async () => {
+  const r = await pantau().ringkasanLayanan(SEKARANG);
+  // Tingkat Penyelesaian = KPI Deflection: jawaban AI dibagi panggilan hari ini.
+  assert.deepEqual(r.kinerja, { jawabanAi: r.statistik.jawabanOtomatisAi, eskalasi: r.statistik.tiketEskalasiBaru, persen: Math.round((1 * 100) / 5) });
+  const kosong = await pantau({ percakapan: [], tiket: [], logTool: [] }).ringkasanLayanan(SEKARANG);
+  assert.equal(kosong.kinerja.persen, null);
+});
+
+test('t_f5_1_02 REQ-4.1 Beban Panggilan harian berjumlah sama dengan Panggilan Hari Ini', async () => {
+  const c = pantau();
+  const [r, beban] = await Promise.all([c.ringkasanLayanan(SEKARANG), c.bebanPanggilan(SEKARANG)]);
+  assert.ok(beban);
+  assert.equal(beban.harian.total, r.statistik.panggilanHariIni);
+  assert.equal(beban.harian.kolom.reduce((n, k) => n + k.dijawabAi, 0), r.statistik.jawabanOtomatisAi);
+  // p-6 (kemarin) dan p-7 (tiga hari lalu) masuk Mingguan dan Bulanan (Oktober).
+  assert.equal(beban.mingguan.total, 7);
+  assert.equal(beban.bulanan.total, 7);
+  assert.equal(await new PemantauanLayananController(new PenyimpananPemantauanMock()).bebanPanggilan(SEKARANG), null);
+});
+
+test('t_f5_1_02 REQ-4.1 susunBeban mengelompokkan per jam hari ini, per hari tujuh hari terakhir, dan per hari bulan ini', () => {
+  const baris = (jam: string, total: number, dijawabAi = 0, dieskalasi = 0) => ({ jam, total, dijawabAi, dieskalasi });
+  const b = susunBeban(
+    [
+      baris('2026-09-30T23:00:00', 4),
+      baris('2026-10-23T08:00:00', 3),
+      baris('2026-10-24T08:00:00', 1),
+      baris('2026-10-30T08:00:00', 2, 1, 1),
+      baris('2026-10-30T09:00:00', 5, 3),
+    ],
+    SEKARANG,
+  );
+  assert.equal(b.harian.kolom.length, 24);
+  assert.deepEqual(b.harian.kolom[9], { label: '09:00', total: 5, dijawabAi: 3, dieskalasi: 0 });
+  assert.equal(b.harian.total, 7);
+  assert.deepEqual(b.harian.puncak, b.harian.kolom[9]);
+  // 23 Okt sudah tujuh hari lalu; 24 Okt kolom pertama Mingguan.
+  assert.equal(b.mingguan.kolom.length, 7);
+  assert.equal(b.mingguan.total, 8);
+  assert.deepEqual([b.mingguan.kolom[0].label, b.mingguan.kolom[0].total], ['Sab', 1]);
+  // 30 September di luar bulan ini.
+  assert.equal(b.bulanan.kolom.length, 30);
+  assert.equal(b.bulanan.total, 11);
+  assert.deepEqual([b.bulanan.puncak?.label, b.bulanan.puncak?.total], ['30 Okt', 7]);
+  assert.deepEqual(susunBeban([], SEKARANG).harian, { total: 0, puncak: null, kolom: susunBeban([], SEKARANG).harian.kolom });
+  assert.ok(susunBeban([], SEKARANG).bulanan.kolom.every((k) => k.total === 0));
+});
+
+test('t_f5_1_02 REQ-4.1 adapter Supabase membaca beban_panggilan_per_jam dengan token sesi petugas', async () => {
+  const { dipanggil, penyimpanan } = supabasePalsu(() => Response.json([{ jam: '2026-10-30T09:00:00', total: 4, dijawab_ai: 2, dieskalasi: 1 }]));
+  assert.deepEqual(await penyimpanan.ambilBebanPerJam(), [{ jam: '2026-10-30T09:00:00', total: 4, dijawabAi: 2, dieskalasi: 1 }]);
+  assert.equal(dipanggil[0].url.pathname, '/rest/v1/beban_panggilan_per_jam');
+  assert.equal(dipanggil[0].url.searchParams.get('select'), 'jam,total,dijawab_ai,dieskalasi');
+  assert.equal((dipanggil[0].init.headers as Record<string, string>).Authorization, 'Bearer tok');
+});
+
+test('t_f5_1_02 REQ-4.1 sapaan mengikuti jam Asia/Jakarta', () => {
+  const jam = (iso: string) => sapaan(new Date(iso));
+  assert.deepEqual(
+    ['2026-10-29T21:00:00Z', '2026-10-30T03:00:00Z', '2026-10-30T04:00:00Z', '2026-10-30T05:00:00Z', '2026-10-30T09:00:00Z', '2026-10-30T13:00:00Z', '2026-10-30T20:30:00Z'].map(jam),
+    ['pagi', 'pagi', 'siang', 'siang', 'sore', 'malam', 'malam'],
+  );
 });
 
 test('t_f5_1_02 tanpa data, ringkasan tetap jalan dengan angka nol', async () => {
@@ -374,6 +461,7 @@ test('t_f5_3_02 REQ-4.3 antrean memuat kolom tabel, belum ditelaah di urutan ter
     ringkasan: 'Keripik tanpa izin edar',
     jenis: 'Pengaduan',
     labelStatus: 'Belum Ditelaah',
+    noTelp: '—',
     tautanKasus: '/pengaduan/detail?tiket=ADU-20261030-0002',
     tautanTranskrip: '/riwayat-percakapan/detail?id=c2',
   });
@@ -392,17 +480,18 @@ test('t_f5_3_02 antrean kosong dan penyimpanan gagal dibedakan', async () => {
   assert.deepEqual(await new PemantauanLayananController(rusak.penyimpanan).antreanTiket(), { gagal: PESAN_PEMANTAUAN.detailGagalDimuat });
 });
 
-test('t_f5_3_02 adapter Supabase membaca antrean_tiket_petugas tanpa kolom data pribadi', async () => {
+test('t_f5_3_02 NFR-13 adapter Supabase membaca antrean_tiket_petugas hanya dengan nomor tersamar', async () => {
   const { dipanggil, penyimpanan } = supabasePalsu(() =>
     Response.json([
-      { tiket_id: 't1', no_tiket: 'ESK-20261030-0001', jenis_tiket: 'eskalasi', ringkasan: null, status_tiket: 'sedang_ditelaah', waktu_masuk: '2026-10-30T01:30:00+00:00', percakapan_id: 'c1' },
+      { tiket_id: 't1', no_tiket: 'ESK-20261030-0001', jenis_tiket: 'eskalasi', ringkasan: null, status_tiket: 'sedang_ditelaah', waktu_masuk: '2026-10-30T01:30:00+00:00', percakapan_id: 'c1', no_telp_tersamar: '0821****0098' },
     ]),
   );
   assert.deepEqual(await penyimpanan.ambilAntreanTiket(), [
-    { id: 't1', noTiket: 'ESK-20261030-0001', jenis: 'eskalasi', ringkasan: '', status: 'sedang_ditelaah', waktuMasuk: '2026-10-30T01:30:00+00:00', percakapanId: 'c1' },
+    { id: 't1', noTiket: 'ESK-20261030-0001', jenis: 'eskalasi', ringkasan: '', status: 'sedang_ditelaah', waktuMasuk: '2026-10-30T01:30:00+00:00', percakapanId: 'c1', noTelpTersamar: '0821****0098' },
   ]);
   assert.equal(dipanggil[0].url.pathname, '/rest/v1/antrean_tiket_petugas');
-  assert.equal(dipanggil[0].url.searchParams.get('select'), 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id');
+  // Nomor untuk pencarian topbar sudah tersamar di view; nama pelapor tidak diminta.
+  assert.equal(dipanggil[0].url.searchParams.get('select'), 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id,no_telp_tersamar');
   assert.equal((dipanggil[0].init.headers as Record<string, string>).Authorization, 'Bearer tok');
 });
 

@@ -72,6 +72,9 @@ export type DetailKasusPengaduan = {
   noTelpTersamar?: string;
 };
 
+/** Jumlah percakapan per jam WIB (view beban_panggilan_per_jam); jam berformat 'YYYY-MM-DDTHH:00:00' tanpa zona. */
+export type BebanPerJam = { jam: string; total: number; dijawabAi: number; dieskalasi: number };
+
 /** Baris log_tool. Argumen tool sengaja tidak dibaca karena bisa memuat data pribadi. */
 export type LogToolTersimpan = { id: number; namaTool: string; durasiMs: number; berhasil: boolean; waktu: string };
 
@@ -84,6 +87,7 @@ export interface PenyimpananPemantauan {
   ambilDetailKasus?(noTiket: string): Promise<DetailKasusPengaduan | null>;
   /** Log tool terbaru lebih dulu. */
   ambilLogTool?(batas: number): Promise<LogToolTersimpan[]>;
+  ambilBebanPerJam?(): Promise<BebanPerJam[]>;
 }
 
 /** Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. */
@@ -177,6 +181,13 @@ export const TOOL_CEK_REGISTRASI = 'cek_registrasi_bpom';
 // REQ-4.1: tabel Kasus Perlu Tindak Lanjut di ringkasan memuat beberapa tiket teratas saja.
 export const BATAS_KASUS_RINGKASAN = 3;
 export const BATAS_LOG_TOOL = 20;
+// Kolom Mingguan panel Beban Panggilan: tujuh hari terakhir, termasuk hari ini.
+const HARI_BEBAN_MINGGUAN = 7;
+// Batas jam sapaan di Ringkasan (WIB): pagi 04-10, siang 11-14, sore 15-17, malam 18-03.
+const JAM_PAGI = 4;
+const JAM_SIANG = 11;
+const JAM_SORE = 15;
+const JAM_MALAM = 18;
 // Kartu "pemakaian saluran" membandingkan panggilan aktif dengan kapasitas saluran. NFR-4: target paling sedikit 50 panggilan
 // simultan; kapasitas nyata (batas paket STT/TTS dan Hermes) belum dilaporkan gateway.
 export const KAPASITAS_SALURAN_BAWAAN = 50;
@@ -188,9 +199,16 @@ const DETIK = 1000;
 export type Ringkasan = {
   statistik: StatistikLayanan;
   tiketBelumDitelaah: number;
+  /** Panel Kinerja AI; persen null bila belum ada panggilan hari ini. */
+  kinerja: { jawabanAi: number; eskalasi: number; persen: number | null };
   kategori: { label: string; jumlah: number; persen: number }[];
-  kasus: { noTiket: string; ringkasan: string; jenis: string; waktu: string; menunggu: string }[];
+  kasus: { noTiket: string; ringkasan: string; jenis: string; status: string; waktu: string; menunggu: string }[];
 };
+
+export type KolomBeban = { label: string; total: number; dijawabAi: number; dieskalasi: number };
+/** puncak null bila tidak ada panggilan pada periode itu. */
+export type Beban = { total: number; puncak: KolomBeban | null; kolom: KolomBeban[] };
+export type BebanPanggilan = Record<'harian' | 'mingguan' | 'bulanan', Beban>;
 
 export type Panggilan = { id: string; noTelp: string; jenis: string; topik: string; waktuMulai: string; tahap: string };
 
@@ -218,6 +236,7 @@ export type BarisAntrean = {
   jenis: string;
   labelStatus: string;
   waktuMasuk: string;
+  noTelp: string;
   tautanKasus: string;
   tautanTranskrip: string | null;
 };
@@ -238,6 +257,11 @@ const waktuTampil = (iso: string) =>
     .replace(/\./g, ':')
     .concat(' WIB');
 
+/** Tanggal kalender 'YYYY-MM-DD' di zona Asia/Jakarta, sama dengan batas "hari ini" di RPC. */
+const tanggalWib = (t: string | Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date(t));
+const tanggalMundur = (tanggal: string, hari: number) => new Date(Date.parse(tanggal) - hari * 24 * 60 * 60 * DETIK).toISOString().slice(0, 10);
+const labelTanggal = (opsi: Intl.DateTimeFormatOptions) => (tanggal: string) => new Intl.DateTimeFormat('id-ID', { ...opsi, timeZone: 'UTC' }).format(new Date(tanggal));
+
 // NFR-13: hanya nilai yang sudah tersamar yang boleh tampil.
 const tersamar = (s: string | null | undefined) => (s && s.includes('*') ? s : '—');
 
@@ -250,6 +274,42 @@ export function lamaMenunggu(iso: string, sekarang: Date): string {
   if (menit < 60) return `${menit} menit`;
   if (menit < 24 * 60) return `${Math.floor(menit / 60)} jam`;
   return `${Math.floor(menit / (24 * 60))} hari`;
+}
+
+/** Sapaan Ringkasan menurut jam Asia/Jakarta. */
+export function sapaan(sekarang: Date): 'pagi' | 'siang' | 'sore' | 'malam' {
+  const jam = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', hourCycle: 'h23' }).format(sekarang));
+  if (jam < JAM_PAGI || jam >= JAM_MALAM) return 'malam';
+  return jam >= JAM_SORE ? 'sore' : jam >= JAM_SIANG ? 'siang' : 'pagi';
+}
+
+/**
+ * Panel Beban Panggilan: Harian per jam hari ini, Mingguan per hari tujuh hari terakhir, Bulanan per hari bulan ini.
+ * Baris di luar kolom periode diabaikan. Sisa total di luar dijawabAi dan dieskalasi (berjalan, tiket terbit, dan status
+ * lain) tampil abu-abu.
+ */
+export function susunBeban(baris: BebanPerJam[], sekarang: Date): BebanPanggilan {
+  const hariIni = tanggalWib(sekarang);
+  // Kunci kolom adalah awalan jam: 'YYYY-MM-DDTHH' (13 karakter) per jam, 'YYYY-MM-DD' (10) per hari.
+  const kelompok = (kunci: string[], panjang: number, label: (k: string) => string): Beban => {
+    const kolom = new Map(kunci.map((k) => [k, { label: label(k), total: 0, dijawabAi: 0, dieskalasi: 0 }]));
+    for (const b of baris) {
+      const k = kolom.get(b.jam.slice(0, panjang));
+      if (!k) continue;
+      k.total += b.total;
+      k.dijawabAi += b.dijawabAi;
+      k.dieskalasi += b.dieskalasi;
+    }
+    const daftar = [...kolom.values()];
+    const total = daftar.reduce((n, k) => n + k.total, 0);
+    return { total, puncak: total ? daftar.reduce((a, b) => (b.total > a.total ? b : a)) : null, kolom: daftar };
+  };
+  const urutan = (n: number, kunci: (i: number) => string) => Array.from({ length: n }, (_, i) => kunci(i));
+  return {
+    harian: kelompok(urutan(24, (i) => `${hariIni}T${String(i).padStart(2, '0')}`), 13, (k) => `${k.slice(11)}:00`),
+    mingguan: kelompok(urutan(HARI_BEBAN_MINGGUAN, (i) => tanggalMundur(hariIni, HARI_BEBAN_MINGGUAN - 1 - i)), 10, labelTanggal({ weekday: 'short' })),
+    bulanan: kelompok(urutan(Number(hariIni.slice(8)), (i) => `${hariIni.slice(0, 8)}${String(i + 1).padStart(2, '0')}`), 10, labelTanggal({ day: 'numeric', month: 'short' })),
+  };
 }
 
 export function ringkasPanggilan(panggilan: Panggilan[], sekarang: Date, kapasitas = KAPASITAS_SALURAN_BAWAAN): RingkasanPanggilan {
@@ -316,19 +376,37 @@ export class PemantauanLayananController {
   /** REQ-4.1, T-F5.1-02: ringkasan siap tampil, dengan beberapa kasus teratas dan persentase bulat. */
   async ringkasanLayanan(sekarang = new Date()): Promise<Ringkasan> {
     const { statistik, kategori, kasusPerluTindakLanjut } = await this.ambilRingkasan();
+    const hariIni = tanggalWib(sekarang);
     return {
       statistik,
-      // Kasus perlu tindak lanjut berisi semua tiket belum ditelaah.
-      tiketBelumDitelaah: kasusPerluTindakLanjut.length,
+      // Sub-label kartu Tiket Eskalasi Baru: bagian dari nilai kartu (eskalasi terbit hari ini) yang belum ditelaah.
+      tiketBelumDitelaah: kasusPerluTindakLanjut.filter((k) => k.jenis === 'eskalasi' && k.status === 'belum_ditelaah' && tanggalWib(k.tglTerbit) === hariIni).length,
+      // Tingkat Penyelesaian = KPI Deflection PRD bagian 3: persentase panggilan hari ini yang selesai tanpa petugas.
+      kinerja: {
+        jawabanAi: statistik.jawabanOtomatisAi,
+        eskalasi: statistik.tiketEskalasiBaru,
+        persen: statistik.panggilanHariIni ? Math.round((statistik.jawabanOtomatisAi * 100) / statistik.panggilanHariIni) : null,
+      },
       kategori: kategori.map((k) => ({ label: k.kategori, jumlah: k.jumlah, persen: Math.round(k.persentase) })),
       kasus: kasusPerluTindakLanjut.slice(0, BATAS_KASUS_RINGKASAN).map((k) => ({
         noTiket: k.noTiket,
         ringkasan: k.ringkasan,
         jenis: LABEL_JENIS_TIKET[k.jenis],
+        status: label(LABEL_STATUS_TIKET, k.status) ?? k.status,
         waktu: jamTampil(k.tglTerbit),
         menunggu: lamaMenunggu(k.tglTerbit, sekarang),
       })),
     };
+  }
+
+  /**
+   * REQ-4.1: panel Beban Panggilan; null bila penyimpanan tidak menyediakan beban per jam. Kolom Dieskalasi dihitung dari
+   * status percakapan menurut waktu mulai, bukan dari tiket, jadi bisa berbeda dari kartu Tiket Eskalasi Baru di sekitar
+   * tengah malam.
+   */
+  async bebanPanggilan(sekarang = new Date()): Promise<BebanPanggilan | null> {
+    if (!this.penyimpanan.ambilBebanPerJam) return null;
+    return susunBeban(await this.penyimpanan.ambilBebanPerJam(), sekarang);
   }
 
   /** REQ-4.2, T-F5.2-01: panggilan aktif dengan nomor tersamar; nomor yang tidak tersamar tidak pernah diteruskan ke halaman. */
@@ -391,6 +469,7 @@ export class PemantauanLayananController {
           jenis: LABEL_JENIS_TIKET[t.jenis],
           labelStatus: label(LABEL_STATUS_TIKET, t.status) ?? t.status,
           waktuMasuk: waktuTampil(t.waktuMasuk),
+          noTelp: tersamar(t.noTelpTersamar),
           tautanKasus: `/pengaduan/detail?tiket=${encodeURIComponent(t.noTiket)}`,
           tautanTranskrip: t.percakapanId ? tautanTranskrip(t.percakapanId) : null,
         })),

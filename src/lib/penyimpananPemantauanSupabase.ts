@@ -1,8 +1,9 @@
 // Adapter produksi PenyimpananPemantauan: membaca Supabase lewat REST dengan token sesi petugas, sehingga RLS dan
 // pemeriksaan is_petugas() berlaku (T-F5.1-02, T-F5.2-01, T-F5.3-02, T-F5.3-03, T-F5.4-01). Ringkasan dan detail kasus
 // memakai RPC dari T-F5.1-01 dan T-F5.3-01, panggilan berjalan memakai view panggilan_berjalan, antrean memakai view
-// antrean_tiket_petugas; struktur view-nya tidak diubah di sini. Token sesi datang dari T-F3.1-03.
+// antrean_tiket_petugas, panel Beban Panggilan memakai view beban_panggilan_per_jam. Token sesi datang dari T-F3.1-03.
 import type {
+  BebanPerJam,
   DataRingkasanLayanan,
   DetailKasusPengaduan,
   KasusPerluTindakLanjut,
@@ -112,10 +113,11 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
   }
 
   async ambilAntreanTiket(): Promise<TiketAntrean[]> {
-    // Kolom data pribadi tersamar tidak diminta karena antrean tidak menampilkannya. Urutan akhir ditetapkan control.
-    const p = new URLSearchParams({ select: 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id' });
+    // Nomor telepon dipakai pencarian topbar dan sudah tersamar di view (NFR-13); nama pelapor tidak diminta karena tidak
+    // dipakai. Urutan akhir ditetapkan control.
+    const p = new URLSearchParams({ select: 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id,no_telp_tersamar' });
     const baris = await this.json<
-      { tiket_id: string; no_tiket: string; jenis_tiket: TiketAntrean['jenis']; ringkasan: string | null; status_tiket: string; waktu_masuk: string; percakapan_id: string | null }[]
+      { tiket_id: string; no_tiket: string; jenis_tiket: TiketAntrean['jenis']; ringkasan: string | null; status_tiket: string; waktu_masuk: string; percakapan_id: string | null; no_telp_tersamar: string | null }[]
     >(`antrean_tiket_petugas?${p}`);
     return baris.map((b) => ({
       id: b.tiket_id,
@@ -125,7 +127,14 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
       status: b.status_tiket,
       waktuMasuk: b.waktu_masuk,
       percakapanId: opsional(b.percakapan_id),
+      noTelpTersamar: opsional(b.no_telp_tersamar),
     }));
+  }
+
+  async ambilBebanPerJam(): Promise<BebanPerJam[]> {
+    const p = new URLSearchParams({ select: 'jam,total,dijawab_ai,dieskalasi', order: 'jam.asc' });
+    const baris = await this.json<{ jam: string; total: number; dijawab_ai: number; dieskalasi: number }[]>(`beban_panggilan_per_jam?${p}`);
+    return baris.map((b) => ({ jam: b.jam, total: b.total, dijawabAi: b.dijawab_ai, dieskalasi: b.dieskalasi }));
   }
 
   async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
