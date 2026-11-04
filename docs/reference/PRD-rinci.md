@@ -413,6 +413,8 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 03 | Isian kosong | Login gagal. Semua field harus diisi! |
 | 03 | Kredensial salah | Login gagal. Email atau password Anda salah. |
 | 03 | Gagal tiga kali | Akses dikunci sementara. Hubungi administrator. |
+| 03 | Kredensial salah, keterangan penguncian | Akses akun dikunci sementara setelah tiga kali gagal login berturut-turut. |
+| 03 | Kotak informasi halaman login | Akun dibuat oleh administrator SIGAP. Bila muncul pesan "Akses dikunci sementara. Hubungi administrator.", hubungi administrator melalui ext. 1500533-2. |
 | 04 | Tidak ada panggilan aktif | Tidak ada panggilan berjalan saat ini. |
 | 04 | Tiket tidak ditemukan | Tiket tidak ditemukan. |
 | 04 | Detail pengaduan gagal dimuat | Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
