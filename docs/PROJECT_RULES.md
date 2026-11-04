@@ -228,15 +228,15 @@ Pengerjaan mengikuti jadwal sprint di `docs/source/Sprint-Planning-Sprint-1.docx
 
 ### 9.1 Sprint aktif dan backlog
 
-**Sprint aktif: Sprint 1 (mulai Minggu 10).** Baris ini diperbarui di awal setiap sprint lewat PR `docs`.
+**Sprint aktif: Sprint 3 (mulai Minggu 13).** Baris ini diperbarui di awal setiap sprint lewat PR `docs`.
 
 | Sprint | Use case | Fitur di `docs/prd/` | Effort |
 |---|---|---|---|
 | 1 | UC-01 Menanyakan Informasi Produk (XXL), UC-03 Melakukan Login Dashboard (M), UC-07 Mengelola Basis Pengetahuan (L) | F1, F3, F2 | 10 |
-| 2 | UC-02 Menyampaikan Pengaduan Produk (XL), UC-04 Memantau Layanan (L) | belum dibuat | 7 |
-| 3 | UC-05 Membaca Transkrip Percakapan (M), UC-06 Menangani Pengaduan (L), UC-08 Merekap dan Mengunduh Laporan Layanan (M) | belum dibuat | 7 |
+| 2 | UC-02 Menyampaikan Pengaduan Produk (XL), UC-04 Memantau Layanan (L) | F4, F5 | 7 |
+| 3 | UC-05 Membaca Transkrip Percakapan (M), UC-06 Menangani Pengaduan (L), UC-08 Merekap dan Mengunduh Laporan Layanan (M) | F6, F7, F8 | 7 |
 
-Nomor fitur di `docs/prd/` (F1, F2, F3) tidak sama dengan nomor UC. Selalu pakai kode UC untuk menentukan sprint.
+Nomor fitur di `docs/prd/` (F1 sampai F8) tidak sama dengan nomor UC. Selalu pakai kode UC untuk menentukan sprint.
 
 ### 9.2 Aturan
 

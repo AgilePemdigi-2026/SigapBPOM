@@ -84,29 +84,28 @@
     },
     {
       "id": "F6",
-      "name": "Tangani Pengaduan",
-      "summary": "Petugas menuntaskan pengaduan dari telaah sampai tiket ditutup dan pelapor menerima SMS.",
-      "icon": "shield",
-      "priority": "high",
-      "phase": 3,
-      "subFeatures": [
-        { "id": "F6.1", "name": "Telaah Pengaduan", "summary": "Petugas memilih tindak lanjut dan menyimpan catatan telaah.", "icon": "search", "priority": "high" },
-        { "id": "F6.2", "name": "Jadwalkan Pemeriksaan", "summary": "Petugas menetapkan tanggal dan unit pelaksana pemeriksaan lapangan.", "icon": "calendar", "priority": "medium" },
-        { "id": "F6.3", "name": "Susun Tanggapan", "summary": "Petugas menyimpan tanggapan resmi atas pengaduan.", "icon": "file", "priority": "high" },
-        { "id": "F6.4", "name": "Tutup Tiket", "summary": "Petugas menutup tiket yang sudah ditanggapi dan SMS tindak lanjut terkirim.", "icon": "bell", "priority": "high" }
-      ]
-    },
-    {
-      "id": "F7",
       "name": "Baca Transkrip",
       "summary": "Petugas memeriksa interaksi penelepon dengan AI tanpa melihat data pribadi mentah.",
       "icon": "chat",
       "priority": "medium",
       "phase": 3,
       "subFeatures": [
-        { "id": "F7.1", "name": "Riwayat Percakapan", "summary": "Petugas menelusuri percakapan per periode, jenis, dan status.", "icon": "search", "priority": "medium" },
-        { "id": "F7.2", "name": "Detail Transkrip Tersamar", "summary": "Petugas membaca transkrip, ringkasan AI, dan status dengan data pribadi disamarkan.", "icon": "shield", "priority": "medium" },
-        { "id": "F7.3", "name": "Catatan Pemeriksaan", "summary": "Petugas menyimpan catatan pemeriksaan pada percakapan.", "icon": "file", "priority": "medium" }
+        { "id": "F6.1", "name": "Riwayat Percakapan", "summary": "Petugas menelusuri percakapan per periode, jenis, dan status.", "icon": "search", "priority": "medium" },
+        { "id": "F6.2", "name": "Detail Transkrip dan Catatan Pemeriksaan", "summary": "Petugas membaca transkrip dan status dengan data pribadi disamarkan, lalu menyimpan catatan pemeriksaan.", "icon": "shield", "priority": "medium" },
+        { "id": "F6.3", "name": "Ringkasan Percakapan AI", "summary": "Ringkasan percakapan tanpa data pribadi tersimpan saat panggilan berakhir.", "icon": "file", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "F7",
+      "name": "Tangani Pengaduan",
+      "summary": "Petugas menuntaskan pengaduan dari telaah sampai tiket ditutup dan pelapor menerima SMS.",
+      "icon": "shield",
+      "priority": "high",
+      "phase": 3,
+      "subFeatures": [
+        { "id": "F7.1", "name": "Telaah dan Jadwal Pemeriksaan", "summary": "Petugas membuka daftar pengaduan, memilih tindak lanjut, dan menjadwalkan pemeriksaan lapangan.", "icon": "search", "priority": "high" },
+        { "id": "F7.2", "name": "Tanggapan dan Tutup Tiket", "summary": "Petugas menyimpan tanggapan resmi lalu menutup tiket yang sudah ditanggapi.", "icon": "file", "priority": "high" },
+        { "id": "F7.3", "name": "Notifikasi Tindak Lanjut", "summary": "Pelapor menerima SMS tindak lanjut saat tiket ditutup.", "icon": "bell", "priority": "high" }
       ]
     },
     {
