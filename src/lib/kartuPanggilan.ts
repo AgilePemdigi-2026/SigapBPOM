@@ -101,8 +101,21 @@ export const PESAN_GANGGUAN_SUARA = 'Layanan suara sedang gangguan. Silakan coba
 /** Galat yang pesannya berasal dari balasan Voice Gateway. */
 export class GalatGateway extends Error {}
 
-// Pesan galat browser (jaringan putus, JSON rusak) tidak ditampilkan apa adanya (PROJECT_RULES 4.4 dan 5.12).
-export const pesanGalatPanggilan = (e: unknown) => (e instanceof GalatGateway && e.message ? e.message : PESAN_GANGGUAN_SUARA);
+// Galat gateway yang terdaftar di kamus Lampiran A (UC-01, UC-02) dan boleh ditampilkan apa adanya. Pesan API internal
+// ("Akses ditolak.", "Permintaan tidak valid.") dan galat browser (jaringan putus, JSON rusak) tidak (PROJECT_RULES 4.4 dan 5.12).
+const PESAN_GALAT_TERDAFTAR: readonly string[] = [
+  'Suara tidak terdengar. Silakan ulangi.',
+  'Rekaman terlalu panjang.',
+  'Terlalu banyak permintaan. Coba lagi sebentar lagi.',
+  'Layanan sedang penuh. Coba lagi sebentar lagi.',
+  'Percakapan ini tidak dapat dilanjutkan. Silakan mulai panggilan baru.',
+  'Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok.',
+  'Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru.',
+  'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.',
+];
+
+export const pesanGalatPanggilan = (e: unknown) =>
+  e instanceof GalatGateway && PESAN_GALAT_TERDAFTAR.includes(e.message) ? e.message : PESAN_GANGGUAN_SUARA;
 
 /**
  * Status akhir panggilan di panel (T-F4.3-03, REQ-2.5). Layanan pengaduan yang belum bertiket memakai pesan kamus

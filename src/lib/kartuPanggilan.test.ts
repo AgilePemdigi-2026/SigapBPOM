@@ -133,6 +133,23 @@ test('or_1 galat jaringan panel suara tampil sebagai pesan kamus, bukan pesan br
   assert.equal(pesanGalatPanggilan(new GalatGateway('Suara tidak terdengar. Silakan ulangi.')), 'Suara tidak terdengar. Silakan ulangi.');
 });
 
+test('or_1 galat gateway yang terdaftar di kamus Lampiran A tampil apa adanya, pesan API internal tidak', () => {
+  for (const pesan of [
+    'Suara tidak terdengar. Silakan ulangi.',
+    'Rekaman terlalu panjang.',
+    'Terlalu banyak permintaan. Coba lagi sebentar lagi.',
+    'Layanan sedang penuh. Coba lagi sebentar lagi.',
+    'Percakapan ini tidak dapat dilanjutkan. Silakan mulai panggilan baru.',
+    'Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok.',
+    'Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru.',
+    'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.',
+  ]) assert.equal(pesanGalatPanggilan(new GalatGateway(pesan)), pesan);
+  for (const pesan of [
+    'Akses ditolak.', 'Permintaan tidak valid.', 'Pilihan layanan tidak dikenal.', 'Format rekaman tidak didukung.',
+    'Kuota suara hari ini sudah habis. Coba lagi besok.', 'Tidak ditemukan.',
+  ]) assert.equal(pesanGalatPanggilan(new GalatGateway(pesan)), 'Layanan suara sedang gangguan. Silakan coba lagi.', pesan);
+});
+
 test('t_f4_1_03 kriteria 2: tombol menu 1 dan 2 di PanelSuara.astro memiliki label aksesibel dan dapat dioperasikan via keyboard', () => {
   const panelPath = resolve(process.cwd(), 'src/components/PanelSuara.astro');
   const panelSource = readFileSync(panelPath, 'utf8');
