@@ -20,6 +20,7 @@ const MATERI: Materi[] = 'materi' in daftar ? daftar.materi : [];
 const gagal = 'gagal' in daftar ? daftar.gagal : '';
 const SIMPUL = 'simpul' in graf ? graf.simpul : [];
 const SISI = 'sisi' in graf ? graf.sisi : [];
+const gagalGraf = 'gagal' in graf ? graf.gagal : '';
 const aktif = MATERI.filter((m) => m.aktif).length;
 const KB_TOTAL = { total: MATERI.length, aktif, nonaktif: MATERI.length - aktif };
 
@@ -90,10 +91,14 @@ const data = {
           ))}
         </div>
       </section>
-      {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>Graf terbentuk setelah ada materi di basis pengetahuan.</span></div>}
+      {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>{gagalGraf || 'Graf terbentuk setelah ada materi di basis pengetahuan.'}</span></div>}
       {awal && <section class="panel detail" data-name="BagianDokumenTerindeks" aria-live="polite">
         <span class="eyebrow">SIMPUL TERPILIH</span>
         <span class="detail-title" id="node-label">{awal.label}</span>
+        <div class="index-split" id="node-meta" hidden>
+          <div class="tile-flat"><span>Status</span><span id="node-status"></span></div>
+          <div class="tile-flat"><span>Pemutakhiran</span><span class="v" id="node-tgl"></span></div>
+        </div>
         <div class="tile-flat ruj"><span>Rujukan Sumber</span><span class="ruj-v"><i class="icon-link"></i><span id="node-rujukan">{awal.rujukan}</span></span></div>
         <span class="bagian-title">Bagian dokumen terindeks</span>
         <div id="node-bagian" class="bagian">{awal.bagian.map((b) => <div class="tile-flat"><i class="icon-file-text"></i>{b}</div>)}</div>
@@ -130,22 +135,23 @@ const data = {
   const fmt = (n: number) => n.toLocaleString('id-ID');
   const hariIni = () => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const chipStatus = (m: Materi) => {
+    const c = m.aktif ? D.chipAktif : D.chipNonaktif;
+    return `<span class="chip" style="background:${c.bg};color:${c.fg}">${m.aktif ? 'Aktif' : 'Tidak Aktif'}</span>`;
+  };
   const st = { tab: 'Semua', q: '', added: 0, deact: 0 };
 
   const rowsEl = document.getElementById('kb-rows')!;
   function render() {
     const q = st.q.trim().toLowerCase();
     const list = materi.filter((m) => (st.tab === 'Semua' || (st.tab === 'Aktif') === m.aktif) && (!q || `${m.judul} ${m.rujukan}`.toLowerCase().includes(q)));
-    rowsEl.innerHTML = list.map((m) => {
-      const c = m.aktif ? D.chipAktif : D.chipNonaktif;
-      return `<div class="row row-grid${m.aktif ? '' : ' off'}">
+    rowsEl.innerHTML = list.map((m) => `<div class="row row-grid${m.aktif ? '' : ' off'}">
         <span class="judul"><span>${esc(m.judul)}</span><span>${esc(m.kategori)}</span></span>
         <span class="ruj-cell"><i class="icon-link"></i><span>${esc(m.rujukan)}</span></span>
         <span class="tgl">${esc(m.tgl)}</span>
-        <span class="chip" style="background:${c.bg};color:${c.fg}">${m.aktif ? 'Aktif' : 'Tidak Aktif'}</span>
+        ${chipStatus(m)}
         ${m.aktif ? `<button class="hapus" data-id="${m.id}" aria-label="Hapus ${esc(m.judul)}">Hapus</button>` : '<span class="arsip">Diarsipkan</span>'}
-      </div>`;
-    }).join('');
+      </div>`).join('');
     document.getElementById('kb-shown')!.textContent = String(list.length);
     document.getElementById('kb-empty')!.hidden = list.length > 0;
     document.getElementById('kb-empty-text')!.textContent = D.gagal || (materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.');
@@ -196,7 +202,14 @@ const data = {
     const n = simpul[id];
     pressGroup('data-node', id);
     document.querySelectorAll<SVGLineElement>('.canvas line').forEach((l) => l.classList.toggle('hot', l.dataset.a === id || l.dataset.b === id));
-    document.getElementById('node-label')!.textContent = n.label;
+    // F2.4: detail simpul materi sesuai isi tabel, dengan judul utuh, status, dan pemutakhiran.
+    const m = materi.find((x) => x.id === id);
+    document.getElementById('node-label')!.textContent = m?.judul ?? n.label;
+    document.getElementById('node-meta')!.hidden = !m;
+    if (m) {
+      document.getElementById('node-status')!.innerHTML = chipStatus(m);
+      document.getElementById('node-tgl')!.textContent = m.tgl;
+    }
     document.getElementById('node-rujukan')!.textContent = n.rujukan;
     document.getElementById('node-links')!.textContent = String(n.links);
     document.getElementById('node-bagian')!.innerHTML = n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('');
