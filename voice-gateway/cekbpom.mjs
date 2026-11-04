@@ -21,6 +21,8 @@ const POLA_EDUKASI = /\b(bagaimana|gimana|cara|kenapa|mengapa|apa itu|apa arti|a
 // Ucapan pengaduan atau keluhan ("mau daftar pengaduan", "kulit saya gatal") tetap di alurnya sendiri, bukan dicari di cekbpom.
 const POLA_PENGADUAN = /\b(pengaduan|mengadu|lapor|melapor|laporkan|keluhan|efek samping|gatal|alergi)\b/i;
 const POLA_TANYA = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|berapa|siapa|dimana|bolehkah|bisakah)\b|\?/i;
+// Kata yang terpotong di tengah ucapan, ditandai titik-titik atau elipsis oleh STT atau ketikan ("Su... Formu...").
+const POLA_TERPOTONG = /[a-z0-9]+(?:\.{2,}|…)(?=[\s,.?!]|$)/gi;
 // Kata yang dibuang dari ucapan agar tersisa nama produk.
 const KATA_ISI = new Set(`apakah apa ya yah yang itu ini tuh sudah udah belum blm terdaftar daftar di ke dari bpom badan pom pengawas obat
   makanan izin edar nomor no registrasi produk cek cekin cekkan cekbpom coba tolong mohon bisa minta mau ingin tanya saya aku gw legal resmi
@@ -37,8 +39,9 @@ export function kueriProduk(ucapan, setelahMenu1 = false) {
 }
 
 /**
- * REQ-1.4: ucapan bermaksud cek registrasi, tetapi nama produknya tidak tertangkap, misalnya "apakah sudah terdaftar?"
- * atau gumaman setelah diminta menyebut nama produk. Ucapan seperti ini diminta ulang.
+ * REQ-1.4: ucapan bermaksud cek registrasi, tetapi nama produknya tidak tertangkap, misalnya "apakah sudah terdaftar?",
+ * gumaman setelah diminta menyebut nama produk, atau nama yang sebagian besar katanya terpotong ("Su... Formu... Seh...",
+ * SRS Tabel B.2 Exception Path 2). Ucapan seperti ini diminta ulang.
  */
 export const namaKurangJelas = (ucapan, setelahMenu1 = false) => Boolean(uraikanUcapan(ucapan, setelahMenu1)?.kurangJelas);
 
@@ -51,7 +54,10 @@ function uraikanUcapan(ucapan, setelahMenu1) {
   const niat = POLA_NIAT.test(teks) || (setelahMenu1 && kata.length <= 6 && !POLA_TANYA.test(teks));
   if (!niat) return null;
   const nama = kata.filter((k) => !KATA_ISI.has(k)).join(' ').trim();
-  return nama.length >= 3 ? { nama } : { kurangJelas: true };
+  // ponytail: hanya mengenali penanda potong yang ditulis STT atau ketikan, dan nama utuh yang diucapkan terbata
+  // ("Susu... formula... sehat...") ikut diminta ulang. Ganti dengan skor keyakinan kata STT setelah uji panggilan nyata.
+  const terpotong = (teks.match(POLA_TERPOTONG) ?? []).filter((k) => !KATA_ISI.has(k.replace(/[.…]+$/, '').toLowerCase())).length;
+  return nama.length >= 3 && terpotong * 2 <= nama.split(' ').length ? { nama } : { kurangJelas: true };
 }
 
 const bersihkan = (t) => String(t ?? '')
@@ -204,12 +210,12 @@ function saring(hasil, nama, kataMerek) {
   return { total: produk.length, produk };
 }
 
-/** HasilProduk untuk kartu di panel suara (src/lib/kartuPanggilan.ts). */
-export function hasilProduk({ produk }) {
+/** HasilProduk untuk kartu di panel suara (src/lib/kartuPanggilan.ts). Kandidat membawa jumlah seluruh hasil (REQ-1.5). */
+export function hasilProduk({ produk, total }) {
   const bentuk = (p) => ({ nama: p.nama, nomorIzinEdar: p.nomorIzinEdar, status: p.status, pendaftar: p.pendaftar, sumber: p.sumber });
   if (!produk.length) return { jenis: 'tidak_ditemukan' };
   if (produk.length === 1) return { jenis: 'tunggal', produk: bentuk(produk[0]) };
-  return { jenis: 'kandidat', produk: produk.slice(0, KANDIDAT_MAKS).map(bentuk) };
+  return { jenis: 'kandidat', total: total ?? produk.length, produk: produk.slice(0, KANDIDAT_MAKS).map(bentuk) };
 }
 
 /** Teks kueri yang ditampilkan di panel Cari Produk halaman publik. */

@@ -26,6 +26,17 @@ test('req_1_4 pertanyaan registrasi tanpa nama produk dikenali sebagai nama kura
   assert.equal(namaKurangJelas('saya mau lapor produk tidak terdaftar', true), false);
 });
 
+test('req_1_4 br_6 nama terpotong "Su... Formu... Seh..." (SRS Tabel B.2 Exception Path 2) dikenali sebagai nama kurang jelas', () => {
+  for (const ucapan of ['Su... Formu... Seh...', 'Su… Formu… Seh…', 'Apakah Su... Formu... sudah terdaftar?']) {
+    assert.equal(namaKurangJelas(ucapan, true), true, ucapan);
+    assert.equal(kueriProduk(ucapan, true), null, ucapan);
+  }
+  // Kata isi atau satu kata terpotong dari nama yang lebih panjang tetap dicari.
+  assert.deepEqual(kueriProduk('Apakah... Indomie goreng sudah terdaftar?'), { nama: 'indomie goreng' });
+  assert.deepEqual(kueriProduk('Indomie... goreng', true), { nama: 'indomie goreng' });
+  assert.deepEqual(kueriProduk('krim anti-aging', true), { nama: 'krim anti-aging' });
+});
+
 test('req_1_3 ucapan pengaduan atau keluhan tidak dicari di cekbpom', () => {
   assert.equal(kueriProduk('Saya mau daftar pengaduan krim pemutih palsu'), null);
   assert.equal(kueriProduk('krim wardah yang saya beli tidak ada izin edar, kulit saya gatal'), null);
@@ -168,12 +179,14 @@ test('nfr_2 cek registrasi dihentikan setelah 5 detik dan diperlakukan sebagai g
   assert.match(hasil.konteks, /Jangan menyebut status atau nomor izin edar/);
 });
 
-test('br_7 kartu produk: tunggal, kandidat maksimal tiga, atau tidak ditemukan', () => {
+test('req_1_5 br_7 kartu produk: tunggal, kandidat maksimal tiga dengan jumlah seluruh hasil, atau tidak ditemukan', () => {
   assert.equal(hasilProduk({ produk: [] }).jenis, 'tidak_ditemukan');
   assert.equal(hasilProduk({ produk: [baris(1)].map((b) => ({ nama: b.PRODUCT_NAME })) }).jenis, 'tunggal');
-  const k = hasilProduk({ produk: [1, 2, 3, 4, 5].map((n) => ({ nama: `P${n}` })) });
+  const k = hasilProduk({ total: 12, produk: [1, 2, 3, 4, 5].map((n) => ({ nama: `P${n}` })) });
   assert.equal(k.jenis, 'kandidat');
   assert.equal(k.produk.length, 3);
+  assert.equal(k.total, 12, 'jumlah dari cekbpom, bukan tiga yang ditampilkan');
+  assert.equal(hasilProduk({ produk: [{ nama: 'A' }, { nama: 'B' }] }).total, 2);
 });
 
 test('nfr_7 pesan ke AI hanya memuat data cekbpom dan tidak menyimpulkan ilegal', () => {

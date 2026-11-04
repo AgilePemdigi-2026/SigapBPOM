@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {
   BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
   AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
-  pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
+  menuDariUcapan, pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
 } from './percakapan.mjs';
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
+import { PengaduanController } from './pengaduan.mjs';
+import { PESAN_TIDAK_DITEMUKAN } from './alatCekRegistrasi.mjs';
 
 /** Mengalirkan teks potongan demi potongan seperti stream AI, lalu mengumpulkan kalimat yang diucapkan. */
 function alirkan(teks, ukuran = 7) {
@@ -29,6 +31,34 @@ test('req_1_1 pilihan menu 1 dan 2 memakai pesan baku kamus PRD', () => {
 test('nfr_7 prompt sistem melarang menyebut status legalitas tanpa data registrasi', () => {
   assert.match(PROMPT_SISTEM, /JANGAN menyebut status atau nomor/);
   assert.match(PROMPT_SISTEM, /Jangan pernah mengarang nomor tiket/);
+});
+
+test('req_2_1 prompt sistem mengarahkan pengaduan ke tekan 2 dan tidak mengumpulkan data pengaduan', () => {
+  assert.doesNotMatch(PROMPT_SISTEM, /tanyakan satu per satu/);
+  assert.doesNotMatch(PROMPT_SISTEM, /pengaduan selesai diringkas/);
+  assert.match(PROMPT_SISTEM, /tekan 2 untuk menyampaikan pengaduan/);
+  assert.match(PROMPT_SISTEM, /Jangan pernah mengarang nomor tiket/);
+});
+
+test('req_2_1 UC-01 Alternative Path 3: "dua", "tekan 2", atau ingin mengadu setelah tawaran tekan 2 memilih layanan pengaduan', () => {
+  for (const ucapan of ['dua', 'Dua.', 'Tekan 2', '2', 'tekan dua', 'pengaduan', 'saya mau melaporkan produk ini']) {
+    assert.equal(menuDariUcapan(ucapan, PESAN_TIDAK_DITEMUKAN), 2, ucapan);
+  }
+  // Tawaran dari Hermes, sesuai frasa di prompt sistem atau ditulis seperti diucapkan.
+  for (const tawaran of ['Silakan tekan 2 untuk menyampaikan pengaduan.', 'Silakan menekan dua untuk menyampaikan pengaduan.', 'Untuk itu tekan angka 2 ya.']) {
+    assert.equal(menuDariUcapan('dua', tawaran), 2, tawaran);
+  }
+  for (const ucapan of ['nggak usah lapor', 'saya punya dua pertanyaan', 'Susu Formula Sehat']) {
+    assert.equal(menuDariUcapan(ucapan, PESAN_TIDAK_DITEMUKAN), null, ucapan);
+  }
+  assert.equal(menuDariUcapan('dua', PESAN_LAYANAN_1), null, 'tanpa tawaran tekan 2');
+});
+
+test('req_1_4 req_1_5 memilih menu mengosongkan hitungan ulang nama dan kandidat cek registrasi', () => {
+  const r = new RiwayatPanggilan();
+  r.aturCekRegistrasi(ID, { ulangNama: 2, kandidat: [{ nama: 'Susu Formula Sehat' }] });
+  pilihMenu(r, new PengaduanController(), ID, 2);
+  assert.deepEqual(r.cekRegistrasi(ID), { ulangNama: 0, kandidat: null });
 });
 
 test('req_1_8 pertanyaan di luar topik dijawab dengan pesan baku kamus PRD', () => {

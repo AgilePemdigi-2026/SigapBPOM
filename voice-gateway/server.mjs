@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SesiPenuh, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
-  pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson,
+  menuDariUcapan, pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, labelKueri, tabelCek } from './cekbpom.mjs';
@@ -316,7 +316,6 @@ async function giliran(req, res, url) {
       if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
       // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
       // pertama yang sudah melewati kuota dan pembatas laju.
-      riwayat.aturCekRegistrasi(id, { ulangNama: 0, kandidat: null });
       // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
       pencatat.giliran(id, null, PESAN_MENU);
       pencatat.giliran(id, null, menu.jawaban);
@@ -389,6 +388,18 @@ async function giliran(req, res, url) {
         pantau.tahap(id, TAHAP.MENJAWAB);
         ucapkan(hasil.jawaban, suara);
         tulis({ jenis: 'selesai', sumber: [], pengaduan: hasil.tiket });
+        return;
+      }
+
+      // UC-01 Alternative Path 3: "dua", "tekan 2", atau niat mengadu setelah tawaran tekan 2 memilih layanan pengaduan, tanpa AI.
+      const menuUcapan = menuDariUcapan(transkrip, riwayat.jawabanTerakhir(id));
+      if (menuUcapan) {
+        const menu = pilihMenu(riwayat, pengaduan, id, menuUcapan);
+        tulis({ jenis: 'transkrip', transkrip });
+        console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, menu: menuUcapan, token: 0 }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        ucapkan(menu.jawaban, menu.suara);
+        tulis({ jenis: 'selesai', sumber: [], layanan: menuUcapan });
         return;
       }
 
@@ -493,7 +504,7 @@ async function giliran(req, res, url) {
       }
       if (batal.signal.aborted) return;
       if (cek?.jawaban) {
-        // NFR-7: hasil tunggal, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
+        // NFR-7: hasil tunggal, hasil ganda, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
         // Tawaran penutup diucapkan terpisah agar memakai audio statisnya.
         const isi = cek.jawaban.endsWith(PESAN_TAWARAN_PENUTUP) ? cek.jawaban.slice(0, -PESAN_TAWARAN_PENUTUP.length).trim() : cek.jawaban;
         const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === isi);

@@ -31,10 +31,18 @@ test('req_1_5 kartu kandidat menampilkan jumlah hasil dan paling banyak tiga kan
   assert.match(html, /5 hasil ditemukan, 3 teratas/);
   assert.equal(html.match(/<li>/g)?.length, KANDIDAT_MAKS);
   assert.ok(!html.includes('Produk 4'));
+  // Gateway hanya mengirim tiga kandidat, jumlahnya dari total hasil cekbpom.
+  assert.match(htmlKartuProduk({ jenis: 'kandidat', total: 5, produk: lima.slice(0, KANDIDAT_MAKS) }), /5 hasil ditemukan, 3 teratas/);
 });
 
 test('t_f1_2_01 kartu produk tidak ditemukan memakai pesan baku kamus PRD', () => {
   assert.ok(htmlKartuProduk({ jenis: 'tidak_ditemukan' }).includes(PESAN_TIDAK_DITEMUKAN));
+});
+
+test('req_2_1 UC-01 Alternative Path 3: kartu tidak ditemukan memuat tombol 2 Pengaduan Produk', () => {
+  const html = htmlKartuProduk({ jenis: 'tidak_ditemukan' });
+  assert.match(html, /<button type="button" data-pick="2" aria-label="2: Pengaduan Produk">/);
+  assert.match(html, /<span class="t">Pengaduan Produk<\/span>/);
 });
 
 test('isi kartu di-escape', () => {

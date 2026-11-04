@@ -2,8 +2,8 @@
 # Skenario penerimaan T-F1.2-03: tool cek_registrasi_bpom untuk Hermes (REQ-1.3, REQ-1.4, REQ-1.5, BR-6, BR-7, NFR-7).
 # cekbpom diganti server tiruan. Kalimat agen mengikuti kamus pesan PRD-rinci Lampiran A.
 Fitur: Tool cek_registrasi_bpom membacakan hasil sesuai aturan legalitas
-  Agen tidak pernah mengarang status atau nomor izin edar. Hasil tunggal, hasil kosong, dan nama tidak jelas dijawab
-  dengan kalimat baku tanpa AI. Hasil ganda dibacakan Hermes dari hasil tool, lalu penelepon memilih nomornya.
+  Agen tidak pernah mengarang status atau nomor izin edar. Hasil tunggal, hasil ganda, hasil kosong, dan nama tidak jelas
+  dijawab dengan kalimat baku tanpa AI. Kandidat hasil ganda dipilih dengan nomor atau namanya.
 
   Latar Belakang:
     Diketahui data registrasi cekbpom berisi:
@@ -23,8 +23,7 @@ Fitur: Tool cek_registrasi_bpom membacakan hasil sesuai aturan legalitas
   Skenario: Hasil ganda menyebut jumlah dan paling banyak tiga kandidat, lalu penelepon memilih nomornya
     Ketika penelepon menyebut "Apakah paracetamol sudah terdaftar di BPOM?" kepada agen
     Maka kartu produk berisi 3 kandidat
-    Dan pesan untuk AI memuat "Ada 4 produk yang cocok"
-    Dan pesan untuk AI tidak memuat "Paracetamol Drop Bayi"
+    Dan agen menjawab tanpa AI "Ditemukan 4 produk. Pilih salah satu: Paracetamol 500 mg Tablet, Paracetamol Sirup Anak, atau Paracetamol Kaplet Forte."
     Ketika penelepon menyebut "nomor dua" kepada agen
     Maka agen menjawab tanpa AI "Paracetamol Sirup Anak terdaftar dengan nomor izin edar DBL1234567837A1, status izin Berlaku." lalu menawarkan bantuan lagi
     Dan kartu produk menampilkan nomor izin edar "DBL1234567837A1" dengan status "Berlaku"
