@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  GalatGateway,
   KANDIDAT_MAKS,
   PESAN_TIDAK_DITEMUKAN,
   PESAN_PENGADUAN_TIDAK_LENGKAP,
@@ -9,6 +10,7 @@ import {
   htmlKartuProduk,
   htmlKartuTiket,
   pesanAkhirPanggilan,
+  pesanGalatPanggilan,
   pesanTiketEskalasi,
   pesanTiketPengaduan,
   type Produk,
@@ -120,4 +122,11 @@ test('t_f4_3_03 pengaduan bertiket dan layanan informasi produk tidak menampilka
   assert.notEqual(pesanAkhirPanggilan({ layanan: 2, tiketPengaduan: true }), PESAN_PENGADUAN_TIDAK_LENGKAP);
   assert.notEqual(pesanAkhirPanggilan({ layanan: 1, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
   assert.notEqual(pesanAkhirPanggilan({ layanan: null, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
+});
+
+test('or_1 galat jaringan panel suara tampil sebagai pesan kamus, bukan pesan browser', () => {
+  assert.equal(pesanGalatPanggilan(new TypeError('Failed to fetch')), 'Layanan suara sedang gangguan. Silakan coba lagi.');
+  assert.equal(pesanGalatPanggilan(new SyntaxError('Unexpected token')), 'Layanan suara sedang gangguan. Silakan coba lagi.');
+  assert.equal(pesanGalatPanggilan(new GalatGateway()), 'Layanan suara sedang gangguan. Silakan coba lagi.');
+  assert.equal(pesanGalatPanggilan(new GalatGateway('Suara tidak terdengar. Silakan ulangi.')), 'Suara tidak terdengar. Silakan ulangi.');
 });

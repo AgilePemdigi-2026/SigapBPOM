@@ -95,6 +95,15 @@ export function htmlKartuTiket(e: { tiket?: string; pengaduan?: string | null })
 /** Pesan akhir panggilan selain pengaduan tidak lengkap. */
 export const PESAN_PANGGILAN_BERAKHIR = 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
 
+/** Kamus pesan Lampiran A (UC-01, UC-02 "Gateway suara gagal atau jaringan putus"). */
+export const PESAN_GANGGUAN_SUARA = 'Layanan suara sedang gangguan. Silakan coba lagi.';
+
+/** Galat yang pesannya berasal dari balasan Voice Gateway. */
+export class GalatGateway extends Error {}
+
+// Pesan galat browser (jaringan putus, JSON rusak) tidak ditampilkan apa adanya (PROJECT_RULES 4.4 dan 5.12).
+export const pesanGalatPanggilan = (e: unknown) => (e instanceof GalatGateway && e.message ? e.message : PESAN_GANGGUAN_SUARA);
+
 /**
  * Status akhir panggilan di panel (T-F4.3-03, REQ-2.5). Layanan pengaduan yang belum bertiket memakai pesan kamus
  * "Panggilan putus, data kurang"; balasan /voice/akhiri, bila memuat pesan, menggantikannya.
