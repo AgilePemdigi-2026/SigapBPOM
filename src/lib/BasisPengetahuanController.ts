@@ -71,7 +71,8 @@ export function keTampilan(m: MateriTersimpan): Materi {
 const bulat = (n: number) => Math.round(n * 10) / 10;
 
 // Seluruh materi dibaca per UKURAN_HALAMAN_MAKS sampai jumlahnya mencapai total dari penyimpanan (Content-Range).
-// ponytail: seluruh korpus dikirim ke halaman sekaligus; ganti dengan paginasi UI (F2.1) bila korpus jauh lebih besar.
+// ponytail: seluruh korpus dikirim ke halaman sekaligus lalu dipaginasi di browser (F2.1); bila muatan halaman
+// melanggar NFR-3 saat korpus membesar, ganti dengan daftarMateri per halaman (filter dan pencarian di server).
 async function bacaSemua(penyimpanan: PenyimpananMateri, status?: StatusMateri) {
   const semua: MateriTersimpan[] = [];
   for (;;) {
@@ -167,7 +168,7 @@ export class BasisPengetahuanController {
     }
   }
 
-  /** Seluruh materi untuk halaman Basis Pengetahuan, yang menyaring dan mencari di browser. */
+  /** Seluruh materi untuk halaman Basis Pengetahuan, yang menyaring, mencari, dan memaginasi di browser. */
   async semuaMateri(): Promise<{ materi: Materi[]; total: number } | { gagal: string }> {
     try {
       const baris = await bacaSemua(this.penyimpanan);

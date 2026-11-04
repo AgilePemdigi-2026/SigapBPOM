@@ -2,7 +2,7 @@
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { KATEGORI_MATERI, chip } from '../lib/data';
-import { BasisPengetahuanController, PESAN_MATERI, type Materi } from '../lib/BasisPengetahuanController';
+import { BasisPengetahuanController, PESAN_MATERI, UKURAN_HALAMAN_BAWAAN, type Materi } from '../lib/BasisPengetahuanController';
 import { PenyimpananMateriTiruan } from '../lib/mock/materiTiruan';
 import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
 import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
@@ -31,6 +31,7 @@ const data = {
   total: KB_TOTAL,
   gagal,
   pesan: PESAN_MATERI,
+  ukuran: UKURAN_HALAMAN_BAWAAN,
   simpul: SIMPUL,
   chipAktif: chip('Aktif'),
   chipNonaktif: chip('Tidak Aktif'),
@@ -56,7 +57,14 @@ const data = {
         <div class="row-grid cols-head" aria-hidden="true"><span>JUDUL MATERI</span><span>RUJUKAN SUMBER</span><span>PEMUTAKHIRAN</span><span>STATUS</span><span>AKSI</span></div>
         <div class="rows" id="kb-rows"></div>
         <div class="empty" id="kb-empty" hidden><i class="icon-book-open"></i><span id="kb-empty-text">Belum ada materi yang cocok.</span><button class="pill" id="empty-add"><i class="icon-plus"></i>Tambah Materi</button></div>
-        <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
+        <div class="list-foot">
+          <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span id="kb-cocok">{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
+          <span class="pager" id="kb-pager" hidden>
+            <button class="tab ikon" data-hal="-1" aria-label="Halaman sebelumnya"><i class="icon-chevron-left"></i></button>
+            <span id="kb-hal"></span>
+            <button class="tab ikon" data-hal="1" aria-label="Halaman berikutnya"><i class="icon-chevron-right"></i></button>
+          </span>
+        </div>
       </section>
 
       <aside class="side-col">
@@ -96,8 +104,8 @@ const data = {
           <span class="legend"><span class="sw hub"></span>Topik</span>
           <span class="legend"><span class="sw"></span>Materi edukasi</span>
           <span class="grow"></span>
-          <button class="tab zoom-btn" data-zoom="-1" aria-label="Perkecil graf" disabled><i class="icon-zoom-out"></i></button>
-          <button class="tab zoom-btn" data-zoom="1" aria-label="Perbesar graf"><i class="icon-zoom-in"></i></button>
+          <button class="tab ikon" data-zoom="-1" aria-label="Perkecil graf" disabled><i class="icon-zoom-out"></i></button>
+          <button class="tab ikon" data-zoom="1" aria-label="Perbesar graf"><i class="icon-zoom-in"></i></button>
         </div>
       </section>
       {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>{gagalGraf || 'Graf terbentuk setelah ada materi di basis pengetahuan.'}</span></div>}
@@ -148,20 +156,28 @@ const data = {
     const c = m.aktif ? D.chipAktif : D.chipNonaktif;
     return `<span class="chip" style="background:${c.bg};color:${c.fg}">${m.aktif ? 'Aktif' : 'Tidak Aktif'}</span>`;
   };
-  const st = { tab: 'Semua', q: '', added: 0, deact: 0 };
+  const st = { tab: 'Semua', q: '', halaman: 1, added: 0, deact: 0 };
 
   const rowsEl = document.getElementById('kb-rows')!;
   function render() {
     const q = st.q.trim().toLowerCase();
     const list = materi.filter((m) => (st.tab === 'Semua' || (st.tab === 'Aktif') === m.aktif) && (!q || `${m.judul} ${m.rujukan}`.toLowerCase().includes(q)));
-    rowsEl.innerHTML = list.map((m) => `<div class="row row-grid${m.aktif ? '' : ' off'}">
+    // F2.1: paginasi di browser atas materi yang sudah dimuat (lihat bacaSemua di BasisPengetahuanController).
+    const jumlahHal = Math.max(1, Math.ceil(list.length / D.ukuran));
+    st.halaman = Math.min(st.halaman, jumlahHal);
+    const tampil = list.slice((st.halaman - 1) * D.ukuran, st.halaman * D.ukuran);
+    rowsEl.innerHTML = tampil.map((m) => `<div class="row row-grid${m.aktif ? '' : ' off'}">
         <span class="judul"><span>${esc(m.judul)}</span><span>${esc(m.kategori)}</span></span>
         <span class="ruj-cell"><i class="icon-link"></i><span>${esc(m.rujukan)}</span></span>
         <span class="tgl">${esc(m.tgl)}</span>
         ${chipStatus(m)}
         ${m.aktif ? `<button class="hapus" data-id="${m.id}" aria-label="Hapus ${esc(m.judul)}">Hapus</button>` : '<span class="arsip">Diarsipkan</span>'}
       </div>`).join('');
-    document.getElementById('kb-shown')!.textContent = String(list.length);
+    document.getElementById('kb-shown')!.textContent = String(tampil.length);
+    document.getElementById('kb-cocok')!.textContent = fmt(list.length);
+    document.getElementById('kb-pager')!.hidden = jumlahHal <= 1;
+    document.getElementById('kb-hal')!.textContent = `${st.halaman} / ${jumlahHal}`;
+    document.querySelectorAll<HTMLButtonElement>('[data-hal]').forEach((b) => (b.disabled = b.dataset.hal === '1' ? st.halaman >= jumlahHal : st.halaman <= 1));
     document.getElementById('kb-empty')!.hidden = list.length > 0;
     document.getElementById('kb-empty-text')!.textContent = D.gagal || (materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.');
     document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(D.total.total + st.added)));
@@ -173,8 +189,9 @@ const data = {
     document.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
   }
 
-  document.querySelectorAll<HTMLElement>('[data-tab]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.tab!; pressGroup('data-tab', st.tab); render(); }));
-  (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; showView('list'); render(); });
+  document.querySelectorAll<HTMLElement>('[data-tab]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.tab!; st.halaman = 1; pressGroup('data-tab', st.tab); render(); }));
+  (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; st.halaman = 1; showView('list'); render(); });
+  document.querySelectorAll<HTMLElement>('[data-hal]').forEach((b) => b.addEventListener('click', () => { st.halaman += Number(b.dataset.hal); render(); rowsEl.scrollTop = 0; }));
 
   // REQ-7.3, BR-5: nonaktifkan, tidak menghapus permanen.
   rowsEl.addEventListener('click', async (e) => {
@@ -298,7 +315,7 @@ const data = {
     materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl: hariIni(), aktif: true });
     document.getElementById('kb-tgl')!.textContent = materi[0].tgl;
     st.added++;
-    st.tab = 'Semua'; st.q = '';
+    st.tab = 'Semua'; st.q = ''; st.halaman = 1;
     (document.getElementById('kb-q') as HTMLInputElement).value = '';
     pressGroup('data-tab', 'Semua');
     showView('list');
@@ -334,6 +351,10 @@ const data = {
   .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
   .rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
   .shown { font-size: 15px; color: var(--muted); }
+  .list-foot, .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pager { font-size: 15px; color: var(--muted); }
+  .ikon { width: 44px; padding: 0; justify-content: center; font-size: 18px; }
+  .ikon:disabled { opacity: .45; }
   .empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px; color: var(--muted); font-size: 16px; }
   .empty i { font-size: 28px; }
   .rows :global(.row) { flex: none; height: 68px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); font-size: 15.5px; }
@@ -384,8 +405,6 @@ const data = {
   /* Legenda meniru simpul: topik lebih besar dan bergradasi biru, materi lebih kecil dan putih. */
   .sw { width: 14px; height: 14px; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 1px #c3c9d3; }
   .sw.hub { width: 20px; height: 20px; background: radial-gradient(circle at 35% 30%, #ffffff, #dfe8fd); box-shadow: 0 0 0 1px #aebfe8; }
-  .zoom-btn { width: 44px; padding: 0; justify-content: center; font-size: 18px; }
-  .zoom-btn:disabled { opacity: .45; }
   .node[aria-pressed='true'] { background: radial-gradient(circle at 35% 30%, #8fb6ff, #2f6bf5 70%); color: #fff; border: 2px solid #fff; box-shadow: 0 12px 28px rgba(47, 107, 245, .4); }
   .detail { padding: 26px; display: flex; flex-direction: column; gap: 14px; }
   .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
