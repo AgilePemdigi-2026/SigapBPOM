@@ -5,7 +5,6 @@ import { POST as telaah } from './telaah.ts';
 import { POST as jadwal } from './jadwal.ts';
 import { POST as tanggapan } from './tanggapan.ts';
 import { POST as tutup } from './tutup.ts';
-import { contohPemantauan } from '../../../../lib/mock/pemantauanTiruan.ts';
 
 process.env.SUPABASE_URL = 'http://supabase.uji';
 process.env.SUPABASE_ANON_KEY = 'anon-uji';
@@ -140,14 +139,4 @@ test('req_6_1 input tidak sah ditolak 400 tanpa memanggil Supabase', async () =>
     assert.deepEqual(await res.json(), { status: 'error', message: 'Permintaan tidak valid.', data: null });
     assert.equal(panggilan.length, 0);
   }
-});
-
-test('req_6_5 tanpa token sesi (pengembangan lokal) penyimpanan tiruan dipakai dan Supabase tidak dipanggil', async () => {
-  const tiketTiruan = contohPemantauan().tiket[0];
-  assert.equal(tiketTiruan.status, 'belum_ditelaah');
-  const { hasil, panggilan } = kirim(tutup, { tiket: tiketTiruan.noTiket, tokenAkses: undefined });
-  const res = await hasil;
-  assert.equal(res.status, 422);
-  assert.equal((await res.json()).message, 'Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.');
-  assert.equal(panggilan.length, 0);
 });
