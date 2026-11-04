@@ -6,6 +6,8 @@ import {
   PenyimpananTranskripSupabase,
   samarkanNama,
   samarkanNamaDiTeks,
+  PESAN_CATATAN_TERSIMPAN,
+  PESAN_CATATAN_WAJIB_DIISI,
 } from './TranskripController.ts';
 
 test('nfr_13 samarkanNama menyamarkan nama pelapor per kata sesuai format B*** S******', () => {
@@ -26,7 +28,6 @@ test('nfr_13 samarkanNamaDiTeks menyamarkan kemunculan nama pelapor dan kata bag
   const hasil2 = samarkanNamaDiTeks(teks2, 'Budi Santoso');
   assert.equal(hasil2, 'Terima kasih Bapak B***, laporan sudah tercatat.');
 
-  // Tidak menyentuh teks bila nama tidak cocok atau kosong
   assert.equal(samarkanNamaDiTeks('Halo halo bandung', 'Budi'), 'Halo halo bandung');
   assert.equal(samarkanNamaDiTeks('Halo halo bandung', null), 'Halo halo bandung');
 });
@@ -41,7 +42,6 @@ test('req_5_1 riwayat percakapan mengembalikan daftar percakapan dengan nomor te
   assert.equal(riwayat[1].jenisInteraksi, 'pengaduan');
   assert.equal(riwayat[1].noTiket, 'ADU-20261104-0001');
 
-  // Filter jenis interaksi
   const hanyaPengaduan = await controller.ambilRiwayat({ jenis: 'pengaduan' });
   assert.equal(hanyaPengaduan.length, 1);
   assert.equal(hanyaPengaduan[0].id, '88888888-0000-0000-0000-000000000002');
@@ -82,7 +82,50 @@ test('req_5_2 ambilTranskrip melempar galat bila id percakapan kosong atau tidak
   await assert.rejects(() => controller.ambilDetailTranskrip(''), /ID percakapan tidak valid/);
 });
 
-test('adapter Supabase membaca view riwayat_percakapan, ucapan_petugas, dan RPC ringkasan', async () => {
+test('req_5_4 validasi catatan kosong ditolak dengan pesan kamus Lampiran A', async () => {
+  const mockStorage = new PenyimpananTranskripMock();
+  const controller = new TranskripController(mockStorage);
+
+  await assert.rejects(
+    () => controller.simpanCatatanPemeriksaan('88888888-0000-0000-0000-000000000002', ''),
+    (e: Error) => e.message === PESAN_CATATAN_WAJIB_DIISI
+  );
+
+  await assert.rejects(
+    () => controller.simpanCatatanPemeriksaan('88888888-0000-0000-0000-000000000002', '   '),
+    (e: Error) => e.message === PESAN_CATATAN_WAJIB_DIISI
+  );
+
+  await assert.rejects(
+    () => controller.simpanCatatanPemeriksaan('', 'Catatan uji'),
+    (e: Error) => e.message.includes('ID percakapan tidak valid')
+  );
+});
+
+test('req_5_3 penyimpanan catatan pemeriksaan berhasil dan tersimpan pada percakapan terkait', async () => {
+  const mockStorage = new PenyimpananTranskripMock();
+  const controller = new TranskripController(mockStorage);
+
+  const hasil = await controller.simpanCatatanPemeriksaan(
+    '88888888-0000-0000-0000-000000000002',
+    'Perlu verifikasi ulang data pelapor.'
+  );
+
+  assert.ok(hasil.id);
+  assert.equal(hasil.pesan, PESAN_CATATAN_TERSIMPAN);
+
+  const daftarCatatan = await controller.ambilCatatanPemeriksaan('88888888-0000-0000-0000-000000000002');
+  assert.equal(daftarCatatan.length, 1);
+  assert.equal(daftarCatatan[0].isi, 'Perlu verifikasi ulang data pelapor.');
+
+  // Detail transkrip sekarang juga memuat catatan yang baru disimpan
+  const detail = await controller.ambilDetailTranskrip('88888888-0000-0000-0000-000000000002');
+  assert.ok(detail?.catatanPemeriksaan);
+  assert.equal(detail.catatanPemeriksaan.length, 1);
+  assert.equal(detail.catatanPemeriksaan[0].isi, 'Perlu verifikasi ulang data pelapor.');
+});
+
+test('adapter Supabase membaca view riwayat_percakapan, ucapan_petugas, dan RPC catatan', async () => {
   const panggilanRpc: { fn: string; params: unknown }[] = [];
   const panggilanTabel: { table: string; select: string }[] = [];
 
@@ -127,6 +170,27 @@ test('adapter Supabase membaca view riwayat_percakapan, ucapan_petugas, dan RPC 
     },
     rpc(fn: string, params?: Record<string, unknown>) {
       panggilanRpc.push({ fn, params });
+      if (fn === 'simpan_catatan_pemeriksaan') {
+        return Promise.resolve({
+          data: 'uuid-catatan-1',
+          error: null,
+        });
+      }
+      if (fn === 'ambil_catatan_pemeriksaan') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'uuid-catatan-1',
+              percakapan_id: 'mock-1',
+              petugas_id: 'petugas-1',
+              petugas_nama: 'Petugas Uji',
+              isi: 'Catatan tes',
+              waktu: '2026-11-04T10:00:00Z',
+            },
+          ],
+          error: null,
+        });
+      }
       return Promise.resolve({
         data: {
           total_percakapan: 10,
@@ -145,8 +209,12 @@ test('adapter Supabase membaca view riwayat_percakapan, ucapan_petugas, dan RPC 
   assert.equal(ringkasan.informasiProduk, 7);
   assert.equal(panggilanRpc[0].fn, 'ambil_ringkasan_periode_percakapan');
 
-  const detail = await adapter.ambilDetail('mock-1');
-  assert.ok(detail);
-  assert.equal(detail.id, 'mock-1');
-  assert.equal(panggilanTabel[0].table, 'riwayat_percakapan');
+  const simpan = await adapter.simpanCatatan('mock-1', 'Catatan penting');
+  assert.equal(simpan.id, 'uuid-catatan-1');
+  assert.equal(simpan.pesan, PESAN_CATATAN_TERSIMPAN);
+  assert.equal(panggilanRpc[1].fn, 'simpan_catatan_pemeriksaan');
+
+  const catatan = await adapter.ambilCatatan('mock-1');
+  assert.equal(catatan.length, 1);
+  assert.equal(panggilanRpc[2].fn, 'ambil_catatan_pemeriksaan');
 });

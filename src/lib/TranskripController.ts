@@ -1,6 +1,13 @@
-// Control UC-05 Membaca Transkrip Percakapan (REQ-5.1, REQ-5.2, NFR-13).
-// Petugas membaca riwayat percakapan dan transkrip lengkap dengan nomor telepon dan nama pelapor tersamar.
+// Control UC-05 Membaca Transkrip Percakapan (REQ-5.1, REQ-5.2, REQ-5.3, REQ-5.4, NFR-13).
+// Petugas membaca riwayat percakapan dan transkrip lengkap dengan nomor telepon dan nama pelapor tersamar,
+// serta menyimpan catatan pemeriksaan.
 // Mengikuti pola BCE dan nama class diagram SRS.
+
+/** Kamus pesan PRD-rinci Lampiran A (UC-05 "Catatan tersimpan", REQ-5.3). */
+export const PESAN_CATATAN_TERSIMPAN = 'Catatan pemeriksaan tersimpan.';
+
+/** Kamus pesan PRD-rinci Lampiran A (UC-05 "Catatan kosong", REQ-5.4). */
+export const PESAN_CATATAN_WAJIB_DIISI = 'Catatan pemeriksaan wajib diisi.';
 
 export interface BarisRiwayatPercakapan {
   id: string;
@@ -32,10 +39,19 @@ export interface UcapanTranskrip {
   detikKe: number;
 }
 
+export interface CatatanPemeriksaan {
+  id: string;
+  percakapanId: string;
+  petugasId: string;
+  petugasNama?: string | null;
+  isi: string;
+  waktu: string;
+}
+
 export interface DetailTranskripPercakapan {
   percakapan: BarisRiwayatPercakapan;
   ucapan: UcapanTranskrip[];
-  catatanPemeriksaan?: string | null;
+  catatanPemeriksaan?: CatatanPemeriksaan[];
 }
 
 export interface FilterRiwayat {
@@ -77,20 +93,27 @@ export function samarkanNamaDiTeks(teks: string, nama: string | null | undefined
   return hasil;
 }
 
-/** Interface adapter penyimpanan riwayat dan transkrip (PROJECT_RULES 4.3). */
+/** Interface adapter penyimpanan riwayat, transkrip, dan catatan pemeriksaan (PROJECT_RULES 4.3). */
 export interface PenyimpananTranskripPetugas {
   ambilRiwayat(filter?: FilterRiwayat): Promise<BarisRiwayatPercakapan[]>;
   ambilRingkasanPeriode(filter?: { awal?: string; akhir?: string }): Promise<RingkasanPeriodePercakapan>;
   ambilTranskrip(percakapanId: string): Promise<UcapanTranskrip[]>;
   ambilDetail(percakapanId: string): Promise<BarisRiwayatPercakapan | null>;
+  simpanCatatan(percakapanId: string, catatan: string): Promise<{ id: string; pesan: string }>;
+  ambilCatatan(percakapanId: string): Promise<CatatanPemeriksaan[]>;
 }
 
 /** Implementasi tiruan (Mock) untuk pengujian lokal dan fallback tanpa koneksi db. */
 export class PenyimpananTranskripMock implements PenyimpananTranskripPetugas {
   riwayat: BarisRiwayatPercakapan[];
   transkripMap: Map<string, UcapanTranskrip[]>;
+  catatanMap: Map<string, CatatanPemeriksaan[]>;
 
-  constructor(dataAwal?: { riwayat?: BarisRiwayatPercakapan[]; transkrip?: Record<string, UcapanTranskrip[]> }) {
+  constructor(dataAwal?: {
+    riwayat?: BarisRiwayatPercakapan[];
+    transkrip?: Record<string, UcapanTranskrip[]>;
+    catatan?: Record<string, CatatanPemeriksaan[]>;
+  }) {
     this.riwayat = dataAwal?.riwayat ? [...dataAwal.riwayat] : [
       {
         id: '88888888-0000-0000-0000-000000000001',
@@ -166,6 +189,13 @@ export class PenyimpananTranskripMock implements PenyimpananTranskripPetugas {
         },
       ]);
     }
+
+    this.catatanMap = new Map();
+    if (dataAwal?.catatan) {
+      for (const [id, catatan] of Object.entries(dataAwal.catatan)) {
+        this.catatanMap.set(id, catatan);
+      }
+    }
   }
 
   async ambilRiwayat(filter?: FilterRiwayat): Promise<BarisRiwayatPercakapan[]> {
@@ -201,9 +231,28 @@ export class PenyimpananTranskripMock implements PenyimpananTranskripPetugas {
   async ambilDetail(percakapanId: string): Promise<BarisRiwayatPercakapan | null> {
     return this.riwayat.find((r) => r.id === percakapanId || r.percakapanId === percakapanId) ?? null;
   }
+
+  async simpanCatatan(percakapanId: string, catatan: string): Promise<{ id: string; pesan: string }> {
+    const daftar = this.catatanMap.get(percakapanId) ?? [];
+    const id = `catatan-${Date.now()}-${daftar.length + 1}`;
+    daftar.unshift({
+      id,
+      percakapanId,
+      petugasId: '00000000-0000-0000-0000-000000000099',
+      petugasNama: 'Petugas Uji',
+      isi: catatan,
+      waktu: new Date().toISOString(),
+    });
+    this.catatanMap.set(percakapanId, daftar);
+    return { id, pesan: PESAN_CATATAN_TERSIMPAN };
+  }
+
+  async ambilCatatan(percakapanId: string): Promise<CatatanPemeriksaan[]> {
+    return this.catatanMap.get(percakapanId) ?? [];
+  }
 }
 
-/** Adapter Supabase untuk membaca view dan RPC riwayat/transkrip petugas terautentikasi. */
+/** Adapter Supabase untuk membaca dan menyimpan riwayat, transkrip, dan catatan pemeriksaan petugas. */
 export class PenyimpananTranskripSupabase implements PenyimpananTranskripPetugas {
   klien: {
     from: (table: string) => {
@@ -268,9 +317,29 @@ export class PenyimpananTranskripSupabase implements PenyimpananTranskripPetugas
     const daftar = (res.data as BarisRiwayatPercakapan[]) ?? [];
     return daftar.length > 0 ? daftar[0] : null;
   }
+
+  async simpanCatatan(percakapanId: string, catatan: string): Promise<{ id: string; pesan: string }> {
+    const res = await this.klien.rpc('simpan_catatan_pemeriksaan', {
+      p_percakapan_id: percakapanId,
+      p_catatan: catatan,
+    });
+    if (res.error) throw res.error;
+    return {
+      id: String(res.data),
+      pesan: PESAN_CATATAN_TERSIMPAN,
+    };
+  }
+
+  async ambilCatatan(percakapanId: string): Promise<CatatanPemeriksaan[]> {
+    const res = await this.klien.rpc('ambil_catatan_pemeriksaan', {
+      p_percakapan_id: percakapanId,
+    });
+    if (res.error) throw res.error;
+    return (res.data as CatatanPemeriksaan[]) ?? [];
+  }
 }
 
-/** Controller UC-05 Membaca Transkrip Percakapan. */
+/** Controller UC-05 Membaca Transkrip Percakapan dan Menyimpan Catatan Pemeriksaan. */
 export class TranskripController {
   penyimpanan: PenyimpananTranskripPetugas;
 
@@ -300,9 +369,32 @@ export class TranskripController {
     const percakapan = await this.penyimpanan.ambilDetail(percakapanId);
     if (!percakapan) return null;
     const ucapan = await this.penyimpanan.ambilTranskrip(percakapanId);
+    const catatanPemeriksaan = await this.penyimpanan.ambilCatatan(percakapanId);
     return {
       percakapan,
       ucapan,
+      catatanPemeriksaan,
     };
+  }
+
+  async simpanCatatanPemeriksaan(percakapanId: string, catatan: string): Promise<{ id: string; pesan: string }> {
+    if (!percakapanId || typeof percakapanId !== 'string') {
+      throw new Error('ID percakapan tidak valid.');
+    }
+    const bersih = typeof catatan === 'string' ? catatan.trim() : '';
+    if (!bersih) {
+      throw new Error(PESAN_CATATAN_WAJIB_DIISI);
+    }
+    if (bersih.length > 2000) {
+      throw new Error('Catatan pemeriksaan melebihi batas maksimal 2000 karakter.');
+    }
+    return this.penyimpanan.simpanCatatan(percakapanId, bersih);
+  }
+
+  async ambilCatatanPemeriksaan(percakapanId: string): Promise<CatatanPemeriksaan[]> {
+    if (!percakapanId || typeof percakapanId !== 'string') {
+      throw new Error('ID percakapan tidak valid.');
+    }
+    return this.penyimpanan.ambilCatatan(percakapanId);
   }
 }
