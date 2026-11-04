@@ -46,6 +46,9 @@ jobs:
           cache: npm
       - run: npm ci
       # Start pertama menerapkan migrasi dan seed (config.toml db.seed), jadi tidak perlu db reset.
+      # Port Supabase lokal (54320-54329) berada di rentang port sementara Linux (32768-60999), jadi koneksi keluar
+      # runner, misalnya saat menarik image, bisa memakainya lebih dulu dan start gagal "address already in use".
+      - run: sudo sysctl -w net.ipv4.ip_local_port_range="55000 65000"
       - run: npx supabase start
       - run: npx supabase test db
       - name: Edge Functions
