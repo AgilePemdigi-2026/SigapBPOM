@@ -1,6 +1,6 @@
 // Adapter produksi PenyimpananRiwayat: membaca view riwayat_percakapan (T-F6.1-01) lewat REST dengan token sesi petugas,
 // sehingga filter is_petugas() di view berlaku (T-F6.1-02). Ringkasan periode dihitung dari view yang sama memakai
-// count=exact, jadi angkanya selalu cocok dengan daftar. Nomor telepon hanya dibaca dalam bentuk tersamar (NFR-13).
+// count=exact, jadi angkanya selalu cocok dengan daftar.
 import type { PenyimpananRiwayat, PercakapanTersimpan, Periode, RingkasanPeriode } from './TranskripController.ts';
 
 type BarisRiwayat = {
@@ -9,11 +9,9 @@ type BarisRiwayat = {
   jenis_interaksi: string | null;
   ringkasan: string | null;
   status_penyelesaian: string;
-  no_tiket: string | null;
-  no_telp_tersamar: string | null;
 };
 
-const KOLOM = 'id,waktu_mulai,jenis_interaksi,ringkasan,status_penyelesaian,no_tiket,no_telp_tersamar';
+const KOLOM = 'id,waktu_mulai,jenis_interaksi,ringkasan,status_penyelesaian';
 
 export class PenyimpananRiwayatSupabase implements PenyimpananRiwayat {
   url: string;
@@ -56,8 +54,10 @@ export class PenyimpananRiwayatSupabase implements PenyimpananRiwayat {
     return total;
   }
 
-  async daftar({ periode, offset, batas }: { periode: Periode; offset: number; batas: number }): Promise<PercakapanTersimpan[]> {
-    const res = await this.ambil(this.kueri(periode, { select: KOLOM, order: 'waktu_mulai.desc,id.desc', offset: String(offset), limit: String(batas) }));
+  async daftar({ periode, jenis, offset, batas }: { periode: Periode; jenis?: string; offset: number; batas: number }): Promise<PercakapanTersimpan[]> {
+    const filter: Record<string, string> = { select: KOLOM, order: 'waktu_mulai.desc,id.desc', offset: String(offset), limit: String(batas) };
+    if (jenis) filter.jenis_interaksi = `eq.${jenis}`;
+    const res = await this.ambil(this.kueri(periode, filter));
     if (res.status === 416) return [];
     return ((await res.json()) as BarisRiwayat[]).map((b) => ({
       id: b.id,
@@ -65,8 +65,6 @@ export class PenyimpananRiwayatSupabase implements PenyimpananRiwayat {
       jenisInteraksi: b.jenis_interaksi,
       ringkasan: b.ringkasan,
       statusPenyelesaian: b.status_penyelesaian,
-      noTiket: b.no_tiket,
-      noTelpTersamar: b.no_telp_tersamar,
     }));
   }
 

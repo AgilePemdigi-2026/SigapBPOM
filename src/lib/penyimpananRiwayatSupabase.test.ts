@@ -25,23 +25,27 @@ const penyimpanan = (f: typeof fetch) => new PenyimpananRiwayatSupabase({ url: '
 test('req_5_1 t_f6_1_02 daftar dibaca dari view riwayat_percakapan dengan token petugas, periode, dan tanpa percakapan berjalan', async () => {
   const { f, log } = fetchPalsu(() =>
     Response.json([
-      { id: 'p-2', waktu_mulai: '2026-11-04T02:48:00Z', jenis_interaksi: 'informasi_produk', ringkasan: 'Obat batuk ibu hamil', status_penyelesaian: 'dieskalasi', no_tiket: 'ESK-20261104-0001', no_telp_tersamar: '0821****0098' },
+      { id: 'p-2', waktu_mulai: '2026-11-04T02:48:00Z', jenis_interaksi: 'informasi_produk', ringkasan: 'Obat batuk ibu hamil', status_penyelesaian: 'dieskalasi' },
     ]),
   );
   const baris = await penyimpanan(f).daftar({ periode: PERIODE, offset: 10, batas: 10 });
 
   assert.deepEqual(baris, [
-    { id: 'p-2', waktuMulai: '2026-11-04T02:48:00Z', jenisInteraksi: 'informasi_produk', ringkasan: 'Obat batuk ibu hamil', statusPenyelesaian: 'dieskalasi', noTiket: 'ESK-20261104-0001', noTelpTersamar: '0821****0098' },
+    { id: 'p-2', waktuMulai: '2026-11-04T02:48:00Z', jenisInteraksi: 'informasi_produk', ringkasan: 'Obat batuk ibu hamil', statusPenyelesaian: 'dieskalasi' },
   ]);
   const [r] = log;
   assert.equal(r.url.origin + r.url.pathname, 'http://127.0.0.1:54321/rest/v1/riwayat_percakapan');
   assert.equal(r.headers.Authorization, 'Bearer token-petugas');
   assert.equal(r.headers.apikey, 'kunci-anon');
   const q = r.url.searchParams;
-  assert.equal(q.get('select'), 'id,waktu_mulai,jenis_interaksi,ringkasan,status_penyelesaian,no_tiket,no_telp_tersamar');
+  assert.equal(q.get('select'), 'id,waktu_mulai,jenis_interaksi,ringkasan,status_penyelesaian');
+  assert.equal(q.get('jenis_interaksi'), null);
   assert.deepEqual(q.getAll('waktu_mulai'), [`gte.${PERIODE.dari}`, `lt.${PERIODE.sampai}`]);
   assert.deepEqual(q.getAll('status_penyelesaian'), ['neq.berjalan']);
   assert.deepEqual([q.get('order'), q.get('offset'), q.get('limit')], ['waktu_mulai.desc,id.desc', '10', '10']);
+
+  await penyimpanan(f).daftar({ periode: PERIODE, jenis: 'pengaduan', offset: 0, batas: 8 });
+  assert.equal(log[1].url.searchParams.get('jenis_interaksi'), 'eq.pengaduan');
 });
 
 test('req_5_1 t_f6_1_02 kartu ringkasan dihitung dari view yang sama memakai count=exact per kategori', async () => {
