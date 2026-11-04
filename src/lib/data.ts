@@ -12,6 +12,9 @@ const STATUS: Record<string, [string, string]> = {
   'Tanggapan Disusun': ['#daf1f5', '#0e6a80'],
   Selesai: ['#dcf5e6', '#15803d'],
   'Diteruskan ke Instansi Lain': ['#e9ebef', '#475060'],
+  'Selesai oleh AI': ['#dcf5e6', '#15803d'],
+  Dieskalasi: ['#fdf0d3', '#8a5300'],
+  'Tiket terbit': ['#e3ecff', '#2152c9'],
   Aktif: ['#dcf5e6', '#15803d'],
   'Tidak Aktif': ['#e9ebef', '#475060'],
 };
