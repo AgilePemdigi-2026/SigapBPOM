@@ -1,7 +1,5 @@
 // Data dashboard. Data tiruan prototipe sudah dihapus. Statistik ringkasan dibaca lewat PemantauanLayananController (F5.1);
 // badge Tiket Eskalasi, pencarian, dan notifikasi dibaca layout dashboard dari antrean_tiket_petugas.
-// Pengecualian: jumlah materi dibaca dari korpus RAG tiruan sampai sesi Supabase tersedia (T-F3.1-03).
-import { MATERI_TIRUAN } from './mock/materiTiruan.ts';
 
 export type Chip = { bg: string; fg: string };
 
@@ -20,8 +18,6 @@ export function chip(status: string): Chip {
   const [bg, fg] = STATUS[status] ?? ['#e9ebef', '#475060'];
   return { bg, fg };
 }
-
-export const KB_TOTAL = { total: MATERI_TIRUAN.length, aktif: MATERI_TIRUAN.filter((m) => m.status === 'aktif').length, nonaktif: MATERI_TIRUAN.filter((m) => m.status !== 'aktif').length };
 
 export const KATEGORI_MATERI = ['Edukasi Umum', 'Pangan Olahan', 'Kosmetik', 'Obat', 'Obat Tradisional', 'Suplemen Kesehatan', 'Layanan'];
 

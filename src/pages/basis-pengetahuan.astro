@@ -2,19 +2,10 @@
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { KATEGORI_MATERI, chip } from '../lib/data';
-import { BasisPengetahuanController, PESAN_MATERI, UKURAN_HALAMAN_BAWAAN, type Materi } from '../lib/BasisPengetahuanController';
-import { PenyimpananMateriTiruan } from '../lib/mock/materiTiruan';
-import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
-import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
+import { PESAN_MATERI, UKURAN_HALAMAN_BAWAAN, type Materi } from '../lib/BasisPengetahuanController';
+import { basisPengetahuan } from '../lib/basisPengetahuan';
 
-// Dengan sesi Supabase, materi dibaca memakai token petugas agar RLS is_petugas() berlaku. Tanpa token
-// (sesi tiruan untuk pengembangan lokal), dipakai penyimpanan tiruan.
-const konfigurasi = bacaKonfigurasiSupabase();
-const token = Astro.locals.tokenAkses;
-const penyimpanan = konfigurasi && token
-  ? new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })
-  : new PenyimpananMateriTiruan();
-const basis = new BasisPengetahuanController(penyimpanan);
+const basis = basisPengetahuan(Astro.locals.tokenAkses);
 const [daftar, graf] = await Promise.all([basis.semuaMateri(), basis.grafPengetahuan()]);
 const MATERI: Materi[] = 'materi' in daftar ? daftar.materi : [];
 const gagal = 'gagal' in daftar ? daftar.gagal : '';

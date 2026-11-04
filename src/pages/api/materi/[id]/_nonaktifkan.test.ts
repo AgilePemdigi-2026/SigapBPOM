@@ -34,12 +34,6 @@ test('req_7_3 dengan sesi Supabase materi dinonaktifkan lewat PATCH memakai toke
   assert.deepEqual(await tidakAda.json(), { status: 'error', message: 'Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi.', data: null });
 });
 
-test('req_7_3 tanpa token sesi (pengembangan lokal) penyimpanan tiruan dipakai dan Supabase tidak dipanggil', async () => {
-  const { hasil, panggilan } = nonaktifkan('tiruan-1', undefined, []);
-  assert.equal((await hasil).status, 200);
-  assert.equal(panggilan.length, 0);
-});
-
 test('req_7_3 gagal menonaktifkan tampil sebagai toast galat berpesan kamus, bukan ikon sukses', () => {
   const halaman = readFileSync(new URL('../../../basis-pengetahuan.astro', import.meta.url), 'utf8');
   assert.match(halaman, /sigapToast\?\.\(msg, kind\)/);

@@ -2,12 +2,10 @@
 // Boundary UC-04 Memantau Layanan, halaman Ringkasan Layanan (REQ-4.1, T-F5.1-02).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import Orb from '../components/Orb.astro';
-import { KB_TOTAL, chip } from '../lib/data';
+import { chip } from '../lib/data';
 import { pemantauanLayanan } from '../lib/pemantauan';
 import { PESAN_PEMANTAUAN, sapaan } from '../lib/PemantauanLayananController';
-import { BasisPengetahuanController } from '../lib/BasisPengetahuanController';
-import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
-import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
+import { basisPengetahuan } from '../lib/basisPengetahuan';
 
 const PERIODE = [
   ['harian', 'Harian', 'Panggilan masuk hari ini per jam'],
@@ -19,12 +17,10 @@ const AWAL = 'mingguan';
 const LABEL_SUMBU_MAKS = 8;
 
 const fmt = (n: number) => n.toLocaleString('id-ID');
-const konfigurasi = bacaKonfigurasiSupabase();
 const token = Astro.locals.tokenAkses;
-// Jumlah materi dibaca dari Supabase dengan token petugas, sama seperti halaman Basis Pengetahuan; tanpa token memakai data tiruan.
+// Jumlah materi dibaca lewat penyimpanan yang sama dengan halaman Basis Pengetahuan.
 const materiTotal = async () => {
-  if (!konfigurasi || !token) return KB_TOTAL.total;
-  const hasil = await new BasisPengetahuanController(new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })).daftarMateri({ ukuran: 1 });
+  const hasil = await basisPengetahuan(token).daftarMateri({ ukuran: 1 });
   return 'total' in hasil ? hasil.total : null;
 };
 const pemantauan = pemantauanLayanan(token);

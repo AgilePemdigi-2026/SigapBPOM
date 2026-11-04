@@ -3,14 +3,13 @@ import assert from 'node:assert/strict';
 import {
   PESAN_PEMANTAUAN,
   PemantauanLayananController,
-  PenyimpananPemantauanMock,
   ringkasPanggilan,
   sapaan,
   susunBeban,
   type DataRingkasanLayanan,
   type PemeriksaKesehatanAgent,
 } from './PemantauanLayananController.ts';
-import { PemeriksaKesehatanTiruan, PenyimpananPemantauanTiruan, contohPemantauan, type DataPemantauan } from './mock/pemantauanTiruan.ts';
+import { PemeriksaKesehatanTiruan, PenyimpananPemantauanMock, PenyimpananPemantauanTiruan, contohPemantauan, type DataPemantauan } from './mock/pemantauanTiruan.ts';
 import { PemeriksaKesehatanGateway } from './kesehatanAgentGateway.ts';
 import { PenyimpananPemantauanSupabase } from './penyimpananPemantauanSupabase.ts';
 

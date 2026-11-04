@@ -12,6 +12,7 @@ import type {
   PanggilanAktif,
   PemeriksaKesehatanAgent,
   PenyimpananPemantauan,
+  StatistikLayanan,
   StatusTiket,
   TiketAntrean,
 } from '../PemantauanLayananController.ts';
@@ -211,5 +212,55 @@ export class PemeriksaKesehatanTiruan implements PemeriksaKesehatanAgent {
 
   async periksa() {
     return this.komponen;
+  }
+}
+
+/** Penyimpanan kosong yang isinya diatur per test. */
+export class PenyimpananPemantauanMock implements PenyimpananPemantauan {
+  private data: DataRingkasanLayanan;
+  private panggilanAktif: PanggilanAktif[];
+  private antreanTiket: TiketAntrean[];
+  private detailKasus: Map<string, DetailKasusPengaduan>;
+
+  constructor(opsi?: {
+    ringkasan?: Partial<DataRingkasanLayanan>;
+    panggilanAktif?: PanggilanAktif[];
+    antreanTiket?: TiketAntrean[];
+    detailKasus?: DetailKasusPengaduan[];
+  }) {
+    this.data = {
+      statistik: opsi?.ringkasan?.statistik ?? {
+        panggilanHariIni: 0,
+        jawabanOtomatisAi: 0,
+        tiketEskalasiBaru: 0,
+        pengaduanSelesai: 0,
+        panggilanBerjalan: 0,
+      },
+      kategori: opsi?.ringkasan?.kategori ?? [],
+      kasusPerluTindakLanjut: opsi?.ringkasan?.kasusPerluTindakLanjut ?? [],
+    };
+    this.panggilanAktif = opsi?.panggilanAktif ?? [];
+    this.antreanTiket = opsi?.antreanTiket ?? [];
+    this.detailKasus = new Map((opsi?.detailKasus ?? []).map((d) => [d.noTiket, d]));
+  }
+
+  async ambilRingkasan(): Promise<DataRingkasanLayanan> {
+    return this.data;
+  }
+
+  async ambilStatistik(): Promise<StatistikLayanan> {
+    return this.data.statistik;
+  }
+
+  async ambilPanggilanAktif(): Promise<PanggilanAktif[]> {
+    return this.panggilanAktif;
+  }
+
+  async ambilAntreanTiket(): Promise<TiketAntrean[]> {
+    return this.antreanTiket;
+  }
+
+  async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
+    return this.detailKasus.get(noTiket) ?? null;
   }
 }
