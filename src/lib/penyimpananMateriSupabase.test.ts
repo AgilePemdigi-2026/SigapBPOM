@@ -2,7 +2,9 @@
 // SIGAP_UJI_* tidak diisi; job `supabase` di .github/workflows/ci.yml mengisinya. Contoh:
 //   SIGAP_UJI_SUPABASE_URL=http://127.0.0.1:54321 SIGAP_UJI_KUNCI_PUBLIK=<anon key> \
 //   SIGAP_UJI_EMAIL=<email seed> SIGAP_UJI_PASSWORD=<password seed> npm test
-// Uji bagian dokumen terindeks butuh materi_potongan terisi: jalankan scripts/indeks-materi.ts setelah db reset.
+// Uji bagian dokumen terindeks juga butuh materi_potongan terisi: jalankan scripts/indeks-materi.ts pada Supabase lokal
+// lalu tambahkan SIGAP_UJI_TERINDEKS=1. CI tidak mengisinya, karena skenario @ui UC-01 butuh database tanpa materi
+// terindeks lain (features/README.md); jalankan `supabase db reset` sebelum menjalankan skenario itu lagi.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PenyimpananMateriSupabase } from './penyimpananMateriSupabase.ts';
@@ -11,6 +13,7 @@ import { DOKUMEN_KORPUS } from './mock/materiTiruan.ts';
 
 const { SIGAP_UJI_SUPABASE_URL: url = '', SIGAP_UJI_KUNCI_PUBLIK: kunciPublik = '', SIGAP_UJI_EMAIL: email = '', SIGAP_UJI_PASSWORD: password = '' } = process.env;
 const lewati = !(url && kunciPublik && email && password) && 'butuh Supabase lokal dan variabel SIGAP_UJI_*';
+const lewatiTerindeks = lewati || (!process.env.SIGAP_UJI_TERINDEKS && 'butuh materi_potongan dari scripts/indeks-materi.ts dan SIGAP_UJI_TERINDEKS=1');
 
 async function tokenPetugas() {
   const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -81,7 +84,7 @@ test('t_f2_4_02 graf dari materi Supabase menunjuk materi yang benar-benar tersi
   for (const n of materi) assert.equal(n.rujukan, perId.get(n.id)?.rujukan, `rujukan simpul ${n.label} sesuai tabel`);
 });
 
-test('req_7_4 setiap simpul materi menampilkan bagian dokumen terindeks setelah indeks ulang', { skip: lewati }, async () => {
+test('req_7_4 setiap simpul materi menampilkan bagian dokumen terindeks setelah indeks ulang', { skip: lewatiTerindeks }, async () => {
   const kb = new BasisPengetahuanController(new PenyimpananMateriSupabase({ url, kunciPublik, tokenAkses: await tokenPetugas() }));
   const graf = await kb.grafPengetahuan();
   assert.ok('simpul' in graf);

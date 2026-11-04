@@ -65,6 +65,7 @@ jobs:
       - name: Kunci lokal
         run: npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
       # Menyalakan uji yang dilewati di job uji. Akun uji hanya ada di seed lokal (supabase/seed.sql, SRS Tabel B.4).
+      # SIGAP_UJI_TERINDEKS sengaja tidak diisi: materi belum diindeks agar skenario @ui UC-01 tidak mengutip materi lain.
       - name: Uji integrasi
         run: SIGAP_UJI_SUPABASE_URL=$API_URL SIGAP_UJI_KUNCI_PUBLIK=$ANON_KEY npm test
         env:
