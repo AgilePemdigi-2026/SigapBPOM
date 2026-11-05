@@ -1,0 +1,252 @@
+---
+// Boundary UC-08 Merekap dan Mengunduh Laporan Layanan, Halaman Rekap dan Laporan (REQ-8.1 s.d. REQ-8.4, T-F8.1-02).
+// Rekap dihitung RPC rekap_layanan di server. Hak ekspor diperiksa di server sebelum pilihan "Format Berkas" dikirim ke
+// browser (REQ-8.3); berkasnya disusun GET /api/laporan (T-F8.2-01), yang memeriksa hak ekspor lagi. Tata letak mengikuti
+// mockup Figma 15 · Rekap & Laporan; judul, label kartu, dan format periode mengikuti SRS 3.1.12 dan Tabel B.9.
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { daftarPeriode, type JumlahRekap } from '../lib/LaporanController';
+import { laporanLayanan } from '../lib/laporan';
+
+// Kamus belum punya pesan gagal muat untuk UC-08; dipakai pesan gagal muat terdekat (UC-04).
+const PESAN_GAGAL = 'Data panggilan gagal dimuat.';
+
+const KARTU: { kunci: keyof JumlahRekap; label: string; bg: string; fg: string; icon: string }[] = [
+  { kunci: 'panggilan', label: 'Total Panggilan', bg: '#e6edfe', fg: '#2557e0', icon: 'icon-phone-incoming' },
+  { kunci: 'tereskalasi', label: 'Kasus Tereskalasi', bg: '#fdf1cc', fg: '#a16207', icon: 'icon-user-check' },
+  { kunci: 'pengaduanSelesai', label: 'Pengaduan Selesai', bg: '#ddf5e6', fg: '#15803d', icon: 'icon-circle-check' },
+];
+
+const PERIODE = daftarPeriode();
+const periode = PERIODE.find((p) => p.nilai === Astro.url.searchParams.get('periode')) ?? PERIODE[0];
+const laporan = laporanLayanan(Astro.locals.tokenAkses);
+const [hasil, hak] = await Promise.all([laporan.hitungRekap(periode).catch(() => null), laporan.periksaHakEkspor()]);
+// Penyimpanan gagal: 503 (PROJECT_RULES 4.4).
+if (!hasil) Astro.response.status = 503;
+const rekap = hasil && 'total' in hasil ? hasil : null;
+const pesan = !hasil ? PESAN_GAGAL : 'kosong' in hasil ? hasil.kosong : '';
+
+const fmt = (n: number) => n.toLocaleString('id-ID');
+const tgl = (s: string) => new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short' }).format(new Date(`${s}T00:00:00Z`));
+const rentang = (a: string, z: string) => (a === z ? tgl(a) : a.slice(0, 7) === z.slice(0, 7) ? `${Number(a.slice(8))}–${tgl(z)}` : `${tgl(a)}–${tgl(z)}`);
+
+// Grafik: tinggi batang = panggilan, bagian atasnya kasus tereskalasi dan sisanya dijawab AI. Batang tertinggi mengisi 90%
+// tinggi plot seperti di mockup. Hanya skala tampilan; angkanya tetap hasil RPC.
+// ponytail: "Dijawab AI" = panggilan dikurangi tereskalasi, seperti SRS Gambar 3.17, sehingga panggilan berstatus
+// terputus ikut terhitung. Pakai jumlah selesai_ai bila rekap_layanan (T-F8.1-01) kelak mengembalikannya.
+const maks = Math.max(1, ...(rekap?.perMinggu ?? []).map((m) => m.panggilan)) / 0.9;
+const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%`;
+---
+<DashboardLayout title="Rekap dan Laporan Layanan">
+  <div class="page">
+    <section class="blok kepala">
+      <div class="judul">
+        <h1>Rekap dan Laporan Layanan</h1>
+        <span>Rekapitulasi panggilan, kasus tereskalasi, dan pengaduan selesai per periode</span>
+      </div>
+      <span class="grow"></span>
+      <form class="pilih" method="get" action="/rekap-laporan">
+        <label class="periode">
+          <span>Periode</span>
+          <select name="periode">
+            {PERIODE.map((p) => <option value={p.nilai} selected={p.nilai === periode.nilai}>{p.label}</option>)}
+          </select>
+          <i class="icon-chevron-down" aria-hidden="true"></i>
+        </label>
+        <button type="submit" class="btn-primary tampilkan">Tampilkan</button>
+      </form>
+      <button type="button" class="unduh" id="unduh-btn" data-tolak={hak.boleh ? undefined : hak.pesan} aria-haspopup={hak.boleh ? 'dialog' : undefined}><i class="icon-download"></i>Unduh Laporan</button>
+    </section>
+
+    {!rekap && <section class="blok kosong" role={hasil ? 'status' : 'alert'}><i class={hasil ? 'icon-chart-column' : 'icon-file-x'}></i><span>{pesan}</span></section>}
+
+    {rekap && (<>
+      <div class="kartu-list">
+        {KARTU.map((k) => (
+          <section class="blok kartu">
+            <span class="kartu-icon" style={`background:${k.bg};color:${k.fg}`}><i class={k.icon}></i></span>
+            <div class="kartu-isi"><span>{k.label}</span><span class="kartu-nilai">{fmt(rekap.total[k.kunci])}</span></div>
+            <span class="grow"></span>
+            <span class="kartu-periode">{periode.label}</span>
+          </section>
+        ))}
+      </div>
+
+      <div class="isi">
+        <section class="blok grafik" data-name="GrafikRekapitulasi">
+          <div class="grafik-head">
+            <h2>Grafik Rekapitulasi</h2>
+            <div class="legend"><span class="leg"><span class="dot ai"></span>Dijawab AI</span><span class="leg"><span class="dot esk"></span>Tereskalasi</span></div>
+          </div>
+          <div class="plot" role="img" aria-label={`Grafik panggilan per minggu, periode ${periode.label}: dijawab AI dan tereskalasi. Angkanya ada di Tabel Rekapitulasi.`}>
+            {rekap.perMinggu.map((m) => (
+              <div class="kolom-batang">
+                <span class="nilai mono">{fmt(m.panggilan)}</span>
+                <div class="batang" style={`height:${persen(m.panggilan, maks)}`}>
+                  <div class="esk" style={`height:${m.panggilan ? persen(m.tereskalasi, m.panggilan) : '0%'}`}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div class="sumbu-x" aria-hidden="true">
+            {rekap.perMinggu.map((m, i) => <div><span>Minggu {i + 1}</span><span>{rentang(m.awal, m.akhir)}</span></div>)}
+          </div>
+        </section>
+
+        <section class="blok tabel" data-name="TabelRekapitulasi">
+          <h2>Tabel Rekapitulasi</h2>
+          <table>
+            <thead><tr><th scope="col">Minggu</th><th scope="col">Panggilan</th><th scope="col">Eskalasi</th><th scope="col">Selesai</th></tr></thead>
+            <tbody>
+              {rekap.perMinggu.map((m, i) => (
+                <tr>
+                  <th scope="row"><span>Minggu {i + 1}</span><span>{rentang(m.awal, m.akhir)}</span></th>
+                  <td class="mono">{fmt(m.panggilan)}</td><td class="mono">{fmt(m.tereskalasi)}</td><td class="mono">{fmt(m.pengaduanSelesai)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot><tr><th scope="row">Total</th><td class="mono">{fmt(rekap.total.panggilan)}</td><td class="mono">{fmt(rekap.total.tereskalasi)}</td><td class="mono">{fmt(rekap.total.pengaduanSelesai)}</td></tr></tfoot>
+          </table>
+        </section>
+      </div>
+    </>)}
+  </div>
+
+  {hak.boleh && (
+    <dialog id="unduh-dialog" class="modal" aria-labelledby="unduh-title">
+      <form method="dialog" data-name="PilihanFormatBerkas" data-awal={periode.awal} data-akhir={periode.akhir}>
+        <div class="modal-head">
+          <div><h2 id="unduh-title">Unduh Laporan Layanan</h2><span>Periode {periode.label}</span></div>
+          <button type="button" class="x" data-close aria-label="Tutup"><i class="icon-x"></i></button>
+        </div>
+        <label class="f"><span>Format Berkas</span><select name="format"><option value="pdf">PDF</option><option value="csv">CSV</option></select></label>
+        <div class="modal-actions">
+          <button type="button" class="pill" data-close>Batal</button>
+          <button type="submit" class="btn-primary aksi"><i class="icon-download"></i>Konfirmasi Unduh</button>
+        </div>
+      </form>
+    </dialog>
+  )}
+</DashboardLayout>
+
+<script>
+  import { PESAN_LAPORAN } from '../lib/LaporanController';
+
+  const toast = (msg: string, kind?: 'ok' | 'err') => (window as any).sigapToast?.(msg, kind);
+  const tombol = document.getElementById('unduh-btn')!;
+  const dialog = document.getElementById('unduh-dialog') as HTMLDialogElement | null;
+  // Tanpa hak ekspor server tidak mengirim pilihan format, jadi tombol hanya menampilkan pesan penolakan (REQ-8.3).
+  tombol.addEventListener('click', () => (dialog ? dialog.showModal() : toast(tombol.dataset.tolak!, 'err')));
+
+  if (dialog) {
+    const form = dialog.querySelector('form')!;
+    const konfirmasi = form.querySelector<HTMLButtonElement>('[type="submit"]')!;
+    dialog.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => dialog.close()));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const { awal = '', akhir = '' } = form.dataset;
+      const format = String(new FormData(form).get('format'));
+      konfirmasi.disabled = true;
+      try {
+        const res = await fetch(`/api/laporan?${new URLSearchParams({ awal, akhir, format })}`);
+        if (!res.ok) {
+          // Endpoint menolak tanpa hak ekspor dengan 403; pesan lain ditampilkan bila endpoint mengirimnya.
+          const body = (await res.json().catch(() => null)) as { message?: unknown } | null;
+          const pesan = res.status === 403 ? PESAN_LAPORAN.tanpaHakEkspor : typeof body?.message === 'string' ? body.message : '';
+          if (pesan) toast(pesan, 'err');
+          return;
+        }
+        const nama = /filename="?([^";]+)"?/i.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? `laporan-layanan-${awal}-${akhir}.${format}`;
+        const url = URL.createObjectURL(await res.blob());
+        Object.assign(document.createElement('a'), { href: url, download: nama }).click();
+        setTimeout(() => URL.revokeObjectURL(url));
+        dialog.close();
+        toast(PESAN_LAPORAN.unduhSukses);
+      } finally {
+        konfirmasi.disabled = false;
+      }
+    });
+  }
+</script>
+
+<style>
+  /* Ukuran, warna, dan bayangan dari mockup Figma 15 · Rekap & Laporan. */
+  .page { --bayang: 0 4px 14px rgba(31, 38, 71, .05); --biru: #2557e0; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px; }
+  .grow { flex: 1; }
+  h1, h2 { margin: 0; font-weight: 400; color: var(--ink); }
+  .blok { background: var(--panel); border: 1px solid rgba(255, 255, 255, .95); border-radius: 28px; box-shadow: var(--shadow-panel); }
+
+  .kepala { flex: none; height: 114px; box-sizing: border-box; padding: 0 24px; display: flex; align-items: center; gap: 14px; }
+  .judul { display: flex; flex-direction: column; gap: 4px; }
+  .judul h1 { font-size: 40px; }
+  .judul span { font-size: 15px; color: var(--muted); }
+  .pilih { display: flex; align-items: center; gap: 14px; }
+  .periode { position: relative; height: 52px; padding: 0 20px; border-radius: 26px; background: var(--surface-2); box-shadow: var(--bayang); display: flex; align-items: center; gap: 16px; }
+  .periode > span { font-size: 15px; color: var(--muted); }
+  .periode select { appearance: none; border: 0; background: transparent; font-size: 16px; font-weight: 600; color: var(--ink); padding-right: 28px; margin-right: -28px; cursor: pointer; }
+  .periode i { font-size: 16px; pointer-events: none; }
+  .tampilkan { height: 52px; padding: 0 28px; font-size: 16px; font-weight: 600; box-shadow: 0 10px 28px rgba(59, 110, 245, .3); }
+  .unduh { height: 52px; padding: 0 18px; border: 0; border-radius: 26px; background: var(--surface-2); box-shadow: var(--bayang); display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .unduh i { font-size: 18px; }
+
+  .kosong { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 18px; color: var(--ink-3); }
+  .kosong i { font-size: 30px; color: var(--muted-2); }
+
+  .kartu-list { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .kartu { height: 114px; box-sizing: border-box; padding: 0 26px; display: flex; align-items: center; gap: 18px; min-width: 0; }
+  .kartu-icon { width: 56px; height: 56px; flex: none; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .kartu-isi { display: flex; flex-direction: column; font-size: 15px; color: var(--ink-3); }
+  .kartu-nilai { font-size: 44px; font-weight: 600; color: var(--ink); }
+  .kartu-periode { font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+  .isi { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 993fr) minmax(0, 738fr); gap: 18px; }
+  .grafik { min-width: 0; padding: 26px 24px 18px; display: flex; flex-direction: column; }
+  .grafik-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .grafik h2, .tabel h2 { font-size: 26px; }
+  .legend { display: flex; gap: 16px; padding-top: 8px; font-size: 14px; color: var(--ink-3); }
+  .leg { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 11px; height: 11px; border-radius: 3px; }
+  .dot.ai { background: #3b6ef6; }
+  .dot.esk { background: #f5c033; }
+  /* Garis bantu tiap 1/7 tinggi plot, seperti delapan garis di mockup. */
+  .plot { flex: 1; min-height: 0; margin-top: 28px; display: flex; align-items: flex-end; border-bottom: 1px solid #e3e5ea; background: repeating-linear-gradient(to top, #e3e5ea 0 1px, transparent 1px calc(100% / 7)); }
+  .kolom-batang { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 12px; }
+  .nilai { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .batang { width: min(110px, 60%); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(180deg, #5b8bff, #2f5fe8); }
+  .batang .esk { flex: none; background: linear-gradient(180deg, #fcd34d, #f5c033); }
+  .sumbu-x { flex: none; display: flex; padding-top: 14px; }
+  .sumbu-x div { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .sumbu-x span:first-child { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .sumbu-x span:last-child { font-size: 13px; color: var(--muted); }
+
+  .tabel { min-width: 0; min-height: 0; padding: 26px; display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0 10px; margin-top: -10px; }
+  th, td { padding: 0 0 0 20px; text-align: left; font-weight: 400; }
+  thead th { font-size: 13px; font-weight: 600; letter-spacing: 1.04px; text-transform: uppercase; color: var(--muted); }
+  tbody tr, tfoot tr { height: 56px; }
+  tbody th, tbody td { background: var(--surface-2); box-shadow: 0 4px 14px -6px rgba(31, 38, 71, .08); }
+  tbody th span { display: block; }
+  tbody th span:first-child { font-size: 15px; font-weight: 500; color: var(--ink); }
+  tbody th span:last-child { font-size: 12px; color: var(--muted); }
+  td { font-size: 16px; color: var(--ink); }
+  tr > :first-child { border-radius: 16px 0 0 16px; }
+  tr > :last-child { border-radius: 0 16px 16px 0; }
+  tfoot th, tfoot td { background: #e6edfe; color: var(--biru); font-size: 16px; }
+  tfoot th { font-weight: 600; }
+  tfoot td { font-weight: 500; }
+
+  .aksi { height: 50px; padding: 0 22px; font-size: 15px; }
+  .modal { width: 640px; transform: scale(var(--s, 1)); padding: 32px; border-radius: 36px; background: #f4f5f7; border: 1px solid #fff; box-shadow: 0 40px 90px rgba(20, 30, 60, .3); color: var(--ink); }
+  .modal::backdrop { background: rgba(40, 46, 60, .3); backdrop-filter: blur(3px); }
+  .modal form { display: flex; flex-direction: column; gap: 20px; }
+  .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .modal-head div { display: flex; flex-direction: column; gap: 6px; }
+  .modal-head h2 { font-size: 30px; letter-spacing: -.02em; }
+  .modal-head span { font-size: 15px; color: var(--muted); }
+  .x { width: 44px; height: 44px; flex: none; border-radius: 999px; border: 0; background: transparent; font-size: 20px; color: var(--ink-3); }
+  .f { display: flex; flex-direction: column; gap: 8px; }
+  .f > span { font-size: 15px; font-weight: 500; color: var(--ink-3); }
+  .f select { height: 58px; padding: 0 14px; border-radius: 18px; background: #fff; border: 1px solid var(--line-2); font: inherit; font-size: 16px; }
+  .f select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-actions .pill { height: 50px; padding: 0 22px; font-size: 15px; }
+</style>
