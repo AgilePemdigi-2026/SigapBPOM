@@ -28,6 +28,7 @@ export const PESAN_LOGIN = {
   berhasil: 'Login berhasil!',
   kosong: 'Login gagal. Semua field harus diisi!',
   salah: 'Login gagal. Email atau password Anda salah.',
+  dikunci: 'Akses dikunci sementara. Hubungi administrator.',
 } as const;
 
 // PROJECT_RULES 5.6: panjang isian dibatasi sebelum diteruskan ke penyedia autentikasi.

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { AdapterCekBpomTiruan, type AdapterCekBpom } from '../adapter/cekbpom.ts';
 import { PenyediaEmbeddingTiruan, buatVektorTiruan, type PenyediaEmbedding } from '../adapter/embedding.ts';
 import { normalkanNomorTelepon } from '../entity/penelepon.ts';
@@ -124,6 +125,17 @@ test('req_1_7 nomor tidak valid ditolak dengan pesan minta ulang dan tidak mener
     (e) => e instanceof ErrorSigap && e.status === 422 && e.message === PESAN_MINTA_NOMOR_TELEPON,
   );
   assert.equal(tiket.length, 0);
+});
+
+test('req_1_7 adapter supabase membuat baris percakapan sebelum menerbitkan tiket ESK', () => {
+  // Adapter memakai npm: dan Deno.env sehingga tidak bisa diimpor di node; urutannya dicek dari sumber.
+  const sumber = readFileSync(new URL('../adapter/penyimpananSupabase.ts', import.meta.url), 'utf8');
+  const eskalasi = sumber.slice(sumber.indexOf('async terbitkanTiketEskalasi('), sumber.indexOf('async cariPotongan('));
+  const pastikan = eskalasi.indexOf("await this.pastikanPercakapan(data.percakapanId, 'informasi_produk');");
+  assert.ok(pastikan >= 0, 'baris percakapan dipastikan ada');
+  assert.ok(pastikan < eskalasi.indexOf("rpc('terbitkan_tiket_eskalasi'"), 'sebelum RPC eskalasi');
+  // Baris yang sudah ada, misalnya percakapan pengaduan, tidak diubah.
+  assert.match(sumber, /\.upsert\(\{ id: percakapanId, jenis_interaksi: jenis \}, \{ onConflict: 'id', ignoreDuplicates: true \}\)/);
 });
 
 test('bug_32 percakapan tidak ditemukan tetap tercatat di log_tool tanpa percakapan dengan berhasil false', async () => {

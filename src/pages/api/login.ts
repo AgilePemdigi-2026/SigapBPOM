@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, locals, cookies, clientAddress }
   try {
     soket = clientAddress;
   } catch {
-    // Alamat soket tidak tersedia di semua mode; di produksi alamat klien datang dari Nginx.
+    // Alamat soket tidak tersedia di semua mode; di produksi alamat klien datang dari Caddy.
   }
   const ip = ipKlien(request.headers, soket || 'tak-dikenal');
   if (!pembatas.izinkan(ip)) {

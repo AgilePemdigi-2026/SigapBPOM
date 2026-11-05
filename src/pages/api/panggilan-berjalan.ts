@@ -2,6 +2,7 @@
 // Di balik middleware autentikasi; nomor telepon sudah tersamar.
 import type { APIRoute } from 'astro';
 import { pemantauanLayanan } from '../../lib/pemantauan';
+import { PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
 
 export const GET: APIRoute = async ({ locals }) => {
   try {
@@ -10,6 +11,6 @@ export const GET: APIRoute = async ({ locals }) => {
   } catch (e) {
     // PROJECT_RULES 5.10: hanya jenis galat, tanpa isi atau stack.
     console.error('panggilan-berjalan', e instanceof Error ? e.name : 'unknown');
-    return Response.json({ status: 'error', message: 'Data panggilan gagal dimuat.', data: null }, { status: 500 });
+    return Response.json({ status: 'error', message: PESAN_PEMANTAUAN.panggilanGagalDimuat, data: null }, { status: 500 });
   }
 };

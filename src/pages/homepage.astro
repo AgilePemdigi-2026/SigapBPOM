@@ -11,7 +11,7 @@ const LAYANAN = [
   { no: '1', judul: 'Informasi Produk', desk: 'Nomor izin edar, status izin, dan edukasi obat & makanan', mob: 'Izin edar dan edukasi obat & makanan', contoh: '“Susu Formula Sehat terdaftar tidak?”', purple: false },
   { no: '2', judul: 'Pengaduan Produk', desk: 'Laporkan produk bermasalah, nomor tiket dikirim lewat SMS', mob: 'Nomor tiket dikirim lewat SMS', contoh: '“Krim wajah bikin kulit saya iritasi.”', purple: true },
 ];
-const STAT = [['2,1 jt', 'produk terdaftar'], ['24/7', 'layanan suara AI'], ['< 1 mnt', 'rata-rata jawaban']];
+const STAT = [['24/7', 'layanan suara AI']];
 const FITUR = [
   { icon: 'icon-search-check', bg: '#e3ecff', fg: '#2f6bf5', judul: 'Cek Legalitas Produk', isi: 'Pastikan produk memiliki nomor izin edar yang masih berlaku melalui data registrasi resmi Cek BPOM.' },
   { icon: 'icon-clipboard-list', bg: '#dcf5e6', fg: '#16a34a', judul: 'Layanan Pengaduan', isi: 'Laporkan produk yang diduga bermasalah. Setiap laporan mendapat nomor tiket dan ditindaklanjuti petugas HaloBPOM.' },
@@ -170,7 +170,7 @@ const FITUR = [
   .csai-title { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
   .csai-title span:first-child { font-size: 30px; font-weight: 500; letter-spacing: -.02em; }
   .csai-title span:last-child { font-size: 17px; color: var(--muted); }
-  .stats { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stats { width: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
   .stat { padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
   .stat span:first-child { font-size: 26px; font-weight: 500; }
   .stat span:last-child { font-size: 13.5px; color: #6b7280; }
@@ -214,7 +214,7 @@ const FITUR = [
   .m-svc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .m-svc-text span:first-child { font-size: 17px; font-weight: 500; }
   .m-svc-text span:last-child { font-size: 13.5px; line-height: 1.4; color: var(--muted); }
-  .m-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .m-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
   .m-stats div { padding: 10px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 1px; }
   .m-stats span:first-child { font-size: 19px; font-weight: 500; }
   .m-stats span:last-child { font-size: 11.5px; color: var(--muted); }

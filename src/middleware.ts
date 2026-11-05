@@ -11,15 +11,16 @@ import { AdapterSesiTiruan } from './lib/sesiTiruan';
 function buatAdapter(): AdapterSesi {
   if (!import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan') return new AdapterSesiTiruan();
   const konfigurasi = bacaKonfigurasiSupabase() ?? { url: '', kunciAnon: '' };
-  return new SesiSupabase({ ...konfigurasi, secure: import.meta.env.PROD });
+  return new SesiSupabase({ ...konfigurasi, kunciLogin: (process.env.SIGAP_KUNCI_LOGIN ?? '').trim(), secure: import.meta.env.PROD });
 }
 
 // NFR-12: SESI_IDLE_MENIT bisa diperkecil untuk pengujian, misalnya 1.
 const idleMenit = Number(process.env.SESI_IDLE_MENIT);
 const autentikasi = new AutentikasiController(buatAdapter(), idleMenit > 0 ? { batasIdleMs: idleMenit * 60_000 } : {});
 const RUTE_PUBLIK = new Set(['/', '/homepage', '/login', '/api/login']);
-// Request latar (polling halaman Panggilan Berjalan) tetap diperiksa sesinya, tetapi tidak dihitung sebagai aktivitas,
-// supaya tab yang ditinggal terbuka tetap berakhir setelah batas idle (NFR-12).
+// Request latar (polling Panggilan Berjalan, pembaruan Ringkasan dengan header X-Sigap-Latar) tetap diperiksa sesinya,
+// tetapi tidak dihitung sebagai aktivitas, supaya tab yang ditinggal terbuka tetap berakhir setelah batas idle (NFR-12).
+// Header dari browser hanya bisa mempercepat berakhirnya sesi, tidak memperpanjangnya.
 const RUTE_LATAR = new Set(['/api/panggilan-berjalan']);
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
@@ -27,7 +28,8 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   const path = ctx.url.pathname.replace(/\/+$/, '') || '/';
   if (ctx.isPrerendered || RUTE_PUBLIK.has(path)) return next();
 
-  const petugas = await autentikasi.sesiAktif(ctx.cookies, { catatAktivitas: !RUTE_LATAR.has(path) });
+  const latar = RUTE_LATAR.has(path) || ctx.request.headers.get('X-Sigap-Latar') === '1';
+  const petugas = await autentikasi.sesiAktif(ctx.cookies, { catatAktivitas: !latar });
   if (!petugas) {
     if (path.startsWith('/api/')) return Response.json({ status: 'error', message: 'Akses ditolak.', data: null }, { status: 401 });
     return ctx.redirect('/login');

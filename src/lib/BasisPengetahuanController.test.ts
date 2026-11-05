@@ -111,6 +111,19 @@ test('t_f2_4_02 detail simpul memuat potongan terindeks dan menghitung keterkait
   assert.ok(graf.sisi.some(([a, b]) => a === '3' && b === '5'));
 });
 
+test('t_f2_4_02 req_7_4 simpul topik menampilkan potongan terindeks dan rujukan sumber materinya, bukan judul materi', () => {
+  const graf = susunGraf(
+    [CONTOH[2], materi('5', 'Kosmetik Ilegal', 'Kosmetik', 'Penjelasan Publik'), materi('6', 'Kosmetik Impor', 'Kosmetik', 'Peraturan BPOM No. 23 Tahun 2019')],
+    { '3': ['Merkuri berbahaya bagi kulit.', 'Kedua'], '6': ['Notifikasi kosmetik impor.'] },
+  );
+  const topik = graf.simpul.find((n) => n.id === 'kategori:Kosmetik')!;
+  assert.deepEqual(topik.bagian, ['Merkuri berbahaya bagi kulit.', 'Notifikasi kosmetik impor.']);
+  assert.equal(topik.rujukan, 'Penjelasan Publik, Peraturan BPOM No. 23 Tahun 2019');
+
+  const tanpaPotongan = susunGraf([CONTOH[0]], {}).simpul.find((n) => n.hub)!;
+  assert.deepEqual(tanpaPotongan.bagian, [], 'tanpa potongan terindeks daftarnya kosong, bukan judul materi');
+});
+
 test('req_7_3 nonaktifkan materi mengubah status tanpa menghapus dan mengeluarkannya dari graf', async () => {
   const kb = new BasisPengetahuanController(new PenyimpananMateriTiruan(CONTOH.map((m) => ({ ...m }))));
   assert.deepEqual(await kb.nonaktifkanMateri(' 3 '), { kode: 200, pesan: PESAN_MATERI.dinonaktifkan });

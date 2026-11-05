@@ -10,7 +10,7 @@
     "test:bdd": "cucumber-js",
     "test:bdd:live": "cucumber-js --profile live",
     "test:bdd:ui": "cucumber-js --profile ui",
-    "test": "node --test \"supabase/functions/_shared/**/*.test.ts\" \"src/**/*.test.ts\" \"voice-gateway/*.test.mjs\""
+    "test": "node --test \"supabase/functions/_shared/**/*.test.ts\" \"src/**/*.test.ts\" \"scripts/*.test.ts\" \"voice-gateway/*.test.mjs\""
   },
   "dependencies": {
     "@astrojs/node": "^11.1.9",

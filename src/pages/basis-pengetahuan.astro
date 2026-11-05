@@ -2,24 +2,16 @@
 // Boundary UC-07 Mengelola Basis Pengetahuan (REQ-7.1 sampai REQ-7.4, BR-4, BR-5).
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { KATEGORI_MATERI, chip } from '../lib/data';
-import { BasisPengetahuanController, type Materi } from '../lib/BasisPengetahuanController';
-import { PenyimpananMateriTiruan } from '../lib/mock/materiTiruan';
-import { PenyimpananMateriSupabase } from '../lib/penyimpananMateriSupabase';
-import { bacaKonfigurasiSupabase } from '../lib/konfigurasiSupabase';
+import { PESAN_MATERI, UKURAN_HALAMAN_BAWAAN, type Materi } from '../lib/BasisPengetahuanController';
+import { basisPengetahuan } from '../lib/basisPengetahuan';
 
-// Dengan sesi Supabase, materi dibaca memakai token petugas agar RLS is_petugas() berlaku. Tanpa token
-// (sesi tiruan untuk pengembangan lokal), dipakai penyimpanan tiruan.
-const konfigurasi = bacaKonfigurasiSupabase();
-const token = Astro.locals.tokenAkses;
-const penyimpanan = konfigurasi && token
-  ? new PenyimpananMateriSupabase({ url: konfigurasi.url, kunciPublik: konfigurasi.kunciAnon, tokenAkses: token })
-  : new PenyimpananMateriTiruan();
-const basis = new BasisPengetahuanController(penyimpanan);
+const basis = basisPengetahuan(Astro.locals.tokenAkses);
 const [daftar, graf] = await Promise.all([basis.semuaMateri(), basis.grafPengetahuan()]);
 const MATERI: Materi[] = 'materi' in daftar ? daftar.materi : [];
 const gagal = 'gagal' in daftar ? daftar.gagal : '';
 const SIMPUL = 'simpul' in graf ? graf.simpul : [];
 const SISI = 'sisi' in graf ? graf.sisi : [];
+const gagalGraf = 'gagal' in graf ? graf.gagal : '';
 const aktif = MATERI.filter((m) => m.aktif).length;
 const KB_TOTAL = { total: MATERI.length, aktif, nonaktif: MATERI.length - aktif };
 
@@ -29,6 +21,8 @@ const data = {
   materi: MATERI,
   total: KB_TOTAL,
   gagal,
+  pesan: PESAN_MATERI,
+  ukuran: UKURAN_HALAMAN_BAWAAN,
   simpul: SIMPUL,
   chipAktif: chip('Aktif'),
   chipNonaktif: chip('Tidak Aktif'),
@@ -54,7 +48,14 @@ const data = {
         <div class="row-grid cols-head" aria-hidden="true"><span>JUDUL MATERI</span><span>RUJUKAN SUMBER</span><span>PEMUTAKHIRAN</span><span>STATUS</span><span>AKSI</span></div>
         <div class="rows" id="kb-rows"></div>
         <div class="empty" id="kb-empty" hidden><i class="icon-book-open"></i><span id="kb-empty-text">Belum ada materi yang cocok.</span><button class="pill" id="empty-add"><i class="icon-plus"></i>Tambah Materi</button></div>
-        <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span data-total>{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
+        <div class="list-foot">
+          <span class="shown">Menampilkan <span id="kb-shown">0</span> dari <span id="kb-cocok">{KB_TOTAL.total.toLocaleString('id-ID')}</span> materi</span>
+          <span class="pager" id="kb-pager" hidden>
+            <button class="tab ikon" data-hal="-1" aria-label="Halaman sebelumnya"><i class="icon-chevron-left"></i></button>
+            <span id="kb-hal"></span>
+            <button class="tab ikon" data-hal="1" aria-label="Halaman berikutnya"><i class="icon-chevron-right"></i></button>
+          </span>
+        </div>
       </section>
 
       <aside class="side-col">
@@ -64,8 +65,8 @@ const data = {
           <div class="index-split">
             <div class="tile-flat"><span>Aktif</span><span class="v ok" id="kb-aktif">{KB_TOTAL.aktif.toLocaleString('id-ID')}</span></div>
             <div class="tile-flat"><span>Tidak aktif</span><span class="v" id="kb-nonaktif">{KB_TOTAL.nonaktif.toLocaleString('id-ID')}</span></div>
+            <div class="tile-flat wide"><span>Pemutakhiran</span><span class="v" id="kb-tgl">{MATERI[0]?.tgl ?? '–'}</span></div>
           </div>
-          <div class="sync idle"><i class="icon-refresh-cw"></i>Indeks RAG belum berisi materi</div>
         </section>
         <section class="panel rules">
           <h2>Aturan materi</h2>
@@ -78,24 +79,37 @@ const data = {
     <div class="view-graph" id="view-graph" hidden>
       <section class="panel graph" data-name="GrafPengetahuan">
         <div class="graph-head"><h2>Graf Pengetahuan</h2><span>Pilih simpul untuk melihat rujukan dan bagian dokumen terindeks</span></div>
-        <div class="canvas">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            {SISI.map(([a, b]) => (
-              <line x1={byId[a].x} y1={byId[a].y} x2={byId[b].x} y2={byId[b].y} data-a={a} data-b={b} vector-effect="non-scaling-stroke" />
+        <div class="canvas" id="graf-canvas">
+          <div class="zoom">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {SISI.map(([a, b]) => (
+                <line x1={byId[a].x} y1={byId[a].y} x2={byId[b].x} y2={byId[b].y} data-a={a} data-b={b} vector-effect="non-scaling-stroke" />
+              ))}
+            </svg>
+            {SIMPUL.map((n) => (
+              <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal?.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
             ))}
-          </svg>
-          {SIMPUL.map((n) => (
-            <button class:list={['node', { hub: n.hub }]} data-node={n.id} aria-pressed={n.id === awal?.id ? 'true' : 'false'} style={`left:${n.x}%;top:${n.y}%;width:${n.r * 2}px;height:${n.r * 2}px`}>{n.label}</button>
-          ))}
+          </div>
+        </div>
+        <div class="graph-foot">
+          <span class="legend"><span class="sw hub"></span>Topik</span>
+          <span class="legend"><span class="sw"></span>Materi edukasi</span>
+          <span class="grow"></span>
+          <button class="tab ikon" data-zoom="-1" aria-label="Perkecil graf" disabled><i class="icon-zoom-out"></i></button>
+          <button class="tab ikon" data-zoom="1" aria-label="Perbesar graf"><i class="icon-zoom-in"></i></button>
         </div>
       </section>
-      {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>Graf terbentuk setelah ada materi di basis pengetahuan.</span></div>}
+      {!awal && <div class="graph-empty"><i class="icon-waypoints"></i><span>{gagalGraf || 'Graf terbentuk setelah ada materi di basis pengetahuan.'}</span></div>}
       {awal && <section class="panel detail" data-name="BagianDokumenTerindeks" aria-live="polite">
         <span class="eyebrow">SIMPUL TERPILIH</span>
         <span class="detail-title" id="node-label">{awal.label}</span>
+        <div class="index-split" id="node-meta" hidden>
+          <div class="tile-flat"><span>Status</span><span id="node-status"></span></div>
+          <div class="tile-flat"><span>Pemutakhiran</span><span class="v" id="node-tgl"></span></div>
+        </div>
         <div class="tile-flat ruj"><span>Rujukan Sumber</span><span class="ruj-v"><i class="icon-link"></i><span id="node-rujukan">{awal.rujukan}</span></span></div>
         <span class="bagian-title">Bagian dokumen terindeks</span>
-        <div id="node-bagian" class="bagian">{awal.bagian.map((b) => <div class="tile-flat"><i class="icon-file-text"></i>{b}</div>)}</div>
+        <div id="node-bagian" class="bagian"></div>
         <span class="grow"></span>
         <span class="links"><i class="icon-waypoints"></i>Terhubung ke <span id="node-links">{awal.links}</span> materi lain</span>
       </section>}
@@ -109,7 +123,7 @@ const data = {
       <label class="f"><span>Kategori</span><select name="kategori">{KATEGORI_MATERI.map((k) => <option>{k}</option>)}</select></label>
       <label class="f"><span>Isi Materi</span><textarea name="isi" placeholder="Tempel atau tulis isi materi edukasi…"></textarea></label>
       <label class="f"><span>Rujukan Sumber</span><input name="rujukan" placeholder="mis. KataBPOM, Peraturan BPOM, Public Warning" aria-describedby="add-err" /></label>
-      <span class="ferr" id="add-err" role="alert" hidden><i class="icon-circle-alert"></i>Rujukan sumber wajib diisi.</span>
+      <span class="ferr" id="add-err" role="alert" hidden><i class="icon-circle-alert"></i><span id="add-err-text">Rujukan sumber wajib diisi.</span></span>
       <div class="modal-actions">
         <button type="button" class="pill" data-close>Batal</button>
         <button type="submit" class="btn-primary save" id="save-btn" aria-disabled="true">Simpan</button>
@@ -125,26 +139,36 @@ const data = {
   type Simpul = { id: string; label: string; rujukan: string; bagian: string[]; links: number };
   const D = JSON.parse(document.getElementById('kb-data')!.textContent!);
   const materi: Materi[] = D.materi;
-  const toast = (msg: string) => (window as any).sigapToast?.(msg);
+  const toast = (msg: string, kind?: 'err') => (window as any).sigapToast?.(msg, kind);
   const fmt = (n: number) => n.toLocaleString('id-ID');
+  const hariIni = () => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-  const st = { tab: 'Semua', q: '', added: 0, deact: 0 };
+  const chipStatus = (m: Materi) => {
+    const c = m.aktif ? D.chipAktif : D.chipNonaktif;
+    return `<span class="chip" style="background:${c.bg};color:${c.fg}">${m.aktif ? 'Aktif' : 'Tidak Aktif'}</span>`;
+  };
+  const st = { tab: 'Semua', q: '', halaman: 1, added: 0, deact: 0 };
 
   const rowsEl = document.getElementById('kb-rows')!;
   function render() {
     const q = st.q.trim().toLowerCase();
     const list = materi.filter((m) => (st.tab === 'Semua' || (st.tab === 'Aktif') === m.aktif) && (!q || `${m.judul} ${m.rujukan}`.toLowerCase().includes(q)));
-    rowsEl.innerHTML = list.map((m) => {
-      const c = m.aktif ? D.chipAktif : D.chipNonaktif;
-      return `<div class="row row-grid${m.aktif ? '' : ' off'}">
+    // F2.1: paginasi di browser atas materi yang sudah dimuat (lihat bacaSemua di BasisPengetahuanController).
+    const jumlahHal = Math.max(1, Math.ceil(list.length / D.ukuran));
+    st.halaman = Math.min(st.halaman, jumlahHal);
+    const tampil = list.slice((st.halaman - 1) * D.ukuran, st.halaman * D.ukuran);
+    rowsEl.innerHTML = tampil.map((m) => `<div class="row row-grid${m.aktif ? '' : ' off'}">
         <span class="judul"><span>${esc(m.judul)}</span><span>${esc(m.kategori)}</span></span>
         <span class="ruj-cell"><i class="icon-link"></i><span>${esc(m.rujukan)}</span></span>
         <span class="tgl">${esc(m.tgl)}</span>
-        <span class="chip" style="background:${c.bg};color:${c.fg}">${m.aktif ? 'Aktif' : 'Tidak Aktif'}</span>
+        ${chipStatus(m)}
         ${m.aktif ? `<button class="hapus" data-id="${m.id}" aria-label="Hapus ${esc(m.judul)}">Hapus</button>` : '<span class="arsip">Diarsipkan</span>'}
-      </div>`;
-    }).join('');
-    document.getElementById('kb-shown')!.textContent = String(list.length);
+      </div>`).join('');
+    document.getElementById('kb-shown')!.textContent = String(tampil.length);
+    document.getElementById('kb-cocok')!.textContent = fmt(list.length);
+    document.getElementById('kb-pager')!.hidden = jumlahHal <= 1;
+    document.getElementById('kb-hal')!.textContent = `${st.halaman} / ${jumlahHal}`;
+    document.querySelectorAll<HTMLButtonElement>('[data-hal]').forEach((b) => (b.disabled = b.dataset.hal === '1' ? st.halaman >= jumlahHal : st.halaman <= 1));
     document.getElementById('kb-empty')!.hidden = list.length > 0;
     document.getElementById('kb-empty-text')!.textContent = D.gagal || (materi.length ? 'Belum ada materi yang cocok.' : 'Belum ada materi. Tambahkan materi pertama.');
     document.querySelectorAll('[data-total]').forEach((el) => (el.textContent = fmt(D.total.total + st.added)));
@@ -156,8 +180,9 @@ const data = {
     document.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
   }
 
-  document.querySelectorAll<HTMLElement>('[data-tab]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.tab!; pressGroup('data-tab', st.tab); render(); }));
-  (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; showView('list'); render(); });
+  document.querySelectorAll<HTMLElement>('[data-tab]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.tab!; st.halaman = 1; pressGroup('data-tab', st.tab); render(); }));
+  (document.getElementById('kb-q') as HTMLInputElement).addEventListener('input', (e) => { st.q = (e.target as HTMLInputElement).value; st.halaman = 1; showView('list'); render(); });
+  document.querySelectorAll<HTMLElement>('[data-hal]').forEach((b) => b.addEventListener('click', () => { st.halaman += Number(b.dataset.hal); render(); rowsEl.scrollTop = 0; }));
 
   // REQ-7.3, BR-5: nonaktifkan, tidak menghapus permanen.
   rowsEl.addEventListener('click', async (e) => {
@@ -170,9 +195,13 @@ const data = {
     const hasil = await res?.json().catch(() => null);
     if (!res?.ok) {
       btn.removeAttribute('aria-disabled');
-      return toast(hasil?.message || 'Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi.');
+      // Pesan API (mis. "Akses ditolak." dari middleware) tidak ada di kamus, jadi tidak ditampilkan ke petugas.
+      return toast(D.pesan.gagalDinonaktifkan, 'err');
     }
+    // Basis data mencatat waktu penonaktifan sebagai pemutakhiran.
     m.aktif = false;
+    m.tgl = hariIni();
+    document.getElementById('kb-tgl')!.textContent = m.tgl;
     st.deact++;
     render();
     toast(hasil.message);
@@ -191,18 +220,46 @@ const data = {
     const n = simpul[id];
     pressGroup('data-node', id);
     document.querySelectorAll<SVGLineElement>('.canvas line').forEach((l) => l.classList.toggle('hot', l.dataset.a === id || l.dataset.b === id));
-    document.getElementById('node-label')!.textContent = n.label;
+    // F2.4: detail simpul materi sesuai isi tabel, dengan judul utuh, status, dan pemutakhiran.
+    const m = materi.find((x) => x.id === id);
+    document.getElementById('node-label')!.textContent = m?.judul ?? n.label;
+    document.getElementById('node-meta')!.hidden = !m;
+    if (m) {
+      document.getElementById('node-status')!.innerHTML = chipStatus(m);
+      document.getElementById('node-tgl')!.textContent = m.tgl;
+    }
     document.getElementById('node-rujukan')!.textContent = n.rujukan;
     document.getElementById('node-links')!.textContent = String(n.links);
-    document.getElementById('node-bagian')!.innerHTML = n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('');
+    document.getElementById('node-bagian')!.innerHTML = n.bagian.length
+      ? n.bagian.map((b) => `<div class="tile-flat"><i class="icon-file-text"></i>${esc(b)}</div>`).join('')
+      : '<div class="tile-flat kosong">Belum ada bagian dokumen terindeks.</div>';
   }
   document.querySelectorAll<HTMLElement>('[data-node]').forEach((b) => b.addEventListener('click', () => pilih(b.dataset.node!)));
   if (D.simpul.length) pilih(D.simpul[0].id);
+
+  // F2.4, T-F2.4-01: zoom merenggangkan jarak antarsimpul dan kanvas bisa digulir; ukuran simpul tetap agar label terbaca.
+  const ZOOM_MIN = 1;
+  const ZOOM_MAKS = 3;
+  const ZOOM_LANGKAH = 0.5;
+  const kanvas = document.getElementById('graf-canvas')!;
+  const tombolZoom = document.querySelectorAll<HTMLButtonElement>('[data-zoom]');
+  let zoom = ZOOM_MIN;
+  tombolZoom.forEach((b) => b.addEventListener('click', () => {
+    const baru = Math.min(ZOOM_MAKS, Math.max(ZOOM_MIN, zoom + Number(b.dataset.zoom) * ZOOM_LANGKAH));
+    // Titik di tengah tampilan tetap di tengah setelah zoom.
+    const cx = (kanvas.scrollLeft + kanvas.clientWidth / 2) * (baru / zoom);
+    const cy = (kanvas.scrollTop + kanvas.clientHeight / 2) * (baru / zoom);
+    zoom = baru;
+    kanvas.style.setProperty('--z', String(zoom));
+    kanvas.scrollTo(cx - kanvas.clientWidth / 2, cy - kanvas.clientHeight / 2);
+    tombolZoom.forEach((t) => (t.disabled = t.dataset.zoom === '1' ? zoom >= ZOOM_MAKS : zoom <= ZOOM_MIN));
+  }));
 
   // REQ-7.1, REQ-7.2, BR-4: tambah materi.
   const dialog = document.getElementById('add-dialog') as HTMLDialogElement;
   const form = document.getElementById('add-form') as HTMLFormElement;
   const err = document.getElementById('add-err')!;
+  const errTeks = document.getElementById('add-err-text')!;
   const saveBtn = document.getElementById('save-btn')!;
   const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
 
@@ -222,7 +279,7 @@ const data = {
     const judul = field('judul').value.trim();
     const rujukan = field('rujukan').value.trim();
     if (!judul) return field('judul').focus();
-    if (!rujukan) { err.textContent = 'Rujukan sumber wajib diisi.'; err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
+    if (!rujukan) { errTeks.textContent = 'Rujukan sumber wajib diisi.'; err.hidden = false; field('rujukan').classList.add('invalid'); field('rujukan').focus(); return; }
     const kategori = field('kategori').value;
     const isi = field('isi').value;
 
@@ -239,16 +296,18 @@ const data = {
     saveBtn.removeAttribute('aria-disabled');
     if (!respon?.ok || hasil?.status === 'error') {
       // REQ-7.1: jangan tampilkan sukses bila server tidak menyimpan materi. Dialog tetap terbuka agar isian tidak hilang.
+      // Pesan API internal ("Akses ditolak.", "Permintaan tidak valid.") tidak ada di kamus, jadi tidak ditampilkan.
       const rujukanKosong = respon?.status === 422;
-      err.textContent = hasil?.message || (rujukanKosong ? 'Rujukan sumber wajib diisi.' : 'Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi.');
+      // Pesan server (mis. "Akses ditolak.") tidak ditampilkan apa adanya; 422 hanya dipakai untuk rujukan kosong.
+      errTeks.textContent = rujukanKosong ? 'Rujukan sumber wajib diisi.' : D.pesan.gagalDisimpan;
       err.hidden = false;
       field('rujukan').classList.toggle('invalid', rujukanKosong);
       return;
     }
-    const tgl = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date()).replace('.', '');
-    materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl, aktif: true });
+    materi.unshift({ id: hasil?.data?.id || Date.now(), judul, kategori, rujukan, tgl: hariIni(), aktif: true });
+    document.getElementById('kb-tgl')!.textContent = materi[0].tgl;
     st.added++;
-    st.tab = 'Semua'; st.q = '';
+    st.tab = 'Semua'; st.q = ''; st.halaman = 1;
     (document.getElementById('kb-q') as HTMLInputElement).value = '';
     pressGroup('data-tab', 'Semua');
     showView('list');
@@ -284,6 +343,10 @@ const data = {
   .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
   .rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
   .shown { font-size: 15px; color: var(--muted); }
+  .list-foot, .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pager { font-size: 15px; color: var(--muted); }
+  .ikon { width: 44px; padding: 0; justify-content: center; font-size: 18px; }
+  .ikon:disabled { opacity: .45; }
   .empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px; color: var(--muted); font-size: 16px; }
   .empty i { font-size: 28px; }
   .rows :global(.row) { flex: none; height: 68px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); font-size: 15.5px; }
@@ -309,10 +372,9 @@ const data = {
   .index-split span:first-child { font-size: 13px; color: var(--muted); }
   .v { font-size: 22px; font-weight: 500; color: #475060; }
   .v.ok { color: #15803d; }
-  .sync.idle { background: #e9ebef; color: #475060; }
+  .wide { grid-column: 1 / -1; }
   .graph-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 32px; background: var(--panel); border: 1px dashed #dde0e5; color: var(--ink-3); font-size: 16px; text-align: center; padding: 24px; }
   .graph-empty i { font-size: 28px; color: var(--muted-2); }
-  .sync { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #dcf5e6; color: #15803d; font-size: 14.5px; }
   .rules { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
   .rules h2 { font-size: 20px; font-weight: 500; }
   .rules span { display: flex; gap: 10px; font-size: 15px; line-height: 1.5; color: var(--ink-3); }
@@ -323,12 +385,18 @@ const data = {
   .graph-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .graph-head h2 { font-size: 26px; }
   .graph-head span { font-size: 14.5px; color: var(--muted); }
-  .canvas { flex: 1; position: relative; border-radius: 24px; background: radial-gradient(circle at 50% 48%, #f7f9ff 0%, #eceef2 70%); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); overflow: hidden; min-height: 420px; }
+  .canvas { flex: 1; position: relative; border-radius: 24px; background: radial-gradient(circle at 50% 48%, #f7f9ff 0%, #eceef2 70%); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .06); overflow: auto; min-height: 420px; }
+  .zoom { position: absolute; left: 0; top: 0; width: calc(100% * var(--z, 1)); height: calc(100% * var(--z, 1)); }
   .canvas svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .canvas line { stroke: #c3c9d3; stroke-width: 1.4; stroke-dasharray: 4 4; }
   .canvas line.hot { stroke: var(--blue); stroke-width: 2; stroke-dasharray: none; }
   .node { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; border: 1px solid #fff; background: var(--surface); color: var(--ink); box-shadow: 0 6px 16px rgba(16, 24, 40, .1); display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; font-size: 14px; font-weight: 500; line-height: 1.2; }
   .node.hub { background: radial-gradient(circle at 35% 30%, #ffffff, #dfe8fd); font-size: 16px; }
+  .graph-foot { display: flex; align-items: center; gap: 18px; font-size: 14.5px; color: var(--muted); }
+  .legend { display: flex; align-items: center; gap: 8px; }
+  /* Legenda meniru simpul: topik lebih besar dan bergradasi biru, materi lebih kecil dan putih. */
+  .sw { width: 14px; height: 14px; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 1px #c3c9d3; }
+  .sw.hub { width: 20px; height: 20px; background: radial-gradient(circle at 35% 30%, #ffffff, #dfe8fd); box-shadow: 0 0 0 1px #aebfe8; }
   .node[aria-pressed='true'] { background: radial-gradient(circle at 35% 30%, #8fb6ff, #2f6bf5 70%); color: #fff; border: 2px solid #fff; box-shadow: 0 12px 28px rgba(47, 107, 245, .4); }
   .detail { padding: 26px; display: flex; flex-direction: column; gap: 14px; }
   .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
@@ -341,6 +409,7 @@ const data = {
   .bagian { display: flex; flex-direction: column; gap: 14px; }
   .bagian :global(.tile-flat) { padding: 12px 16px; font-size: 15.5px; flex-direction: row; gap: 10px; align-items: center; }
   .bagian :global(i) { color: var(--muted-2); }
+  .bagian :global(.kosong) { color: var(--muted); }
   .links { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: #e3ecff; color: var(--blue-ink); font-size: 15px; }
 
   /* Dialog berada di top layer, di luar kanvas, jadi diskalakan sendiri. */

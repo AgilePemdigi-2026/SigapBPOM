@@ -18,7 +18,7 @@ export const FIELD_PENGADUAN = Object.freeze(['namaProduk', 'kronologi', 'namaPe
 
 /** Kamus pesan Lampiran A (UC-02 "Data kurang (contoh)"). Sama dengan pesan minta ulang nomor telepon di UC-01. */
 export const PESAN_MINTA_NOMOR_TELEPON = PESAN_MINTA_ULANG_TELEPON;
-// Tiga prompt berikut belum ada di kamus Lampiran A. Polanya mengikuti contoh "Data kurang" dan perlu ditambahkan ke kamus.
+// Kamus pesan Lampiran A (UC-02 "Data kurang: nama produk", "Data kurang: kronologi", "Data kurang: nama pelapor").
 export const PESAN_MINTA_NAMA_PRODUK = 'Mohon sebutkan nama produk yang Anda adukan.';
 export const PESAN_MINTA_KRONOLOGI = 'Mohon ceritakan kronologi kejadiannya.';
 export const PESAN_MINTA_NAMA_PELAPOR = 'Mohon sebutkan nama Anda.';
