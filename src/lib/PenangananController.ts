@@ -1,5 +1,5 @@
-// Control UC-06 Menangani Pengaduan (REQ-6.1, REQ-6.2, REQ-6.3, BR-3).
-// Menangani telaah berkas pengaduan dan penetapan jadwal pemeriksaan sarana.
+// Control UC-06 Menangani Pengaduan (REQ-6.1 sampai REQ-6.6, BR-2, BR-3).
+// Menangani telaah berkas pengaduan, jadwal pemeriksaan sarana, penyusunan tanggapan resmi, dan penutupan tiket.
 // Mengikuti pola BCE dan nama class diagram SRS (PenangananController).
 
 /** Kamus pesan PRD-rinci Lampiran A (UC-06). */
@@ -41,6 +41,17 @@ export interface JadwalPemeriksaan {
   waktu: string;
 }
 
+export interface TanggapanResmi {
+  id: string;
+  tiketId: string;
+  noTiket?: string;
+  isi: string;
+  petugasId: string;
+  petugasNama?: string | null;
+  status: string;
+  waktu: string;
+}
+
 export interface ResponTelaah {
   id: string;
   noTiket: string;
@@ -58,12 +69,28 @@ export interface ResponJadwal {
   pesan: string;
 }
 
+export interface ResponTanggapan {
+  id?: string;
+  noTiket: string;
+  status: string;
+  pesan: string;
+}
+
+export interface ResponTutupTiket {
+  noTiket: string;
+  status: string;
+  pesan: string;
+}
+
 /** Interface adapter penyimpanan penanganan pengaduan (PROJECT_RULES 4.3). */
 export interface PenyimpananPenanganan {
   simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan?: string | null): Promise<ResponTelaah>;
   simpanJadwal(noTiket: string, tanggal: string, unitPelaksana: string): Promise<ResponJadwal>;
+  simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan>;
+  tutupTiket(noTiket: string): Promise<ResponTutupTiket>;
   ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]>;
   ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]>;
+  ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]>;
 }
 
 /** Implementasi tiruan (Mock) untuk pengujian dan fallback lokal tanpa basis data. */
@@ -71,11 +98,15 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
   tiketMap: Map<string, { status: string; jenis: string }>;
   telaahMap: Map<string, HasilTelaah[]>;
   jadwalMap: Map<string, JadwalPemeriksaan[]>;
+  tanggapanMap: Map<string, TanggapanResmi[]>;
+  notifikasiList: Array<{ tiketId: string; isi: string; status: string }>;
 
   constructor(dataAwalTiket?: Record<string, { status: string; jenis: string }>) {
     this.tiketMap = new Map();
     this.telaahMap = new Map();
     this.jadwalMap = new Map();
+    this.tanggapanMap = new Map();
+    this.notifikasiList = [];
 
     const bawaan: Record<string, { status: string; jenis: string }> = dataAwalTiket ?? {
       'ADU-20261104-0010': { status: 'belum_ditelaah', jenis: 'pengaduan' },
@@ -177,6 +208,81 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
     };
   }
 
+  async simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan> {
+    const t = this.tiketMap.get(noTiket);
+    if (!t) {
+      throw new Error(`Tiket ${noTiket} tidak ditemukan.`);
+    }
+    if (t.status === 'diteruskan' || t.status === 'selesai') {
+      throw new Error(`Tiket ${noTiket} sudah ${t.status} dan tidak dapat ditanggapi.`);
+    }
+
+    t.status = 'tanggapan_disusun';
+    this.tiketMap.set(noTiket, t);
+
+    const riwayat = this.tanggapanMap.get(noTiket) ?? [];
+    const id = `tanggapan-${Date.now()}-${riwayat.length + 1}`;
+    riwayat.unshift({
+      id,
+      tiketId: noTiket,
+      noTiket,
+      isi,
+      petugasId: '00000000-0000-0000-0000-000000000099',
+      petugasNama: 'Petugas Uji',
+      status: 'tanggapan_disusun',
+      waktu: new Date().toISOString(),
+    });
+    this.tanggapanMap.set(noTiket, riwayat);
+
+    return {
+      id,
+      noTiket,
+      status: 'tanggapan_disusun',
+      pesan: PESAN_TANGGAPAN_TERSIMPAN,
+    };
+  }
+
+  async tutupTiket(noTiket: string): Promise<ResponTutupTiket> {
+    const t = this.tiketMap.get(noTiket);
+    if (!t) {
+      throw new Error(`Tiket ${noTiket} tidak ditemukan.`);
+    }
+    if (t.status === 'diteruskan') {
+      throw new Error(`Tiket ${noTiket} sudah diteruskan ke instansi lain.`);
+    }
+    if (t.status === 'selesai') {
+      return {
+        noTiket,
+        status: 'selesai',
+        pesan: PESAN_TUTUP_TIKET,
+      };
+    }
+
+    const daftarTanggapan = this.tanggapanMap.get(noTiket) ?? [];
+    if (daftarTanggapan.length === 0) {
+      throw new Error(PESAN_TUTUP_TANPA_TANGGAPAN);
+    }
+
+    t.status = 'selesai';
+    this.tiketMap.set(noTiket, t);
+
+    // Antrekan notifikasi hanya satu kali (idempoten)
+    const sudahAntre = this.notifikasiList.some((n) => n.tiketId === noTiket);
+    if (!sudahAntre) {
+      this.notifikasiList.push({
+        tiketId: noTiket,
+        isi: daftarTanggapan[0].isi,
+        status: 'menunggu_pengiriman',
+      });
+    }
+
+    return {
+      noTiket,
+      status: 'selesai',
+      pesan: PESAN_TUTUP_TIKET,
+    };
+  }
+
   async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
     return this.telaahMap.get(noTiket) ?? [];
   }
@@ -184,9 +290,13 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
   async ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]> {
     return this.jadwalMap.get(noTiket) ?? [];
   }
+
+  async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
+    return this.tanggapanMap.get(noTiket) ?? [];
+  }
 }
 
-/** Adapter Supabase untuk memanggil RPC simpan_telaah dan simpan_jadwal_pemeriksaan. */
+/** Adapter Supabase untuk memanggil RPC penanganan pengaduan. */
 export class PenyimpananPenangananSupabase implements PenyimpananPenanganan {
   klien: {
     rpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
@@ -231,6 +341,33 @@ export class PenyimpananPenangananSupabase implements PenyimpananPenanganan {
     };
   }
 
+  async simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan> {
+    const res = await this.klien.rpc('simpan_tanggapan', {
+      p_no_tiket: noTiket,
+      p_isi: isi,
+    });
+    if (res.error) throw res.error;
+    const status = typeof res.data === 'string' ? res.data : String((res.data as Record<string, unknown>)?.status ?? 'tanggapan_disusun');
+    return {
+      noTiket,
+      status,
+      pesan: PESAN_TANGGAPAN_TERSIMPAN,
+    };
+  }
+
+  async tutupTiket(noTiket: string): Promise<ResponTutupTiket> {
+    const res = await this.klien.rpc('tutup_tiket', {
+      p_no_tiket: noTiket,
+    });
+    if (res.error) throw res.error;
+    const status = typeof res.data === 'string' ? res.data : String((res.data as Record<string, unknown>)?.status ?? 'selesai');
+    return {
+      noTiket,
+      status,
+      pesan: PESAN_TUTUP_TIKET,
+    };
+  }
+
   async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
     const res = await this.klien.rpc('ambil_riwayat_telaah', {
       p_no_tiket: noTiket,
@@ -245,6 +382,14 @@ export class PenyimpananPenangananSupabase implements PenyimpananPenanganan {
     });
     if (res.error) throw res.error;
     return (res.data as JadwalPemeriksaan[]) ?? [];
+  }
+
+  async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
+    const res = await this.klien.rpc('ambil_tanggapan', {
+      p_no_tiket: noTiket,
+    });
+    if (res.error) throw res.error;
+    return (res.data as TanggapanResmi[]) ?? [];
   }
 }
 
@@ -279,6 +424,23 @@ export class PenangananController {
     return this.penyimpanan.simpanJadwal(noTiket.trim(), tanggal.trim(), unitPelaksana.trim());
   }
 
+  async simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    if (!isi || typeof isi !== 'string' || !isi.trim()) {
+      throw new Error('Tanggapan wajib diisi.');
+    }
+    return this.penyimpanan.simpanTanggapan(noTiket.trim(), isi.trim());
+  }
+
+  async tutupTiket(noTiket: string): Promise<ResponTutupTiket> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.tutupTiket(noTiket.trim());
+  }
+
   async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
     if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
       throw new Error('Nomor tiket tidak valid.');
@@ -291,5 +453,12 @@ export class PenangananController {
       throw new Error('Nomor tiket tidak valid.');
     }
     return this.penyimpanan.ambilJadwal(noTiket.trim());
+  }
+
+  async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.ambilTanggapan(noTiket.trim());
   }
 }
