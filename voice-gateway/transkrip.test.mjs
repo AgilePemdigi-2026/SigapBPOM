@@ -153,11 +153,13 @@ test('nfr_20 setiap kalimat yang diucapkan di server.mjs ikut tercatat di transk
   // Giliran suara dan ketik: semua kalimat lewat ucapkan(), dikumpulkan, lalu dicatat sekali di finally untuk semua jalur.
   assert.match(server, /const ucapkan = \(teks, suara\) => \{ terucap\.push\(teks\); tulis\(\{ jenis: 'kalimat', teks, suara \}\); \};/);
   assert.equal(server.match(/jenis: 'kalimat'/g)?.length, 1);
-  assert.match(server, /\} finally \{\n {6}pencatat\.giliran\(id, transkrip, terucap\.join\(' '\)\);/);
+  // catatGiliran meneruskan ke pencatat transkrip dan ke bahan ringkasan (ringkasan.mjs).
+  assert.match(server, /\} finally \{\n {6}catatGiliran\(id, ip, transkrip, terucap\.join\(' '\)\);/);
+  assert.match(server, /const catatGiliran = \(id, ip, ucapan, jawaban\) => \{\n {2}pencatat\.giliran\(id, ucapan, jawaban\);/);
   // Kalimat yang dibuang panel ("ganti") tidak ikut tercatat.
   assert.match(server, /tulis\(\{ jenis: 'ganti' \}\);\n {8}terucap\.length = 0;/);
   // Pilihan menu: menu dan jawabannya dicatat; balasan JSON lain tidak memuat jawaban yang diucapkan.
-  assert.match(server, /pencatat\.giliran\(id, null, PESAN_MENU\);\n {6}pencatat\.giliran\(id, null, menu\.jawaban\);/);
+  assert.match(server, /catatGiliran\(id, '', null, PESAN_MENU\);\n {6}catatGiliran\(id, '', null, menu\.jawaban\);/);
   const balasan = server.match(/kirim\(res, 200, 'success', 'OK', \{[^}]*\bjawaban\b[^}]*\}/g) ?? [];
   assert.deepEqual(balasan, ["kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara }"]);
 });

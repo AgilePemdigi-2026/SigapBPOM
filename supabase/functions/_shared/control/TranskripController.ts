@@ -8,6 +8,8 @@ import { ErrorSigap, type LogTool } from './InformasiProdukController.ts';
 const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Batas satu ucapan, sama dengan fungsi catat_ucapan. Gateway memotong ucapan di 1.000 karakter dan jawaban di 450. */
 export const PANJANG_MAKS_TEKS_UCAPAN = 2000;
+/** Batas ringkasan percakapan, sama dengan fungsi simpan_ringkasan_percakapan dan voice-gateway/ringkasan.mjs. */
+export const PANJANG_MAKS_RINGKASAN = 500;
 /** Tool yang dijalankan gateway sendiri (voice-gateway/alatCekRegistrasi.mjs, alatPengetahuan.mjs). */
 export const TOOL_GATEWAY = ['cek_registrasi_bpom', 'cari_basis_pengetahuan'] as const;
 const DURASI_MAKS_MS = 10 * 60_000;
@@ -16,6 +18,8 @@ export interface PenyimpananTranskrip {
   /** Mengembalikan urutan ucapan dalam percakapan; melempar ErrorSigap 404 bila percakapan tidak ada. */
   catatUcapan(data: { percakapanId: string; pembicara: Pembicara; teks: string }): Promise<number>;
   catatLogTool(log: LogTool): Promise<void>;
+  /** Menyimpan ringkasan buatan AI ke percakapan.ringkasan; melempar ErrorSigap 404 bila percakapan tidak ada. */
+  simpanRingkasan(data: { percakapanId: string; ringkasan: string }): Promise<void>;
 }
 
 // Pesan di bawah adalah pesan API internal (dibaca gateway, bukan penelepon), lihat PRD-rinci Lampiran A "Pengecualian pesan API internal".
@@ -46,6 +50,18 @@ export class TranskripController {
     }
     if (typeof input.berhasil !== 'boolean') throw new ErrorSigap(422, 'Hasil tool tidak valid.');
     await this.penyimpanan.catatLogTool({ percakapanId, namaTool: input.namaTool as string, durasiMs: Math.round(durasiMs), berhasil: input.berhasil });
+    return { tersimpan: true };
+  }
+
+  /**
+   * { percakapanId, ringkasan } -> { tersimpan } (T-F6.3-01, REQ-5.2). Ringkasan buatan AI disusun gateway setelah panggilan
+   * berakhir; nomor telepon disamarkan sekali lagi di sini sebelum disimpan (NFR-13).
+   */
+  async simpanRingkasan(input: Record<string, unknown>): Promise<{ tersimpan: true }> {
+    const percakapanId = percakapanIdSah(input);
+    const ringkasan = typeof input.ringkasan === 'string' ? input.ringkasan.replace(/\s+/g, ' ').trim() : '';
+    if (!ringkasan || ringkasan.length > PANJANG_MAKS_RINGKASAN) throw new ErrorSigap(422, 'Ringkasan tidak valid.');
+    await this.penyimpanan.simpanRingkasan({ percakapanId, ringkasan: samarkanNomorTelepon(ringkasan) });
     return { tersimpan: true };
   }
 }
