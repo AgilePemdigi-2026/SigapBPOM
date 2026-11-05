@@ -253,6 +253,12 @@ export class PengaduanController {
     else this.sesi.delete(id);
   }
 
+  /** Nama dan nomor telepon pelapor yang sudah terkumpul, untuk disamarkan dari bahan ringkasan (REQ-5.2, NFR-13). */
+  dataPribadi(id) {
+    const d = this.sesi.get(id)?.data ?? {};
+    return [d.namaPelapor, d.nomorTelepon].filter(Boolean);
+  }
+
   /** Panggilan sedang dalam alur pengaduan yang belum selesai, atau masih di layanan 2 setelah tiketnya terbit. */
   aktif(id) {
     const s = this.sesi.get(id);
