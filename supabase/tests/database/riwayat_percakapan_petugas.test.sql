@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 
 -- 1. Hak akses: pengguna anon ditolak mengakses view, tabel mentah, dan RPC
 set local role anon;
@@ -190,19 +190,16 @@ select is(
 );
 
 -- Hak tulis (INSERT) pada view ditolak untuk authenticated
-select throws_ok(
-  $$ insert into public.riwayat_percakapan (id) values (gen_random_uuid()) $$,
-  '42501',
-  null,
+-- INSERT ke view yang tidak bisa diperbarui ditolak PostgreSQL lebih dulu (55000), jadi hak aksesnya diperiksa langsung.
+select ok(
+  not has_table_privilege('authenticated', 'public.riwayat_percakapan', 'INSERT, UPDATE, DELETE'),
   'Petugas terautentikasi tidak boleh melakukan INSERT pada view riwayat_percakapan'
 );
 
-select throws_ok(
-  $$ insert into public.ucapan_petugas (id) values (1) $$,
-  '42501',
-  null,
+select ok(
+  not has_table_privilege('authenticated', 'public.ucapan_petugas', 'INSERT, UPDATE, DELETE'),
   'Petugas terautentikasi tidak boleh melakukan INSERT pada view ucapan_petugas'
 );
 
-finish();
+select * from finish();
 rollback;
