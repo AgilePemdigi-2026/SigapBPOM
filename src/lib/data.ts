@@ -12,6 +12,14 @@ const STATUS: Record<string, [string, string]> = {
   'Tanggapan Disusun': ['#daf1f5', '#0e6a80'],
   Selesai: ['#dcf5e6', '#15803d'],
   'Diteruskan ke Instansi Lain': ['#e9ebef', '#475060'],
+  // Riwayat Percakapan (UC-05): warna Badge mockup Figma 09 · Riwayat Percakapan.
+  'Informasi Produk': ['#e6edfe', '#2557e0'],
+  Pengaduan: ['#eee8fe', '#6d3fd9'],
+  'selesai oleh AI': ['#ddf5e6', '#15803d'],
+  dieskalasi: ['#fdf1cc', '#a16207'],
+  'tiket terbit': ['#eee8fe', '#6d3fd9'],
+  'pengaduan tidak lengkap': ['#e8e9ed', '#3a3f4d'],
+  terputus: ['#e8e9ed', '#3a3f4d'],
   Aktif: ['#dcf5e6', '#15803d'],
   'Tidak Aktif': ['#e9ebef', '#475060'],
 };
