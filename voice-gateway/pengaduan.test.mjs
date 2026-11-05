@@ -2,14 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BatasTiketTercapai, EkstraktorAturan, FIELD_PENGADUAN, JENIS_INTERAKSI, PESAN_BATAS_PERCAKAPAN, PESAN_MINTA_NOMOR_TELEPON, PROMPT_DATA_KURANG,
-  PengaduanController, PESAN_PENGADUAN_TIDAK_LENGKAP, PercakapanDitolak, pesanTiketPengaduan, prosesGiliranPengaduan, validasiNomorTelepon,
+  PengaduanController, PESAN_PENGADUAN_TIDAK_LENGKAP, PercakapanDitolak, SUARA_PENGADUAN, pesanTiketPengaduan, promptDataKurang, prosesGiliranPengaduan,
+  validasiNomorTelepon,
 } from './pengaduan.mjs';
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
-import { PembatasTiket } from './eskalasi.mjs';
+import { PESAN_NOMOR_SALAH, PembatasTiket, digitDariUcapan, masalahNomorTelepon } from './eskalasi.mjs';
 import { PESAN_BATAS_AI, PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, SesiPenuh, pilihMenu } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
-const ekstrak = (u, ditanya = null, data = {}) => new EkstraktorAturan().ekstrak(u, { ditanya, data });
+const ekstrak = (u, ditanya = null, data = {}, kurang = null) => new EkstraktorAturan().ekstrak(u, { ditanya, kurang, data });
 
 test('req_2_1 pilihan 2 menandai percakapan pengaduan dan memutar prompt data pengaduan', () => {
   const riwayat = new RiwayatPanggilan();
@@ -149,15 +150,70 @@ test('req_2_2 data tidak lengkap hanya memicu tanya ulang untuk data yang kurang
   let h = await c.tangani(ID, 'Saya beli Sirup Batuk Sehat kemarin, setelah diminum anak saya demam dan muncul ruam.');
   assert.equal(h.lengkap, false);
   assert.deepEqual(h.kurang, ['namaPelapor', 'nomorTelepon']);
-  assert.equal(h.jawaban, PROMPT_DATA_KURANG.namaPelapor.pesan);
+  // Data yang kurang ditanyakan bersamaan agar bisa dijawab sekaligus.
+  assert.equal(h.jawaban, 'Mohon sebutkan nama dan nomor telepon Anda. Boleh disebutkan sekaligus.');
+  assert.equal(h.suara, 'kurang-nama-telepon');
   h = await c.tangani(ID, 'Ahmad Fauzi');
   assert.deepEqual(h.kurang, ['nomorTelepon']);
   assert.equal(h.jawaban, 'Mohon sebutkan nomor telepon Anda.');
   assert.equal(h.suara, 'ulang-telepon');
-  // Nomor tidak valid: tetap hanya nomor yang ditanyakan ulang, data lain tidak hilang.
+  // Nomor tidak valid: tetap hanya nomor yang ditanyakan ulang, data lain tidak hilang, dan salahnya dijelaskan.
   h = await c.tangani(ID, 'nomor saya 0812345');
   assert.deepEqual(h.kurang, ['nomorTelepon']);
+  assert.equal(h.jawaban, PESAN_NOMOR_SALAH.pendek.pesan);
+  assert.equal(h.suara, 'telepon-pendek');
+  // Tidak ada angka yang terdengar: cukup diminta ulang dengan pesan baku.
+  h = await c.tangani(ID, 'sebentar ya');
   assert.equal(h.jawaban, 'Mohon sebutkan nomor telepon Anda.');
+});
+
+// Masukan uji coba 2026-11-04: nomor ditanya berulang tanpa penjelasan, dan data ditanyakan satu per satu.
+
+test('req_2_2 transkrip uji coba: jawaban pertama tanpa pola tetap diisi, sisanya ditanyakan sekaligus', async () => {
+  const c = new PengaduanController();
+  c.mulai(ID);
+  let h = await c.tangani(ID, 'Susan Greenfield');
+  assert.deepEqual(h.kurang, ['kronologi', 'namaPelapor', 'nomorTelepon']);
+  assert.equal(h.jawaban, 'Mohon sebutkan kronologi kejadian, nama, dan nomor telepon Anda. Boleh disebutkan sekaligus.');
+  h = await c.tangani(ID, 'Kulit saya merah dan gatal-gatal, Abin, kosong lapan lima enam lapan tujuh');
+  assert.deepEqual(h.kurang, ['nomorTelepon']);
+  assert.equal(h.jawaban, PESAN_NOMOR_SALAH.pendek.pesan);
+  h = await c.tangani(ID, 'Kosong delapan dua satu tiga satu tujuh tiga empat belas kosong enam');
+  assert.deepEqual(h.data, { namaProduk: 'Susan Greenfield', kronologi: 'Kulit saya merah dan gatal-gatal', namaPelapor: 'Abin', nomorTelepon: '082131731406' });
+});
+
+test('req_2_2 keempat data dalam satu ucapan tanpa kata pengantar', () => {
+  const h = ekstrak('Susu Greenfield, kulit saya merah dan gatal-gatal, Abin, 0821 3173 1406.', null, {}, FIELD_PENGADUAN);
+  assert.deepEqual(h, { nomorTelepon: '082131731406', namaProduk: 'Susu Greenfield', kronologi: 'kulit saya merah dan gatal-gatal', namaPelapor: 'Abin' });
+});
+
+test('req_2_2 potongan pengantar dan keterangan waktu tidak dianggap data', () => {
+  assert.deepEqual(ekstrak('Saya beli kemarin, nomor saya', 'namaPelapor', {}, ['namaPelapor', 'nomorTelepon']), {});
+  assert.deepEqual(ekstrak('Lu kenapa?', 'namaProduk', {}, FIELD_PENGADUAN), {});
+});
+
+test('req_2_2 nomor diucapkan dengan belasan, puluhan, dan "lapan"', () => {
+  assert.equal(digitDariUcapan('kosong delapan dua satu tiga satu tujuh tiga empat belas kosong enam'), '082131731406');
+  assert.equal(digitDariUcapan('nol lapan satu dua dua puluh satu sebelas sepuluh dua puluh'), '081221111020');
+  assert.equal(ekstrak('nol delapan satu dua tiga empat lima enam tujuh delapan sembilan belas').nomorTelepon, '081234567819');
+});
+
+test('req_2_2 alasan nomor ditolak: kurang angka, kelebihan angka, atau bukan 08', () => {
+  assert.equal(masalahNomorTelepon('kosong lapan lima enam lapan tujuh'), 'pendek');
+  assert.equal(masalahNomorTelepon('0812 3456 7890 1234'), 'panjang');
+  assert.equal(masalahNomorTelepon('satu dua tiga empat lima enam tujuh delapan sembilan nol'), 'awalan');
+  assert.equal(masalahNomorTelepon('0812 3456 7890'), null);
+  assert.equal(masalahNomorTelepon('halo'), null);
+});
+
+test('req_2_2 setiap prompt data kurang punya suara statis', () => {
+  for (let m = 1; m < 16; m++) {
+    const kurang = FIELD_PENGADUAN.filter((_, i) => m & (1 << i));
+    const { pesan, suara } = promptDataKurang(kurang);
+    if (kurang.length === 1) assert.deepEqual({ pesan, suara }, PROMPT_DATA_KURANG[kurang[0]]);
+    else assert.equal(SUARA_PENGADUAN[suara], pesan);
+  }
+  for (const { pesan, suara } of Object.values(PESAN_NOMOR_SALAH)) assert.equal(SUARA_PENGADUAN[suara], pesan);
 });
 
 test('req_2_2 data lengkap lanjut ke penerbitan tiket tanpa tanya ulang', async () => {

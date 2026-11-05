@@ -1,6 +1,6 @@
 // Control UC-02 Menyampaikan Pengaduan Produk di Voice Gateway (REQ-2.1, REQ-2.2, REQ-2.3, REQ-2.4, REQ-2.5, BR-1).
 // Nama kelas mengikuti class diagram SRS. Tanpa I/O langsung: layanan eksternal lewat interface agar bisa diuji dengan `node --test`.
-import { PESAN_MINTA_ULANG_TELEPON, nomorTeleponDariUcapan } from './eskalasi.mjs';
+import { PESAN_MINTA_ULANG_TELEPON, PESAN_NOMOR_SALAH, masalahNomorTelepon, nomorTeleponDariUcapan } from './eskalasi.mjs';
 
 /** Nilai enum `jenis_interaksi` di basis data (supabase/migrations/20261020131737_inti_percakapan.sql). */
 export const JENIS_INTERAKSI = Object.freeze({ INFORMASI_PRODUK: 'informasi_produk', PENGADUAN: 'pengaduan' });
@@ -31,6 +31,33 @@ export const PROMPT_DATA_KURANG = Object.freeze({
   nomorTelepon: { pesan: PESAN_MINTA_NOMOR_TELEPON, suara: 'ulang-telepon' },
 });
 
+const LABEL_DATA = { namaProduk: 'nama produk', kronologi: 'kronologi kejadian', namaPelapor: 'nama', nomorTelepon: 'nomor telepon' };
+const KODE_DATA = { namaProduk: 'produk', kronologi: 'kronologi', namaPelapor: 'nama', nomorTelepon: 'telepon' };
+const gabungDaftar = (l) => (l.length <= 2 ? l.join(' dan ') : `${l.slice(0, -1).join(', ')}, dan ${l.at(-1)}`);
+
+/**
+ * Prompt untuk data yang masih kurang (urutan FIELD_PENGADUAN). Satu data memakai prompt tunggalnya; dua data atau lebih
+ * ditanyakan bersamaan agar penelepon bisa menjawab sekaligus, bukan ditanya satu per satu. Belum ada di kamus Lampiran A.
+ */
+export function promptDataKurang(kurang) {
+  if (kurang.length === 1) return PROMPT_DATA_KURANG[kurang[0]];
+  return {
+    pesan: `Mohon sebutkan ${gabungDaftar(kurang.map((f) => LABEL_DATA[f]))} Anda. Boleh disebutkan sekaligus.`,
+    suara: `kurang-${kurang.map((f) => KODE_DATA[f]).join('-')}`,
+  };
+}
+
+/**
+ * Suara statis tambahan alur pengaduan (kunci -> teks): setiap gabungan dua data kurang atau lebih, dan penjelasan nomor
+ * telepon yang ditolak. Gabungan data kurang dirender saat pertama dipakai, bukan saat gateway menyala, agar hemat kuota TTS.
+ */
+export const SUARA_PENGADUAN = Object.freeze(Object.fromEntries([
+  ...Array.from({ length: 2 ** FIELD_PENGADUAN.length }, (_, m) => FIELD_PENGADUAN.filter((_, i) => m & (1 << i)))
+    .filter((k) => k.length >= 2)
+    .map((k) => [promptDataKurang(k).suara, promptDataKurang(k).pesan]),
+  ...Object.values(PESAN_NOMOR_SALAH).map(({ suara, pesan }) => [suara, pesan]),
+]));
+
 const PANJANG_MAKS = { namaProduk: 200, kronologi: 4000, namaPelapor: 100 };
 const KATA_MAKS = { namaProduk: 8, namaPelapor: 4 };
 const KATA_MIN_KRONOLOGI = 3;
@@ -44,13 +71,16 @@ export function validasiNomorTelepon(masukan) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Ekstraksi data dari ucapan penelepon (T-F4.1-02, REQ-2.2).
-// Interface ekstraktor: `ekstrak(ucapan, { ditanya, data }) -> { namaProduk?, kronologi?, namaPelapor?, nomorTelepon? }`.
+// Interface ekstraktor: `ekstrak(ucapan, { ditanya, kurang, data }) -> { namaProduk?, kronologi?, namaPelapor?, nomorTelepon? }`.
 // Implementasi bawaan berbasis aturan, tanpa memanggil AI: hemat kuota GPT dan data pribadi tidak keluar dari gateway.
 // ---------------------------------------------------------------------------------------------------------------------
 
-const ANGKA_KATA = 'nol|kosong|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan';
+const ANGKA_KATA = 'nol|kosong|satu|dua|tiga|empat|lima|enam|tujuh|delapan|lapan|sembilan|sepuluh|sebelas|belas|puluh';
 const POLA_NOMOR_ANGKA = /(?:\+?62|0)\s*8[\d\s-]{7,16}\d/;
 const POLA_NOMOR_KATA = new RegExp(`\\b(?:(?:${ANGKA_KATA}|plus)\\s+){4,}(?:${ANGKA_KATA})\\b`, 'giu');
+const POLA_KATA_NOMOR = /\b(?:nomor|no|telepon|telpon|hp|handphone|wa|whatsapp|ponsel)\b/iu;
+// Deret angka yang mirip nomor telepon (enam angka atau lebih, ditulis atau diucapkan), walau tanpa kata "nomor".
+const POLA_DERET_ANGKA = new RegExp(`(?:\\b(?:${ANGKA_KATA})\\b[\\s,.-]*){6,}|\\d(?:[\\s-]?\\d){5,}`, 'iu');
 const POLA_PENGANTAR_NOMOR = /\b(?:nomor|no)\.?\s*(?:telepon|telpon|hp|handphone|wa|whatsapp|ponsel|kontak)?\s*(?:saya|anda|nya)?\s*(?:adalah|yaitu)?\s*$/iu;
 const FILLER = new Set(['iya', 'ya', 'oke', 'ok', 'baik', 'halo', 'hmm', 'eh', 'em', 'tidak', 'nggak', 'gak', 'enggak', 'belum', 'sudah', 'apa', 'maaf', 'terima', 'kasih']);
 const KATA_HENTI_NAMA = new Set([
@@ -163,9 +193,34 @@ function jawabanLangsung(ditanya, teks) {
   return null;
 }
 
-/** Ekstraktor berbasis aturan: pola kalimat lazim untuk tiap data, lalu jawaban langsung untuk data yang baru ditanyakan. */
+// Kata yang tidak membawa isi data: kata pengantar ("nama saya", "kronologinya"), kata ganti, dan kata seru percakapan.
+const KATA_PENGANTAR = new Set([
+  ...KATA_BUKAN_PRODUK, 'atas', 'bernama', 'perkenalkan', 'lengkap', 'pelapor', 'namanya', 'produknya', 'kronologinya', 'kejadiannya', 'ceritanya',
+  'yaitu', 'begini', 'lu', 'lo', 'gue', 'gua', 'kenapa', 'gimana', 'bagaimana', 'kok', 'sih', 'dong', 'deh', 'nih', 'tuh', 'loh', 'lah',
+  'kemarin', 'tadi', 'barusan', 'sekarang', 'pagi', 'siang', 'sore', 'malam', 'hari', 'minggu', 'bulan', 'tahun', 'waktu', 'pada', 'sejak',
+]);
+const kataBersih = (s) => s.toLowerCase().split(' ').map((k) => k.replace(/[^\p{L}]/gu, '')).filter(Boolean);
+
+/** Satu potongan kalimat tanpa kata pengantar, bila bentuknya cocok untuk data `f`: nama produk, kronologi, atau nama pelapor. */
+function isiPotongan(f, potongan) {
+  const kata = kataBersih(potongan);
+  const isi = kata.filter((k) => !KATA_PENGANTAR.has(k));
+  if (f === 'namaProduk') return isi.length === kata.length && kata.length <= KATA_MAKS.namaProduk ? potongan.slice(0, PANJANG_MAKS.namaProduk) : null;
+  if (f === 'namaPelapor') {
+    return isi.length === kata.length && kata.length <= KATA_MAKS.namaPelapor && /^[\p{L}'. -]+$/u.test(potongan) ? potongan.slice(0, PANJANG_MAKS.namaPelapor) : null;
+  }
+  if (f === 'kronologi') return hitungKata(potongan) >= KATA_MIN_KRONOLOGI && isi.length >= 2 ? potongan.slice(0, PANJANG_MAKS.kronologi) : null;
+  return null;
+}
+
+/**
+ * Ekstraktor berbasis aturan: pola kalimat lazim untuk tiap data, lalu jawaban langsung untuk data yang baru ditanyakan.
+ * Bila `kurang` diberikan (data yang sedang ditanyakan bersamaan), potongan kalimat yang belum dikenali pola mana pun
+ * ("Susu Greenfield, kulit saya gatal, Abin") dipasangkan ke data yang kurang menurut urutan pertanyaan.
+ * ponytail: pemasangan menurut urutan, jadi "Abin, Susu Greenfield" tertukar bila nama produk dan nama sama-sama kurang.
+ */
 export class EkstraktorAturan {
-  ekstrak(ucapan, { ditanya = null, data = {} } = {}) {
+  ekstrak(ucapan, { ditanya = null, kurang = null, data = {} } = {}) {
     const asli = String(ucapan ?? '').replace(/\s+/g, ' ').trim();
     const { nomor, sisa } = cariNomor(asli);
     const hasil = {};
@@ -176,12 +231,27 @@ export class EkstraktorAturan {
     const akibat = cariKalimatAkibat(sisa, produk);
     const namaProduk = produk ?? akibat?.namaProduk;
     if (namaProduk) hasil.namaProduk = namaProduk;
-    const kronologi = cariKronologi(sisa, ditanya, akibat);
+    // Data teks yang masih ditunggu, yang ditanyakan lebih dulu di depan. Nomor telepon hanya dari pola nomor.
+    const belum = (kurang ?? (ditanya ? [ditanya] : [])).filter((f) => f !== 'nomorTelepon' && data[f] === undefined);
+    const urutan = belum.includes(ditanya) ? [ditanya, ...belum.filter((f) => f !== ditanya)] : belum;
+    // Kronologi yang ditanyakan sendirian boleh diambil seluruh ucapan; bila ditanyakan bersama data lain, potongan yang menentukan.
+    const kronologi = cariKronologi(sisa, urutan.length <= 1 ? ditanya : null, akibat);
     if (kronologi) hasil.kronologi = kronologi;
     // Pertanyaan tanya ulang dijawab apa adanya, tetapi hanya bila ucapan tidak memuat data lain yang sudah dikenali.
-    if (ditanya && ditanya !== 'nomorTelepon' && data[ditanya] === undefined && !(ditanya in hasil) && Object.keys(hasil).length === 0) {
+    if (urutan.length <= 1 && ditanya && ditanya !== 'nomorTelepon' && data[ditanya] === undefined && !(ditanya in hasil) && Object.keys(hasil).length === 0) {
       const langsung = jawabanLangsung(ditanya, sisa);
       if (langsung) hasil[ditanya] = langsung;
+    }
+    if (!kurang) return hasil;
+    // Sisa ucapan setelah data yang sudah dikenali dibuang, dipotong per tanda baca.
+    let sisaIsi = sisa;
+    // Nama produk biasanya di tengah anak kalimat ("membeli X kemarin"), jadi dibuang tanpa memotong kalimatnya.
+    if (hasil.namaProduk) sisaIsi = sisaIsi.replace(hasil.namaProduk, ' ');
+    for (const v of [hasil.namaPelapor, hasil.kronologi]) if (v) sisaIsi = sisaIsi.replace(v, ' , ');
+    const potongan = sisaIsi.split(/[,.;!?]+/).map(rapikan).filter((p) => kataBersih(p).some((k) => !KATA_PENGANTAR.has(k)));
+    for (const p of potongan) {
+      const f = urutan.find((g) => !(g in hasil) && isiPotongan(g, p));
+      if (f) hasil[f] = isiPotongan(f, p);
     }
     return hasil;
   }
@@ -275,7 +345,8 @@ export class PengaduanController {
   async tangani(id, ucapan, { ip = '' } = {}) {
     const s = this.sesi.get(id);
     if (!s) throw new Error('pengaduan belum dimulai');
-    const diperoleh = await this.ekstraktor.ekstrak(ucapan, { ditanya: s.ditanya, data: { ...s.data } });
+    const kurangSebelum = FIELD_PENGADUAN.filter((f) => s.data[f] === undefined);
+    const diperoleh = await this.ekstraktor.ekstrak(ucapan, { ditanya: s.ditanya, kurang: kurangSebelum, data: { ...s.data } });
     // Ucapan setelah tiket terbit (juga giliran serentak yang tiketnya terbit selama ekstraksi) tidak dicatat di mana pun,
     // jadi tidak boleh dijawab seolah pengaduannya tercatat.
     if (s.tiket !== null) return { lengkap: false, sudahBertiket: true, jawaban: PESAN_BATAS_PERCAKAPAN };
@@ -286,8 +357,12 @@ export class PengaduanController {
     }
     const kurang = FIELD_PENGADUAN.filter((f) => s.data[f] === undefined);
     if (kurang.length > 0) {
-      s.ditanya = kurang[0];
-      return { lengkap: false, kurang, jawaban: PROMPT_DATA_KURANG[s.ditanya].pesan, suara: PROMPT_DATA_KURANG[s.ditanya].suara };
+      // Penelepon sudah mencoba menyebut nomor tetapi ditolak: jelaskan salahnya (kurang angka, kelebihan, bukan 08) dulu.
+      const cobaNomor = kurang.includes('nomorTelepon') && (s.ditanya === 'nomorTelepon' || POLA_KATA_NOMOR.test(ucapan) || POLA_DERET_ANGKA.test(ucapan));
+      const masalah = cobaNomor ? masalahNomorTelepon(ucapan) : null;
+      s.ditanya = masalah ? 'nomorTelepon' : kurang[0];
+      const prompt = masalah ? PESAN_NOMOR_SALAH[masalah] : promptDataKurang(kurang);
+      return { lengkap: false, kurang, jawaban: prompt.pesan, suara: prompt.suara, ...(masalah && { masalahNomor: masalah }) };
     }
     s.ditanya = null;
     if (!this.gerbang) return { lengkap: true, data: { ...s.data } };
