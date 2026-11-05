@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LaporanController, PESAN_LAPORAN, daftarPeriode } from './LaporanController.ts';
+import { LaporanController, PESAN_LAPORAN, daftarPeriode, periodeSah } from './LaporanController.ts';
 import { PenyimpananLaporanSupabase } from './penyimpananLaporanSupabase.ts';
 import { PenyimpananLaporanTiruan } from './mock/laporanTiruan.ts';
 import { pilihPenyimpanan } from './laporan.ts';
@@ -104,4 +104,68 @@ test('req_8_2 rekap tiruan: Januari 2025 kosong, September 2026 dirinci per tuju
   );
   assert.equal(rekap.total.panggilan, rekap.perMinggu.reduce((n, m) => n + m.panggilan, 0));
   assert.ok(rekap.total.panggilan > 0);
+});
+
+test('req_8_4 periode unduhan harus dua tanggal sah, awal tidak sesudah akhir, paling lama satu tahun', () => {
+  assert.deepEqual(periodeSah('2026-09-01', '2026-09-30'), SEPTEMBER);
+  assert.deepEqual(periodeSah('2026-09-30', '2026-09-30'), { awal: '2026-09-30', akhir: '2026-09-30' });
+  assert.deepEqual(periodeSah('2024-01-01', '2024-12-31'), { awal: '2024-01-01', akhir: '2024-12-31' });
+  for (const [awal, akhir] of [
+    ['2026-09-30', '2026-09-01'],
+    ['2026-02-30', '2026-03-01'],
+    ['2026-13-01', '2026-13-31'],
+    ['01-09-2026', '30-09-2026'],
+    ['2026-9-1', '2026-9-30'],
+    ['2026-09-01', ''],
+    [null, '2026-09-30'],
+    ['2025-01-01', '2026-01-02'],
+    ["2026-09-01' or 1=1", '2026-09-30'],
+  ]) {
+    assert.equal(periodeSah(awal, akhir), null, `${awal} ${akhir}`);
+  }
+});
+
+/** Penyimpanan tiruan yang mencatat apakah rekap diminta. */
+function tiruanTercatat(opsi: { hakEkspor: boolean; gagal?: boolean }) {
+  const penyimpanan = new PenyimpananLaporanTiruan({ hakEkspor: opsi.hakEkspor });
+  const diminta: unknown[] = [];
+  const asli = penyimpanan.rekapLayanan.bind(penyimpanan);
+  penyimpanan.rekapLayanan = async (p) => {
+    diminta.push(p);
+    if (opsi.gagal) throw new Error('rpc gagal');
+    return asli(p);
+  };
+  return { kontrol: new LaporanController(penyimpanan), diminta };
+}
+
+test('req_8_3 br_8 nfr_14 unduh laporan tanpa hak ekspor ditolak 403 sebelum isian dibaca', async () => {
+  const { kontrol, diminta } = tiruanTercatat({ hakEkspor: false });
+  assert.deepEqual(await kontrol.unduhLaporan('2026-09-01', '2026-09-30', 'csv'), { kode: 403, pesan: 'Anda tidak memiliki hak akses ekspor data.' });
+  assert.deepEqual(await kontrol.unduhLaporan('bukan-tanggal', '', 'xlsx'), { kode: 403, pesan: PESAN_LAPORAN.tanpaHakEkspor });
+  assert.equal(diminta.length, 0);
+});
+
+test('req_8_4 unduh laporan dengan periode atau format tidak sah ditolak 422 tanpa menghitung rekap', async () => {
+  const { kontrol, diminta } = tiruanTercatat({ hakEkspor: true });
+  for (const [awal, akhir, format] of [
+    ['2026-09-30', '2026-09-01', 'csv'],
+    ['2026-02-30', '2026-03-01', 'pdf'],
+    ['2026-09-01', '2026-09-30', 'xlsx'],
+    ['2026-09-01', '2026-09-30', 'PDF'],
+    ['2026-09-01', '2026-09-30', null],
+  ]) {
+    assert.deepEqual(await kontrol.unduhLaporan(awal, akhir, format), { kode: 422, pesan: 'Permintaan tidak valid.' }, `${awal} ${akhir} ${format}`);
+  }
+  assert.equal(diminta.length, 0);
+});
+
+test('req_8_4 unduh laporan periode berisi data menghasilkan berkas; periode kosong dan rekap gagal tidak', async () => {
+  const { kontrol } = tiruanTercatat({ hakEkspor: true });
+  const csv = await kontrol.unduhLaporan('2026-09-01', '2026-09-30', 'csv');
+  assert.equal(csv.kode, 200);
+  assert.ok('berkas' in csv && csv.berkas.nama === 'laporan-layanan_2026-09-01_2026-09-30.csv');
+  assert.deepEqual(await kontrol.unduhLaporan('2025-01-01', '2025-01-31', 'pdf'), { kode: 404, pesan: 'Data tidak tersedia pada periode tersebut.' });
+
+  const gagal = tiruanTercatat({ hakEkspor: true, gagal: true });
+  assert.deepEqual(await gagal.kontrol.unduhLaporan('2026-09-01', '2026-09-30', 'pdf'), { kode: 500, pesan: 'Terjadi kesalahan pada sistem.' });
 });
