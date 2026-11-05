@@ -25,6 +25,7 @@ import {
 } from './eskalasi.mjs';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
+import { PeringkasHermes, PeringkasPercakapan, PeringkasTiruan } from './ringkasan.mjs';
 import { kirimAudio } from './audio.mjs';
 import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
 
@@ -108,15 +109,16 @@ const pengaduan = new PengaduanController({
   pembatas: pembatasTiket,
 });
 // NFR-20: transkrip dan log tool gateway tersimpan di register layanan lewat Edge Function, selain itu tiruan di memori.
+const pengirimTranskrip = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PengirimTranskripSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PengirimTranskripTiruan();
 const pencatat = new PencatatTranskrip({
-  pengirim: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PengirimTranskripSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PengirimTranskripTiruan(),
+  pengirim: pengirimTranskrip,
   onGalat: (e) => console.error(JSON.stringify({ ev: 'transkrip_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
 });
 // Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
 const pantau = new PemantauPanggilan({
   pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
   // Laporan pertama membuat baris percakapan; transkrip baru ditulis setelahnya.
-  saatTercatat: (id) => pencatat.tercatat(id),
+  saatTercatat: (id) => { pencatat.tercatat(id); peringkas.tercatat(id); },
   konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
   // Panggilan yang sedang mengumpulkan pengaduan tidak ditutup selama jeda bicara; batas atasnya ada di PemantauPanggilan.
   tahan: (id) => pengaduan.aktif(id),
@@ -138,7 +140,9 @@ async function akhiriPengaduan(id) {
   return hasil && { pesan: hasil.pesan, tersimpan: hasil.tersimpan };
 }
 // Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
-riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)).finally(() => pencatat.akhiri(id)); };
+riwayat.saatDibuang = (id) => {
+  akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)).finally(() => { pencatat.akhiri(id); peringkas.akhiri(id); });
+};
 riwayat.dilindungi = (id) => pengaduan.aktif(id);
 setInterval(() => riwayat.bersihkan(), 60_000).unref();
 
@@ -162,6 +166,20 @@ const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 // Satu token per sesi mendengarkan, jadi batasnya sama dengan giliran; setiap detik audio realtime ditagih ElevenLabs.
 const lajuSttRealtime = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
+// REQ-5.2: ringkasan buatan AI disimpan saat panggilan berakhir, tokennya ikut anggaran AI. Nama dan nomor pelapor dari alur
+// pengaduan disamarkan sebelum transkrip dikirim ke model. Tanpa Hermes dipakai ringkasan tiruan tanpa AI.
+const peringkas = new PeringkasPercakapan({
+  peringkas: HERMES_KEY ? new PeringkasHermes({ url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL }) : new PeringkasTiruan(),
+  pengirim: pengirimTranskrip,
+  anggaran: anggaranAi,
+  dataPribadi: (id) => pengaduan.dataPribadi(id),
+  onGalat: (e) => console.error(JSON.stringify({ ev: 'ringkasan_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
+});
+/** Satu giliran untuk transkrip tersimpan dan untuk bahan ringkasan. */
+const catatGiliran = (id, ip, ucapan, jawaban) => {
+  pencatat.giliran(id, ucapan, jawaban);
+  peringkas.giliran(id, ip, ucapan, jawaban);
+};
 const giliranAktif = new Map();
 const tokenSuara = new Map();
 let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
@@ -323,8 +341,8 @@ async function giliran(req, res, url) {
       // pertama yang sudah melewati kuota dan pembatas laju.
       riwayat.aturCekRegistrasi(id, { ulangNama: 0, kandidat: null });
       // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
-      pencatat.giliran(id, null, PESAN_MENU);
-      pencatat.giliran(id, null, menu.jawaban);
+      catatGiliran(id, '', null, PESAN_MENU);
+      catatGiliran(id, '', null, menu.jawaban);
       return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
     }
     // Pesan yang diketik: tanpa STT, selebihnya sama dengan giliran suara.
@@ -573,7 +591,7 @@ async function giliran(req, res, url) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
       tulis({ jenis: 'galat', message: e instanceof ErrorGateway ? e.message : PESAN_GANGGUAN });
     } finally {
-      pencatat.giliran(id, transkrip, terucap.join(' '));
+      catatGiliran(id, ip, transkrip, terucap.join(' '));
       res.end();
     }
   } finally {
@@ -645,6 +663,8 @@ const server = createServer(async (req, res) => {
       const akhir = await akhiriPengaduan(body.id);
       await pantau.akhiri(body.id);
       riwayat.hapus(body.id);
+      // REQ-5.2: ringkasan disusun setelah respons dikirim, jadi penutupan panggilan tidak menunggu AI.
+      peringkas.akhiri(body.id);
       return kirim(res, 200, 'success', 'OK', akhir);
     }
     return kirim(res, 404, 'error', 'Tidak ditemukan.');

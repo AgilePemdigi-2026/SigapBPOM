@@ -6,5 +6,6 @@ import type { TranskripController } from '../control/TranskripController.ts';
 export async function tanganiCatatPercakapan(controller: TranskripController, body: Record<string, unknown>) {
   if (body.aksi === 'ucapan') return await controller.simpanUcapan(body);
   if (body.aksi === 'tool') return await controller.catatPemanggilanTool(body);
+  if (body.aksi === 'ringkasan') return await controller.simpanRingkasan(body);
   throw new ErrorSigap(422, 'Aksi tidak dikenal.');
 }
