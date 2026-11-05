@@ -15,7 +15,7 @@ test('nfr_1 ringkas menghitung p50 dan p95 nearest-rank, memisahkan giliran tanp
 test('nfr_1 setiap giliran mencatat kalimat1_ms di satu titik untuk semua jalur', () => {
   const server = readFileSync(new URL('./server.mjs', import.meta.url), 'utf8');
   assert.match(server, /const ucapkan = \(teks, suara\) => \{ tKalimat1 \?\?= Date\.now\(\) - mulai; /);
-  assert.match(server, /pencatat\.giliran\(id, transkrip, terucap\.join\(' '\)\);\n(?: {6}\/\/.*\n)* {6}if \(transkrip\) console\.info\(JSON\.stringify\(\{ ev: 'respons', stt_ms: tStt, kalimat1_ms: tKalimat1 \}\)\);/);
+  assert.match(server, /catatGiliran\(id, ip, transkrip, terucap\.join\(' '\)\);\n(?: {6}\/\/.*\n)* {6}if \(transkrip\) console\.info\(JSON\.stringify\(\{ ev: 'respons', stt_ms: tStt, kalimat1_ms: tKalimat1 \}\)\);/);
   assert.equal(server.match(/tKalimat1 (\?\?|\|\|)?= /g)?.length, 2, 'hanya deklarasi dan ucapkan() yang mengisi tKalimat1');
 });
 

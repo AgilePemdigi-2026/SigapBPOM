@@ -437,5 +437,8 @@ verify_jwt = false
 [functions.catat-percakapan]
 verify_jwt = false
 
+[functions.kirim-notifikasi]
+verify_jwt = false
+
 [functions.katalog-materi]
 verify_jwt = false
