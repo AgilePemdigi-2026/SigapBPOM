@@ -1,0 +1,147 @@
+---
+// Boundary UC-05, halaman Detail Transkrip (REQ-5.2 sampai REQ-5.4, T-F6.2-02, SRS 3.1.8): TranskripPercakapan berstempel
+// waktu, RingkasanPercakapan dengan status penyelesaian, dan Catatan Pemeriksaan. Dibuka dari tombol "Lihat Transkrip"
+// di Riwayat Percakapan, Tiket Eskalasi, dan Detail Pengaduan. Data pribadi sudah tersamar di server (NFR-13).
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { chip } from '../../lib/data';
+import { PESAN_CATATAN_TERSIMPAN } from '../../lib/TranskripController';
+import { bacaDetailTranskrip, simpanCatatan, transkripPetugas } from '../../lib/detailTranskrip';
+
+// REQ-5.3: batas panjang sama dengan simpan_catatan_pemeriksaan (T-F6.2-01).
+const PANJANG_MAKS_CATATAN = 2000;
+
+const id = Astro.url.searchParams.get('id');
+const transkrip = transkripPetugas(Astro.locals.tokenAkses);
+
+// Simpan Catatan memakai formulir biasa (Post/Redirect/Get), jadi tetap jalan tanpa JavaScript. Astro menolak POST lintas
+// origin (security.checkOrigin), sehingga formulir ini terlindung dari CSRF (PROJECT_RULES 5.7).
+let pesan = '';
+let berhasil = false;
+let isian = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData().catch(() => null);
+  const catatan = form?.get('catatan');
+  const hasil = await simpanCatatan(transkrip, id, catatan);
+  if (hasil.berhasil) return Astro.redirect(`/riwayat-percakapan/detail?id=${encodeURIComponent(id ?? '')}&tersimpan=1`, 303);
+  pesan = hasil.pesan;
+  isian = typeof catatan === 'string' ? catatan : '';
+  Astro.response.status = 422;
+} else if (Astro.url.searchParams.get('tersimpan') === '1') {
+  pesan = PESAN_CATATAN_TERSIMPAN;
+  berhasil = true;
+}
+
+const hasil = await bacaDetailTranskrip(transkrip, id);
+const gagal = 'gagal' in hasil ? hasil.gagal : '';
+const d = 'gagal' in hasil ? null : hasil.detail;
+// Percakapan tidak ada: 404; penyimpanan gagal: 503 (PROJECT_RULES 4.4).
+if (!d && 'kode' in hasil) Astro.response.status = hasil.kode;
+const warna = d ? chip(d.labelStatus) : null;
+---
+<DashboardLayout title="Detail Transkrip">
+  <div class="page">
+    <a href="/riwayat-percakapan" class="pill back"><i class="icon-arrow-left"></i>Kembali ke Riwayat Percakapan</a>
+    {d ? (
+      <>
+        <section class="panel head">
+          <div class="head-title">
+            <span class="eyebrow">DETAIL TRANSKRIP</span>
+            <h1>{d.waktu}</h1>
+          </div>
+          <span class="chip big">{d.jenis}</span>
+        </section>
+
+        <div class="grid">
+          <section class="panel card" data-name="TranskripPercakapan" aria-labelledby="judul-transkrip">
+            <h2 id="judul-transkrip">Transkrip Percakapan</h2>
+            {d.ucapan.length === 0 ? (
+              <p class="kosong">—</p>
+            ) : (
+              <ol class="ucapan">
+                {d.ucapan.map((u) => (
+                  <li class:list={['u', { penelepon: u.dariPenelepon }]}>
+                    <span class="u-kepala"><span>{u.pembicara}</span><time>{u.stempel}</time></span>
+                    <p>{u.teks}</p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <div class="kolom">
+            <section class="panel card" data-name="RingkasanPercakapan" aria-labelledby="judul-ringkasan">
+              <h2 id="judul-ringkasan">Ringkasan Percakapan</h2>
+              <p class="ringkasan">{d.ringkasan}</p>
+              <dl>
+                <div><dt>Status penyelesaian</dt><dd><span class="chip" style={`background:${warna!.bg};color:${warna!.fg}`}>{d.labelStatus}</span></dd></div>
+              </dl>
+            </section>
+
+            <section class="panel card">
+              <form method="post" class="catatan" novalidate>
+                <div class="f">
+                  <label for="catatan">Catatan Pemeriksaan</label>
+                  <textarea id="catatan" name="catatan" maxlength={PANJANG_MAKS_CATATAN} aria-describedby="pesan-catatan" aria-invalid={pesan && !berhasil ? 'true' : undefined}>{isian}</textarea>
+                </div>
+                <div class="aksi">
+                  <p id="pesan-catatan" class:list={['pesan', { ok: berhasil, galat: pesan && !berhasil }]} role={berhasil ? 'status' : 'alert'}>{pesan}</p>
+                  <button type="submit" class="btn-primary simpan"><i class="icon-save"></i>Simpan Catatan</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </div>
+      </>
+    ) : (
+      <section class="panel empty" role="alert"><i class="icon-file-x"></i><span>{gagal}</span></section>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .back { align-self: flex-start; }
+  .head { padding: 22px 28px; display: flex; align-items: center; gap: 16px; }
+  .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+  .head h1 { margin: 0; font-size: 28px; font-weight: 500; letter-spacing: -.01em; }
+  .chip.big { font-size: 15px; padding: 8px 16px; background: #e6edfe; color: #2557e0; }
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+  .kolom { min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .card { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+  .card h2 { margin: 0; font-size: 24px; font-weight: 400; letter-spacing: -.01em; }
+
+  .ucapan { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .u { max-width: 82%; align-self: flex-start; padding: 12px 16px; border-radius: 18px 18px 18px 6px; background: var(--surface); border: 1px solid var(--line); }
+  .u.penelepon { align-self: flex-end; border-radius: 18px 18px 6px 18px; background: #eef3ff; border-color: #dbe5ff; }
+  .u-kepala { display: flex; gap: 10px; font-size: 12.5px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+  .u-kepala time { font-variant-numeric: tabular-nums; font-weight: 500; }
+  .u p { margin: 6px 0 0; font-size: 16px; line-height: 1.5; text-wrap: pretty; }
+  .kosong { margin: 0; color: var(--muted); }
+
+  .ringkasan { margin: 0; font-size: 18px; line-height: 1.5; text-wrap: pretty; }
+  dl { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  dl div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; }
+
+  .catatan { display: flex; flex-direction: column; gap: 14px; }
+  .f { display: flex; flex-direction: column; gap: 8px; }
+  .f > label { font-size: 15px; font-weight: 500; color: var(--ink-3); }
+  .f textarea { min-height: 120px; padding: 14px 18px; border-radius: 18px; background: #fff; border: 1px solid var(--line-2); outline: none; font-size: 16px; line-height: 1.5; resize: vertical; }
+  .f textarea:focus { border-color: #9db7f5; }
+  .f textarea[aria-invalid='true'] { border-color: #e5484d; }
+  .aksi { display: flex; align-items: center; gap: 12px; }
+  .pesan { flex: 1; margin: 0; font-size: 15px; }
+  .pesan.ok { color: #15803d; }
+  .pesan.galat { color: #c2272d; }
+  .simpan { height: 50px; padding: 0 22px; font-size: 15px; cursor: pointer; }
+
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 18px; color: var(--ink-3); }
+  .empty i { font-size: 32px; color: var(--muted-2); }
+
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .u { max-width: 100%; }
+  }
+</style>
