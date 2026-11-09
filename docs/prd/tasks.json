@@ -805,7 +805,7 @@
       "page": null,
       "phase": 3,
       "dependsOn": [],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -839,7 +839,7 @@
       "dependsOn": [
         "T-F6.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -857,7 +857,7 @@
         "T-F6.1-01",
         "T-F6.2-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -872,7 +872,7 @@
       "page": null,
       "phase": 3,
       "dependsOn": [],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -887,7 +887,7 @@
       "page": null,
       "phase": 3,
       "dependsOn": [],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -921,7 +921,7 @@
       "dependsOn": [
         "T-F7.1-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -974,7 +974,7 @@
       "dependsOn": [
         "T-F7.2-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
