@@ -8,7 +8,7 @@ Skenario penerimaan per use case ditulis dalam Gherkin dan dijalankan dengan Cuc
 | `npm run test:bdd:ui` | Skenario `@ui`: teks SRS Lampiran F apa adanya, dijalankan lewat browser (Playwright) terhadap dashboard dan panel suara yang sedang berjalan, seperti Behat dengan Mink | Stack lokal di bawah |
 | `npm run test:bdd:live` | Skenario `@live`: memanggil layanan luar asli (cekbpom) | Internet |
 
-Skenario `@ui` yang ada: UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
+Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
 
 ## Menjalankan skenario `@ui`
 
@@ -19,22 +19,24 @@ Skenario `@ui` yang ada: UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5)
    supabase db reset
    ```
 
-2. Edge Functions dengan kunci internal lokal. Isi `supabase/functions/.env` (salin dari `.env.example`), misalnya `SIGAP_KUNCI_INTERNAL=kunci-uji-lokal`, lalu:
+2. Edge Functions dengan kunci internal lokal. Isi `supabase/functions/.env` (salin dari `.env.example`), misalnya `SIGAP_KUNCI_INTERNAL=kunci-uji-lokal` dan `SIGAP_KUNCI_LOGIN=kunci-login-lokal`, lalu:
 
    ```bash
    supabase functions serve --env-file supabase/functions/.env
    ```
 
-3. Voice Gateway, dibutuhkan UC-02. Alur pengaduan tidak memakai AI, jadi kunci ElevenLabs dan Hermes tidak perlu. Batas tiket harian dilonggarkan karena skenario mengirim nomor telepon yang sama berulang kali:
+3. Voice Gateway, dibutuhkan UC-01 dan UC-02. cekbpom dan Hermes dilayani server tiruan (`features/support/tiruan.mjs`) yang dinyalakan skenario UC-01 di port 8091, jadi kunci ElevenLabs dan Hermes tidak perlu. Ucapan yang tidak ada di tabel `the AI agent answers` sengaja dijawab galat. Pengetahuan dicari lewat Edge Function `cari-pengetahuan` (`PENGETAHUAN_VEKTOR=1`), tempat Background UC-01 mengindeks materi rujukannya; jangan jalankan `scripts/indeks-materi.ts` pada database uji, karena materi lain yang terindeks bisa ikut dikutip. Batas tiket harian dilonggarkan karena skenario mengirim nomor telepon yang sama berulang kali:
 
    ```bash
-   PORT=8090 SUPABASE_URL=http://127.0.0.1:54321 SIGAP_KUNCI_INTERNAL=kunci-uji-lokal KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 node voice-gateway/server.mjs
+   PORT=8090 SUPABASE_URL=http://127.0.0.1:54321 SIGAP_KUNCI_INTERNAL=kunci-uji-lokal KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 PENGETAHUAN_VEKTOR=1 CEKBPOM_AKTIF=1 CEKBPOM_BASE_URL=http://127.0.0.1:8091 HERMES_URL=http://127.0.0.1:8091 node voice-gateway/server.mjs
    ```
+
+   Gateway membatasi 30 giliran per 5 menit per IP, dan satu run memakai 24 giliran (UC-01 17, UC-02 7). Sebelum menjalankan ulang dalam 5 menit, mulai ulang gateway.
 
 4. Dashboard. `SUPABASE_URL` dan `SUPABASE_ANON_KEY` harus ada di environment proses (lihat `supabase status -o env`), bukan hanya di `.env`. Batas login per IP dilonggarkan karena satu run login belasan kali. Dev server meneruskan `/voice/*` ke gateway di port 8090.
 
    ```bash
-   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=<anon key lokal> LOGIN_PERCOBAAN_MAKS=1000 npm run dev
+   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=<anon key lokal> SIGAP_KUNCI_LOGIN=kunci-login-lokal LOGIN_PERCOBAAN_MAKS=1000 npm run dev
    ```
 
 5. Jalankan skenario:
@@ -57,6 +59,6 @@ Langkah ditulis sama persis dengan SRS (`features/step_definitions/web.steps.mjs
 
 - `I should hear "..."`: setiap kalimat yang diucapkan agen juga ditampilkan di transkrip panel (`TranskripPercakapan`), jadi langkah ini memeriksa kalimat itu di sana.
 - `I say "..."`: ucapan diketik di kolom ketik panel. Gateway memprosesnya dengan alur yang sama seperti ucapan suara.
-- Nomor tiket contoh di SRS (mis. `ADU-0456`) dicocokkan dengan nomor tiket yang benar-benar terbit (`ADU-YYYYMMDD-NNNN`).
+- Nomor tiket contoh di SRS (`ADU-0456`, `ESK-0123`) dicocokkan dengan nomor tiket yang benar-benar terbit (`ADU-YYYYMMDD-NNNN`, `ESK-YYYYMMDD-NNNN`).
 
-Elemen yang disebut skenario dicari lewat atribut `data-name` sesuai Lampiran B, misalnya `PanelPercakapanSuara`, `KartuStatistikLayanan`, `AntreanTiketEskalasi`, dan `FormulirMateri`. Prasyarat yang tersirat di SRS (petugas sudah login, ada tiket di antrean, ada materi yang akan dihapus) ditulis sebagai `Background`. Data uji disiapkan dan dibersihkan di Supabase lokal.
+Elemen yang disebut skenario dicari lewat atribut `data-name` sesuai Lampiran B, misalnya `PanelPercakapanSuara`, `KartuStatistikLayanan`, `AntreanTiketEskalasi`, dan `FormulirMateri`. Prasyarat yang tersirat di SRS (petugas sudah login, ada tiket di antrean, ada materi yang akan dihapus, data registrasi cekbpom, jawaban AI) ditulis sebagai `Background`. Data uji disiapkan dan dibersihkan di Supabase lokal.

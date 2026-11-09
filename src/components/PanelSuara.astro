@@ -61,7 +61,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 </div>
 
 <script>
-  import { esc, htmlKartuProduk, htmlKartuTiket, pesanAkhirPanggilan, type HasilProduk } from '../lib/kartuPanggilan';
+  import { GalatGateway, PESAN_GANGGUAN_SUARA, esc, htmlKartuProduk, htmlKartuTiket, pesanAkhirPanggilan, pesanGalatPanggilan, type HasilProduk } from '../lib/kartuPanggilan';
   import { NAMA_PERISTIWA, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
 
   type Sumber = { peraturan: string; judul: string; url: string };
@@ -74,7 +74,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     | { jenis: 'ganti' }
     | { jenis: 'cari'; kueri: string }
     | ({ jenis: 'cek' } & TabelCek)
-    | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null; produk?: HasilProduk; pengaduan?: string | null }
+    | { jenis: 'selesai'; sumber?: Sumber[]; akhiri?: boolean; tiket?: string | null; produk?: HasilProduk; pengaduan?: string | null; layanan?: 1 | 2 }
     | { jenis: 'galat'; message: string };
   type Hasil = { transkrip: string | null; jawaban: string | null; suara: string | null; akhiri?: boolean; sumber?: Sumber[]; produk?: HasilProduk; tiket?: string; pengaduan?: string | null };
 
@@ -253,7 +253,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
         body: audio ? body : JSON.stringify({ id: idPanggilan, ...body }),
       });
       const d = await r.json().catch(() => null);
-      if (!r.ok || !d?.data) throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
+      if (!r.ok || !d?.data) throw new GalatGateway(d?.message ?? PESAN_GANGGUAN_SUARA);
       return d.data as Hasil;
     }
 
@@ -306,12 +306,19 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
             antrean = [];
             ganti = true;
           } else if (b.jenis === 'selesai') {
+            // UC-01 Alternative Path 3: gateway memilih layanan dari ucapan "dua" setelah tawaran tekan 2, sama seperti pick().
+            if (b.layanan) {
+              phase = 'flow'; service = b.layanan; tiketPengaduan = false;
+              msgs = msgs.filter((m) => m.kind !== 'menu');
+              kabari({ tahap: 'layanan', layanan: b.layanan });
+              paint();
+            }
             // REQ-2.3: tiket pengaduan datang pada baris selesai; panggilan yang sudah bertiket tidak lagi dianggap pengaduan belum lengkap.
             if (b.pengaduan || b.tiket?.startsWith('ADU-')) tiketPengaduan = true;
             if (jawaban) { jawaban.sumber = b.sumber; jawaban.tiket = b.tiket ?? undefined; jawaban.pengaduan = b.pengaduan ?? undefined; jawaban.produk = b.produk; paint(); }
             akhiri = Boolean(b.akhiri);
           } else if (b.jenis === 'galat') {
-            throw new Error(b.message);
+            throw new GalatGateway(b.message);
           }
         }
       }
@@ -345,7 +352,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     async function pastikanAliran(r: Response) {
       if (!r.ok || !r.headers.get('content-type')?.includes('ndjson')) {
         const d = await r.json().catch(() => null);
-        throw new Error(d?.message ?? 'Layanan suara sedang gangguan. Silakan coba lagi.');
+        throw new GalatGateway(d?.message ?? PESAN_GANGGUAN_SUARA);
       }
       return r;
     }
@@ -379,7 +386,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 
     function gagal(e: unknown) {
       if (phase === 'ended') return;
-      say(e instanceof Error ? e.message : 'Layanan suara sedang gangguan. Silakan coba lagi.');
+      say(pesanGalatPanggilan(e));
       dengar();
     }
 
@@ -608,7 +615,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     root.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       const p = t.closest<HTMLElement>('[data-pick]');
-      if (p) return pick(Number(p.dataset.pick) as 1 | 2);
+      if (p) {
+        // Tombol 2 di kartu tidak ditemukan yang lama tidak memulai ulang pengaduan yang sedang berjalan.
+        if (p.closest('.k-produk') && service === 2) return;
+        return pick(Number(p.dataset.pick) as 1 | 2);
+      }
       if (t.closest('[data-close]')) return close();
       if (t.closest('[data-end]')) return end();
       if (t.closest('[data-restart]')) return start();
@@ -726,8 +737,12 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.k-status) { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-weight: 600; }
   .ps-tr :global(.k-status.ok) { background: #e8f7ee; color: #15803d; }
   .ps-tr :global(.k-status.no) { background: #fdecec; color: #b42318; }
-  .ps-tr :global(.k-produk.kosong) { flex-direction: row; align-items: flex-start; gap: 10px; background: #fff8eb; border-color: #f5d9a8; color: #7a4b00; }
+  .ps-tr :global(.k-produk.kosong) { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 10px; background: #fff8eb; border-color: #f5d9a8; color: #7a4b00; }
   .ps-tr :global(.k-produk.kosong i) { font-size: 18px; }
+  .ps-tr :global(.k-produk.kosong p) { flex: 1; }
+  /* UC-01 Alternative Path 3: tombol 2 ke pengaduan, bergaya sama dengan tombol menu. */
+  .ps-tr :global(.k-produk.kosong button) { flex-basis: 100%; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); color: var(--ink); text-align: left; }
+  .ps-tr :global(.k-produk.kosong button:focus-visible) { outline: 3px solid #2f6bf5; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(47, 107, 245, 0.25); }
   /* T-F1.4-01: kartu eskalasi kuning. Teks "Diteruskan ke petugas BPOM" dan "bukan oleh AI" menjadi penanda utama. */
   .ps-tr :global(.k-eskalasi) { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: #fff8e1; border: 1px solid #f2d27a; color: #5c4300; font-size: 14px; }
   .ps-tr :global(.k-eskalasi-judul) { display: flex; align-items: center; gap: 8px; font-size: 15.5px; font-weight: 600; color: #4a3500; }
@@ -754,9 +769,9 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   .ps-tr :global(.m-menu button) { text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid #fff; background: var(--surface-2); box-shadow: 0 3px 10px rgba(16, 24, 40, .07); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
   .ps-tr :global(.m-menu button:focus-visible) { outline: 3px solid #2f6bf5; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(47, 107, 245, 0.25); }
   .ps-tr :global(.m-menu button:hover) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16, 24, 40, .1); }
-  .ps-tr :global(.m-menu .no) { width: 38px; height: 38px; border-radius: 11px; background: var(--grad-blue); color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-  .ps-tr :global(.m-menu .no.purple) { background: linear-gradient(180deg, #a37bff, #7c4dff); }
-  .ps-tr :global(.m-menu .t) { font-size: 16px; font-weight: 600; }
+  .ps-tr :global(.m-menu .no), .ps-tr :global(.k-produk .no) { width: 38px; height: 38px; border-radius: 11px; background: var(--grad-blue); color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .ps-tr :global(.m-menu .no.purple), .ps-tr :global(.k-produk .no.purple) { background: linear-gradient(180deg, #a37bff, #7c4dff); }
+  .ps-tr :global(.m-menu .t), .ps-tr :global(.k-produk .t) { font-size: 16px; font-weight: 600; }
   .ps-tr :global(.m-menu .d) { font-size: 13px; color: #6b7280; line-height: 1.35; }
   .ps-tr :global(.m-proc) { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 999px; background: #fff; align-self: flex-start; font-size: 14px; color: #4b5260; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
   .ps-tr :global(.m-proc i) { color: var(--blue); }

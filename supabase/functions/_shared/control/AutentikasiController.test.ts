@@ -7,14 +7,17 @@ import {
   PESAN_FIELD_KOSONG,
   PESAN_KREDENSIAL_SALAH,
   PESAN_LOGIN_BERHASIL,
+  type Autentikator,
   type PenyimpananPetugas,
 } from './AutentikasiController.ts';
+import { ErrorSigap } from './InformasiProdukController.ts';
 
 const SEKARANG = new Date('2026-11-02T10:00:00.000Z');
 const PETUGAS_ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const DURASI_KUNCI_MS = 15 * 60_000;
 
-// Penyimpanan tiruan yang meniru RPC reservasi_percobaan_login dan reset_gagal_login: satu langkah (atomik).
+// Penyimpanan tiruan yang meniru RPC reservasi_percobaan_login, reset_gagal_login, dan kembalikan_percobaan_login:
+// satu langkah (atomik).
 function buatPenyimpanan(awal: { gagal?: number; terkunci_sampai?: string | null } = {}) {
   const baris = {
     id: PETUGAS_ID,
@@ -22,9 +25,10 @@ function buatPenyimpanan(awal: { gagal?: number; terkunci_sampai?: string | null
     gagal: awal.gagal ?? 0,
     terkunci_sampai: awal.terkunci_sampai ?? null,
   };
-  const panggilan = { reservasi: 0, reset: 0 };
+  const panggilan = { reservasi: 0, reset: 0, kembalikan: 0, dicari: [] as string[] };
   const p: PenyimpananPetugas = {
     async dapatkanUserByEmail(email) {
+      panggilan.dicari.push(email);
       if (email !== 'siti@bpom.go.id') return null;
       return { petugasData: { id: baris.id, nama: baris.nama } };
     },
@@ -43,16 +47,23 @@ function buatPenyimpanan(awal: { gagal?: number; terkunci_sampai?: string | null
       baris.gagal = 0;
       baris.terkunci_sampai = null;
     },
+    async kembalikanPercobaan() {
+      panggilan.kembalikan++;
+      baris.gagal = Math.max(baris.gagal - 1, 0);
+      baris.terkunci_sampai = null;
+    },
   };
   return { p, baris, panggilan };
 }
 
+// Supabase Auth tiruan: password salah ditolak dengan status 400 seperti GoTrue.
 function buatKontrol(p: PenyimpananPetugas, passwordBenar = 'rahasia123') {
-  const cek = { password: 0 };
-  const auth = {
-    async masukDenganPassword(_e: string, k: string) {
+  const cek = { password: 0, email: [] as string[] };
+  const auth: Autentikator = {
+    async masukDenganPassword(e: string, k: string) {
       cek.password++;
-      return k === passwordBenar ? { sesi: { token: 'abc' }, galat: null } : { sesi: null, galat: new Error('invalid') };
+      cek.email.push(e);
+      return k === passwordBenar ? { sesi: { token: 'abc' }, galat: null } : { sesi: null, galat: { status: 400 } };
     },
   };
   return { c: new AutentikasiEdgeController(p, auth), cek };
@@ -138,4 +149,41 @@ test('nfr_11 percobaan paralel paling banyak memeriksa tiga password lalu mengun
   assert.ok(hasil.every((h) => !h.sukses));
   assert.equal(hasil.filter((h) => h.pesan === PESAN_AKSES_DIKUNCI).length, 3);
   assert.ok(baris.terkunci_sampai);
+});
+
+test('req_3_4 email huruf besar dan berspasi dinormalkan sebelum dicari dan diperiksa', async () => {
+  const { p, panggilan } = buatPenyimpanan();
+  const { c, cek } = buatKontrol(p);
+  const hasil = await c.masuk('  SITI@BPOM.GO.ID ', 'rahasia123');
+  assert.equal(hasil.sukses, true);
+  assert.deepEqual(panggilan.dicari, ['siti@bpom.go.id']);
+  assert.deepEqual(cek.email, ['siti@bpom.go.id']);
+});
+
+const galatSistem = (e: unknown) => e instanceof ErrorSigap && e.status === 503 && e.message === 'Terjadi kesalahan pada sistem.';
+
+test('req_3_5 galat teknis Supabase Auth (429, 500, jaringan) tidak menambah gagal_login dan dibalas 503', async () => {
+  const galatTeknis: Autentikator['masukDenganPassword'][] = [
+    async () => ({ sesi: null, galat: { status: 429 } }),
+    async () => ({ sesi: null, galat: { status: 500 } }),
+    async () => ({ sesi: null, galat: { status: 0 } }),
+    async () => ({ sesi: null, galat: {} }),
+    async () => { throw new TypeError('fetch failed'); },
+  ];
+  const { p, baris, panggilan } = buatPenyimpanan();
+  for (const [i, masukDenganPassword] of galatTeknis.entries()) {
+    const c = new AutentikasiEdgeController(p, { masukDenganPassword });
+    await assert.rejects(c.masuk('siti@bpom.go.id', 'rahasia123'), galatSistem);
+    assert.equal(baris.gagal, 0);
+    assert.equal(panggilan.kembalikan, i + 1);
+  }
+});
+
+test('nfr_11 galat teknis pada percobaan ketiga tidak mengunci akun', async () => {
+  const { p, baris } = buatPenyimpanan({ gagal: 2 });
+  const c = new AutentikasiEdgeController(p, { masukDenganPassword: async () => ({ sesi: null, galat: { status: 503 } }) });
+  await assert.rejects(c.masuk('siti@bpom.go.id', 'rahasia123'), galatSistem);
+  assert.equal(baris.gagal, 2);
+  assert.equal(baris.terkunci_sampai, null);
+  assert.equal((await buatKontrol(p).c.masuk('siti@bpom.go.id', 'salah')).pesan, PESAN_AKSES_DIKUNCI);
 });

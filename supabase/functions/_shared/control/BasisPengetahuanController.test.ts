@@ -159,3 +159,37 @@ test('potongTeks memotong teks panjang dengan overlap 10-20%', () => {
   assert.deepEqual(potongTeks(''), []);
   assert.deepEqual(potongTeks('   '), []);
 });
+
+test('req_7_1 materi tanpa isi tetap tersimpan dan terindeks dari judul (SRS Tabel B.8 Basic Path)', async () => {
+  const { c, materiList, potonganList } = buat();
+  const hasil = await c.tambahMateri({ judul: 'Ketentuan Izin Edar Suplemen Kesehatan', rujukan: 'Peraturan BPOM Nomor 17 Tahun 2019' });
+
+  assert.equal(hasil.terindeks, true);
+  assert.equal(materiList[0].terindeks, true);
+  assert.deepEqual(potonganList.map((p) => [p.urutan, p.teks]), [[0, 'Ketentuan Izin Edar Suplemen Kesehatan']]);
+});
+
+test('req_7_1 indeksMateri menyimpan potongan berurutan lalu menandai terindeks', async () => {
+  const { c, materiList, potonganList } = buat();
+  const materi = await c.tambahMateri({ judul: 'Label Pangan', rujukan: 'Peraturan BPOM Nomor 31 Tahun 2018' });
+  potonganList.length = 0;
+  await c.penyimpanan.perbaruiStatusTerindeks(materi.id, false);
+
+  const teks = 'label pangan olahan wajib memuat nama produk dan daftar bahan '.repeat(20);
+  assert.equal(await c.indeksMateri(materi.id, teks), true);
+  assert.ok(potonganList.length > 1);
+  assert.deepEqual(potonganList.map((p) => p.urutan), potonganList.map((_, i) => i));
+  assert.equal(materiList[0].terindeks, true);
+});
+
+test('req_7_1 indeksMateri gagal mengembalikan false tanpa menandai terindeks', async () => {
+  const { c, materiList, penyimpanan } = buat();
+  penyimpanan.simpanPotongan = async () => {
+    throw new Error('insert gagal');
+  };
+  const hasil = await c.tambahMateri({ judul: 'Label Pangan', rujukan: 'Peraturan BPOM Nomor 31 Tahun 2018', isi: 'Isi materi.' });
+
+  assert.equal(hasil.terindeks, false);
+  assert.equal(await c.indeksMateri(hasil.id, 'Isi materi.'), false);
+  assert.equal(materiList[0].terindeks, false);
+});

@@ -151,7 +151,7 @@ test('pengirim supabase memakai kunci internal bersama, tanpa service_role, ke E
 test('nfr_20 setiap kalimat yang diucapkan di server.mjs ikut tercatat di transkrip bersama ucapan penelepon', () => {
   const server = readFileSync(new URL('./server.mjs', import.meta.url), 'utf8');
   // Giliran suara dan ketik: semua kalimat lewat ucapkan(), dikumpulkan, lalu dicatat sekali di finally untuk semua jalur.
-  assert.match(server, /const ucapkan = \(teks, suara\) => \{ terucap\.push\(teks\); tulis\(\{ jenis: 'kalimat', teks, suara \}\); \};/);
+  assert.match(server, /const ucapkan = \(teks, suara\) => \{ (?:tKalimat1 \?\?= Date\.now\(\) - mulai; )?terucap\.push\(teks\); tulis\(\{ jenis: 'kalimat', teks, suara \}\); \};/);
   assert.equal(server.match(/jenis: 'kalimat'/g)?.length, 1);
   // catatGiliran meneruskan ke pencatat transkrip dan ke bahan ringkasan (ringkasan.mjs).
   assert.match(server, /\} finally \{\n {6}catatGiliran\(id, ip, transkrip, terucap\.join\(' '\)\);/);

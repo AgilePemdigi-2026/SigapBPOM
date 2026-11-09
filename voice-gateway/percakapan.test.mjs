@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
+  BATAS_DI_LUAR_TOPIK, KALIMAT_JAWABAN_MAKS, PESAN_DI_LUAR_TOPIK, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM,
   AnggaranToken, PembatasLaju, PemecahKalimat, RiwayatPanggilan, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup, jawabanDiLuarTopik,
-  pesanLayanan, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
+  menuDariUcapan, pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson, PANJANG_MAKS_KETIKAN,
 } from './percakapan.mjs';
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
+import { PengaduanController } from './pengaduan.mjs';
+import { PESAN_TIDAK_DITEMUKAN } from './alatCekRegistrasi.mjs';
 
 /** Mengalirkan teks potongan demi potongan seperti stream AI, lalu mengumpulkan kalimat yang diucapkan. */
 function alirkan(teks, ukuran = 7) {
@@ -21,6 +23,9 @@ function alirkan(teks, ukuran = 7) {
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
 test('req_1_1 pilihan menu 1 dan 2 memakai pesan baku kamus PRD', () => {
+  assert.equal(PESAN_MENU, 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.');
+  assert.equal(PESAN_LAYANAN_1, 'Silakan sebutkan nama produk atau pertanyaan Anda.');
+  assert.equal(PESAN_LAYANAN_2, 'Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda.');
   assert.equal(pesanLayanan(1), PESAN_LAYANAN_1);
   assert.equal(pesanLayanan(2), PESAN_LAYANAN_2);
   assert.equal(pesanLayanan(3), null);
@@ -29,6 +34,40 @@ test('req_1_1 pilihan menu 1 dan 2 memakai pesan baku kamus PRD', () => {
 test('nfr_7 prompt sistem melarang menyebut status legalitas tanpa data registrasi', () => {
   assert.match(PROMPT_SISTEM, /JANGAN menyebut status atau nomor/);
   assert.match(PROMPT_SISTEM, /Jangan pernah mengarang nomor tiket/);
+});
+
+test('req_1_7 nfr_8 prompt sistem mengeskalasi pertanyaan edukasi yang tidak terjawab dan tidak memberi contoh jawaban tanpa sumber', () => {
+  assert.doesNotMatch(PROMPT_SISTEM, /sarankan menghubungi petugas/);
+  assert.doesNotMatch(PROMPT_SISTEM, /BPOM itu lembaga/);
+  assert.ok(PROMPT_SISTEM.includes(`Pertanyaan edukasi yang tidak terjawab oleh kutipan dijawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}`));
+});
+
+test('req_2_1 prompt sistem mengarahkan pengaduan ke tekan 2 dan tidak mengumpulkan data pengaduan', () => {
+  assert.doesNotMatch(PROMPT_SISTEM, /tanyakan satu per satu/);
+  assert.doesNotMatch(PROMPT_SISTEM, /pengaduan selesai diringkas/);
+  assert.match(PROMPT_SISTEM, /tekan 2 untuk menyampaikan pengaduan/);
+  assert.match(PROMPT_SISTEM, /Jangan pernah mengarang nomor tiket/);
+});
+
+test('req_2_1 UC-01 Alternative Path 3: "dua", "tekan 2", atau ingin mengadu setelah tawaran tekan 2 memilih layanan pengaduan', () => {
+  for (const ucapan of ['dua', 'Dua.', 'Tekan 2', '2', 'tekan dua', 'pengaduan', 'saya mau melaporkan produk ini']) {
+    assert.equal(menuDariUcapan(ucapan, PESAN_TIDAK_DITEMUKAN), 2, ucapan);
+  }
+  // Tawaran dari Hermes, sesuai frasa di prompt sistem atau ditulis seperti diucapkan.
+  for (const tawaran of ['Silakan tekan 2 untuk menyampaikan pengaduan.', 'Silakan menekan dua untuk menyampaikan pengaduan.', 'Untuk itu tekan angka 2 ya.']) {
+    assert.equal(menuDariUcapan('dua', tawaran), 2, tawaran);
+  }
+  for (const ucapan of ['nggak usah lapor', 'saya punya dua pertanyaan', 'Susu Formula Sehat']) {
+    assert.equal(menuDariUcapan(ucapan, PESAN_TIDAK_DITEMUKAN), null, ucapan);
+  }
+  assert.equal(menuDariUcapan('dua', PESAN_LAYANAN_1), null, 'tanpa tawaran tekan 2');
+});
+
+test('req_1_4 req_1_5 memilih menu mengosongkan hitungan ulang nama dan kandidat cek registrasi', () => {
+  const r = new RiwayatPanggilan();
+  r.aturCekRegistrasi(ID, { ulangNama: 2, kandidat: [{ nama: 'Susu Formula Sehat' }] });
+  pilihMenu(r, new PengaduanController(), ID, 2);
+  assert.deepEqual(r.cekRegistrasi(ID), { ulangNama: 0, kandidat: null });
 });
 
 test('req_1_8 pertanyaan di luar topik dijawab dengan pesan baku kamus PRD', () => {
@@ -156,6 +195,28 @@ test('jawaban baku butuh petugas atau di luar topik setelah kalimat isi tetap di
   assert.equal(luar.susunan.khusus, 'di_luar_topik');
 });
 
+test('nfr_8 req_1_6 kalimat Sumber dari AI dilewati dan gateway menutup isi dengan sumber baku', () => {
+  const isi = 'Suplemen kesehatan wajib memiliki izin edar BPOM sebelum diedarkan.';
+  // Rujukan bergaya "No." terpecah di singkatannya; sisa kalimat Sumber tidak boleh terucap sebagai isi.
+  const { diucapkan, susunan } = alirkan(`${isi} Sumber: Peraturan BPOM No. 17 Tahun 2019. ${PESAN_TAWARAN_PENUTUP}`);
+  assert.deepEqual(diucapkan, [isi]);
+  assert.ok(susunan.tawaran);
+  const sumber = 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019.';
+  assert.equal(susunan.lengkapiSumber(sumber), sumber);
+  // SRS Tabel B.2 Alternative Path 1.
+  assert.equal(susunan.teks, `${isi} ${sumber} ${PESAN_TAWARAN_PENUTUP}`);
+  assert.deepEqual(alirkan(`${isi} Sumber: Peraturan BPOM No. 17 Tahun 2019.`).diucapkan, [isi]);
+});
+
+test('nfr_8 sumber tidak ditambahkan pada jawaban baku, jawaban cekbpom, atau jawaban kosong', () => {
+  const sumber = 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019.';
+  assert.equal(alirkan('Suplemen kesehatan wajib memiliki izin edar BPOM sebelum diedarkan.').susunan.lengkapiSumber(null), null);
+  assert.equal(alirkan(PESAN_BUTUH_PETUGAS).susunan.lengkapiSumber(sumber), null);
+  assert.equal(alirkan(PESAN_DI_LUAR_TOPIK).susunan.lengkapiSumber(sumber), null);
+  assert.equal(new SusunanJawaban(PESAN_BUTUH_PETUGAS).lengkapiSumber(sumber), null);
+  assert.equal(alirkan('Nomor izin edar bisa diperiksa langsung di cekbpom.pom.go.id ya.').susunan.lengkapiSumber(sumber), null);
+});
+
 /** Stream AI tiruan yang mencatat berapa potongan sudah dibaca dan apakah stream sudah ditutup. */
 function aliranTiruan(potongan) {
   const jejak = { dibaca: 0, ditutup: false };
@@ -253,6 +314,19 @@ test('riwayat panggilan menyimpan giliran, dibatasi, dan kedaluwarsa', () => {
   assert.equal(r.ambil(ID).length, 24);
   t += 16 * 60 * 1000;
   assert.equal(r.ambil(ID).length, 0);
+});
+
+test('nfr_13 riwayat model dan ringkasan tiket ESK tidak memuat deret nomor telepon', () => {
+  const r = new RiwayatPanggilan();
+  r.tambah(ID, 'user', '0812 345');
+  r.tambah(ID, 'user', 'nol delapan satu dua tiga');
+  r.tambah(ID, 'user', 'Apakah obat X aman untuk ibu hamil? nomor saya 0812-3456-7890');
+  r.tambah(ID, 'user', 'Apakah POM TR 083 245 461 terdaftar?');
+  const model = JSON.stringify(r.untukModel(ID));
+  assert.doesNotMatch(model, /0812|nol delapan/);
+  assert.ok(model.includes('Apakah POM TR 083 245 461 terdaftar?'));
+  r.mulaiEskalasi(ID, 'Apakah obat X aman untuk ibu hamil? nomor saya 0812-3456-7890');
+  assert.equal(r.eskalasi(ID), 'Apakah obat X aman untuk ibu hamil? nomor saya (nomor telepon)');
 });
 
 test('pembatas laju menolak setelah batas lalu pulih setelah jendela', () => {

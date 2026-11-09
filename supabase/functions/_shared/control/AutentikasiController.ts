@@ -1,7 +1,8 @@
-// Control UC-22 Masuk Dashboard: penguncian akun setelah tiga kali gagal (T-F3.2-02, REQ-3.1, REQ-3.5, NFR-11).
+// Control UC-03 Melakukan Login Dashboard: penguncian akun setelah tiga kali gagal (T-F3.2-02, REQ-3.1, REQ-3.5, NFR-11).
 // Tidak memakai API khusus Deno agar bisa diuji dengan `node --test` tanpa basis data.
+import { ErrorSigap } from './InformasiProdukController.ts';
 
-/** Kamus pesan PRD-rinci Lampiran A (UC-22). */
+/** Kamus pesan PRD-rinci Lampiran A (UC-03). */
 export const PESAN_FIELD_KOSONG = 'Login gagal. Semua field harus diisi!';
 export const PESAN_KREDENSIAL_SALAH = 'Login gagal. Email atau password Anda salah.';
 export const PESAN_AKSES_DIKUNCI = 'Akses dikunci sementara. Hubungi administrator.';
@@ -24,10 +25,16 @@ export interface PenyimpananPetugas {
   reservasiPercobaan(id: string): Promise<number | null>;
   /** Mengosongkan penghitung dan kunci setelah password benar (RPC reset_gagal_login). */
   resetGagalLogin(id: string): Promise<void>;
+  /** Mengembalikan slot yang gagal karena galat teknis, beserta kuncinya (RPC kembalikan_percobaan_login). */
+  kembalikanPercobaan(id: string): Promise<void>;
 }
 
 export interface Autentikator {
-  masukDenganPassword(email: string, kataSandi: string): Promise<{ sesi: unknown; galat: unknown }>;
+  /**
+   * galat.status 400 berarti kredensial ditolak Supabase Auth. Status lain (429 rate limit, 5xx, 0 untuk jaringan)
+   * atau tanpa status adalah galat teknis.
+   */
+  masukDenganPassword(email: string, kataSandi: string): Promise<{ sesi: unknown; galat: { status?: number } | null }>;
 }
 
 export type HasilMasuk =
@@ -44,11 +51,13 @@ export class AutentikasiEdgeController {
   }
 
   async masuk(email: string, kataSandi: string): Promise<HasilMasuk> {
-    if (!email || !kataSandi) {
+    // REQ-3.4: Supabase Auth menyimpan email dengan huruf kecil, jadi email dinormalkan sebelum dicari dan diperiksa.
+    const alamat = email.trim().toLowerCase();
+    if (!alamat || !kataSandi) {
       return { sukses: false, pesan: PESAN_FIELD_KOSONG };
     }
 
-    const user = await this.penyimpanan.dapatkanUserByEmail(email);
+    const user = await this.penyimpanan.dapatkanUserByEmail(alamat);
     if (!user || !user.petugasData) {
       return { sukses: false, pesan: PESAN_KREDENSIAL_SALAH };
     }
@@ -61,7 +70,16 @@ export class AutentikasiEdgeController {
       return { sukses: false, pesan: PESAN_AKSES_DIKUNCI };
     }
 
-    const { sesi, galat } = await this.autentikator.masukDenganPassword(email, kataSandi);
+    const { sesi, galat } = await this.autentikator
+      .masukDenganPassword(alamat, kataSandi)
+      .catch(() => ({ sesi: null, galat: { status: 0 } }));
+
+    // REQ-3.5, NFR-11: galat teknis bukan percobaan gagal dan tidak boleh mengunci akun, jadi slotnya dikembalikan.
+    if (galat && galat.status !== 400) {
+      console.error('galat Supabase Auth', galat.status ?? 'unknown');
+      await this.penyimpanan.kembalikanPercobaan(petugasData.id);
+      throw new ErrorSigap(503, 'Terjadi kesalahan pada sistem.');
+    }
 
     if (galat) {
       // Slot sudah terhitung gagal; slot terakhir sudah memasang kunci di basis data.

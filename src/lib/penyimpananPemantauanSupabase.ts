@@ -1,8 +1,9 @@
 // Adapter produksi PenyimpananPemantauan: membaca Supabase lewat REST dengan token sesi petugas, sehingga RLS dan
 // pemeriksaan is_petugas() berlaku (T-F5.1-02, T-F5.2-01, T-F5.3-02, T-F5.3-03, T-F5.4-01). Ringkasan dan detail kasus
-// memakai RPC dari T-F5.1-01 dan T-F5.3-01, antrean memakai view antrean_tiket_petugas; struktur view-nya tidak diubah
-// di sini. Token sesi datang dari T-F3.1-03.
+// memakai RPC dari T-F5.1-01 dan T-F5.3-01, panggilan berjalan memakai view panggilan_berjalan, antrean memakai view
+// antrean_tiket_petugas, panel Beban Panggilan memakai view beban_panggilan_per_jam. Token sesi datang dari T-F3.1-03.
 import type {
+  BebanPerJam,
   DataRingkasanLayanan,
   DetailKasusPengaduan,
   KasusPerluTindakLanjut,
@@ -94,41 +95,29 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
     };
   }
 
-  /** Nomor tersamar per penelepon; nomor lengkap tidak pernah diminta (PROJECT_RULES 5.5). */
-  async noTelpTersamar(ids: string[]) {
-    if (!ids.length) return new Map<string, string | null>();
-    const p = new URLSearchParams({ select: 'id,no_telp', id: `in.(${ids.join(',')})` });
-    const baris = await this.json<{ id: string; no_telp: string | null }[]>(`penelepon_tersamar?${p}`);
-    return new Map(baris.map((b) => [b.id, b.no_telp]));
-  }
-
   async ambilPanggilanAktif(): Promise<PanggilanAktif[]> {
-    const p = new URLSearchParams({
-      select: 'id,penelepon_id,jenis_interaksi,topik,waktu_mulai,tahap_ai',
-      status_penyelesaian: 'eq.berjalan',
-      order: 'waktu_mulai.asc',
-    });
-    const baris = await this.json<{ id: string; penelepon_id: string | null; jenis_interaksi: string | null; topik: string | null; waktu_mulai: string; tahap_ai: string | null }[]>(
-      `percakapan?${p}`,
-    );
-    const noTelp = await this.noTelpTersamar([...new Set(baris.flatMap((b) => (b.penelepon_id ? [b.penelepon_id] : [])))]);
-    const kini = Date.now();
+    // View panggilan_berjalan hanya memuat panggilan dengan heartbeat segar dan nomor yang sudah tersamar (REQ-4.2, NFR-13).
+    const p = new URLSearchParams({ select: 'percakapan_id,no_telp_tersamar,jenis_layanan,topik,waktu_mulai,durasi_detik,tahap_ai', order: 'waktu_mulai.asc' });
+    const baris = await this.json<
+      { percakapan_id: string; no_telp_tersamar: string | null; jenis_layanan: string | null; topik: string | null; waktu_mulai: string; durasi_detik: number; tahap_ai: string | null }[]
+    >(`panggilan_berjalan?${p}`);
     return baris.map((b) => ({
-      id: b.id,
-      noTelp: (b.penelepon_id && noTelp.get(b.penelepon_id)) || null,
-      jenisLayanan: b.jenis_interaksi,
+      id: b.percakapan_id,
+      noTelp: b.no_telp_tersamar,
+      jenisLayanan: b.jenis_layanan,
       topik: b.topik,
       waktuMulai: b.waktu_mulai,
-      durasiDetik: Math.max(0, Math.floor((kini - Date.parse(b.waktu_mulai)) / 1000)),
+      durasiDetik: b.durasi_detik,
       tahapAi: b.tahap_ai,
     }));
   }
 
   async ambilAntreanTiket(): Promise<TiketAntrean[]> {
-    // Kolom data pribadi tersamar tidak diminta karena antrean tidak menampilkannya. Urutan akhir ditetapkan control.
-    const p = new URLSearchParams({ select: 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id' });
+    // Nomor telepon dipakai pencarian topbar dan sudah tersamar di view (NFR-13); nama pelapor tidak diminta karena tidak
+    // dipakai. Urutan akhir ditetapkan control.
+    const p = new URLSearchParams({ select: 'tiket_id,no_tiket,jenis_tiket,ringkasan,status_tiket,waktu_masuk,percakapan_id,no_telp_tersamar' });
     const baris = await this.json<
-      { tiket_id: string; no_tiket: string; jenis_tiket: TiketAntrean['jenis']; ringkasan: string | null; status_tiket: string; waktu_masuk: string; percakapan_id: string | null }[]
+      { tiket_id: string; no_tiket: string; jenis_tiket: TiketAntrean['jenis']; ringkasan: string | null; status_tiket: string; waktu_masuk: string; percakapan_id: string | null; no_telp_tersamar: string | null }[]
     >(`antrean_tiket_petugas?${p}`);
     return baris.map((b) => ({
       id: b.tiket_id,
@@ -138,7 +127,14 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
       status: b.status_tiket,
       waktuMasuk: b.waktu_masuk,
       percakapanId: opsional(b.percakapan_id),
+      noTelpTersamar: opsional(b.no_telp_tersamar),
     }));
+  }
+
+  async ambilBebanPerJam(): Promise<BebanPerJam[]> {
+    const p = new URLSearchParams({ select: 'jam,total,dijawab_ai,dieskalasi', order: 'jam.asc' });
+    const baris = await this.json<{ jam: string; total: number; dijawab_ai: number; dieskalasi: number }[]>(`beban_panggilan_per_jam?${p}`);
+    return baris.map((b) => ({ jam: b.jam, total: b.total, dijawabAi: b.dijawab_ai, dieskalasi: b.dieskalasi }));
   }
 
   async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {

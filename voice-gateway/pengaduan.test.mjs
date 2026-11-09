@@ -138,9 +138,12 @@ test('req_2_2 kalimat akibat: anak kalimat dibuang, subjek kata ganti atau permi
   assert.deepEqual(ekstrak('Krim ini membuat kulit saya gatal'), {});
 });
 
-test('req_2_2 prompt tanya ulang per data, nomor telepon persis kamus Lampiran A', () => {
+test('req_2_2 prompt tanya ulang per data persis kamus Lampiran A', () => {
   assert.equal(PESAN_MINTA_NOMOR_TELEPON, 'Mohon sebutkan nomor telepon Anda.');
   assert.equal(PROMPT_DATA_KURANG.nomorTelepon.pesan, 'Mohon sebutkan nomor telepon Anda.');
+  assert.equal(PROMPT_DATA_KURANG.namaProduk.pesan, 'Mohon sebutkan nama produk yang Anda adukan.');
+  assert.equal(PROMPT_DATA_KURANG.kronologi.pesan, 'Mohon ceritakan kronologi kejadiannya.');
+  assert.equal(PROMPT_DATA_KURANG.namaPelapor.pesan, 'Mohon sebutkan nama Anda.');
   assert.deepEqual(Object.keys(PROMPT_DATA_KURANG), FIELD_PENGADUAN);
 });
 

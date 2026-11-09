@@ -1,9 +1,9 @@
 // Control UC-01 (F1.2, T-F1.2-03, REQ-1.3, REQ-1.4, REQ-1.5, BR-6, BR-7, NFR-7): tool `cek_registrasi_bpom` untuk Hermes Agent.
 // Seperti cari_basis_pengetahuan (alatPengetahuan.mjs), Hermes dipanggil tanpa tool server (api_server: []), jadi gateway
-// menjalankan tool ini atas nama agen lewat adapter cekbpom (cekbpom.mjs). Hasil tunggal, hasil kosong, dan nama tidak jelas
-// dijawab dengan kalimat baku kamus pesan tanpa memanggil AI, sehingga status dan nomor izin edar tidak mungkin dikarang
-// model. Hasil ganda dan gangguan cekbpom diteruskan ke Hermes sebagai pesan sistem.
-import { KANDIDAT_MAKS, cekRegistrasi, hasilProduk, namaKurangJelas } from './cekbpom.mjs';
+// menjalankan tool ini atas nama agen lewat adapter cekbpom (cekbpom.mjs). Hasil tunggal, hasil ganda, hasil kosong, dan nama
+// tidak jelas dijawab dengan kalimat baku tanpa memanggil AI, sehingga status dan nomor izin edar tidak mungkin dikarang
+// model. Gangguan cekbpom diteruskan ke Hermes sebagai pesan sistem.
+import { KANDIDAT_MAKS, cekRegistrasi, hasilProduk, kueriProduk, namaKurangJelas } from './cekbpom.mjs';
 import { PESAN_LAYANAN_1, PESAN_TAWARAN_PENUTUP } from './percakapan.mjs';
 
 export const NAMA_TOOL = 'cek_registrasi_bpom';
@@ -19,6 +19,9 @@ export const pesanProdukDitemukan = (p) => `${p.nama} terdaftar dengan nomor izi
 export const PESAN_TIDAK_DITEMUKAN = 'Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan.';
 /** Kamus pesan Lampiran A (UC-01 "Nama tidak jelas"). */
 export const PESAN_NAMA_TIDAK_JELAS = 'Maaf, nama produk kurang jelas. Mohon sebutkan kembali.';
+/** Kamus pesan Lampiran A (UC-01 hasil ganda), SRS Tabel B.2 Alternative Path 4 (REQ-1.5, BR-7): "A atau B", "A, B, atau C". */
+export const pesanHasilGanda = (total, kandidat) =>
+  `Ditemukan ${total} produk. Pilih salah satu: ${new Intl.ListFormat('id', { type: 'disjunction' }).format(kandidat.map((p) => p.nama))}.`;
 
 /** Definisi tool format function-calling OpenAI, dipakai sebagai kontrak nama dan parameter tool. */
 export const DEFINISI_TOOL = Object.freeze({
@@ -53,6 +56,14 @@ export function nomorPilihan(ucapan, jumlah) {
 
 const KEADAAN_AWAL = Object.freeze({ ulangNama: 0, kandidat: null });
 
+/** REQ-1.5: kandidat yang dipilih dengan menyebut namanya ("Susu Formula Sehat"), atau null bila nama cocok dengan lebih dari satu. */
+function kandidatBernama(ucapan, kandidat) {
+  const kata = kueriProduk(ucapan, true)?.nama?.split(' ');
+  if (!kata) return null;
+  const cocok = kandidat.filter((p) => kata.every((k) => p.nama.toLowerCase().includes(k)));
+  return cocok.length === 1 ? cocok[0] : null;
+}
+
 function tunggal(produk, dasar) {
   return {
     ...dasar, jalur: 'tunggal', jawaban: `${pesanProdukDitemukan(produk)} ${PESAN_TAWARAN_PENUTUP}`, konteks: null,
@@ -68,7 +79,8 @@ function tunggal(produk, dasar) {
  */
 export async function cekRegistrasiBpom(cekBpom, ucapan, { jawabanTerakhir = '', ulangNama = 0, kandidat = null, saatMencari = () => {} } = {}) {
   const pilihan = kandidat?.length ? nomorPilihan(ucapan, kandidat.length) : null;
-  if (pilihan) return tunggal(kandidat[pilihan - 1], { kueri: null, galat: null, total: 1 });
+  const dipilih = pilihan ? kandidat[pilihan - 1] : kandidat?.length ? kandidatBernama(ucapan, kandidat) : null;
+  if (dipilih) return tunggal(dipilih, { kueri: null, galat: null, total: 1 });
 
   // Setelah agen meminta nama produk (menu 1, nama tidak jelas, atau hasil ganda), nama saja sudah cukup.
   const setelahTanyaNama = jawabanTerakhir === PESAN_LAYANAN_1 || jawabanTerakhir === PESAN_NAMA_TIDAK_JELAS || Boolean(kandidat?.length);
@@ -88,6 +100,7 @@ export async function cekRegistrasiBpom(cekBpom, ucapan, { jawabanTerakhir = '',
   const { produk } = cek.data;
   if (!produk.length) return { ...dasar, jalur: 'tidak_ditemukan', jawaban: PESAN_TIDAK_DITEMUKAN, konteks: null };
   if (produk.length === 1) return tunggal(produk[0], dasar);
-  // REQ-1.5, BR-7: jumlah hasil dan paling banyak tiga kandidat dibacakan Hermes, lalu penelepon memilih nomornya.
-  return { ...dasar, jalur: 'ganda', jawaban: null, konteks: cek.konteks, keadaan: { ulangNama: 0, kandidat: produk.slice(0, KANDIDAT_MAKS) } };
+  // REQ-1.5, BR-7: jumlah hasil dan paling banyak tiga kandidat dibacakan dengan kalimat baku, lalu penelepon memilih nomor atau namanya.
+  const kandidatBaru = produk.slice(0, KANDIDAT_MAKS);
+  return { ...dasar, jalur: 'ganda', jawaban: pesanHasilGanda(cek.data.total, kandidatBaru), konteks: null, keadaan: { ulangNama: 0, kandidat: kandidatBaru } };
 }

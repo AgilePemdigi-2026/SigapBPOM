@@ -145,5 +145,5 @@ select throws_ok(
   'Petugas terautentikasi tidak boleh melakukan INSERT langsung ke tabel catatan_pemeriksaan'
 );
 
-finish();
+select * from finish();
 rollback;

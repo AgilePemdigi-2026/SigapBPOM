@@ -1,0 +1,94 @@
+# Uji otomatis setiap PR dan setiap push ke main (PROJECT_RULES 3.3 dan 6.2: CI harus hijau sebelum merge).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Uji unit, skenario Gherkin control, dan build dashboard. Tidak butuh layanan apa pun.
+  uji:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:bdd
+      - run: npm run build
+
+  # Supabase lokal: pgTAP, uji integrasi SIGAP_UJI_*, dan skenario @ui SRS Lampiran F dengan Google Chrome bawaan
+  # runner. Langkahnya sama dengan features/README.md.
+  supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SIGAP_KUNCI_INTERNAL: kunci-uji-ci
+      # Dipakai Edge Function login dan dashboard sekaligus, jadi pemeriksaan header x-sigap-kunci ikut diuji.
+      SIGAP_KUNCI_LOGIN: kunci-login-ci
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Start pertama menerapkan migrasi dan seed (config.toml db.seed), jadi tidak perlu db reset.
+      # Port Supabase lokal (54320-54329) berada di rentang port sementara Linux (32768-60999), jadi koneksi keluar
+      # runner, misalnya saat menarik image, bisa memakainya lebih dulu dan start gagal "address already in use".
+      - run: sudo sysctl -w net.ipv4.ip_local_port_range="55000 65000"
+      - run: npx supabase start
+      - run: npx supabase test db
+      - name: Edge Functions
+        run: |
+          mkdir -p test-results/bdd-ui
+          cp supabase/functions/.env.example supabase/functions/.env
+          sed -i -e "s/^SIGAP_KUNCI_INTERNAL=.*/SIGAP_KUNCI_INTERNAL=$SIGAP_KUNCI_INTERNAL/" \
+            -e "s/^SIGAP_KUNCI_LOGIN=.*/SIGAP_KUNCI_LOGIN=$SIGAP_KUNCI_LOGIN/" supabase/functions/.env
+          nohup npx supabase functions serve --env-file supabase/functions/.env > test-results/functions.log 2>&1 &
+          # 401 berarti runtime dari supabase start, yang belum punya kunci, masih menjawab.
+          for i in $(seq 60); do
+            kode=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "x-sigap-kunci: $SIGAP_KUNCI_INTERNAL" \
+              -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:54321/functions/v1/cek-registrasi || true)
+            case $kode in 000|401|5??) sleep 2 ;; *) exit 0 ;; esac
+          done
+          exit 1
+      - name: Kunci lokal
+        run: npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
+      # Menyalakan uji yang dilewati di job uji. Akun uji hanya ada di seed lokal (supabase/seed.sql, SRS Tabel B.4).
+      # SIGAP_UJI_TERINDEKS sengaja tidak diisi: materi belum diindeks agar skenario @ui UC-01 tidak mengutip materi lain.
+      - name: Uji integrasi
+        run: SIGAP_UJI_SUPABASE_URL=$API_URL SIGAP_UJI_KUNCI_PUBLIK=$ANON_KEY npm test
+        env:
+          SIGAP_UJI_FUNGSI_LOGIN: '1'
+          SIGAP_UJI_KUNCI_LOGIN: kunci-login-ci
+          SIGAP_UJI_EMAIL: petugas@halobpom.go.id
+          SIGAP_UJI_PASSWORD: halobpom2026
+      - name: Gateway dan dashboard
+        run: |
+          PORT=8090 SUPABASE_URL=$API_URL KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 PENGETAHUAN_VEKTOR=1 \
+            CEKBPOM_AKTIF=1 CEKBPOM_BASE_URL=http://127.0.0.1:8091 HERMES_URL=http://127.0.0.1:8091 \
+            nohup node voice-gateway/server.mjs > test-results/gateway.log 2>&1 &
+          SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY LOGIN_PERCOBAAN_MAKS=1000 \
+            nohup npm run dev > test-results/dashboard.log 2>&1 &
+          curl -s --retry 60 --retry-delay 2 --retry-connrefused -o /dev/null http://localhost:4321/login
+          curl -s --retry 60 --retry-delay 2 --retry-connrefused -o /dev/null http://127.0.0.1:8090/voice/kesehatan
+      - run: npm run test:bdd:ui
+      # Laporan HTML, tangkapan layar skenario gagal, dan log layanan di atas.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bdd-ui
+          path: test-results/
