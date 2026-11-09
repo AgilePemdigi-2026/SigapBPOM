@@ -22,17 +22,62 @@ const POLA_MEDIS = [
 /** Ucapan berisi pertanyaan medis atau keamanan konsumsi yang harus diteruskan ke petugas. */
 export const butuhPetugas = (ucapan) => POLA_MEDIS.some((p) => p.test(sederhanakan(ucapan)));
 
-const ANGKA = { nol: '0', kosong: '0', satu: '1', dua: '2', tiga: '3', empat: '4', lima: '5', enam: '6', tujuh: '7', delapan: '8', sembilan: '9' };
+// "lapan" lazim diucapkan untuk delapan. Belasan dan puluhan ("tiga belas", "dua puluh satu") juga lazim saat menyebut nomor.
+const ANGKA = { nol: '0', kosong: '0', satu: '1', dua: '2', tiga: '3', empat: '4', lima: '5', enam: '6', tujuh: '7', delapan: '8', lapan: '8', sembilan: '9' };
+const ANGKA_GABUNG = { sepuluh: '10', sebelas: '11' };
+
+/** Deretan digit yang terdengar dalam ucapan, dari angka maupun kata ("kosong delapan", "empat belas", "dua puluh satu"). */
+export function digitDariUcapan(ucapan) {
+  const kata = sederhanakan(ucapan).replace(/\bplus enam dua\b/g, '62').split(' ');
+  let digit = '';
+  for (let i = 0; i < kata.length; i++) {
+    const k = kata[i];
+    if (/^\d+$/.test(k)) digit += k;
+    else if (ANGKA_GABUNG[k]) digit += ANGKA_GABUNG[k];
+    else if (ANGKA[k] !== undefined) {
+      const d = ANGKA[k];
+      if (kata[i + 1] === 'belas' && d !== '0') { digit += `1${d}`; i++; }
+      else if (kata[i + 1] === 'puluh' && d !== '0') {
+        const satuan = ANGKA[kata[i + 2]];
+        if (satuan !== undefined && satuan !== '0') { digit += d + satuan; i += 2; } else { digit += `${d}0`; i++; }
+      } else digit += d;
+    }
+  }
+  return digit.replace(/^62/, '0');
+}
 
 /**
  * Nomor telepon dari transkrip STT, berupa angka ("0812 3456 7890") atau kata ("nol delapan satu dua ...").
  * Format sama dengan entity penelepon di supabase/functions/_shared/entity/penelepon.ts: `08…`, 10–13 digit.
  */
 export function nomorTeleponDariUcapan(ucapan) {
-  const kata = sederhanakan(ucapan).replace(/\bplus enam dua\b/g, '62').split(' ');
-  const digit = kata.map((k) => ANGKA[k] ?? (/^\d+$/.test(k) ? k : '')).join('');
-  const nomor = digit.replace(/^62/, '0');
+  const nomor = digitDariUcapan(ucapan);
   return /^08\d{8,11}$/.test(nomor) ? nomor : null;
+}
+
+/**
+ * Alasan nomor yang terdengar tidak diterima, agar penelepon tahu apa yang salah: 'pendek', 'panjang', 'awalan',
+ * atau null bila hampir tidak ada angka yang terdengar (cukup diminta ulang) atau nomornya sudah valid.
+ */
+export function masalahNomorTelepon(ucapan) {
+  const d = digitDariUcapan(ucapan);
+  if (d.length < 3 || /^08\d{8,11}$/.test(d)) return null;
+  if (!d.startsWith('08')) return 'awalan';
+  return d.length < 10 ? 'pendek' : 'panjang';
+}
+
+const ULANG_PER_ANGKA = 'Mohon sebutkan ulang nomor telepon Anda satu per satu angka, diawali nol delapan.';
+/** Penjelasan nomor telepon yang ditolak, beserta kunci suara statisnya. Belum ada di kamus Lampiran A. */
+export const PESAN_NOMOR_SALAH = Object.freeze({
+  pendek: { pesan: `Nomor telepon yang terdengar kurang dari 10 angka. ${ULANG_PER_ANGKA}`, suara: 'telepon-pendek' },
+  panjang: { pesan: `Nomor telepon yang terdengar lebih dari 13 angka. ${ULANG_PER_ANGKA}`, suara: 'telepon-panjang' },
+  awalan: { pesan: 'Nomor telepon harus diawali nol delapan. Mohon sebutkan ulang nomor telepon Anda satu per satu angka.', suara: 'telepon-awalan' },
+});
+
+/** Pesan dan suara saat nomor telepon belum diterima: penjelasannya bila ada angka yang terdengar, selain itu pesan baku. */
+export function mintaUlangTelepon(ucapan) {
+  const masalah = masalahNomorTelepon(ucapan);
+  return masalah ? PESAN_NOMOR_SALAH[masalah] : { pesan: PESAN_MINTA_ULANG_TELEPON, suara: 'ulang-telepon' };
 }
 
 /** Interface penerbit tiket. Implementasi tiruan dipakai selama Supabase belum tersedia (#30). */
