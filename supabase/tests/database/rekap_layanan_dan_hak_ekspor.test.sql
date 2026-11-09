@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(19);
 
 -- 1. Hak akses: pengguna anon ditolak
 set local role anon;
@@ -208,5 +208,5 @@ select is(
   'Periode kosong mengembalikan 0 pengaduan selesai'
 );
 
-finish();
+select * from finish();
 rollback;
