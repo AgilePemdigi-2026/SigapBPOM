@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 
 -- 1. Hak akses: pengguna anon ditolak
 set local role anon;
