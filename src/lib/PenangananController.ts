@@ -1,98 +1,399 @@
-// Control UC-06 Menangani Pengaduan (REQ-6.1 sampai REQ-6.6, BR-2, BR-3, T-F7.2-03). Nama kelas dan metodenya mengikuti
-// class diagram SRS Gambar B.2. Tiket diidentifikasi dengan nomor tiket karena RPC #98 dan #100 memakai p_no_tiket.
-// Mesin status ditegakkan oleh RPC; control memvalidasi isian dan memetakan penolakan ke pesan kamus.
-import { LABEL_STATUS_TIKET, type StatusTiket } from './PemantauanLayananController.ts';
+// Control UC-06 Menangani Pengaduan (REQ-6.1 sampai REQ-6.6, BR-2, BR-3).
+// Menangani telaah berkas pengaduan, jadwal pemeriksaan sarana, penyusunan tanggapan resmi, dan penutupan tiket.
+// Mengikuti pola BCE dan nama class diagram SRS (PenangananController).
 
-/** Nilai enum keputusan_tindak_lanjut (REQ-6.1). */
-export type TindakLanjut = 'telaah_dokumen' | 'perlu_pemeriksaan_lapangan' | 'bukan_kewenangan_bpom';
+/** Kamus pesan PRD-rinci Lampiran A (UC-06). */
+export const PESAN_TELAAH_TERSIMPAN = 'Hasil telaah tersimpan.';
+export const PESAN_BUKAN_KEWENANGAN = 'Pengaduan diteruskan ke instansi lain.';
+export const PESAN_JADWAL_TERSIMPAN = 'Jadwal pemeriksaan tersimpan.';
+export const PESAN_TANGGAPAN_TERSIMPAN = 'Tanggapan tersimpan.';
+export const PESAN_TUTUP_TIKET = 'Tiket ditutup.';
+export const PESAN_TUTUP_TANPA_TANGGAPAN = 'Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.';
 
-/** Label pilihan "Tindak Lanjut", PRD-rinci REQ-6.1. */
-export const LABEL_TINDAK_LANJUT: Record<TindakLanjut, string> = {
-  telaah_dokumen: 'Telaah Dokumen',
-  perlu_pemeriksaan_lapangan: 'Perlu Pemeriksaan Lapangan',
-  bukan_kewenangan_bpom: 'Bukan Kewenangan BPOM',
-};
+export type TindakLanjut = 'Telaah Dokumen' | 'Perlu Pemeriksaan Lapangan' | 'Bukan Kewenangan BPOM';
 
-/** Kamus pesan PRD-rinci Lampiran A, UC-06 dan UC-04 "Tiket tidak ditemukan". */
-export const PESAN_PENANGANAN = {
-  telaahTersimpan: 'Hasil telaah tersimpan.',
-  diteruskan: 'Pengaduan diteruskan ke instansi lain.',
-  jadwalTersimpan: 'Jadwal pemeriksaan tersimpan.',
-  tanggapanTersimpan: 'Tanggapan tersimpan.',
-  tiketDitutup: 'Tiket ditutup.',
-  tutupTanpaTanggapan: 'Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.',
-  tiketTidakDitemukan: 'Tiket tidak ditemukan.',
-} as const;
+export const OPSI_TINDAK_LANJUT: readonly TindakLanjut[] = [
+  'Telaah Dokumen',
+  'Perlu Pemeriksaan Lapangan',
+  'Bukan Kewenangan BPOM',
+] as const;
 
-// Kamus UC-06 belum punya pesan untuk isian tidak sah, transisi yang ditolak, dan galat sistem; dipakai pesan yang sama
-// dengan endpoint simpan-materi dan middleware.
-const PESAN_TIDAK_VALID = 'Permintaan tidak valid.';
-const PESAN_AKSES_DITOLAK = 'Akses ditolak.';
-const PESAN_SISTEM = 'Terjadi kesalahan pada sistem.';
+export interface HasilTelaah {
+  id: string;
+  tiketId: string;
+  noTiket?: string;
+  tindakLanjut: TindakLanjut;
+  catatan?: string | null;
+  petugasId: string;
+  petugasNama?: string | null;
+  waktu: string;
+}
 
-/** Alasan penolakan dari penyimpanan, dipetakan control ke kode HTTP dan pesan. */
-export type AlasanTolak = 'input_tidak_sah' | 'akses_ditolak' | 'tiket_tidak_ada' | 'transisi_tidak_sah' | 'tanpa_tanggapan';
+export interface JadwalPemeriksaan {
+  id: string;
+  tiketId: string;
+  noTiket?: string;
+  tanggal: string;
+  unitPelaksana: string;
+  status: string;
+  petugasId: string;
+  petugasNama?: string | null;
+  waktu: string;
+}
 
-export class GalatPenanganan extends Error {
-  alasan: AlasanTolak;
+export interface TanggapanResmi {
+  id: string;
+  tiketId: string;
+  noTiket?: string;
+  isi: string;
+  petugasId: string;
+  petugasNama?: string | null;
+  status: string;
+  waktu: string;
+}
 
-  constructor(alasan: AlasanTolak) {
-    super(alasan);
-    this.alasan = alasan;
+export interface ResponTelaah {
+  id: string;
+  noTiket: string;
+  status: string;
+  tindakLanjut: string;
+  pesan: string;
+}
+
+export interface ResponJadwal {
+  id: string;
+  noTiket: string;
+  status: string;
+  tanggal: string;
+  unitPelaksana: string;
+  pesan: string;
+}
+
+export interface ResponTanggapan {
+  id?: string;
+  noTiket: string;
+  status: string;
+  pesan: string;
+}
+
+export interface ResponTutupTiket {
+  noTiket: string;
+  status: string;
+  pesan: string;
+}
+
+/** Interface adapter penyimpanan penanganan pengaduan (PROJECT_RULES 4.3). */
+export interface PenyimpananPenanganan {
+  simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan?: string | null): Promise<ResponTelaah>;
+  simpanJadwal(noTiket: string, tanggal: string, unitPelaksana: string): Promise<ResponJadwal>;
+  simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan>;
+  tutupTiket(noTiket: string): Promise<ResponTutupTiket>;
+  ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]>;
+  ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]>;
+  ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]>;
+}
+
+/** Implementasi tiruan (Mock) untuk pengujian dan fallback lokal tanpa basis data. */
+export class PenyimpananPenangananMock implements PenyimpananPenanganan {
+  tiketMap: Map<string, { status: string; jenis: string }>;
+  telaahMap: Map<string, HasilTelaah[]>;
+  jadwalMap: Map<string, JadwalPemeriksaan[]>;
+  tanggapanMap: Map<string, TanggapanResmi[]>;
+  notifikasiList: Array<{ tiketId: string; isi: string; status: string }>;
+
+  constructor(dataAwalTiket?: Record<string, { status: string; jenis: string }>) {
+    this.tiketMap = new Map();
+    this.telaahMap = new Map();
+    this.jadwalMap = new Map();
+    this.tanggapanMap = new Map();
+    this.notifikasiList = [];
+
+    const bawaan: Record<string, { status: string; jenis: string }> = dataAwalTiket ?? {
+      'ADU-20261104-0010': { status: 'belum_ditelaah', jenis: 'pengaduan' },
+      'ADU-20261104-0020': { status: 'belum_ditelaah', jenis: 'pengaduan' },
+      'ADU-20261104-0030': { status: 'belum_ditelaah', jenis: 'pengaduan' },
+      'ADU-20261104-0040': { status: 'selesai', jenis: 'pengaduan' },
+      'ADU-20261104-0050': { status: 'diteruskan', jenis: 'pengaduan' },
+    };
+
+    for (const [k, v] of Object.entries(bawaan)) {
+      this.tiketMap.set(k, v);
+    }
+  }
+
+  async simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan?: string | null): Promise<ResponTelaah> {
+    const t = this.tiketMap.get(noTiket);
+    if (!t) {
+      throw new Error(`Tiket ${noTiket} tidak ditemukan.`);
+    }
+
+    if (t.status === 'diteruskan') {
+      throw new Error(`Tiket ${noTiket} sudah diteruskan ke instansi lain dan tidak dapat ditelaah lagi.`);
+    }
+    if (t.status === 'selesai') {
+      throw new Error(`Tiket ${noTiket} sudah selesai dan tidak dapat ditelaah lagi.`);
+    }
+    if (t.status === 'tanggapan_disusun') {
+      throw new Error(`Tiket ${noTiket} sudah dalam tahap tanggapan disusun dan tidak dapat ditelaah lagi.`);
+    }
+
+    let statusBaru = 'sedang_ditelaah';
+    let pesan = PESAN_TELAAH_TERSIMPAN;
+
+    if (tindakLanjut === 'Bukan Kewenangan BPOM') {
+      statusBaru = 'diteruskan';
+      pesan = PESAN_BUKAN_KEWENANGAN;
+    }
+
+    t.status = statusBaru;
+    this.tiketMap.set(noTiket, t);
+
+    const riwayat = this.telaahMap.get(noTiket) ?? [];
+    const id = `telaah-${Date.now()}-${riwayat.length + 1}`;
+    riwayat.unshift({
+      id,
+      tiketId: noTiket,
+      noTiket,
+      tindakLanjut,
+      catatan: catatan ?? null,
+      petugasId: '00000000-0000-0000-0000-000000000099',
+      petugasNama: 'Petugas Uji',
+      waktu: new Date().toISOString(),
+    });
+    this.telaahMap.set(noTiket, riwayat);
+
+    return {
+      id,
+      noTiket,
+      status: statusBaru,
+      tindakLanjut,
+      pesan,
+    };
+  }
+
+  async simpanJadwal(noTiket: string, tanggal: string, unitPelaksana: string): Promise<ResponJadwal> {
+    const t = this.tiketMap.get(noTiket);
+    if (!t) {
+      throw new Error(`Tiket ${noTiket} tidak ditemukan.`);
+    }
+    if (t.status === 'diteruskan' || t.status === 'selesai') {
+      throw new Error(`Tiket ${noTiket} sudah ${t.status} dan tidak dapat dijadwalkan.`);
+    }
+
+    t.status = 'menunggu_pemeriksaan';
+    this.tiketMap.set(noTiket, t);
+
+    const riwayat = this.jadwalMap.get(noTiket) ?? [];
+    const id = `jadwal-${Date.now()}-${riwayat.length + 1}`;
+    riwayat.unshift({
+      id,
+      tiketId: noTiket,
+      noTiket,
+      tanggal,
+      unitPelaksana,
+      status: 'menunggu_pemeriksaan',
+      petugasId: '00000000-0000-0000-0000-000000000099',
+      petugasNama: 'Petugas Uji',
+      waktu: new Date().toISOString(),
+    });
+    this.jadwalMap.set(noTiket, riwayat);
+
+    return {
+      id,
+      noTiket,
+      status: 'menunggu_pemeriksaan',
+      tanggal,
+      unitPelaksana,
+      pesan: PESAN_JADWAL_TERSIMPAN,
+    };
+  }
+
+  async simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan> {
+    const t = this.tiketMap.get(noTiket);
+    if (!t) {
+      throw new Error(`Tiket ${noTiket} tidak ditemukan.`);
+    }
+    if (t.status === 'diteruskan' || t.status === 'selesai') {
+      throw new Error(`Tiket ${noTiket} sudah ${t.status} dan tidak dapat ditanggapi.`);
+    }
+
+    t.status = 'tanggapan_disusun';
+    this.tiketMap.set(noTiket, t);
+
+    const riwayat = this.tanggapanMap.get(noTiket) ?? [];
+    const id = `tanggapan-${Date.now()}-${riwayat.length + 1}`;
+    riwayat.unshift({
+      id,
+      tiketId: noTiket,
+      noTiket,
+      isi,
+      petugasId: '00000000-0000-0000-0000-000000000099',
+      petugasNama: 'Petugas Uji',
+      status: 'tanggapan_disusun',
+      waktu: new Date().toISOString(),
+    });
+    this.tanggapanMap.set(noTiket, riwayat);
+
+    return {
+      id,
+      noTiket,
+      status: 'tanggapan_disusun',
+      pesan: PESAN_TANGGAPAN_TERSIMPAN,
+    };
+  }
+
+  async tutupTiket(noTiket: string): Promise<ResponTutupTiket> {
+    const t = this.tiketMap.get(noTiket);
+    if (!t) {
+      throw new Error(`Tiket ${noTiket} tidak ditemukan.`);
+    }
+    if (t.status === 'diteruskan') {
+      throw new Error(`Tiket ${noTiket} sudah diteruskan ke instansi lain.`);
+    }
+    if (t.status === 'selesai') {
+      return {
+        noTiket,
+        status: 'selesai',
+        pesan: PESAN_TUTUP_TIKET,
+      };
+    }
+
+    const daftarTanggapan = this.tanggapanMap.get(noTiket) ?? [];
+    if (daftarTanggapan.length === 0) {
+      throw new Error(PESAN_TUTUP_TANPA_TANGGAPAN);
+    }
+
+    t.status = 'selesai';
+    this.tiketMap.set(noTiket, t);
+
+    // Antrekan notifikasi hanya satu kali (idempoten)
+    const sudahAntre = this.notifikasiList.some((n) => n.tiketId === noTiket);
+    if (!sudahAntre) {
+      this.notifikasiList.push({
+        tiketId: noTiket,
+        isi: daftarTanggapan[0].isi,
+        status: 'menunggu_pengiriman',
+      });
+    }
+
+    return {
+      noTiket,
+      status: 'selesai',
+      pesan: PESAN_TUTUP_TIKET,
+    };
+  }
+
+  async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
+    return this.telaahMap.get(noTiket) ?? [];
+  }
+
+  async ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]> {
+    return this.jadwalMap.get(noTiket) ?? [];
+  }
+
+  async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
+    return this.tanggapanMap.get(noTiket) ?? [];
   }
 }
 
-/**
- * Penyimpanan penanganan (PROJECT_RULES 4.3): RPC Supabase dengan token petugas, atau tiruan untuk pengembangan lokal.
- * Setiap aksi mengembalikan status tiket sesudahnya (null bila tidak dilaporkan) dan melempar GalatPenanganan bila ditolak.
- */
-export interface PenyimpananPenanganan {
-  simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan: string): Promise<StatusTiket | null>;
-  simpanJadwal(noTiket: string, tanggal: string, unit: string): Promise<StatusTiket | null>;
-  simpanTanggapan(noTiket: string, isi: string): Promise<StatusTiket | null>;
-  tutupTiket(noTiket: string): Promise<StatusTiket | null>;
+/** Adapter Supabase untuk memanggil RPC penanganan pengaduan. */
+export class PenyimpananPenangananSupabase implements PenyimpananPenanganan {
+  klien: {
+    rpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  };
+
+  constructor(klienSupabase: unknown) {
+    this.klien = klienSupabase as typeof this.klien;
+  }
+
+  async simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan?: string | null): Promise<ResponTelaah> {
+    const res = await this.klien.rpc('simpan_telaah', {
+      p_no_tiket: noTiket,
+      p_tindak_lanjut: tindakLanjut,
+      p_catatan: catatan ?? null,
+    });
+    if (res.error) throw res.error;
+    const d = res.data as Record<string, unknown>;
+    return {
+      id: String(d.id),
+      noTiket: String(d.no_tiket ?? noTiket),
+      status: String(d.status),
+      tindakLanjut: String(d.tindak_lanjut ?? tindakLanjut),
+      pesan: String(d.pesan),
+    };
+  }
+
+  async simpanJadwal(noTiket: string, tanggal: string, unitPelaksana: string): Promise<ResponJadwal> {
+    const res = await this.klien.rpc('simpan_jadwal_pemeriksaan', {
+      p_no_tiket: noTiket,
+      p_tanggal: tanggal,
+      p_unit: unitPelaksana,
+    });
+    if (res.error) throw res.error;
+    const d = res.data as Record<string, unknown>;
+    return {
+      id: String(d.id),
+      noTiket: String(d.no_tiket ?? noTiket),
+      status: String(d.status),
+      tanggal: String(d.tanggal ?? tanggal),
+      unitPelaksana: String(d.unit_pelaksana ?? unitPelaksana),
+      pesan: String(d.pesan),
+    };
+  }
+
+  async simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan> {
+    const res = await this.klien.rpc('simpan_tanggapan', {
+      p_no_tiket: noTiket,
+      p_isi: isi,
+    });
+    if (res.error) throw res.error;
+    const status = typeof res.data === 'string' ? res.data : String((res.data as Record<string, unknown>)?.status ?? 'tanggapan_disusun');
+    return {
+      noTiket,
+      status,
+      pesan: PESAN_TANGGAPAN_TERSIMPAN,
+    };
+  }
+
+  async tutupTiket(noTiket: string): Promise<ResponTutupTiket> {
+    const res = await this.klien.rpc('tutup_tiket', {
+      p_no_tiket: noTiket,
+    });
+    if (res.error) throw res.error;
+    const status = typeof res.data === 'string' ? res.data : String((res.data as Record<string, unknown>)?.status ?? 'selesai');
+    return {
+      noTiket,
+      status,
+      pesan: PESAN_TUTUP_TIKET,
+    };
+  }
+
+  async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
+    const res = await this.klien.rpc('ambil_riwayat_telaah', {
+      p_no_tiket: noTiket,
+    });
+    if (res.error) throw res.error;
+    return (res.data as HasilTelaah[]) ?? [];
+  }
+
+  async ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]> {
+    const res = await this.klien.rpc('ambil_jadwal_pemeriksaan', {
+      p_no_tiket: noTiket,
+    });
+    if (res.error) throw res.error;
+    return (res.data as JadwalPemeriksaan[]) ?? [];
+  }
+
+  async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
+    const res = await this.klien.rpc('ambil_tanggapan', {
+      p_no_tiket: noTiket,
+    });
+    if (res.error) throw res.error;
+    return (res.data as TanggapanResmi[]) ?? [];
+  }
 }
 
-export type DataPenanganan = { noTiket: string; status: StatusTiket | null; labelStatus: string | null };
-
-/** `kode` adalah kode HTTP (PROJECT_RULES 4.4). */
-export type HasilPenanganan = { kode: 200 | 400 | 403 | 404 | 422 | 500; pesan: string; data: DataPenanganan | null };
-
-const PENOLAKAN: Record<AlasanTolak, Pick<HasilPenanganan, 'kode' | 'pesan'>> = {
-  input_tidak_sah: { kode: 400, pesan: PESAN_TIDAK_VALID },
-  akses_ditolak: { kode: 403, pesan: PESAN_AKSES_DITOLAK },
-  tiket_tidak_ada: { kode: 404, pesan: PESAN_PENANGANAN.tiketTidakDitemukan },
-  transisi_tidak_sah: { kode: 422, pesan: PESAN_TIDAK_VALID },
-  tanpa_tanggapan: { kode: 422, pesan: PESAN_PENANGANAN.tutupTanpaTanggapan },
-};
-
-// Sama dengan check constraint tiket.no_tiket (migrasi inti_percakapan).
-const POLA_NO_TIKET = /^(ADU|ESK)-\d{8}-\d{4}$/;
-// PROJECT_RULES 5.6: panjang isian dibatasi sebelum diteruskan ke basis data.
-const PANJANG_CATATAN_MAKS = 2000;
-const PANJANG_UNIT_MAKS = 100;
-const PANJANG_TANGGAPAN_MAKS = 5000;
-
-const noTiketSah = (v: unknown): v is string => typeof v === 'string' && POLA_NO_TIKET.test(v);
-const tindakLanjutSah = (v: unknown): v is TindakLanjut => typeof v === 'string' && Object.hasOwn(LABEL_TINDAK_LANJUT, v);
-
-/** Teks terpangkas, atau null bila bukan teks, kosong padahal `wajib`, atau terlalu panjang. Nilai tidak ada dianggap kosong. */
-function teks(nilai: unknown, panjangMaks: number, wajib: boolean): string | null {
-  const v = nilai ?? '';
-  if (typeof v !== 'string') return null;
-  const t = v.trim();
-  return (wajib && !t) || t.length > panjangMaks ? null : t;
-}
-
-/** Tanggal kalender YYYY-MM-DD (nilai <input type="date">), atau null bila tidak sah, misalnya 2026-02-30. */
-function tanggal(nilai: unknown): string | null {
-  if (typeof nilai !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(nilai)) return null;
-  const d = new Date(`${nilai}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(nilai) ? nilai : null;
-}
-
-const DITOLAK: HasilPenanganan = { ...PENOLAKAN.input_tidak_sah, data: null };
-
+/** Controller UC-06 Menangani Pengaduan. */
 export class PenangananController {
   penyimpanan: PenyimpananPenanganan;
 
@@ -100,41 +401,64 @@ export class PenangananController {
     this.penyimpanan = penyimpanan;
   }
 
-  async jalankan(noTiket: string, pesan: string, aksi: () => Promise<StatusTiket | null>): Promise<HasilPenanganan> {
-    try {
-      const status = await aksi();
-      return { kode: 200, pesan, data: { noTiket, status, labelStatus: status && LABEL_STATUS_TIKET[status] } };
-    } catch (e) {
-      return e instanceof GalatPenanganan ? { ...PENOLAKAN[e.alasan], data: null } : { kode: 500, pesan: PESAN_SISTEM, data: null };
+  async simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan?: string | null): Promise<ResponTelaah> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
     }
+    if (!OPSI_TINDAK_LANJUT.includes(tindakLanjut)) {
+      throw new Error(`Pilihan tindak lanjut tidak valid: ${tindakLanjut}`);
+    }
+    return this.penyimpanan.simpanTelaah(noTiket.trim(), tindakLanjut, catatan ? catatan.trim() : null);
   }
 
-  /** REQ-6.1, REQ-6.2, BR-3: Bukan Kewenangan BPOM meneruskan pengaduan dan menghentikan penanganannya. */
-  async simpanTelaah(noTiket: unknown, tindakLanjut: unknown, catatan: unknown): Promise<HasilPenanganan> {
-    const c = teks(catatan, PANJANG_CATATAN_MAKS, false);
-    if (!noTiketSah(noTiket) || !tindakLanjutSah(tindakLanjut) || c === null) return DITOLAK;
-    const pesan = tindakLanjut === 'bukan_kewenangan_bpom' ? PESAN_PENANGANAN.diteruskan : PESAN_PENANGANAN.telaahTersimpan;
-    return this.jalankan(noTiket, pesan, () => this.penyimpanan.simpanTelaah(noTiket, tindakLanjut, c));
+  async simpanJadwalPemeriksaan(noTiket: string, tanggal: string, unitPelaksana: string): Promise<ResponJadwal> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    if (!tanggal || typeof tanggal !== 'string' || !tanggal.trim()) {
+      throw new Error('Tanggal pemeriksaan wajib diisi.');
+    }
+    if (!unitPelaksana || typeof unitPelaksana !== 'string' || !unitPelaksana.trim()) {
+      throw new Error('Unit pelaksana wajib diisi.');
+    }
+    return this.penyimpanan.simpanJadwal(noTiket.trim(), tanggal.trim(), unitPelaksana.trim());
   }
 
-  /** REQ-6.3: jadwal pemeriksaan lapangan membuat tiket berstatus Menunggu Pemeriksaan. */
-  async simpanJadwal(noTiket: unknown, tanggalPemeriksaan: unknown, unitPelaksana: unknown): Promise<HasilPenanganan> {
-    const tgl = tanggal(tanggalPemeriksaan);
-    const unit = teks(unitPelaksana, PANJANG_UNIT_MAKS, true);
-    if (!noTiketSah(noTiket) || tgl === null || unit === null) return DITOLAK;
-    return this.jalankan(noTiket, PESAN_PENANGANAN.jadwalTersimpan, () => this.penyimpanan.simpanJadwal(noTiket, tgl, unit));
+  async simpanTanggapan(noTiket: string, isi: string): Promise<ResponTanggapan> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    if (!isi || typeof isi !== 'string' || !isi.trim()) {
+      throw new Error('Tanggapan wajib diisi.');
+    }
+    return this.penyimpanan.simpanTanggapan(noTiket.trim(), isi.trim());
   }
 
-  /** REQ-6.4: tanggapan resmi kosong ditolak, karena tanggapan adalah syarat penutupan tiket (BR-2). */
-  async simpanTanggapan(noTiket: unknown, isi: unknown): Promise<HasilPenanganan> {
-    const tanggapan = teks(isi, PANJANG_TANGGAPAN_MAKS, true);
-    if (!noTiketSah(noTiket) || tanggapan === null) return DITOLAK;
-    return this.jalankan(noTiket, PESAN_PENANGANAN.tanggapanTersimpan, () => this.penyimpanan.simpanTanggapan(noTiket, tanggapan));
+  async tutupTiket(noTiket: string): Promise<ResponTutupTiket> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.tutupTiket(noTiket.trim());
   }
 
-  /** REQ-6.5, REQ-6.6, BR-2: tiket tanpa tanggapan ditolak; SMS dikirim dari notifikasi yang diantrekan RPC (T-F7.3-01). */
-  async tutupTiket(noTiket: unknown): Promise<HasilPenanganan> {
-    if (!noTiketSah(noTiket)) return DITOLAK;
-    return this.jalankan(noTiket, PESAN_PENANGANAN.tiketDitutup, () => this.penyimpanan.tutupTiket(noTiket));
+  async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.ambilRiwayatTelaah(noTiket.trim());
+  }
+
+  async ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.ambilJadwal(noTiket.trim());
+  }
+
+  async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.ambilTanggapan(noTiket.trim());
   }
 }
