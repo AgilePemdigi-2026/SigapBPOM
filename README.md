@@ -6,7 +6,7 @@
 Jawaban instan bersumber resmi untuk masyarakat, antrean yang hanya berisi kasus yang benar-benar butuh petugas.</p>
 
 <p>
-  <img alt="Sprint" src="https://img.shields.io/badge/sprint-1%20aktif-0B5CAD">
+  <img alt="Sprint" src="https://img.shields.io/badge/sprint-3%20aktif-0B5CAD">
   <img alt="Versi" src="https://img.shields.io/badge/versi-0.1.0-0B2A5B">
   <img alt="Astro" src="https://img.shields.io/badge/Astro-7-BC52EE?logo=astro&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
@@ -312,7 +312,7 @@ Batasan keselamatan: agen tidak memberi nasihat medis (NFR-6), tidak menyebut st
 
 ## Rencana Rilis
 
-Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 1 (mulai Minggu 10).**
+Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 3 (mulai Minggu 13).**
 
 > **Kerjakan hanya backlog sprint aktif.** Fitur sprint berikutnya tidak boleh dikerjakan lebih awal, termasuk halaman, tabel database, maupun data tiruannya. Menu untuk UC yang belum masuk sprint cukup berupa halaman placeholder. Aturan lengkap ada di [PROJECT_RULES bagian 9](docs/PROJECT_RULES.md#9-batas-lingkup-sprint-wajib).
 

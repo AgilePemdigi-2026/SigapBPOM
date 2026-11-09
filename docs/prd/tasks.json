@@ -323,7 +323,7 @@
         "T-F2.1-02",
         "T-F2.2-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -358,7 +358,7 @@
         "T-F2.1-02",
         "T-F2.3-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -478,7 +478,7 @@
         "T-F3.1-02",
         "T-F3.2-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -514,6 +514,517 @@
         "T-F3.3-01"
       ],
       "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.1-01",
+      "featureId": "F4",
+      "subFeatureId": "F4.1",
+      "title": "Routing menu \"tekan 2\" ke alur pengaduan",
+      "description": "Routing menu \"tekan 2\" ke alur pengaduan untuk sub-fitur Kumpulkan Data Pengaduan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Kumpulkan Data Pengaduan**, layer backend, fase 2.\n\n## Tujuan task\nVoice Gateway mengarahkan penelepon yang menekan tombol angka 2 ke alur pengaduan produk, lalu agen menanyakan nama produk, kronologi kejadian, nama, dan nomor telepon (REQ-2.1).\n\n## Yang harus dibuat\n- Terima pilihan menu 1/2 dari panel di Voice Gateway (`voice-gateway/`) dan simpan jenis interaksi `pengaduan` pada percakapan.\n- Putar prompt pengaduan sesuai kamus pesan, lewat jalur render TTS yang sudah ada.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: pilihan 2 menandai percakapan sebagai `pengaduan` dan memutar prompt data pengaduan; pilihan 1 tetap masuk alur UC-01.\n\n## Jangan\nJangan mengubah alur UC-01 selain percabangan menu. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.1-02",
+      "featureId": "F4",
+      "subFeatureId": "F4.1",
+      "title": "Kumpulkan empat data wajib pengaduan",
+      "description": "Kumpulkan empat data wajib pengaduan untuk sub-fitur Kumpulkan Data Pengaduan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Kumpulkan Data Pengaduan**, layer backend, fase 2.\n\n## Tujuan task\nAgen mengekstrak empat data wajib dari ucapan penelepon dan menanyakan ulang data yang belum disebutkan sampai lengkap (REQ-2.2).\n\n## Yang harus dibuat\n- Ekstraksi nama produk, kronologi, nama, dan nomor telepon dari transkrip giliran penelepon.\n- Prompt tanya ulang per data yang kurang (mis. \"Mohon sebutkan nomor telepon Anda.\").\n- Validasi format nomor telepon Indonesia.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: data tidak lengkap memicu tanya ulang hanya untuk data yang kurang; data lengkap lanjut ke penerbitan tiket.\n\n## Jangan\nJangan menerbitkan tiket di task ini. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [
+        "T-F4.1-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.1-03",
+      "featureId": "F4",
+      "subFeatureId": "F4.1",
+      "title": "Tombol menu 1/2 dan alur pengaduan di panel",
+      "description": "Tombol menu 1/2 dan alur pengaduan di panel untuk sub-fitur Kumpulkan Data Pengaduan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Kumpulkan Data Pengaduan**, layer frontend, fase 2.\n\n## Tujuan task\nPanel percakapan suara menampilkan tombol angka 1 (Informasi Produk) dan 2 (Pengaduan Produk) serta transkrip langsung alur pengaduan (REQ-1.1, REQ-2.1).\n\n## Yang harus dibuat\n- Tombol angka di `src/components/PanelSuara.astro` yang mengirim pilihan ke Voice Gateway.\n- Transkrip langsung untuk prompt tanya ulang data pengaduan.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: menekan 2 mengirim pilihan pengaduan dan transkrip menampilkan prompt pengaduan; tombol bisa dioperasikan keyboard.\n\n## Jangan\nJangan mengubah logika gateway. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "frontend",
+      "page": "Beranda Publik",
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.2-01",
+      "featureId": "F4",
+      "subFeatureId": "F4.2",
+      "title": "Buat RPC terbitkan tiket pengaduan",
+      "description": "Buat RPC terbitkan tiket pengaduan untuk sub-fitur Terbitkan Tiket Pengaduan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Terbitkan Tiket Pengaduan**, layer backend, fase 2.\n\n## Tujuan task\nPengaduan lengkap dicatat pada register pengaduan dan diberi nomor tiket ADU dalam satu transaksi (REQ-2.3, BR-1).\n\n## Yang harus dibuat\n- Migrasi kolom/tabel data pengaduan: nama produk, kronologi, nama pelapor, nomor telepon.\n- RPC `terbitkan_tiket_pengaduan` dengan pola yang sama seperti `terbitkan_tiket_eskalasi`: nomor `ADU-YYYYMMDD-NNNN` dari `nomor_tiket_harian`, status percakapan `tiket_terbit`, tiket status `belum_ditelaah`.\n- Eksekusi hanya untuk `service_role`.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: dua penerbitan serentak menghasilkan nomor berurutan unik; satu percakapan paling banyak satu tiket.\n\n## Jangan\nJangan membuka akses RPC ke `anon` atau `authenticated`. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.2-02",
+      "featureId": "F4",
+      "subFeatureId": "F4.2",
+      "title": "Daftarkan tool terbitkan tiket pengaduan Hermes",
+      "description": "Daftarkan tool terbitkan tiket pengaduan Hermes untuk sub-fitur Terbitkan Tiket Pengaduan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Terbitkan Tiket Pengaduan**, layer backend, fase 2.\n\n## Tujuan task\nSetelah data lengkap, agen memanggil RPC `terbitkan_tiket_pengaduan` dan menyampaikan nomor tiket ADU beserta informasi tindak lanjut via SMS (REQ-2.3, REQ-2.4).\n\n## Yang harus dibuat\n- Tool Hermes yang memanggil RPC `terbitkan_tiket_pengaduan` lewat service role, tercatat di `log_tool`.\n- Pesan \"Pengaduan Anda telah dicatat dengan nomor tiket [nomor tiket]. Tindak lanjut akan dikirim melalui SMS.\"\n- Kirim event kartu tiket pengaduan ke panel.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: pengaduan lengkap menghasilkan satu tiket ADU, pesan tiket diucapkan, dan retry tidak membuat tiket ganda.\n\n## Jangan\nJangan mengirim SMS sungguhan; cukup lewat adapter mock. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [
+        "T-F4.1-02",
+        "T-F4.2-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.2-03",
+      "featureId": "F4",
+      "subFeatureId": "F4.2",
+      "title": "Bangun kartu tiket pengaduan",
+      "description": "Bangun kartu tiket pengaduan untuk sub-fitur Terbitkan Tiket Pengaduan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Terbitkan Tiket Pengaduan**, layer frontend, fase 2.\n\n## Tujuan task\nPenelepon melihat kartu nomor tiket pengaduan dan informasi tindak lanjut via SMS di panel (REQ-2.4).\n\n## Yang harus dibuat\n- Kartu tiket pengaduan di panel, mengikuti pola kartu eskalasi (`src/lib/kartuPanggilan.ts`).\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: event tiket pengaduan merender kartu dengan nomor ADU dan teks SMS persis kamus pesan.\n\n## Jangan\nJangan mengubah kartu eskalasi yang sudah ada. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "frontend",
+      "page": "Beranda Publik",
+      "phase": 2,
+      "dependsOn": [
+        "T-F4.1-03"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.3-01",
+      "featureId": "F4",
+      "subFeatureId": "F4.3",
+      "title": "Simpan pengaduan saat panggilan terputus",
+      "description": "Simpan pengaduan saat panggilan terputus untuk sub-fitur Simpan Pengaduan Terputus.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Simpan Pengaduan Terputus**, layer backend, fase 2.\n\n## Tujuan task\nPanggilan pengaduan yang diakhiri sebelum data lengkap disimpan sebagai pengaduan tidak lengkap tanpa nomor tiket (REQ-2.5).\n\n## Yang harus dibuat\n- Tangani event akhiri panggilan / putus koneksi di gateway pada alur pengaduan.\n- Panggil RPC simpan pengaduan tidak lengkap dan kirim event pesan ke panel.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: akhiri panggilan dengan data sebagian menyimpan status `pengaduan_tidak_lengkap` tanpa tiket.\n\n## Jangan\nJangan menerbitkan tiket untuk data tidak lengkap. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [
+        "T-F4.1-02",
+        "T-F4.3-02"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.3-02",
+      "featureId": "F4",
+      "subFeatureId": "F4.3",
+      "title": "Buat RPC simpan pengaduan tidak lengkap",
+      "description": "Buat RPC simpan pengaduan tidak lengkap untuk sub-fitur Simpan Pengaduan Terputus.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Simpan Pengaduan Terputus**, layer backend, fase 2.\n\n## Tujuan task\nPercakapan pengaduan yang berakhir sebelum data lengkap tetap tersimpan tanpa tiket (REQ-2.5).\n\n## Yang harus dibuat\n- RPC yang menyimpan data pengaduan sebagian dan menandai percakapan `pengaduan_tidak_lengkap`.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: status berubah ke `pengaduan_tidak_lengkap` dan tidak ada baris tiket yang dibuat.\n\n## Jangan\nJangan menerbitkan nomor tiket. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F4.3-03",
+      "featureId": "F4",
+      "subFeatureId": "F4.3",
+      "title": "Tampilkan pesan pengaduan tidak lengkap",
+      "description": "Tampilkan pesan pengaduan tidak lengkap untuk sub-fitur Simpan Pengaduan Terputus.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Sampaikan Pengaduan** → sub-fitur **Simpan Pengaduan Terputus**, layer frontend, fase 2.\n\n## Tujuan task\nSaat panggilan pengaduan diakhiri sebelum data lengkap, panel menampilkan \"Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.\" (REQ-2.5).\n\n## Yang harus dibuat\n- Status akhir panggilan pengaduan tidak lengkap di panel.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: event pengaduan tidak lengkap menampilkan pesan persis kamus pesan.\n\n## Jangan\nJangan menyimpan data dari frontend. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Beranda Publik",
+      "phase": 2,
+      "dependsOn": [
+        "T-F4.1-03"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.1-01",
+      "featureId": "F5",
+      "subFeatureId": "F5.1",
+      "title": "Sediakan statistik ringkasan layanan",
+      "description": "Sediakan statistik ringkasan layanan untuk sub-fitur Ringkasan Layanan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Ringkasan Layanan**, layer backend, fase 2.\n\n## Tujuan task\nDashboard bisa membaca statistik layanan hari ini dan kasus perlu tindak lanjut (REQ-4.1).\n\n## Yang harus dibuat\n- View/RPC: panggilan hari ini, jawaban otomatis AI, tiket eskalasi baru, pengaduan selesai, jumlah panggilan berjalan (zona Asia/Jakarta).\n- Persentase pertanyaan per kategori tujuh hari terakhir.\n- Akses baca hanya untuk petugas yang login.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: angka statistik sesuai data dummy; pengguna `anon` ditolak.\n\n## Jangan\nJangan membuat UI di task ini. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.1-02",
+      "featureId": "F5",
+      "subFeatureId": "F5.1",
+      "title": "Sambungkan Ringkasan Layanan ke Supabase",
+      "description": "Sambungkan Ringkasan Layanan ke Supabase untuk sub-fitur Ringkasan Layanan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Ringkasan Layanan**, layer frontend, fase 2.\n\n## Tujuan task\nHalaman Ringkasan Layanan menampilkan statistik nyata, kasus perlu tindak lanjut, dan jumlah panggilan berjalan (REQ-4.1).\n\n## Yang harus dibuat\n- Ganti data tiruan di `src/pages/ringkasan.astro` dengan data dari view/RPC ringkasan lewat adapter penyimpanan.\n- Tabel Kasus Perlu Tindak Lanjut dengan tautan \"Buka Kasus\".\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: adapter mengembalikan statistik sesuai data dummy; halaman tetap jalan dengan adapter mock.\n\n## Jangan\nJangan mengubah struktur view di database. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Ringkasan Layanan",
+      "phase": 2,
+      "dependsOn": [
+        "T-F5.1-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.2-01",
+      "featureId": "F5",
+      "subFeatureId": "F5.2",
+      "title": "Bangun halaman Panggilan Berjalan live",
+      "description": "Bangun halaman Panggilan Berjalan live untuk sub-fitur Pantau Panggilan Berjalan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pantau Panggilan Berjalan**, layer frontend, fase 2.\n\n## Tujuan task\nPetugas melihat daftar panggilan aktif beserta nomor tersamar, jenis layanan, topik, waktu mulai, durasi, dan tahap AI yang diperbarui otomatis (REQ-4.2).\n\n## Yang harus dibuat\n- Halaman `/panggilan-berjalan` dengan kartu ringkasan (aktif, rata-rata durasi, terlama, pemakaian saluran) dan label LIVE.\n- Pembaruan otomatis lewat Supabase Realtime atau polling.\n- Empty state \"Tidak ada panggilan berjalan saat ini.\"\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: daftar berubah saat panggilan mulai/berakhir; tanpa panggilan aktif muncul pesan kosong persis kamus pesan.\n\n## Jangan\nJangan menampilkan nomor telepon utuh. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Panggilan Berjalan",
+      "phase": 2,
+      "dependsOn": [
+        "T-F5.2-02"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.2-02",
+      "featureId": "F5",
+      "subFeatureId": "F5.2",
+      "title": "Laporkan panggilan aktif dari gateway",
+      "description": "Laporkan panggilan aktif dari gateway untuk sub-fitur Pantau Panggilan Berjalan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pantau Panggilan Berjalan**, layer backend, fase 2.\n\n## Tujuan task\nGateway mencatat panggilan yang sedang berjalan beserta waktu mulai, jenis layanan, topik, dan tahap pemrosesan AI agar dashboard bisa menampilkannya live (REQ-4.2).\n\n## Yang harus dibuat\n- Perbarui status percakapan `berjalan` dan tahap pemrosesan AI (mendengar, memproses, menjawab) secara berkala.\n- Tutup status saat panggilan berakhir atau heartbeat berhenti (panggilan yatim tidak tampil selamanya).\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: panggilan aktif tercatat dengan tahap terbaru dan hilang dari daftar aktif setelah berakhir.\n\n## Jangan\nJangan membuat UI dashboard di task ini. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.3-01",
+      "featureId": "F5",
+      "subFeatureId": "F5.3",
+      "title": "Buka akses antrean tiket untuk petugas",
+      "description": "Buka akses antrean tiket untuk petugas untuk sub-fitur Antrean Tiket Eskalasi.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Antrean Tiket Eskalasi**, layer backend, fase 2.\n\n## Tujuan task\nPetugas bisa membaca antrean tiket dan percakapan terkait dengan data pribadi disamarkan (REQ-4.3, NFR privasi).\n\n## Yang harus dibuat\n- RLS/view baca untuk petugas pada `tiket`, `percakapan`, dan `penelepon_tersamar`, diurutkan dari tiket terbaru `belum_ditelaah`.\n- Detail pengaduan (data pengaduan + ringkasan) untuk satu tiket.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: petugas melihat nomor telepon tersamar; `anon` ditolak.\n\n## Jangan\nJangan memberi akses tulis status tiket (itu Sprint 3, UC-06). Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 2,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.3-02",
+      "featureId": "F5",
+      "subFeatureId": "F5.3",
+      "title": "Bangun halaman Tiket Eskalasi",
+      "description": "Bangun halaman Tiket Eskalasi untuk sub-fitur Antrean Tiket Eskalasi.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Antrean Tiket Eskalasi**, layer frontend, fase 2.\n\n## Tujuan task\nPetugas melihat antrean tindak lanjut beserta nomor tiket, ringkasan masalah, jenis kasus, waktu masuk, tautan transkrip, dan status (REQ-4.3).\n\n## Yang harus dibuat\n- Halaman `/tiket-eskalasi` di kerangka dashboard dengan tabel Antrean Tindak Lanjut.\n- Tombol \"Buka Kasus\" per baris yang menuju halaman detail pengaduan (T-F5.3-03).\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: antrean tampil dari Supabase, tombol Buka Kasus mengarah ke detail tiket yang benar.\n\n## Jangan\nJangan membuat halaman detail pengaduan (dikerjakan T-F5.3-03). Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Tiket Eskalasi",
+      "phase": 2,
+      "dependsOn": [
+        "T-F5.3-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.3-03",
+      "featureId": "F5",
+      "subFeatureId": "F5.3",
+      "title": "Bangun halaman detail pengaduan",
+      "description": "Bangun halaman detail pengaduan untuk sub-fitur Antrean Tiket Eskalasi.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Antrean Tiket Eskalasi**, layer frontend, fase 2.\n\n## Tujuan task\nTombol \"Buka Kasus\" membuka halaman detail pengaduan berisi data pengaduan, status, dan tautan transkrip (REQ-4.4).\n\n## Yang harus dibuat\n- Halaman detail kasus per nomor tiket (read-only) di kerangka dashboard.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: detail tampil sesuai tiket; tiket tidak ditemukan menampilkan pesan error kamus pesan.\n\n## Jangan\nJangan membuat aksi telaah/tanggapan/tutup tiket (Sprint 3, UC-06). Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Detail Pengaduan",
+      "phase": 2,
+      "dependsOn": [
+        "T-F5.3-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F5.4-01",
+      "featureId": "F5",
+      "subFeatureId": "F5.4",
+      "title": "Bangun halaman Pantau AI Agent",
+      "description": "Bangun halaman Pantau AI Agent untuk sub-fitur Pantau AI Agent.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pantau AI Agent**, layer frontend, fase 2.\n\n## Tujuan task\nPetugas melihat kesehatan komponen AI Agent (Voice Gateway, Hermes, STT/TTS, cekbpom), latensi jawaban, dan log tool terbaru.\n\n## Yang harus dibuat\n- Halaman pantau AI Agent di dashboard yang membaca endpoint health gateway dan tabel `log_tool`.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: komponen down tampil sebagai gangguan; log tool terbaru tampil berurutan.\n\n## Jangan\nJangan menampilkan isi argumen tool yang memuat data pribadi. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Pantau AI Agent",
+      "phase": 2,
+      "dependsOn": [
+        "T-F5.2-02"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F6.1-01",
+      "featureId": "F6",
+      "subFeatureId": "F6.1",
+      "title": "Buka riwayat percakapan dan transkrip tersamar untuk petugas",
+      "description": "Buka riwayat percakapan dan transkrip tersamar untuk petugas untuk sub-fitur Riwayat Percakapan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Baca Transkrip** → sub-fitur **Riwayat Percakapan**, layer backend, fase 3.\n\n## Tujuan task\nPetugas membaca daftar percakapan dan transkrip lengkapnya dengan data pribadi tersamar (REQ-5.1, REQ-5.2, NFR-13).\n\n## Yang harus dibuat\n- View `riwayat_percakapan`: waktu mulai, jenis interaksi, ringkasan, status penyelesaian, nomor tiket bila ada, dan nomor tersamar dari `penelepon_tersamar`.\n- View atau RPC ringkasan periode untuk kartu di atas daftar: total percakapan, informasi produk, pengaduan produk, dan dieskalasi.\n- Akses baca `ucapan` untuk petugas lewat view `ucapan_petugas` (urutan, pembicara, teks, detik ke) dengan filter `is_petugas()`. Nomor telepon di teks sudah tersamar sejak #88; nama pelapor yang tercatat di `pengaduan` ikut disamarkan di teks.\n- Hak tulis bawaan Supabase pada view dicabut (pola `panggilan_berjalan`, `kasus_perlu_tindak_lanjut`).\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: petugas membaca view, anon dan pengguna bukan petugas ditolak; tidak ada nomor telepon atau nama utuh yang keluar dari view.\n\n## Jangan\nJangan membuka tabel mentah `penelepon`, `ucapan`, atau `pengaduan` ke `authenticated`. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F6.1-02",
+      "featureId": "F6",
+      "subFeatureId": "F6.1",
+      "title": "Bangun halaman Riwayat Percakapan",
+      "description": "Bangun halaman Riwayat Percakapan untuk sub-fitur Riwayat Percakapan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Baca Transkrip** → sub-fitur **Riwayat Percakapan**, layer frontend, fase 3.\n\n## Tujuan task\nPetugas melihat daftar percakapan beserta waktu, jenis, ringkasan, dan status penyelesaian (REQ-5.1, SRS 3.1.7).\n\n## Yang harus dibuat\n- Halaman `/riwayat-percakapan` (menggantikan placeholder) dengan kartu ringkasan periode dan tabel Daftar Percakapan.\n- Adapter Supabase dan control untuk view `riwayat_percakapan`, dengan paginasi.\n- Tombol \"Lihat Transkrip\" per baris ke `/riwayat-percakapan/detail?id=`.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: daftar dan kartu ringkasan sesuai data; status ditampilkan dengan label baku.\n\n## Jangan\nJangan memakai data tiruan di jalur produksi. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Riwayat Percakapan",
+      "phase": 3,
+      "dependsOn": [
+        "T-F6.1-01"
+      ],
+      "status": "todo",
+      "failReason": null
+    },
+    {
+      "ref": "T-F6.2-01",
+      "featureId": "F6",
+      "subFeatureId": "F6.2",
+      "title": "Simpan catatan pemeriksaan pada percakapan",
+      "description": "Simpan catatan pemeriksaan pada percakapan untuk sub-fitur Detail Transkrip dan Catatan Pemeriksaan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Baca Transkrip** → sub-fitur **Detail Transkrip dan Catatan Pemeriksaan**, layer backend, fase 3.\n\n## Tujuan task\nCatatan pemeriksaan petugas tersimpan pada percakapan terkait, dan catatan kosong ditolak (REQ-5.3, REQ-5.4).\n\n## Yang harus dibuat\n- Migrasi penyimpanan catatan pemeriksaan (kolom atau tabel) dengan petugas pencatat dan waktunya.\n- RPC `simpan_catatan_pemeriksaan(p_percakapan_id, p_catatan)` khusus petugas: catatan kosong ditolak dengan galat yang dipetakan ke pesan \"Catatan pemeriksaan wajib diisi.\", panjang dibatasi.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: catatan tersimpan dan terbaca kembali; catatan kosong ditolak; bukan petugas ditolak.\n\n## Jangan\nJangan mengizinkan petugas mengubah transkrip atau status percakapan lewat RPC ini. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [
+        "T-F6.1-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F6.2-02",
+      "featureId": "F6",
+      "subFeatureId": "F6.2",
+      "title": "Bangun halaman Detail Transkrip dan catatan pemeriksaan",
+      "description": "Bangun halaman Detail Transkrip dan catatan pemeriksaan untuk sub-fitur Detail Transkrip dan Catatan Pemeriksaan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Baca Transkrip** → sub-fitur **Detail Transkrip dan Catatan Pemeriksaan**, layer frontend, fase 3.\n\n## Tujuan task\nPetugas membaca transkrip lengkap, ringkasan, dan status penyelesaian, lalu menyimpan catatan pemeriksaan (REQ-5.2 sampai REQ-5.4).\n\n## Yang harus dibuat\n- Halaman `/riwayat-percakapan/detail?id=` (menggantikan placeholder) dengan panel `TranskripPercakapan` berstempel waktu, `RingkasanPercakapan`, dan status penyelesaian.\n- Kolom \"Catatan Pemeriksaan\" dan tombol \"Simpan Catatan\" dengan pesan \"Catatan pemeriksaan tersimpan.\" atau \"Catatan pemeriksaan wajib diisi.\".\n- Tautan \"Lihat Transkrip\" dari Tiket Eskalasi dan detail pengaduan membuka halaman ini.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: transkrip urut sesuai `urutan`; data pribadi tersamar; catatan kosong menampilkan pesan wajib diisi persis kamus.\n\n## Jangan\nJangan menampilkan nomor telepon atau nama utuh. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Detail Transkrip",
+      "phase": 3,
+      "dependsOn": [
+        "T-F6.1-01",
+        "T-F6.2-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F6.3-01",
+      "featureId": "F6",
+      "subFeatureId": "F6.3",
+      "title": "Simpan ringkasan percakapan buatan AI saat panggilan berakhir",
+      "description": "Simpan ringkasan percakapan buatan AI saat panggilan berakhir untuk sub-fitur Ringkasan Percakapan AI.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Baca Transkrip** → sub-fitur **Ringkasan Percakapan AI**, layer backend, fase 3.\n\n## Tujuan task\nSetiap percakapan tersimpan dengan ringkasan buatan AI yang ditampilkan di detail transkrip (REQ-5.2, NFR-20).\n\n## Yang harus dibuat\n- Saat panggilan berakhir (/voice/akhiri atau sesi dibuang), gateway menyusun ringkasan singkat dari transkrip lewat Hermes, tanpa data pribadi.\n- Simpan lewat Edge Function `catat-percakapan` (aksi baru `ringkasan`) ke `percakapan.ringkasan`.\n- Gagal meringkas tidak menghambat penutupan panggilan; kuota AI tetap dihitung.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: panggilan uji berakhir dengan ringkasan tersimpan; ringkasan tidak memuat nomor telepon atau nama pelapor utuh.\n\n## Jangan\nJangan mengirim nomor telepon atau nama pelapor ke model. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F7.1-01",
+      "featureId": "F7",
+      "subFeatureId": "F7.1",
+      "title": "Buat tabel dan RPC hasil telaah dan jadwal pemeriksaan",
+      "description": "Buat tabel dan RPC hasil telaah dan jadwal pemeriksaan untuk sub-fitur Telaah dan Jadwal Pemeriksaan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Tangani Pengaduan** → sub-fitur **Telaah dan Jadwal Pemeriksaan**, layer backend, fase 3.\n\n## Tujuan task\nHasil telaah tersimpan dengan status sesuai tindak lanjut, dan jadwal pemeriksaan tersimpan dengan status Menunggu Pemeriksaan (REQ-6.1, REQ-6.2, REQ-6.3, BR-3).\n\n## Yang harus dibuat\n- Migrasi tabel `hasil_telaah` (tiket, tindak lanjut, catatan, petugas, waktu) dan `jadwal_pemeriksaan` (tiket, tanggal, unit pelaksana, petugas, waktu) dengan RLS petugas.\n- RPC `simpan_telaah(p_no_tiket, p_tindak_lanjut, p_catatan)`: Telaah Dokumen -> `sedang_ditelaah`, Perlu Pemeriksaan Lapangan -> menunggu jadwal, Bukan Kewenangan BPOM -> `diteruskan` dan berhenti (BR-3).\n- RPC `simpan_jadwal_pemeriksaan(p_no_tiket, p_tanggal, p_unit)` -> `menunggu_pemeriksaan`.\n- Transisi status yang tidak sah ditolak (mesin status PRD-rinci bagian UC-06).\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: tiap tindak lanjut menghasilkan status yang benar; tiket berstatus diteruskan atau selesai tidak bisa ditelaah lagi.\n\n## Jangan\nJangan menghapus atau menimpa riwayat telaah; setiap simpan menambah baris. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F7.1-02",
+      "featureId": "F7",
+      "subFeatureId": "F7.1",
+      "title": "Bangun halaman Daftar Pengaduan",
+      "description": "Bangun halaman Daftar Pengaduan untuk sub-fitur Telaah dan Jadwal Pemeriksaan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Tangani Pengaduan** → sub-fitur **Telaah dan Jadwal Pemeriksaan**, layer frontend, fase 3.\n\n## Tujuan task\nPetugas melihat semua pengaduan beserta statusnya dan membuka pengaduan untuk ditelaah (UC-06 langkah 1 sampai 3, SRS 3.1.9).\n\n## Yang harus dibuat\n- Halaman `/pengaduan` (menggantikan placeholder): filter status dengan jumlah per tahap, tabel nomor tiket, produk diadukan, kategori, tanggal pengaduan, dan status.\n- Tombol \"Telaah\" pada pengaduan Belum Ditelaah membuka `/pengaduan/detail?tiket=`.\n- Pengaduan tidak lengkap (tanpa tiket) ditampilkan terpisah atau ditandai jelas.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: filter status menampilkan jumlah yang benar; tombol Telaah hanya pada Belum Ditelaah.\n\n## Jangan\nJangan menampilkan data pribadi pelapor di daftar. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "frontend",
+      "page": "Daftar Pengaduan",
+      "phase": 3,
+      "dependsOn": [
+        "T-F7.1-01"
+      ],
+      "status": "todo",
+      "failReason": null
+    },
+    {
+      "ref": "T-F7.2-01",
+      "featureId": "F7",
+      "subFeatureId": "F7.2",
+      "title": "Buat RPC simpan tanggapan dan tutup tiket",
+      "description": "Buat RPC simpan tanggapan dan tutup tiket untuk sub-fitur Tanggapan dan Tutup Tiket.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Tangani Pengaduan** → sub-fitur **Tanggapan dan Tutup Tiket**, layer backend, fase 3.\n\n## Tujuan task\nTanggapan resmi tersimpan dengan status Tanggapan Disusun, dan tiket hanya bisa ditutup bila tanggapan sudah ada (REQ-6.4, REQ-6.5, REQ-6.6, BR-2).\n\n## Yang harus dibuat\n- Migrasi tabel `tanggapan` (tiket, isi, petugas, waktu) dengan RLS petugas.\n- RPC `simpan_tanggapan(p_no_tiket, p_isi)` -> `tanggapan_disusun`.\n- RPC `tutup_tiket(p_no_tiket)`: tanpa tanggapan ditolak dengan galat yang dipetakan ke \"Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.\"; dengan tanggapan -> `selesai` dan mengantrekan notifikasi untuk T-F7.3-01.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: tutup tanpa tanggapan ditolak; tutup sesudah tanggapan berstatus selesai; menutup dua kali tidak membuat notifikasi ganda.\n\n## Jangan\nJangan mengirim SMS dari dalam basis data; cukup catat notifikasi yang perlu dikirim. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [
+        "T-F7.1-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F7.2-02",
+      "featureId": "F7",
+      "subFeatureId": "F7.2",
+      "title": "Bangun panel penanganan di halaman Detail Pengaduan",
+      "description": "Bangun panel penanganan di halaman Detail Pengaduan untuk sub-fitur Tanggapan dan Tutup Tiket.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Tangani Pengaduan** → sub-fitur **Tanggapan dan Tutup Tiket**, layer frontend, fase 3.\n\n## Tujuan task\nPetugas menangani pengaduan dari telaah sampai tiket ditutup dalam satu halaman (UC-06, SRS 3.1.10).\n\n## Yang harus dibuat\n- `StepperPenanganan`: Telaah, Jadwal Pemeriksaan, Susun Tanggapan, Selesai.\n- Pilihan \"Tindak Lanjut\" (Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM), \"Catatan Tindak Lanjut\", tombol \"Simpan Telaah\".\n- Formulir jadwal (\"Tanggal Pemeriksaan\", \"Unit Pelaksana\", \"Simpan Jadwal\") hanya untuk Perlu Pemeriksaan Lapangan.\n- Kolom \"Tanggapan\", tombol \"Simpan Tanggapan\", dan \"Tutup Tiket\" dengan semua pesan UC-06 persis kamus.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: setiap jalur SRS (Basic, Alternative 1, Alternative 2, Exception 1) menampilkan pesan dan status yang benar.\n\n## Jangan\nJangan menutup tiket di sisi browser tanpa jawaban server. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "frontend",
+      "page": "Detail Pengaduan",
+      "phase": 3,
+      "dependsOn": [
+        "T-F7.1-01",
+        "T-F7.2-01"
+      ],
+      "status": "todo",
+      "failReason": null
+    },
+    {
+      "ref": "T-F7.2-03",
+      "featureId": "F7",
+      "subFeatureId": "F7.2",
+      "title": "Sambungkan penanganan pengaduan ke Supabase",
+      "description": "Sambungkan penanganan pengaduan ke Supabase untuk sub-fitur Tanggapan dan Tutup Tiket.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Tangani Pengaduan** → sub-fitur **Tanggapan dan Tutup Tiket**, layer backend, fase 3.\n\n## Tujuan task\nAksi penanganan di dashboard benar-benar mengubah data dengan token petugas (UC-06).\n\n## Yang harus dibuat\n- Control `PengaduanController` (penanganan) dan adapter Supabase untuk RPC telaah, jadwal, tanggapan, dan tutup tiket.\n- API route dashboard untuk setiap aksi (pola `/api/materi/[id]/nonaktifkan`), dengan galat RPC dipetakan ke pesan kamus.\n- Adapter tiruan hanya untuk pengembangan lokal tanpa Supabase.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: tiap aksi memanggil RPC yang benar dengan token petugas; galat penutupan tanpa tanggapan menjadi pesan kamus.\n\n## Jangan\nJangan memakai service_role di dashboard. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [
+        "T-F7.1-01",
+        "T-F7.2-01"
+      ],
+      "status": "todo",
+      "failReason": null
+    },
+    {
+      "ref": "T-F7.3-01",
+      "featureId": "F7",
+      "subFeatureId": "F7.3",
+      "title": "Kirim notifikasi SMS tindak lanjut saat tiket ditutup",
+      "description": "Kirim notifikasi SMS tindak lanjut saat tiket ditutup untuk sub-fitur Notifikasi Tindak Lanjut.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Tangani Pengaduan** → sub-fitur **Notifikasi Tindak Lanjut**, layer backend, fase 3.\n\n## Tujuan task\nPelapor menerima SMS tindak lanjut ketika tiketnya ditutup (REQ-6.6).\n\n## Yang harus dibuat\n- Interface `PengirimSms` dengan implementasi tiruan (gateway SMS belum tersedia) dan titik pasang adapter resmi.\n- Edge Function atau proses yang mengirim notifikasi yang diantrekan `tutup_tiket`, mencatat hasil kirim di tabel `notifikasi`, dan bisa diulang tanpa SMS ganda.\n- Nomor tujuan diambil di server; tidak pernah dikirim ke browser.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: menutup tiket menghasilkan satu catatan notifikasi terkirim (tiruan); gagal kirim tercatat dan bisa diulang.\n\n## Jangan\nJangan memakai gateway SMS sungguhan tanpa keputusan tim; jangan mencatat nomor telepon utuh di log. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "high",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [
+        "T-F7.2-01"
+      ],
+      "status": "done",
+      "failReason": null
+    },
+    {
+      "ref": "T-F8.1-01",
+      "featureId": "F8",
+      "subFeatureId": "F8.1",
+      "title": "Sediakan RPC rekap layanan per periode dan hak ekspor",
+      "description": "Sediakan RPC rekap layanan per periode dan hak ekspor untuk sub-fitur Rekap Periode.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Unduh Laporan** → sub-fitur **Rekap Periode**, layer backend, fase 3.\n\n## Tujuan task\nJumlah panggilan, kasus tereskalasi, dan pengaduan selesai dihitung per periode dan per minggu, dan hak ekspor petugas bisa diperiksa (REQ-8.1, REQ-8.3, BR-8, NFR-5, NFR-14).\n\n## Yang harus dibuat\n- RPC `rekap_layanan(p_awal date, p_akhir date)` khusus petugas: total tiga angka dan rincian per minggu (zona Asia/Jakarta).\n- Kolom hak ekspor pada `petugas` (bawaan tidak berhak) dan fungsi `boleh_ekspor()`; akun uji seed diberi hak ekspor.\n- Indeks yang dibutuhkan agar rekap satu bulan di bawah 10 detik (NFR-5).\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes SQL: angka rekap sesuai data uji untuk satu periode; periode kosong mengembalikan nol; petugas tanpa hak ekspor terbaca tidak berhak.\n\n## Jangan\nJangan mengembalikan data pribadi penelepon dari RPC rekap. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [],
+      "status": "todo",
+      "failReason": null
+    },
+    {
+      "ref": "T-F8.1-02",
+      "featureId": "F8",
+      "subFeatureId": "F8.1",
+      "title": "Bangun halaman Rekap dan Laporan",
+      "description": "Bangun halaman Rekap dan Laporan untuk sub-fitur Rekap Periode.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Unduh Laporan** → sub-fitur **Rekap Periode**, layer frontend, fase 3.\n\n## Tujuan task\nPetugas menampilkan rekapitulasi periode dan mengunduh laporan (UC-08, SRS 3.1.12).\n\n## Yang harus dibuat\n- Halaman `/rekap-laporan` (menggantikan placeholder): pilihan \"Periode\", tombol \"Tampilkan\", `GrafikRekapitulasi`, tiga kartu total, dan `TabelRekapitulasi` per minggu.\n- Pesan \"Data tidak tersedia pada periode tersebut.\" untuk periode kosong.\n- Tombol \"Unduh Laporan\": pilihan \"Format Berkas\" (PDF atau CSV) dan \"Konfirmasi Unduh\" hanya untuk petugas berhak ekspor, lalu \"Laporan berhasil diunduh.\"; tanpa hak \"Anda tidak memiliki hak akses ekspor data.\".\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: rekap sesuai RPC; periode kosong menampilkan pesan kamus; unduhan PDF dan CSV berhasil; tanpa hak ekspor ditolak.\n\n## Jangan\nJangan menghitung rekap di browser dari data mentah. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "frontend",
+      "page": "Rekap & Laporan",
+      "phase": 3,
+      "dependsOn": [
+        "T-F8.1-01",
+        "T-F8.2-01"
+      ],
+      "status": "todo",
+      "failReason": null
+    },
+    {
+      "ref": "T-F8.2-01",
+      "featureId": "F8",
+      "subFeatureId": "F8.2",
+      "title": "Susun berkas laporan layanan PDF dan CSV",
+      "description": "Susun berkas laporan layanan PDF dan CSV untuk sub-fitur Unduh Berkas Laporan.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Unduh Laporan** → sub-fitur **Unduh Berkas Laporan**, layer backend, fase 3.\n\n## Tujuan task\nBerkas laporan disusun sesuai periode dan format yang dipilih, hanya untuk petugas berhak ekspor (REQ-8.3, REQ-8.4, BR-8, NFR-14).\n\n## Yang harus dibuat\n- Endpoint server dashboard `GET /api/laporan?awal=&akhir=&format=pdf|csv` yang memanggil `rekap_layanan` dengan token petugas.\n- Periksa hak ekspor lebih dulu; tanpa hak 403 dengan pesan \"Anda tidak memiliki hak akses ekspor data.\".\n- Berkas CSV dan PDF berisi tiga total dan rincian per minggu, nama berkas memuat periode.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Eksplor kode yang ada sebelum menulis.\n\n## Kriteria selesai\nTes: CSV dan PDF terunduh untuk periode berisi data; petugas tanpa hak ekspor ditolak 403; periode tidak sah ditolak 422.\n\n## Jangan\nJangan memasukkan data pribadi penelepon ke berkas laporan. Jangan menambah fitur di luar lingkup task ini.",
+      "priority": "medium",
+      "layer": "backend",
+      "page": null,
+      "phase": 3,
+      "dependsOn": [
+        "T-F8.1-01"
+      ],
+      "status": "todo",
       "failReason": null
     }
   ]
