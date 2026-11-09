@@ -19,7 +19,6 @@ const STATUS: Record<string, [string, string]> = {
   dieskalasi: ['#fdf1cc', '#a16207'],
   'tiket terbit': ['#eee8fe', '#6d3fd9'],
   'pengaduan tidak lengkap': ['#e8e9ed', '#3a3f4d'],
-  terputus: ['#e8e9ed', '#3a3f4d'],
   Aktif: ['#dcf5e6', '#15803d'],
   'Tidak Aktif': ['#e9ebef', '#475060'],
 };
