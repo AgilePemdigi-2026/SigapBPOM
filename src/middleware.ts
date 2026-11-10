@@ -26,7 +26,8 @@ const RUTE_LATAR = new Set(['/api/panggilan-berjalan']);
 export const onRequest = defineMiddleware(async (ctx, next) => {
   ctx.locals.autentikasi = autentikasi;
   const path = ctx.url.pathname.replace(/\/+$/, '') || '/';
-  if (ctx.isPrerendered || RUTE_PUBLIK.has(path)) return next();
+  // /voice/* dipakai panel suara di halaman publik dan diteruskan ke Voice Gateway, yang punya batasnya sendiri.
+  if (ctx.isPrerendered || RUTE_PUBLIK.has(path) || path.startsWith('/voice/')) return next();
 
   const latar = RUTE_LATAR.has(path) || ctx.request.headers.get('X-Sigap-Latar') === '1';
   const petugas = await autentikasi.sesiAktif(ctx.cookies, { catatAktivitas: !latar });

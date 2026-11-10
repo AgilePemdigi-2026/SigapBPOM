@@ -84,7 +84,7 @@ const POLA_DERET_ANGKA = new RegExp(`(?:\\b(?:${ANGKA_KATA})\\b[\\s,.-]*){6,}|\\
 const POLA_PENGANTAR_NOMOR = /\b(?:nomor|no)\.?\s*(?:telepon|telpon|hp|handphone|wa|whatsapp|ponsel|kontak)?\s*(?:saya|anda|nya)?\s*(?:adalah|yaitu)?\s*$/iu;
 const FILLER = new Set(['iya', 'ya', 'oke', 'ok', 'baik', 'halo', 'hmm', 'eh', 'em', 'tidak', 'nggak', 'gak', 'enggak', 'belum', 'sudah', 'apa', 'maaf', 'terima', 'kasih']);
 const KATA_HENTI_NAMA = new Set([
-  'dan', 'nomor', 'no', 'telepon', 'telpon', 'hp', 'produk', 'yang', 'saya', 'membeli', 'beli', 'mengalami', 'dari', 'untuk', 'ya', 'adalah',
+  'dan', 'nomor', 'nomer', 'no', 'telepon', 'telpon', 'telp', 'hp', 'produk', 'yang', 'saya', 'membeli', 'beli', 'mengalami', 'dari', 'untuk', 'ya', 'adalah',
   'tinggal', 'di', 'kronologi', 'kejadian', 'setelah', 'sesudah', 'lalu', 'kemudian', 'karena', 'tapi', 'tetapi', 'dengan', 'nama', 'itu', 'ingin', 'mau',
 ]);
 const KATA_AKIBAT = 'membuat|menyebabkan|mengakibatkan|bikin';
@@ -97,10 +97,14 @@ const POLA_PRODUK = [
   /\bproduk(?:nya)?\s+(?:yang\s+(?:saya\s+)?(?:adukan|laporkan)\s+)?(?:bernama|adalah|yaitu)\s+(.+)/isu,
   /\b(?:mengadukan|melaporkan|membeli|beli|mengonsumsi|meminum|memakai|menggunakan)\s+(?:produk\s+)?(.+)/isu,
 ];
-const POLA_NAMA = /\b(?:nama\s+(?:saya|pelapor|lengkap(?:\s+saya)?)|atas\s+nama|(?<!\b(?:anak|istri|suami|ibu|ayah|bapak|adik|kakak|teman)\s+)saya\s+bernama|perkenalkan,?\s+saya)\s*(?:adalah\s+)?(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})/iu;
+// Pengantar nama pelapor: "nama saya X", juga bentuk singkat "nama X" / "namanya X" / "nama aku X". "Nama produk",
+// "nama toko", dan sejenisnya bukan nama pelapor.
+const PENGANTAR_NAMA = String.raw`nama(?:nya)?(?!\s+(?:produk|toko|merek|merk|barang|obat|apotek|warung|minimarket))(?:\s+(?:saya|aku|gue|gua|gw|pelapor|lengkap(?:\s+saya)?))?(?=\s)|atas\s+nama|(?<!\b(?:anak|istri|suami|ibu|ayah|bapak|adik|kakak|teman)\s+)saya\s+bernama|perkenalkan,?\s+saya`;
+const POLA_NAMA = new RegExp(String.raw`\b(?:${PENGANTAR_NAMA})\s*(?:adalah\s+|:\s*)?(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})`, 'iu');
 const POLA_KRONOLOGI_EKSPLISIT = /\b(?:kronologi(?:nya)?|kejadiannya|ceritanya)\s*(?:kejadian)?\s*(?:adalah|begini|yaitu|:)?\s+(.+)/isu;
 const POLA_KRONOLOGI_PENANDA = /\b(?:setelah|sesudah|usai|ketika|saat|sewaktu|kemudian|ternyata|mengalami|merasa)\b.*/isu;
-const POLA_AKHIR_KRONOLOGI = /\b(?:nama\s+(?:saya|pelapor)|atas\s+nama|nomor\s+(?:telepon|telpon|hp|wa|saya)|no\.?\s*(?:telepon|hp))\b.*/isu;
+// Kronologi berhenti di pengantar nama pelapor atau nomor telepon, termasuk ejaan lisan "nomer" dan "telp".
+const POLA_AKHIR_KRONOLOGI = new RegExp(String.raw`\b(?:${PENGANTAR_NAMA}|(?:nomor|nomer)\s+(?:telepon|telpon|telp|hp|wa|saya|aku)|no\.?\s*(?:telepon|telpon|telp|hp|wa))\b.*`, 'isu');
 
 const hitungKata = (s) => s.split(/\s+/).filter(Boolean).length;
 const rapikan = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/^[\s,.;:!?-]+|[\s,.;:!?-]+$/g, '');
@@ -213,6 +217,93 @@ function isiPotongan(f, potongan) {
   return null;
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Jawaban mengikuti template PESAN_LAYANAN_2 ("nama produk, kronologi kejadian, nama, dan nomor telepon"). Penelepon
+// sering menjawab sekaligus dengan label ("Nama produk: X, Kronologi: Y, ...") atau cukup berurutan ("X, Y, Budi, 08...").
+// ---------------------------------------------------------------------------------------------------------------------
+
+// Urutan alternatif penting: label yang lebih panjang lebih dulu ("nama produk" sebelum "nama").
+const LABEL_TEMPLATE = [
+  ['namaProduk', String.raw`nama\s+produk(?:nya)?|produk(?:nya)?|merek|merk`],
+  ['kronologi', String.raw`kronologi(?:nya)?(?:\s+kejadian(?:nya)?)?|kejadian(?:nya)?|cerita(?:nya)?|keluhan(?:nya)?`],
+  ['nomorTelepon', String.raw`(?:(?:nomor|nomer|no\.?)(?:\s+(?:telepon|telpon|telp|hp|wa|whatsapp|ponsel))?|telepon|telpon|telp|hp|wa|whatsapp|ponsel)(?:\s+(?:saya|aku))?`],
+  ['namaPelapor', String.raw`nama(?:nya)?(?:\s+(?:saya|aku|pelapor|lengkap(?:\s+saya)?))?|atas\s+nama|pelapor`],
+];
+// Label hanya dikenali di awal ucapan atau setelah pemisah (koma, titik koma, titik, baris baru), agar kata "produk" atau
+// "nama" di tengah cerita tidak dianggap label.
+const POLA_LABEL_TEMPLATE = new RegExp(
+  String.raw`(?:^|[,;\n]|\.\s)\s*(${LABEL_TEMPLATE.map(([, p]) => `(?:${p})`).join('|')})(?=[\s:=])\s*(?:[:=]|-\s|adalah\s|yaitu\s)?\s*`,
+  'giu',
+);
+const POLA_LABEL_TUNGGAL = LABEL_TEMPLATE.map(([f, p]) => [f, new RegExp(`^(?:${p})$`, 'iu')]);
+const KATA_GANTI_AWAL = /^(?:saya|aku|gue|gua|gw|kami|kita|anak|istri|suami|ibu|ayah|bapak|adik|kakak|ini|itu|tadi|kemarin|waktu|ketika|saat|setelah|sesudah)\b/iu;
+
+const fieldLabel = (label) => POLA_LABEL_TUNGGAL.find(([, re]) => re.test(label.trim()))?.[0];
+
+function nilaiField(f, teks) {
+  const v = rapikan(teks);
+  if (!v) return null;
+  if (f === 'nomorTelepon') return validasiNomorTelepon(v) ?? nomorTeleponDariUcapan(v);
+  if (f === 'namaPelapor') return hitungKata(v) <= KATA_MAKS.namaPelapor && /^[\p{L}'. -]+$/u.test(v) ? v.slice(0, PANJANG_MAKS.namaPelapor) : null;
+  if (f === 'namaProduk') return hitungKata(v) <= KATA_MAKS.namaProduk ? v.slice(0, PANJANG_MAKS.namaProduk) : null;
+  return hitungKata(v) >= KATA_MIN_KRONOLOGI ? v.slice(0, PANJANG_MAKS.kronologi) : null;
+}
+
+/**
+ * Jawaban berlabel: dua label data atau lebih. Isi tiap data adalah teks sampai label berikutnya. Bila kronologi tidak
+ * diberi label, cerita yang menempel setelah isi label lain ("nama produk X, kemarin saya beli ...") menjadi kronologinya.
+ */
+function uraiBerlabel(teks) {
+  const label = [...teks.matchAll(POLA_LABEL_TEMPLATE)]
+    .map((m) => ({ f: fieldLabel(m[1]), mulai: m.index, isi: m.index + m[0].length }))
+    .filter((l) => l.f);
+  if (new Set(label.map((l) => l.f)).size < 2) return {};
+  const hasil = {};
+  const lebih = [];
+  label.forEach((l, i) => {
+    if (l.f in hasil) return;
+    const isi = teks.slice(l.isi, label[i + 1]?.mulai ?? teks.length);
+    if (l.f === 'kronologi') {
+      const v = nilaiField(l.f, isi);
+      if (v) hasil[l.f] = v;
+      return;
+    }
+    const [depan, ...sisa] = isi.split(/[,;\n]+/);
+    const v = nilaiField(l.f, depan);
+    if (v) hasil[l.f] = v;
+    if (sisa.length) lebih.push(sisa.join(', '));
+  });
+  if (!hasil.kronologi && lebih.length) {
+    const v = nilaiField('kronologi', lebih.join(', '));
+    if (v) hasil.kronologi = v;
+  }
+  return hasil;
+}
+
+/**
+ * Jawaban berurutan sesuai template tanpa label: "produk, kronologi, nama" (nomor telepon sudah dibuang). Potongan pertama
+ * memuat nama produk (bila disusul cerita, dipotong di kata batas seperti "kemarin"), potongan terakhir yang berbentuk nama
+ * adalah nama pelapor, dan sisanya kronologi. Hanya dipakai bila ketiga data teks belum ada.
+ */
+function uraiBerurutan(sisa) {
+  const potongan = sisa.split(/[,;\n]+|\.(?:\s+|$)/).map(rapikan).filter(Boolean);
+  if (potongan.length < 2) return {};
+  const akhir = rapikan(potongan.at(-1).replace(/^(?:nama(?:nya)?(?:\s+(?:saya|aku|pelapor))?|saya|atas\s+nama)\s*(?:adalah\s*)?/iu, ''));
+  const namaPelapor = nilaiField('namaPelapor', akhir);
+  if (!namaPelapor || potongan.length < 2) return {};
+  const [pertama, ...tengah] = potongan.slice(0, -1);
+  if (KATA_GANTI_AWAL.test(pertama)) return {};
+  let namaProduk = nilaiField('namaProduk', pertama);
+  let ceritaAwal = '';
+  if (!namaProduk || tengah.length === 0) {
+    const [bagian] = pertama.split(POLA_BATAS_PRODUK);
+    namaProduk = nilaiField('namaProduk', bagian);
+    ceritaAwal = namaProduk ? rapikan(pertama.slice(bagian.length)) : '';
+  }
+  const kronologi = nilaiField('kronologi', [ceritaAwal, ...tengah].filter(Boolean).join(', '));
+  return namaProduk && kronologi ? { namaProduk, kronologi, namaPelapor } : {};
+}
+
 /**
  * Ekstraktor berbasis aturan: pola kalimat lazim untuk tiap data, lalu jawaban langsung untuk data yang baru ditanyakan.
  * Bila `kurang` diberikan (data yang sedang ditanyakan bersamaan), potongan kalimat yang belum dikenali pola mana pun
@@ -220,7 +311,24 @@ function isiPotongan(f, potongan) {
  * ponytail: pemasangan menurut urutan, jadi "Abin, Susu Greenfield" tertukar bila nama produk dan nama sama-sama kurang.
  */
 export class EkstraktorAturan {
-  ekstrak(ucapan, { ditanya = null, kurang = null, data = {} } = {}) {
+  ekstrak(ucapan, opsi = {}) {
+    const hasil = this.#ekstrakAturan(ucapan, opsi);
+    const { kurang = null, data = {} } = opsi;
+    // Jawaban sesuai template diutamakan: label yang disebut penelepon lebih pasti daripada tebakan pola kalimat.
+    const berlabel = uraiBerlabel(String(ucapan ?? '').replace(/[ \t]+/g, ' ').trim());
+    Object.assign(hasil, berlabel);
+    const teksBelum = ['namaProduk', 'kronologi', 'namaPelapor'];
+    if (kurang && teksBelum.every((f) => kurang.includes(f) && data[f] === undefined) && teksBelum.some((f) => !(f in berlabel))) {
+      const { sisa } = cariNomor(String(ucapan ?? '').replace(/[ \t]+/g, ' ').trim());
+      const urut = uraiBerurutan(sisa);
+      // Kronologi dari pola kalimat bisa ikut menelan nama di potongan terakhir, jadi urutan template menggantikannya.
+      if (urut.namaPelapor && !hasil.namaPelapor) Object.assign(hasil, urut, berlabel);
+      else for (const f of teksBelum) if (!(f in hasil) && urut[f]) hasil[f] = urut[f];
+    }
+    return hasil;
+  }
+
+  #ekstrakAturan(ucapan, { ditanya = null, kurang = null, data = {} } = {}) {
     const asli = String(ucapan ?? '').replace(/\s+/g, ' ').trim();
     const { nomor, sisa } = cariNomor(asli);
     const hasil = {};
