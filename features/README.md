@@ -16,7 +16,6 @@ Skenario `@belum-tersedia` menunggu bagian yang belum dibuat, sehingga tidak iku
 |---|---|
 | UC-06 StepperPenanganan menampilkan tahapan penanganan | Panel penanganan di Detail Pengaduan (T-F7.2-02) |
 | UC-06 SMS tindak lanjut terkirim kepada pelapor | Notifikasi SMS saat tiket ditutup (T-F7.3-01) |
-| UC-08 Berkas laporan terunduh | Penyusunan berkas PDF dan CSV, `GET /api/laporan` (T-F8.2-01) |
 
 Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
 

@@ -1,9 +1,9 @@
-// Langkah Gherkin UC-08 Merekap dan Mengunduh Laporan Layanan. Rekap dan hak ekspor memakai LaporanController dengan
+// Langkah Gherkin UC-08 Merekap dan Mengunduh Laporan Layanan. Rekap, hak ekspor, dan berkas laporan memakai LaporanController dengan
 // PenyimpananLaporanTiruan, seperti halaman /rekap-laporan tanpa sesi Supabase. GrafikRekapitulasi, TabelRekapitulasi,
 // dan kartu total (Lampiran B, SRS 3.1.12) diperiksa dari rekap yang disiapkan control untuk ketiganya.
 import assert from 'node:assert/strict';
 import { Given, When, Then } from '@cucumber/cucumber';
-import { LaporanController, daftarPeriode } from '../../src/lib/LaporanController.ts';
+import { LaporanController, PESAN_LAPORAN, daftarPeriode } from '../../src/lib/LaporanController.ts';
 import { PenyimpananLaporanTiruan } from '../../src/lib/mock/laporanTiruan.ts';
 import { tombol } from '../support/dashboard.mjs';
 
@@ -86,9 +86,17 @@ Then('tidak ada pesan penolakan', function () {
   assert.equal(this.pesan, null);
 });
 
-// @belum-tersedia: berkas laporan disusun GET /api/laporan (T-F8.2-01).
-Then('berkas laporan PDF periode {string} tersusun', function (_periode) {
-  return 'pending';
+// REQ-8.4: berkas yang disusun unduhLaporan (dipakai GET /api/laporan) sesuai format dan periode pilihan.
+Then('berkas laporan {word} periode {string} tersusun', function (format, label) {
+  const { berkas } = uc08(this);
+  assert.ok(berkas, 'berkas laporan tidak tersusun');
+  const periode = uc08(this).pilihanPeriode.find((p) => p.label === label);
+  assert.ok(periode, `periode "${label}" tidak ada di pilihan`);
+  const ext = format.toLowerCase();
+  assert.equal(berkas.nama, `laporan-layanan_${periode.awal}_${periode.akhir}.${ext}`);
+  assert.match(berkas.tipe, ext === 'pdf' ? /^application\/pdf/ : /^text\/csv/);
+  assert.ok(berkas.isi.length > 0, 'berkas kosong');
+  if (ext === 'pdf') assert.equal(Buffer.from(berkas.isi.subarray(0, 5)).toString('latin1'), '%PDF-');
 });
 
 // Langkah 4 sampai 6 Basic Path dan Alternative Path 1 (REQ-8.1, REQ-8.2).
@@ -109,7 +117,12 @@ tombol('Unduh Laporan', async function () {
   this.pesan = hak.boleh ? null : hak.pesan;
 });
 
-// Langkah 9 sampai 12 Basic Path menunggu GET /api/laporan (T-F8.2-01).
-tombol('Konfirmasi Unduh', function () {
-  return 'pending';
+// Langkah 9 sampai 12 Basic Path (REQ-8.4): berkas disusun seperti GET /api/laporan untuk periode yang ditampilkan.
+tombol('Konfirmasi Unduh', async function () {
+  const d = uc08(this);
+  const periode = d.pilihanPeriode.find((p) => p.label === this.isian.Periode);
+  assert.ok(periode, 'periode belum dipilih');
+  const hasil = await d.laporan.unduhLaporan(periode.awal, periode.akhir, String(this.isian['Format Berkas'] ?? '').toLowerCase());
+  d.berkas = hasil.kode === 200 ? hasil.berkas : null;
+  this.pesan = hasil.kode === 200 ? PESAN_LAPORAN.unduhSukses : hasil.pesan;
 });

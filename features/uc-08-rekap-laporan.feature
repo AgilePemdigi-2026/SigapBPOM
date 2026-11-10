@@ -2,7 +2,6 @@
 # Skenario penerimaan UC-08 Merekap dan Mengunduh Laporan Layanan, mengikuti SRS Tabel B.9 dan Tabel 4.8 (REQ-8.1 sampai
 # REQ-8.4, BR-8, NFR-14). Langkahnya memanggil LaporanController dengan PenyimpananLaporanTiruan, yang meniru RPC
 # rekap_layanan (data contoh sejak Juni 2026) dan pemeriksaan hak ekspor.
-# Skenario @belum-tersedia butuh bagian yang belum dibuat dan tidak ikut `npm run test:bdd`.
 Fitur: Merekap dan mengunduh laporan layanan
   Petugas menampilkan rekapitulasi layanan pada periode tertentu dan mengunduh berkas laporannya untuk evaluasi
   internal dan pelaporan. Hanya petugas berhak ekspor yang bisa mengunduh laporan.
@@ -31,8 +30,6 @@ Fitur: Merekap dan mengunduh laporan layanan
     Maka PilihanFormatBerkas ditampilkan
     Dan tidak ada pesan penolakan
 
-  # Penyusunan berkas PDF dan CSV oleh GET /api/laporan (T-F8.2-01) belum dibuat.
-  @belum-tersedia
   Skenario: Berkas laporan terunduh (Basic Path)
     Diketahui rekapitulasi layanan periode "01-09-2026 s.d. 30-09-2026" sudah ditampilkan
     Ketika petugas menekan "Unduh Laporan"
