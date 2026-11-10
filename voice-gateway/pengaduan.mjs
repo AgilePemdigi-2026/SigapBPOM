@@ -84,7 +84,7 @@ const POLA_DERET_ANGKA = new RegExp(`(?:\\b(?:${ANGKA_KATA})\\b[\\s,.-]*){6,}|\\
 const POLA_PENGANTAR_NOMOR = /\b(?:nomor|no)\.?\s*(?:telepon|telpon|hp|handphone|wa|whatsapp|ponsel|kontak)?\s*(?:saya|anda|nya)?\s*(?:adalah|yaitu)?\s*$/iu;
 const FILLER = new Set(['iya', 'ya', 'oke', 'ok', 'baik', 'halo', 'hmm', 'eh', 'em', 'tidak', 'nggak', 'gak', 'enggak', 'belum', 'sudah', 'apa', 'maaf', 'terima', 'kasih']);
 const KATA_HENTI_NAMA = new Set([
-  'dan', 'nomor', 'no', 'telepon', 'telpon', 'hp', 'produk', 'yang', 'saya', 'membeli', 'beli', 'mengalami', 'dari', 'untuk', 'ya', 'adalah',
+  'dan', 'nomor', 'nomer', 'no', 'telepon', 'telpon', 'telp', 'hp', 'produk', 'yang', 'saya', 'membeli', 'beli', 'mengalami', 'dari', 'untuk', 'ya', 'adalah',
   'tinggal', 'di', 'kronologi', 'kejadian', 'setelah', 'sesudah', 'lalu', 'kemudian', 'karena', 'tapi', 'tetapi', 'dengan', 'nama', 'itu', 'ingin', 'mau',
 ]);
 const KATA_AKIBAT = 'membuat|menyebabkan|mengakibatkan|bikin';
@@ -97,10 +97,14 @@ const POLA_PRODUK = [
   /\bproduk(?:nya)?\s+(?:yang\s+(?:saya\s+)?(?:adukan|laporkan)\s+)?(?:bernama|adalah|yaitu)\s+(.+)/isu,
   /\b(?:mengadukan|melaporkan|membeli|beli|mengonsumsi|meminum|memakai|menggunakan)\s+(?:produk\s+)?(.+)/isu,
 ];
-const POLA_NAMA = /\b(?:nama\s+(?:saya|pelapor|lengkap(?:\s+saya)?)|atas\s+nama|(?<!\b(?:anak|istri|suami|ibu|ayah|bapak|adik|kakak|teman)\s+)saya\s+bernama|perkenalkan,?\s+saya)\s*(?:adalah\s+)?(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})/iu;
+// Pengantar nama pelapor: "nama saya X", juga bentuk singkat "nama X" / "namanya X" / "nama aku X". "Nama produk",
+// "nama toko", dan sejenisnya bukan nama pelapor.
+const PENGANTAR_NAMA = String.raw`nama(?:nya)?(?!\s+(?:produk|toko|merek|merk|barang|obat|apotek|warung|minimarket))(?:\s+(?:saya|aku|gue|gua|gw|pelapor|lengkap(?:\s+saya)?))?(?=\s)|atas\s+nama|(?<!\b(?:anak|istri|suami|ibu|ayah|bapak|adik|kakak|teman)\s+)saya\s+bernama|perkenalkan,?\s+saya`;
+const POLA_NAMA = new RegExp(String.raw`\b(?:${PENGANTAR_NAMA})\s*(?:adalah\s+|:\s*)?(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})`, 'iu');
 const POLA_KRONOLOGI_EKSPLISIT = /\b(?:kronologi(?:nya)?|kejadiannya|ceritanya)\s*(?:kejadian)?\s*(?:adalah|begini|yaitu|:)?\s+(.+)/isu;
 const POLA_KRONOLOGI_PENANDA = /\b(?:setelah|sesudah|usai|ketika|saat|sewaktu|kemudian|ternyata|mengalami|merasa)\b.*/isu;
-const POLA_AKHIR_KRONOLOGI = /\b(?:nama\s+(?:saya|pelapor)|atas\s+nama|nomor\s+(?:telepon|telpon|hp|wa|saya)|no\.?\s*(?:telepon|hp))\b.*/isu;
+// Kronologi berhenti di pengantar nama pelapor atau nomor telepon, termasuk ejaan lisan "nomer" dan "telp".
+const POLA_AKHIR_KRONOLOGI = new RegExp(String.raw`\b(?:${PENGANTAR_NAMA}|(?:nomor|nomer)\s+(?:telepon|telpon|telp|hp|wa|saya|aku)|no\.?\s*(?:telepon|telpon|telp|hp|wa))\b.*`, 'isu');
 
 const hitungKata = (s) => s.split(/\s+/).filter(Boolean).length;
 const rapikan = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/^[\s,.;:!?-]+|[\s,.;:!?-]+$/g, '');

@@ -61,6 +61,23 @@ test('req_2_2 satu ucapan memuat keempat data wajib', () => {
   assert.equal(h.nomorTelepon, '081234567890');
 });
 
+test('req_2_2 ucapan ketik santai dengan "nama X" dan "nomer telpon" tetap memberi keempat data', () => {
+  const kurang = ['namaProduk', 'kronologi', 'namaPelapor', 'nomorTelepon'];
+  const h = ekstrak('nama produk susu greenfield,saya kemarin beli padahal expired masi lama tapi setelah minum peut lgsg mual,nama hariz,nomer telpon 08928128888', null, {}, kurang);
+  assert.equal(h.namaProduk, 'susu greenfield');
+  assert.equal(h.kronologi, 'setelah minum peut lgsg mual');
+  assert.equal(h.namaPelapor, 'hariz');
+  assert.equal(h.nomorTelepon, '08928128888');
+});
+
+test('req_2_2 bentuk singkat pengantar nama pelapor dikenali, nama toko atau produk tidak', () => {
+  for (const [ucapan, nama] of [['nama hariz', 'hariz'], ['namanya Rina Wati', 'Rina Wati'], ['nama aku Budi', 'Budi'], ['nama gw Andi', 'Andi']]) {
+    assert.equal(ekstrak(`Susu Greenfield bikin mual, ${ucapan}, 081234567890`).namaPelapor, nama, ucapan);
+  }
+  assert.equal(ekstrak('Saya beli susu di toko, nama tokonya Indomaret, setelah minum mual').namaPelapor, undefined);
+  assert.equal(ekstrak('Nama produknya Krim Glowing Ajaib').namaPelapor, undefined);
+});
+
 test('req_2_2 data sebagian hanya mengisi yang disebutkan', () => {
   const h = ekstrak('Nama produknya Krim Glowing Ajaib. Atas nama Siti Aminah.');
   assert.deepEqual(h, { namaProduk: 'Krim Glowing Ajaib', namaPelapor: 'Siti Aminah' });
