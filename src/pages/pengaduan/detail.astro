@@ -5,15 +5,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import StepperPenanganan from '../../components/StepperPenanganan.astro';
 import { chip } from '../../lib/data';
 import { pemantauanLayanan } from '../../lib/pemantauan';
+import { daftarPengaduan } from '../../lib/daftarPengaduan';
 import { PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
 
 const pemantauan = pemantauanLayanan(Astro.locals.tokenAkses);
 let noTiket = Astro.url.searchParams.get('tiket');
 if (!noTiket) {
-  const antrean = await pemantauan.antreanTiket();
-  if ('tiket' in antrean && antrean.tiket.length > 0) {
-    const pengaduan = antrean.tiket.find((t) => t.jenis.toLowerCase() === 'pengaduan') || antrean.tiket[0];
-    noTiket = pengaduan.noTiket;
+  const daftar = await daftarPengaduan(Astro.locals.tokenAkses, {});
+  if ('pengaduan' in daftar && daftar.pengaduan.length > 0) {
+    noTiket = daftar.pengaduan[0].noTiket;
+  } else {
+    const antrean = await pemantauan.antreanTiket();
+    if ('tiket' in antrean && antrean.tiket.length > 0) {
+      const pengaduan = antrean.tiket.find((t) => t.jenis.toLowerCase() === 'pengaduan') || antrean.tiket[0];
+      noTiket = pengaduan.noTiket;
+    }
   }
 }
 

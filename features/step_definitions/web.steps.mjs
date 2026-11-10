@@ -80,6 +80,10 @@ async function masuk(page, email, password) {
 }
 
 Given('I am on the {string} page', async function (path) {
+  if (path === '/pengaduan/detail' && this.noTiketAktif) {
+    await this.page.goto(`${URL_DASAR}/pengaduan/detail?tiket=${encodeURIComponent(this.noTiketAktif)}`);
+    return;
+  }
   await this.page.goto(`${URL_DASAR}${path}`);
 });
 
@@ -156,19 +160,26 @@ Given('the complaint status is {string}', async function (statusLabel) {
     'Diteruskan ke Instansi Lain': 'diteruskan',
   };
   const statusDb = mapStatus[statusLabel];
+  const kondisi = this.noTiketAktif
+    ? `where no_tiket = '${this.noTiketAktif}'`
+    : `where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`;
   if (statusDb) {
     if (statusDb === 'tanggapan_disusun') {
       sqlLokal(
-        `update public.tiket set status = 'sedang_ditelaah' where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`,
-        `insert into public.tanggapan (tiket_id, isi, petugas_id, status) select id, 'Produk telah ditelaah dan pelaku usaha diberi peringatan tertulis.', (select id from public.petugas limit 1), 'tanggapan_disusun' from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1`,
-        `update public.tiket set status = 'tanggapan_disusun' where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`,
+        `update public.tiket set status = 'sedang_ditelaah' ${kondisi}`,
+        `insert into public.tanggapan (tiket_id, isi, petugas_id, status) select id, 'Produk telah ditelaah dan pelaku usaha diberi peringatan tertulis.', (select id from public.petugas limit 1), 'tanggapan_disusun' from public.tiket ${kondisi}`,
+        `update public.tiket set status = 'tanggapan_disusun' ${kondisi}`,
       );
     } else {
-      sqlLokal(`update public.tiket set status = '${statusDb}' where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`);
+      sqlLokal(`update public.tiket set status = '${statusDb}' ${kondisi}`);
     }
   }
   if (this.page.url().includes('/pengaduan/detail')) {
-    await this.page.reload();
+    if (this.noTiketAktif) {
+      await this.page.goto(`${URL_DASAR}/pengaduan/detail?tiket=${encodeURIComponent(this.noTiketAktif)}`);
+    } else {
+      await this.page.reload();
+    }
   }
   const el = this.page.locator('[data-name="StatusPengaduan"]').filter({ visible: true }).first();
   await tunggu(el.filter({ hasText: statusLabel }), `status pengaduan "${statusLabel}"`);
@@ -223,9 +234,15 @@ Given('there is a complaint ticket waiting for review', function () {
   const id = randomUUID();
   sqlLokal(
     `select public.laporkan_panggilan_aktif('${id}', 'pengaduan', 'Pengaduan produk', 'mendengar')`,
-    `select public.terbitkan_tiket_pengaduan('${id}', 'Krim Wajah Glowing', 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
-      'Budi Santoso', '081234567890', 'Krim Wajah Glowing membuat kulit iritasi')`,
   );
+  const out = sqlLokal(
+    `select public.terbitkan_tiket_pengaduan('${id}', 'Krim Wajah Glowing', 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
+      'Budi Santoso', '081234567890', 'Krim Wajah Glowing membuat kulit iritasi') as no_tiket`,
+  );
+  const m = String(out || '').match(/ADU-\d{8}-\d{4}/);
+  if (m) {
+    this.noTiketAktif = m[0];
+  }
 });
 
 // Layanan luar untuk Voice Gateway: cekbpom dan Hermes tiruan di features/support/tiruan.mjs.

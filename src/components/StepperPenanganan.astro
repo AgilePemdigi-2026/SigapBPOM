@@ -279,16 +279,6 @@ const ikonTahap: Record<TahapStepper, string> = {
       }
     }
 
-    // Toggle formulir jadwal saat dropdown tindak lanjut berubah sebelum disimpan
-    selectTindakLanjut?.addEventListener('change', () => {
-      const perluJadwal = selectTindakLanjut.value === 'Perlu Pemeriksaan Lapangan';
-      if (sectionJadwal && (statusTiket === 'belum_ditelaah' || statusTiket === 'sedang_ditelaah')) {
-        sectionJadwal.hidden = !perluJadwal;
-        if (perluJadwal) sectionJadwal.removeAttribute('hidden');
-        else sectionJadwal.setAttribute('hidden', '');
-      }
-    });
-
     // 1. Simpan Telaah
     btnSimpanTelaah?.addEventListener('click', async () => {
       const tindakLanjut = selectTindakLanjut.value as TindakLanjut;
