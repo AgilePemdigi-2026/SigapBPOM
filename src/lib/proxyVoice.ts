@@ -1,7 +1,7 @@
 // Proxy /voice/* ke Voice Gateway untuk deployment yang dashboard-nya tidak berbagi Caddy dengan gateway (Coolify,
 // sementara gateway tetap di VPS). Di VPS, Caddy yang meneruskan /voice/* sehingga route ini tidak terpakai.
-// Alamat klien dikirim lewat header X-Sigap-Ip-Klien bersama kunci proxy; gateway hanya memercayainya bila kunci cocok,
-// sebab di mata Caddy VPS semua permintaan datang dari IP server dashboard.
+// Alamat klien dikirim lewat header X-Sigap-Ip-Klien, sebab di mata Caddy VPS semua permintaan datang dari IP server
+// dashboard. Gateway memercayainya hanya dari PROXY_IP_TEPERCAYA, atau bila X-Sigap-Kunci-Proxy cocok dengan PROXY_KUNCI.
 
 export const HEADER_IP_KLIEN = 'x-sigap-ip-klien';
 export const HEADER_KUNCI_PROXY = 'x-sigap-kunci-proxy';
@@ -16,7 +16,7 @@ export interface OpsiProxyVoice {
   /** Akar Voice Gateway, misalnya https://vps.example.id. Path /voice/... ditambahkan apa adanya. */
   gatewayUrl: string;
   ipKlien: string;
-  /** Rahasia bersama dengan PROXY_KUNCI di gateway. Kosong berarti alamat klien tidak dikirim. */
+  /** Rahasia bersama dengan PROXY_KUNCI di gateway. Opsional bila IP dashboard ada di PROXY_IP_TEPERCAYA. */
   kunciProxy?: string;
   fetch?: typeof fetch;
 }
@@ -29,10 +29,9 @@ export async function teruskanKeGateway(request: Request, opsi: OpsiProxyVoice):
     const nilai = request.headers.get(nama);
     if (nilai) headers.set(nama, nilai);
   }
-  if (opsi.kunciProxy) {
-    headers.set(HEADER_IP_KLIEN, opsi.ipKlien);
-    headers.set(HEADER_KUNCI_PROXY, opsi.kunciProxy);
-  }
+  // Gateway hanya memercayai header ini dari PROXY_IP_TEPERCAYA atau bersama kunci yang cocok.
+  if (opsi.ipKlien) headers.set(HEADER_IP_KLIEN, opsi.ipKlien);
+  if (opsi.kunciProxy) headers.set(HEADER_KUNCI_PROXY, opsi.kunciProxy);
   const adaBody = request.method !== 'GET' && request.method !== 'HEAD';
   let balasan: Response;
   try {

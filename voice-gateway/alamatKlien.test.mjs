@@ -4,19 +4,29 @@ import { buatIpKlien, buatCekOrigin } from './alamatKlien.mjs';
 
 const req = (headers, remoteAddress = '172.18.0.5') => ({ headers, socket: { remoteAddress } });
 
-test('tanpa PROXY_KUNCI dipakai entri terakhir X-Forwarded-For', () => {
-  const ip = buatIpKlien('');
+test('tanpa konfigurasi proxy dipakai entri terakhir X-Forwarded-For', () => {
+  const ip = buatIpKlien();
   assert.equal(ip(req({ 'x-forwarded-for': '9.9.9.9, 203.0.113.9' })), '203.0.113.9');
   assert.equal(ip(req({ 'x-sigap-ip-klien': '1.2.3.4', 'x-sigap-kunci-proxy': 'apa-saja', 'x-forwarded-for': '203.0.113.9' })), '203.0.113.9');
   assert.equal(ip(req({})), '172.18.0.5');
 });
 
-test('X-Sigap-Ip-Klien dipakai hanya bila kunci proxy cocok', () => {
-  const ip = buatIpKlien('rahasia-panjang');
+test('X-Sigap-Ip-Klien dipakai bila kunci proxy cocok', () => {
+  const ip = buatIpKlien({ kunciProxy: 'rahasia-panjang' });
   const dasar = { 'x-forwarded-for': '210.57.215.234', 'x-sigap-ip-klien': '198.51.100.7' };
   assert.equal(ip(req({ ...dasar, 'x-sigap-kunci-proxy': 'rahasia-panjang' })), '198.51.100.7');
   assert.equal(ip(req({ ...dasar, 'x-sigap-kunci-proxy': 'salah' })), '210.57.215.234');
   assert.equal(ip(req(dasar)), '210.57.215.234');
+});
+
+test('X-Sigap-Ip-Klien dipakai bila permintaan datang dari PROXY_IP_TEPERCAYA', () => {
+  const ip = buatIpKlien({ ipTepercaya: '210.57.215.234, 2001:db8::1' });
+  assert.equal(ip(req({ 'x-forwarded-for': '210.57.215.234', 'x-sigap-ip-klien': '198.51.100.7' })), '198.51.100.7');
+  // Klien lain tidak bisa memalsukan alamat dengan header yang sama.
+  assert.equal(ip(req({ 'x-forwarded-for': '203.0.113.9', 'x-sigap-ip-klien': '198.51.100.7' })), '203.0.113.9');
+  // Entri sebelum yang terakhir bisa dipalsukan, jadi tidak membuat permintaan tepercaya.
+  assert.equal(ip(req({ 'x-forwarded-for': '210.57.215.234, 203.0.113.9', 'x-sigap-ip-klien': '198.51.100.7' })), '203.0.113.9');
+  assert.equal(ip(req({ 'x-forwarded-for': '210.57.215.234' })), '210.57.215.234');
 });
 
 test('SITE_ORIGIN menerima beberapa origin dipisah koma', () => {
