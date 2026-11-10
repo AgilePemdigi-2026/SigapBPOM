@@ -1,7 +1,9 @@
 // Data tiruan pemantauan layanan (UC-04) untuk pengembangan lokal, test, dan demo (PROJECT_RULES 4.3).
 // Bentuknya mengikuti tabel percakapan, tiket, pengaduan, log_tool, dan view penelepon_tersamar; hitungannya
-// mengikuti RPC ambil_ringkasan_layanan dan ambil_detail_pengaduan_tiket serta view antrean_tiket_petugas.
+// mengikuti RPC ambil_ringkasan_layanan dan ambil_detail_pengaduan_tiket serta view antrean_tiket_petugas dan
+// beban_panggilan_per_jam.
 import type {
+  BebanPerJam,
   DataRingkasanLayanan,
   DetailKasusPengaduan,
   KasusPerluTindakLanjut,
@@ -10,6 +12,7 @@ import type {
   PanggilanAktif,
   PemeriksaKesehatanAgent,
   PenyimpananPemantauan,
+  StatistikLayanan,
   StatusTiket,
   TiketAntrean,
 } from '../PemantauanLayananController.ts';
@@ -43,6 +46,8 @@ const MENIT = 60_000;
 const HARI = 24 * 60 * MENIT;
 // REQ-4.1: persentase kategori dihitung atas tujuh hari terakhir, termasuk hari ini.
 const HARI_KATEGORI = 7;
+// WIB = UTC+7 tanpa daylight saving.
+const SELISIH_WIB = 7 * 60 * MENIT;
 
 /** Nomor hari kalender di zona Asia/Jakarta, agar "hari ini" sama dengan hitungan RPC. */
 const hariWib = (t: string | Date) => Math.floor(Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date(t))) / HARI);
@@ -142,7 +147,30 @@ export class PenyimpananPemantauanTiruan implements PenyimpananPemantauan {
   }
 
   async ambilAntreanTiket(): Promise<TiketAntrean[]> {
-    return this.data.tiket.map((t) => ({ id: t.id, noTiket: t.noTiket, jenis: t.jenis, ringkasan: t.ringkasan, status: t.status, waktuMasuk: t.tglTerbit, percakapanId: t.percakapanId }));
+    return this.data.tiket.map((t) => ({
+      id: t.id,
+      noTiket: t.noTiket,
+      jenis: t.jenis,
+      ringkasan: t.ringkasan,
+      status: t.status,
+      waktuMasuk: t.tglTerbit,
+      percakapanId: t.percakapanId,
+      noTelpTersamar: this.data.percakapan.find((p) => p.id === t.percakapanId)?.noTelp ?? undefined,
+    }));
+  }
+
+  // Tanpa batas rentang tanggal seperti view: data tiruan kecil, dan control hanya memakai kolom periode yang tampil.
+  async ambilBebanPerJam(): Promise<BebanPerJam[]> {
+    const perJam = new Map<string, BebanPerJam>();
+    for (const p of this.data.percakapan) {
+      const jam = `${new Date(Date.parse(p.waktuMulai) + SELISIH_WIB).toISOString().slice(0, 13)}:00:00`;
+      const b = perJam.get(jam) ?? { jam, total: 0, dijawabAi: 0, dieskalasi: 0 };
+      b.total++;
+      if (p.status === 'selesai_ai') b.dijawabAi++;
+      if (p.status === 'dieskalasi') b.dieskalasi++;
+      perJam.set(jam, b);
+    }
+    return [...perJam.values()].sort((a, b) => a.jam.localeCompare(b.jam));
   }
 
   async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
@@ -184,5 +212,55 @@ export class PemeriksaKesehatanTiruan implements PemeriksaKesehatanAgent {
 
   async periksa() {
     return this.komponen;
+  }
+}
+
+/** Penyimpanan kosong yang isinya diatur per test. */
+export class PenyimpananPemantauanMock implements PenyimpananPemantauan {
+  private data: DataRingkasanLayanan;
+  private panggilanAktif: PanggilanAktif[];
+  private antreanTiket: TiketAntrean[];
+  private detailKasus: Map<string, DetailKasusPengaduan>;
+
+  constructor(opsi?: {
+    ringkasan?: Partial<DataRingkasanLayanan>;
+    panggilanAktif?: PanggilanAktif[];
+    antreanTiket?: TiketAntrean[];
+    detailKasus?: DetailKasusPengaduan[];
+  }) {
+    this.data = {
+      statistik: opsi?.ringkasan?.statistik ?? {
+        panggilanHariIni: 0,
+        jawabanOtomatisAi: 0,
+        tiketEskalasiBaru: 0,
+        pengaduanSelesai: 0,
+        panggilanBerjalan: 0,
+      },
+      kategori: opsi?.ringkasan?.kategori ?? [],
+      kasusPerluTindakLanjut: opsi?.ringkasan?.kasusPerluTindakLanjut ?? [],
+    };
+    this.panggilanAktif = opsi?.panggilanAktif ?? [];
+    this.antreanTiket = opsi?.antreanTiket ?? [];
+    this.detailKasus = new Map((opsi?.detailKasus ?? []).map((d) => [d.noTiket, d]));
+  }
+
+  async ambilRingkasan(): Promise<DataRingkasanLayanan> {
+    return this.data;
+  }
+
+  async ambilStatistik(): Promise<StatistikLayanan> {
+    return this.data.statistik;
+  }
+
+  async ambilPanggilanAktif(): Promise<PanggilanAktif[]> {
+    return this.panggilanAktif;
+  }
+
+  async ambilAntreanTiket(): Promise<TiketAntrean[]> {
+    return this.antreanTiket;
+  }
+
+  async ambilDetailKasus(noTiket: string): Promise<DetailKasusPengaduan | null> {
+    return this.detailKasus.get(noTiket) ?? null;
   }
 }

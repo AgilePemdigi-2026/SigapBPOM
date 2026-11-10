@@ -6,31 +6,37 @@ import { fileURLToPath } from 'node:url';
 import {
   PESAN_BATAS_AI, PESAN_DI_LUAR_TOPIK, PESAN_JEDA, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_MENU, PESAN_PENUTUP, PESAN_TAWARAN_PENUTUP,
   PANJANG_MAKS_UCAPAN, AnggaranToken, PembatasLaju, RiwayatPanggilan, SesiPenuh, SusunanJawaban, alirkanJawaban, idPanggilanSah, inginMenutup,
-  pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson,
+  menuDariUcapan, pesanLayanan, pilihMenu, saringUcapan, teksUntukSuara, tokenTerpakai, uraiGiliranJson,
 } from './percakapan.mjs';
 import { KatalogMateriSupabase, Korpus } from './pengetahuan.mjs';
 import { CekBpom, labelKueri, tabelCek } from './cekbpom.mjs';
 import { NAMA_TOOL as TOOL_CEK_REGISTRASI, PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom } from './alatCekRegistrasi.mjs';
 import {
-  NAMA_TOOL as TOOL_PENGETAHUAN, PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel,
+  NAMA_TOOL as TOOL_PENGETAHUAN, PencariPengetahuanSupabase, cariBasisPengetahuan, kalimatSumber, pesanBasisPengetahuan, sumberUntukPanel,
 } from './alatPengetahuan.mjs';
 import {
-  BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, prosesGiliranPengaduan,
+  BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, SUARA_PENGADUAN,
+  prosesGiliranPengaduan,
 } from './pengaduan.mjs';
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
 import {
-  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan,
-  pesanTiketEskalasi,
+  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, mintaUlangTelepon,
+  nomorTeleponDariUcapan, pesanTiketEskalasi,
 } from './eskalasi.mjs';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
 import { PencatatTranskrip, PengirimTranskripSupabase, PengirimTranskripTiruan } from './transkrip.mjs';
+import { PeringkasHermes, PeringkasPercakapan, PeringkasTiruan } from './ringkasan.mjs';
 import { kirimAudio } from './audio.mjs';
 import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
+import { KondisiLayanan } from './kesehatan.mjs';
+import { buatCekOrigin, buatIpKlien } from './alamatKlien.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
-const ASAL_SITUS = env('SITE_ORIGIN', '');
+const originDiizinkan = buatCekOrigin(env('SITE_ORIGIN', ''));
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
+// Hanya diganti oleh uji beban (ujiKinerja.mjs) agar STT dan TTS mengarah ke ElevenLabs tiruan.
+const ELEVENLABS_URL = env('ELEVENLABS_URL', 'https://api.elevenlabs.io');
 // Transkrip live lewat STT realtime ElevenLabs (sttRealtime.mjs). STT_REALTIME=0 mengembalikan panel ke rekam lalu unggah.
 const STT_REALTIME = env('STT_REALTIME', '1') !== '0';
 // Suara "Zaak" dari library ElevenLabs: penutur asli, jelas, cocok untuk IVR.
@@ -62,18 +68,27 @@ const SUARA_STATIS = {
   'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON, 'tawaran-penutup': PESAN_TAWARAN_PENUTUP, jeda: PESAN_JEDA,
   'minta-nama-produk': PESAN_MINTA_NAMA_PRODUK, 'minta-kronologi': PESAN_MINTA_KRONOLOGI, 'minta-nama': PESAN_MINTA_NAMA_PELAPOR,
   'tidak-ditemukan': PESAN_TIDAK_DITEMUKAN, 'nama-tidak-jelas': PESAN_NAMA_TIDAK_JELAS,
+  // Prompt gabungan data pengaduan yang kurang dan penjelasan nomor telepon yang ditolak.
+  ...SUARA_PENGADUAN,
 };
+// Gabungan data kurang ada belasan; dirender saat pertama diminta, bukan saat gateway menyala, agar hemat kuota TTS.
+const SUARA_STATIS_SAAT_DIPAKAI = (nama) => nama.startsWith('kurang-');
 // Kutipan RAG yang dikirim ke AI. Lebih sedikit kutipan berarti prompt lebih pendek dan token pertama lebih cepat.
 const KUTIPAN_MAKS = 2;
 const PESAN_GANGGUAN = 'Layanan suara sedang gangguan. Silakan coba lagi.';
-// Tiket eskalasi lewat Edge Function bila Supabase dikonfigurasi, selain itu tiket tiruan di memori (#30).
+// Tiket, pengaduan, transkrip, dan panggilan aktif lewat Edge Function. Tiruan di memori hanya untuk pengembangan lokal;
+// di produksi gateway berhenti saat start agar penelepon tidak menerima nomor tiket tiruan.
 const SUPABASE_URL = env('SUPABASE_URL', '');
 const SIGAP_KUNCI_INTERNAL = env('SIGAP_KUNCI_INTERNAL', '');
+if (env('NODE_ENV', '') === 'production' && !(SUPABASE_URL && SIGAP_KUNCI_INTERNAL)) {
+  console.error(JSON.stringify({ ev: 'env_supabase_kurang' }));
+  process.exit(1);
+}
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
 // REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
-// T-F5.4-01: hasil pencarian cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada pencarian.
-let kondisiCekbpom = null;
+// T-F5.4-01: hasil panggilan Hermes, STT, TTS, dan cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada panggilan.
+const kondisi = new KondisiLayanan();
 // Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
 // (embedding produksi belum ada); selain itu dipakai korpus lokal.
 const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
@@ -103,15 +118,16 @@ const pengaduan = new PengaduanController({
   pembatas: pembatasTiket,
 });
 // NFR-20: transkrip dan log tool gateway tersimpan di register layanan lewat Edge Function, selain itu tiruan di memori.
+const pengirimTranskrip = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PengirimTranskripSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PengirimTranskripTiruan();
 const pencatat = new PencatatTranskrip({
-  pengirim: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PengirimTranskripSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PengirimTranskripTiruan(),
+  pengirim: pengirimTranskrip,
   onGalat: (e) => console.error(JSON.stringify({ ev: 'transkrip_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
 });
 // Panggilan aktif untuk dashboard (REQ-4.2): lewat Edge Function dengan kunci internal, tanpa service_role.
 const pantau = new PemantauPanggilan({
   pelapor: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PelaporPanggilanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PelaporPanggilanTiruan(),
   // Laporan pertama membuat baris percakapan; transkrip baru ditulis setelahnya.
-  saatTercatat: (id) => pencatat.tercatat(id),
+  saatTercatat: (id) => { pencatat.tercatat(id); peringkas.tercatat(id); },
   konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }),
   // Panggilan yang sedang mengumpulkan pengaduan tidak ditutup selama jeda bicara; batas atasnya ada di PemantauPanggilan.
   tahan: (id) => pengaduan.aktif(id),
@@ -133,7 +149,9 @@ async function akhiriPengaduan(id) {
   return hasil && { pesan: hasil.pesan, tersimpan: hasil.tersimpan };
 }
 // Koneksi putus tanpa "Akhiri Panggilan" (tab ditutup, jaringan hilang): sesi yang tidak aktif dibuang dan pengaduannya disimpan.
-riwayat.saatDibuang = (id) => { akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)).finally(() => pencatat.akhiri(id)); };
+riwayat.saatDibuang = (id) => {
+  akhiriPengaduan(id).catch(() => {}).finally(() => pantau.akhiri(id)).finally(() => { pencatat.akhiri(id); peringkas.akhiri(id); });
+};
 riwayat.dilindungi = (id) => pengaduan.aktif(id);
 setInterval(() => riwayat.bersihkan(), 60_000).unref();
 
@@ -157,6 +175,20 @@ const lajuGiliran = new PembatasLaju(30, 5 * 60 * 1000);
 // Satu token per sesi mendengarkan, jadi batasnya sama dengan giliran; setiap detik audio realtime ditagih ElevenLabs.
 const lajuSttRealtime = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
+// REQ-5.2: ringkasan buatan AI disimpan saat panggilan berakhir, tokennya ikut anggaran AI. Nama dan nomor pelapor dari alur
+// pengaduan disamarkan sebelum transkrip dikirim ke model. Tanpa Hermes dipakai ringkasan tiruan tanpa AI.
+const peringkas = new PeringkasPercakapan({
+  peringkas: HERMES_KEY ? new PeringkasHermes({ url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL }) : new PeringkasTiruan(),
+  pengirim: pengirimTranskrip,
+  anggaran: anggaranAi,
+  dataPribadi: (id) => pengaduan.dataPribadi(id),
+  onGalat: (e) => console.error(JSON.stringify({ ev: 'ringkasan_galat', jenis: e instanceof Error ? e.message : 'unknown' })),
+});
+/** Satu giliran untuk transkrip tersimpan dan untuk bahan ringkasan. */
+const catatGiliran = (id, ip, ucapan, jawaban) => {
+  pencatat.giliran(id, ucapan, jawaban);
+  peringkas.giliran(id, ip, ucapan, jawaban);
+};
 const giliranAktif = new Map();
 const tokenSuara = new Map();
 let pemakaianTts = { hari: '', karakter: 0, perIp: new Map() };
@@ -185,12 +217,8 @@ function bacaBody(req, maks) {
   });
 }
 
-// Gateway hanya bisa dicapai lewat Caddy, yang menambahkan alamat klien sebagai entri TERAKHIR
-// X-Forwarded-For. Entri sebelumnya bisa dipalsukan klien, jadi tidak dipakai.
-const ipKlien = (req) => {
-  const xff = String(req.headers['x-forwarded-for'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  return xff.at(-1) ?? req.socket.remoteAddress ?? '';
-};
+// Aturan alamat klien dan kunci proxy dashboard terpisah ada di alamatKlien.mjs.
+const ipKlien = buatIpKlien({ kunciProxy: env('PROXY_KUNCI', ''), ipTepercaya: env('PROXY_IP_TEPERCAYA', '') });
 
 function catatTts(teks, ip) {
   const hari = new Date().toISOString().slice(0, 10);
@@ -228,10 +256,10 @@ async function sttElevenLabs(audio, tipe) {
   form.append('language_code', 'ind');
   form.append('tag_audio_events', 'false');
   form.append('file', new Blob([audio], { type: tipe }), 'ucapan');
-  const r = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+  const r = await fetch(`${ELEVENLABS_URL}/v1/speech-to-text`, {
     method: 'POST', headers: { 'xi-api-key': ELEVENLABS_KEY }, body: form, signal: AbortSignal.timeout(BATAS_WAKTU_STT_MS),
   });
-  if (!r.ok) throw new Error(`stt ${r.status}`);
+  if (!r.ok) throw Object.assign(new Error(`stt ${r.status}`), { status: r.status });
   const d = await r.json();
   return String(d.text ?? '').replace(/\s+/g, ' ').trim().slice(0, PANJANG_MAKS_UCAPAN);
 }
@@ -284,18 +312,21 @@ async function* aliranHermes(id, kutipan, hasil, sinyal) {
 /** Pemberitahuan internal Hermes (misalnya "⚠️ No reply: every provider ... failed"), bukan jawaban model. */
 const pesanGalatHermes = (teks) => /^\s*(⚠|\[?error\b)/iu.test(teks);
 
-async function ttsElevenLabs(teks) {
-  const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { stability: ELEVENLABS_STABILITAS },
-    }),
-    signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
+// Semua render TTS (token suara, pesan statis, render saat mulai) lewat sini, jadi kondisinya terukur di satu tempat.
+function ttsElevenLabs(teks) {
+  return kondisi.ukur('tts', async () => {
+    const url = `${ELEVENLABS_URL}/v1/text-to-speech/${ELEVENLABS_SUARA}/stream?output_format=mp3_44100_64`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'xi-api-key': ELEVENLABS_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: teksUntukSuara(teks), model_id: ELEVENLABS_MODEL_TTS, language_code: 'id', voice_settings: { stability: ELEVENLABS_STABILITAS },
+      }),
+      signal: AbortSignal.timeout(BATAS_WAKTU_TTS_MS),
+    });
+    if (!r.ok || !r.body) throw Object.assign(new Error(`tts ${r.status}`), { status: r.status });
+    return r.body;
   });
-  if (!r.ok || !r.body) throw new Error(`tts ${r.status}`);
-  return r.body;
 }
 
 /** POST /voice/giliran: JSON {id, pilih} untuk tombol menu, JSON {id, teks} untuk pesan diketik, atau audio mentah (?id=) untuk ucapan. */
@@ -312,14 +343,11 @@ async function giliran(req, res, url) {
     if (urai.galat) throw new ErrorGateway(urai.galat.kode, urai.galat.pesan);
     id = urai.id;
     if (urai.jenis === 'pilih') {
-      const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih);
+      const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih, pantau);
       if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
-      // Pilihan menu belum dilaporkan ke dashboard: id dari klien, jadi panggilan baru dicatat setelah giliran suara
-      // pertama yang sudah melewati kuota dan pembatas laju.
-      riwayat.aturCekRegistrasi(id, { ulangNama: 0, kandidat: null });
       // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
-      pencatat.giliran(id, null, PESAN_MENU);
-      pencatat.giliran(id, null, menu.jawaban);
+      catatGiliran(id, '', null, PESAN_MENU);
+      catatGiliran(id, '', null, menu.jawaban);
       return kirim(res, 200, 'success', 'OK', { transkrip: null, jawaban: menu.jawaban, suara: menu.suara });
     }
     // Pesan yang diketik: tanpa STT, selebihnya sama dengan giliran suara.
@@ -349,7 +377,7 @@ async function giliran(req, res, url) {
     }
 
     const mulai = Date.now();
-    const transkrip = ketik ?? await sttElevenLabs(audio, tipe);
+    const transkrip = ketik ?? await kondisi.ukur('stt', () => sttElevenLabs(audio, tipe));
     const tStt = Date.now() - mulai;
     // Penelepon sudah memutus panggilan: Hermes belum dipanggil, jadi cadangan token dikembalikan di finally luar.
     if (batal.signal.aborted) return;
@@ -360,7 +388,8 @@ async function giliran(req, res, url) {
     const tulis = (baris) => res.write(`${JSON.stringify(baris)}\n`);
     // NFR-20: kalimat yang diucapkan ke penelepon dikumpulkan lalu dicatat bersama ucapannya di finally, satu titik untuk semua jalur.
     const terucap = [];
-    const ucapkan = (teks, suara) => { terucap.push(teks); tulis({ jenis: 'kalimat', teks, suara }); };
+    let tKalimat1 = null;
+    const ucapkan = (teks, suara) => { tKalimat1 ??= Date.now() - mulai; terucap.push(teks); tulis({ jenis: 'kalimat', teks, suara }); };
     try {
       if (!transkrip) {
         tulis({ jenis: 'transkrip', transkrip: '' });
@@ -392,6 +421,18 @@ async function giliran(req, res, url) {
         return;
       }
 
+      // UC-01 Alternative Path 3: "dua", "tekan 2", atau niat mengadu setelah tawaran tekan 2 memilih layanan pengaduan, tanpa AI.
+      const menuUcapan = menuDariUcapan(transkrip, riwayat.jawabanTerakhir(id));
+      if (menuUcapan) {
+        const menu = pilihMenu(riwayat, pengaduan, id, menuUcapan);
+        tulis({ jenis: 'transkrip', transkrip });
+        console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, menu: menuUcapan, token: 0 }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        ucapkan(menu.jawaban, menu.suara);
+        tulis({ jenis: 'selesai', sumber: [], layanan: menuUcapan });
+        return;
+      }
+
       // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
       // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
       const pertanyaanEskalasi = riwayat.eskalasi(id);
@@ -401,6 +442,12 @@ async function giliran(req, res, url) {
         if (pertanyaanEskalasi === null) {
           riwayat.mulaiEskalasi(id, transkrip);
           riwayat.tambah(id, 'user', transkrip);
+          // SRS Tabel B.2 Alternative Path 2 langkah 7: basis pengetahuan dicari dan tercatat di log_tool, tetapi hasilnya
+          // dibuang karena pertanyaan medis tidak dijawab AI (NFR-6). Status eskalasi sudah diambil sebelum await.
+          await cariBasisPengetahuan({
+            pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)),
+            saatLokal: (ms, berhasil) => pencatat.tool(id, TOOL_PENGETAHUAN, ms, berhasil),
+          });
           jawaban = PESAN_BUTUH_PETUGAS;
           suara = '/voice/statis/butuh-petugas';
         } else {
@@ -427,8 +474,10 @@ async function giliran(req, res, url) {
             // Tiket tetap terbit walau penelepon sudah memutus; hanya render suaranya yang dilewati.
             suara = batal.signal.aborted ? null : terbitkanTokenSuara(jawaban, ip);
           } else {
-            jawaban = PESAN_MINTA_ULANG_TELEPON;
-            suara = '/voice/statis/ulang-telepon';
+            // Penjelasan bila angka terdengar tetapi bukan nomor yang sah (kurang, kelebihan, atau bukan 08).
+            const ulang = mintaUlangTelepon(transkrip);
+            jawaban = ulang.pesan;
+            suara = `/voice/statis/${ulang.suara}`;
           }
         }
         riwayat.tambah(id, 'assistant', jawaban);
@@ -479,7 +528,7 @@ async function giliran(req, res, url) {
         const ms = Date.now() - tCek;
         console.info(JSON.stringify({ ev: 'cekbpom', jalur: cek.jalur, jenis, hasil: cek.total, ms }));
         if (cek.kueri) {
-          kondisiCekbpom = { sehat: !cek.galat, latensiMs: ms, waktu: new Date().toISOString() };
+          kondisi.catat('cekbpom', !cek.galat, ms);
           pencatat.tool(id, TOOL_CEK_REGISTRASI, ms, !cek.galat);
         }
         konteks = cek.konteks;
@@ -489,11 +538,11 @@ async function giliran(req, res, url) {
           saatLokal: (ms, berhasil) => pencatat.tool(id, TOOL_PENGETAHUAN, ms, berhasil),
         });
         kutipan = basis.kutipan.slice(0, KUTIPAN_MAKS);
-        konteks = pesanBasisPengetahuan(kutipan, basis.mode);
+        konteks = pesanBasisPengetahuan(kutipan);
       }
       if (batal.signal.aborted) return;
       if (cek?.jawaban) {
-        // NFR-7: hasil tunggal, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
+        // NFR-7: hasil tunggal, hasil ganda, tidak ditemukan, dan nama tidak jelas memakai kalimat baku tanpa AI.
         // Tawaran penutup diucapkan terpisah agar memakai audio statisnya.
         const isi = cek.jawaban.endsWith(PESAN_TAWARAN_PENUTUP) ? cek.jawaban.slice(0, -PESAN_TAWARAN_PENUTUP.length).trim() : cek.jawaban;
         const statis = Object.keys(SUARA_STATIS).find((k) => SUARA_STATIS[k] === isi);
@@ -507,13 +556,16 @@ async function giliran(req, res, url) {
       }
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
-      let tKalimat1 = 0;
-      const ucapkanKalimat = (ucap) => {
-        if (!tKalimat1) tKalimat1 = Date.now() - mulai;
-        ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
-      };
+      const ucapkanKalimat = (ucap) => ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
+      // NFR-1: latensi Hermes di Pantau AI Agent adalah waktu sampai kalimat pertama siap, bukan sampai jawaban selesai.
+      // Panggilan yang dibatalkan penelepon tidak dinilai; jawaban kosong dan pemberitahuan galat Hermes dihitung gangguan.
+      const tHermes = Date.now();
       try {
         await alirkanJawaban(aliranHermes(id, konteks, hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
+        if (!batal.signal.aborted) kondisi.catat('hermes', hasil.karKeluaran > 0, (tKalimat1 ? mulai + tKalimat1 : Date.now()) - tHermes);
+      } catch (e) {
+        kondisi.catat('hermes', false, Date.now() - tHermes);
+        throw e;
       } finally {
         hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
@@ -547,8 +599,14 @@ async function giliran(req, res, url) {
       } else if (!susunan.isi.length) {
         jawaban = 'Maaf, saya belum bisa menjawab. Silakan ulangi pertanyaan Anda.';
         ucapkan(jawaban, terbitkanTokenSuara(jawaban, ip));
-      } else if (susunan.tawaran) {
-        ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
+      } else {
+        // NFR-8: jawaban edukasi ditutup kalimat Sumber dari rujukan kutipan, sebelum tawaran penutup.
+        const sumberLisan = susunan.lengkapiSumber(kalimatSumber(kutipan));
+        if (sumberLisan) {
+          ucapkan(sumberLisan, terbitkanTokenSuara(sumberLisan, ip));
+          jawaban = susunan.teks;
+        }
+        if (susunan.tawaran) ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
       }
       riwayat.tambah(id, 'assistant', jawaban);
       console.info(JSON.stringify({
@@ -566,7 +624,10 @@ async function giliran(req, res, url) {
       if (!(e instanceof ErrorGateway)) console.error(JSON.stringify({ ev: 'galat', path: '/voice/giliran', jenis: e instanceof Error ? e.message : 'unknown' }));
       tulis({ jenis: 'galat', message: e instanceof ErrorGateway ? e.message : PESAN_GANGGUAN });
     } finally {
-      pencatat.giliran(id, transkrip, terucap.join(' '));
+      catatGiliran(id, ip, transkrip, terucap.join(' '));
+      // NFR-1 untuk semua jalur: waktu kalimat pertama dikirim, sebelum render TTS-nya selesai (batas bawah, lihat ADR 0005).
+      // null berarti tidak ada yang terucap (galat atau batal).
+      if (transkrip) console.info(JSON.stringify({ ev: 'respons', stt_ms: tStt, kalimat1_ms: tKalimat1 }));
       res.end();
     }
   } finally {
@@ -587,7 +648,7 @@ async function sesiSttRealtime(req, res) {
   let body;
   try { body = JSON.parse((await bacaBody(req, JSON_MAKS_BYTE)).toString('utf8')); } catch { throw new ErrorGateway(400, 'Permintaan tidak valid.'); }
   if (!idPanggilanSah(body?.id)) throw new ErrorGateway(400, 'Permintaan tidak valid.');
-  const token = await buatTokenSttRealtime(ELEVENLABS_KEY);
+  const token = await kondisi.ukur('stt', () => buatTokenSttRealtime(ELEVENLABS_KEY));
   return kirim(res, 200, 'success', 'OK', { url: alamatSttRealtime(token) });
 }
 
@@ -623,10 +684,11 @@ const server = createServer(async (req, res) => {
           status: katalog.status, materi: katalog.materi ?? 0, nonaktif: katalog.nonaktif ?? 0, tambahan: katalog.tambahan ?? 0,
           tanpaKatalog: katalog.tanpaKatalog ?? 0,
         },
-        cekbpom: { aktif: Boolean(cekBpom), ...(kondisiCekbpom ?? {}) },
+        hermes: kondisi.terakhir.hermes, stt: kondisi.terakhir.stt, tts: kondisi.terakhir.tts,
+        cekbpom: { aktif: Boolean(cekBpom), ...(kondisi.terakhir.cekbpom ?? {}) },
       });
     }
-    if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
+    if (req.method === 'POST' && !originDiizinkan(req.headers.origin)) throw new ErrorGateway(403, 'Akses ditolak.');
     if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(req, res, path.slice('/voice/statis/'.length));
     if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(req, res, path.slice('/voice/suara/'.length));
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
@@ -638,6 +700,8 @@ const server = createServer(async (req, res) => {
       const akhir = await akhiriPengaduan(body.id);
       await pantau.akhiri(body.id);
       riwayat.hapus(body.id);
+      // REQ-5.2: ringkasan disusun setelah respons dikirim, jadi penutupan panggilan tidak menunggu AI.
+      peringkas.akhiri(body.id);
       return kirim(res, 200, 'success', 'OK', akhir);
     }
     return kirim(res, 404, 'error', 'Tidak ditemukan.');
@@ -656,5 +720,5 @@ server.requestTimeout = 90_000;
 server.listen(PORT, () => {
   console.info(JSON.stringify({ ev: 'siap', port: PORT, siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) }));
   // Render pesan tetap sekali saat mulai, supaya tidak ada render bersamaan dari permintaan pengguna.
-  if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS)) statis({ writeHead() {}, end() {} }, nama).catch(() => {});
+  if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS).filter((n) => !SUARA_STATIS_SAAT_DIPAKAI(n))) statis({ writeHead() {}, end() {} }, nama).catch(() => {});
 });

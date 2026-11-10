@@ -42,8 +42,8 @@ After({ tags: '@ui' }, async function ({ pickle, result }) {
   await this.konteks?.close();
 });
 
-// Materi yang dibuat atau dinonaktifkan skenario UC-07 dihapus lagi agar skenario bisa diulang.
-After({ tags: '@uc-07' }, function () {
+// Materi yang dibuat skenario UC-01 dan UC-07 atau dinonaktifkan UC-07 dihapus lagi agar skenario bisa diulang.
+After({ tags: '@uc-01 or @uc-07' }, function () {
   const judul = "('Ketentuan Izin Edar Suplemen Kesehatan', 'Ketentuan Label Pangan Olahan 2018')";
   sqlLokal(
     `delete from public.materi_potongan where materi_id in (select id from public.materi_pengetahuan where judul in ${judul})`,

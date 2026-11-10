@@ -8,7 +8,7 @@ const PANJANG_POTONGAN = 1100;
 const PANJANG_KUTIPAN = 600;
 const BM25_K1 = 1.4;
 const BM25_B = 0.75;
-// Skor minimal agar kutipan dianggap relevan; di bawahnya agen menjawab tanpa kutipan.
+// Skor minimal agar kutipan dianggap relevan; di bawahnya tidak ada kutipan dan pertanyaan edukasi dieskalasi (alatPengetahuan.mjs).
 export const SKOR_MINIMAL = 9;
 
 const STOPWORD = new Set(`yang dan di ke dari untuk dengan pada dalam atau ini itu adalah sebagai oleh akan dapat tidak

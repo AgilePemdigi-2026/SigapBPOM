@@ -114,7 +114,7 @@ Kebutuhan:
 - REQ-2.2 Data yang belum disebutkan ditanyakan kembali sampai lengkap.
 - REQ-2.3 Pengaduan dicatat di register, tiket diterbitkan, berkas masuk antrean tindak lanjut petugas.
 - REQ-2.4 Nomor tiket disampaikan beserta info tindak lanjut lewat SMS.
-- REQ-2.5 Panggilan diakhiri sebelum lengkap: simpan sebagai "pengaduan tidak lengkap" tanpa tiket.
+- REQ-2.5 Panggilan diakhiri sebelum lengkap: simpan sebagai "pengaduan tidak lengkap" tanpa tiket. Baris pengaduan tidak lengkap baru dibuat setelah penelepon menyebut minimal satu data pengaduan; panggilan yang berakhir sebelum ada data apa pun cukup tercatat sebagai percakapan.
 
 Kriteria penerimaan ringkas:
 
@@ -270,7 +270,7 @@ Catatan implementasi:
 Enumerasi:
 
 - `status_pengaduan`: Belum Ditelaah, Sedang Ditelaah, Menunggu Pemeriksaan, Tanggapan Disusun, Selesai, Diteruskan ke Instansi Lain.
-- `status_penyelesaian` percakapan: selesai oleh AI, dieskalasi, tiket terbit, pengaduan tidak lengkap.
+- `status_penyelesaian` percakapan: selesai oleh AI, dieskalasi, tiket terbit, pengaduan tidak lengkap, terputus. Terputus dipakai untuk panggilan yang berakhir tanpa diselesaikan, misalnya penelepon menutup panggilan sebelum dijawab atau panggilan ditutup otomatis sebelum dijawab. Panggilan terputus tidak dihitung sebagai dijawab otomatis oleh AI.
 - `jenis_Tiket`: pengaduan (prefiks ADU), eskalasi (prefiks ESK). Format final belum ditetapkan.
 - `keputusan_tindak_lanjut`: Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM.
 - `status_materi`: aktif, tidak aktif.
@@ -399,25 +399,52 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 01 | Produk tidak ditemukan | Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan. |
 | 01 | Di luar topik | Pertanyaan tersebut berada di luar cakupan layanan HaloBPOM. |
 | 01 | Nama tidak jelas | Maaf, nama produk kurang jelas. Mohon sebutkan kembali. |
+| 01 | Nama produk cocok dengan lebih dari satu registrasi | Ditemukan [jumlah] produk. Pilih salah satu: [nama produk 1], [nama produk 2], atau [nama produk 3]. |
+| 01 | Nama produk cocok dengan dua registrasi | Ditemukan [jumlah] produk. Pilih salah satu: [nama produk 1] atau [nama produk 2]. |
+| 01 | Jawaban edukasi | [jawaban] Sumber: [rujukan sumber]. |
 | 01, 02 | Penelepon selesai bicara, AI menyusun jawaban | Baik, sebentar saya cek ya. |
 | 01, 02 | Pertanyaan selesai dijawab | Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup. |
 | 01, 02 | Penelepon tidak butuh bantuan lagi | Terima kasih sudah menghubungi HaloBPOM. Percakapan ini saya tutup ya. |
 | 01, 02 | Batas pemakaian AI harian tercapai | Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok. |
 | 01, 02 | Batas percakapan satu panggilan tercapai | Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru. |
+| 01, 02 | Gateway suara gagal atau jaringan putus | Layanan suara sedang gangguan. Silakan coba lagi. |
+| 01, 02 | Ucapan tidak terdengar | Suara tidak terdengar. Silakan ulangi. |
+| 01, 02 | Rekaman melebihi batas | Rekaman terlalu panjang. |
+| 01, 02 | Permintaan terlalu sering | Terlalu banyak permintaan. Coba lagi sebentar lagi. |
+| 01, 02 | Kapasitas sesi penuh | Layanan sedang penuh. Coba lagi sebentar lagi. |
+| 01, 02 | Percakapan tidak dapat dilanjutkan | Percakapan ini tidak dapat dilanjutkan. Silakan mulai panggilan baru. |
+| 01, 02 | Panggilan berakhir, selain pengaduan belum lengkap | Panggilan berakhir. Transkrip tersimpan di register layanan. |
 | 01 | Batas tiket eskalasi tercapai | Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok. |
 | 02 | Tekan 2 | Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda. |
 | 02 | Data kurang (contoh) | Mohon sebutkan nomor telepon Anda. |
+| 02 | Data kurang: nama produk | Mohon sebutkan nama produk yang Anda adukan. |
+| 02 | Data kurang: kronologi | Mohon ceritakan kronologi kejadiannya. |
+| 02 | Data kurang: nama pelapor | Mohon sebutkan nama Anda. |
 | 02 | Tiket pengaduan terbit | Pengaduan Anda telah dicatat dengan nomor tiket [nomor tiket]. Tindak lanjut akan dikirim melalui SMS. |
 | 02 | Panggilan putus, data kurang | Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan. |
 | 03 | Login sukses | Login berhasil! |
 | 03 | Isian kosong | Login gagal. Semua field harus diisi! |
 | 03 | Kredensial salah | Login gagal. Email atau password Anda salah. |
 | 03 | Gagal tiga kali | Akses dikunci sementara. Hubungi administrator. |
+| 03 | Kredensial salah, keterangan penguncian | Akses akun dikunci sementara setelah tiga kali gagal login berturut-turut. |
+| 03 | Kotak informasi halaman login | Akun dibuat oleh administrator SIGAP. Bila muncul pesan "Akses dikunci sementara. Hubungi administrator.", hubungi administrator melalui ext. 1500533-2. |
+| 03 | Galat sistem saat login | Terjadi kesalahan pada sistem. |
 | 04 | Tidak ada panggilan aktif | Tidak ada panggilan berjalan saat ini. |
 | 04 | Tiket tidak ditemukan | Tiket tidak ditemukan. |
 | 04 | Detail pengaduan gagal dimuat | Data pengaduan gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 04 | Panggilan berjalan gagal dimuat | Data panggilan gagal dimuat. |
 | 04 | Log tool kosong | Belum ada pemanggilan tool. |
+| 04 | Antrean tiket kosong | Tidak ada kasus yang perlu ditindaklanjuti. |
+| 04 | Antrean tiket gagal dimuat | Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
+| 04 | Ringkasan layanan gagal dimuat | Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
+| 04 | Kategori pertanyaan kosong | Belum ada pertanyaan dalam 7 hari terakhir. |
+| 04 | Statistik Panggilan Hari Ini kosong | Belum ada panggilan |
+| 04 | Grafik Beban Panggilan kosong | Belum ada panggilan pada periode ini. |
+| 04 | Grafik Beban Panggilan kosong, keterangan | Grafik terisi otomatis begitu penelepon menghubungi CS AI. |
+| 04 | Tingkat Penyelesaian kosong | Belum ada data |
+| 04 | Tingkat Penyelesaian kosong, keterangan | Persentase pertanyaan yang dijawab AI tampil setelah ada panggilan. |
+| 04 | Pencarian di topbar dashboard tanpa hasil | Tidak ada hasil untuk pencarian ini. |
+| 04 | Notifikasi kosong | Belum ada notifikasi. |
 | 05 | Catatan tersimpan | Catatan pemeriksaan tersimpan. |
 | 05 | Catatan kosong | Catatan pemeriksaan wajib diisi. |
 | 06 | Telaah tersimpan | Hasil telaah tersimpan. |
@@ -431,6 +458,13 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 07 | Gagal menonaktifkan | Materi gagal dinonaktifkan. Muat ulang halaman untuk mencoba lagi. |
 | 07 | Rujukan kosong | Rujukan sumber wajib diisi. |
 | 07 | Materi gagal dimuat | Materi gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
+| 07 | Materi gagal disimpan | Materi gagal disimpan. Muat ulang halaman untuk mencoba lagi. |
+| 07 | Materi tersimpan, pengindeksan gagal | Materi tersimpan, tetapi belum siap digunakan sistem. Tekan "Indeks Ulang" untuk mencoba lagi. |
+| 07 | Belum ada materi | Belum ada materi. Tambahkan materi pertama. |
+| 07 | Pencarian materi tanpa hasil | Belum ada materi yang cocok. |
+| 07 | Graf kosong | Graf terbentuk setelah ada materi di basis pengetahuan. |
+| 07 | Simpul graf tanpa bagian dokumen terindeks | Belum ada bagian dokumen terindeks. |
+| 07 | Konfirmasi menonaktifkan materi | Tandai "[judul materi]" tidak aktif? Materi tidak dihapus permanen, tetapi tidak lagi dipakai sebagai sumber jawaban. |
 | 08 | Periode kosong | Data tidak tersedia pada periode tersebut. |
 | 08 | Unduh sukses | Laporan berhasil diunduh. |
 | 08 | Tanpa hak ekspor | Anda tidak memiliki hak akses ekspor data. |
@@ -439,11 +473,13 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 
 ## Lampiran B. Label Tombol dan Field
 
-Tombol: "Telepon CS AI", "Akhiri Panggilan", "Login", "Buka Kasus", "Lihat Transkrip", "Simpan Catatan", "Telaah", "Simpan Telaah", "Simpan Jadwal", "Simpan Tanggapan", "Tutup Tiket", "Tambah Materi", "Hapus", "Graf Pengetahuan", "Simpan", "Tampilkan", "Unduh Laporan", "Konfirmasi Unduh".
+Tombol: "Telepon CS AI", "Akhiri Panggilan", "Login", "Buka Kasus", "Lihat Transkrip", "Simpan Catatan", "Telaah", "Simpan Telaah", "Simpan Jadwal", "Simpan Tanggapan", "Tutup Tiket", "Tambah Materi", "Indeks Ulang", "Hapus", "Graf Pengetahuan", "Simpan", "Tampilkan", "Unduh Laporan", "Konfirmasi Unduh".
 
 Field: "Email", "Password", "Catatan Pemeriksaan", "Tindak Lanjut", "Catatan Tindak Lanjut", "Tanggal Pemeriksaan", "Unit Pelaksana", "Tanggapan", "Judul Materi", "Rujukan Sumber", "Periode", "Format Berkas".
 
-Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber".
+Tombol menu layanan di panel suara (UC-01, UC-02): "Informasi Produk" (tekan 1), "Pengaduan Produk" (tekan 2, juga pada kartu produk tidak ditemukan).
+
+Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber", dan judul kartu kandidat produk "[jumlah] hasil ditemukan, [jumlah ditampilkan] teratas. Sebutkan nomor pilihan Anda." (paling banyak 3 ditampilkan; bagian ", [jumlah ditampilkan] teratas" tidak ada bila semua hasil tampil).
 
 Elemen bernama untuk uji penerimaan: PanelPercakapanSuara, TranskripPercakapan, RingkasanPercakapan, StepperPenanganan, GrafPengetahuan, GrafikRekapitulasi, TabelRekapitulasi.
 

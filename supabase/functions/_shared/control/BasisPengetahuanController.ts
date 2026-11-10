@@ -97,8 +97,7 @@ export class BasisPengetahuanController {
   /**
    * REQ-7.1, REQ-7.2, BR-4: Menyimpan materi aktif ke basis pengetahuan.
    * Validasi rujukan sumber dan judul di server.
-   * Melakukan pemotongan teks (chunking) ber-overlap dan membuat embedding.
-   * Bila pengindeksan gagal, materi TETAP tersimpan dengan terindeks = false.
+   * Lalu mengindeksnya lewat indeksMateri; bila pengindeksan gagal, materi TETAP tersimpan dengan terindeks = false.
    */
   async tambahMateri(input: InputTambahMateri): Promise<MateriPengetahuan> {
     const judul = typeof input.judul === 'string' ? input.judul.trim() : '';
@@ -146,35 +145,33 @@ export class BasisPengetahuanController {
       diperbarui_pada: diperbaruiPada,
     });
 
-    // 2. Potong teks dan buat embedding
-    if (!isi) {
-      return materiTersimpan;
-    }
+    // 2. Potong teks dan buat embedding. Materi tanpa isi diindeks dari judulnya (SRS Tabel B.8 Basic Path).
+    materiTersimpan.terindeks = await this.indeksMateri(materiTersimpan.id, isi || judul);
+    return materiTersimpan;
+  }
 
+  /**
+   * T-F2.2-02, REQ-7.1: memotong teks, membuat embedding, menyimpan potongan berurutan, lalu menandai materi terindeks.
+   * Juga dipakai scripts/indeks-materi.ts untuk materi yang belum terindeks (F2: "bisa diindeks ulang").
+   * False bila tidak ada potongan atau pengindeksan gagal; materi tetap tersimpan dengan terindeks = false.
+   */
+  async indeksMateri(materiId: string, teks: string): Promise<boolean> {
     try {
-      const potongan = potongTeks(isi);
-      if (potongan.length > 0) {
-        const daftarPotongan = [];
-        for (const teksChunk of potongan) {
-          const embedding = await this.penyediaEmbedding.buatEmbedding(teksChunk);
-          daftarPotongan.push({
-            materi_id: materiTersimpan.id,
-            teks: teksChunk,
-            embedding,
-          });
-        }
-
-        await this.penyimpanan.simpanPotongan(daftarPotongan);
-        await this.penyimpanan.perbaruiStatusTerindeks(materiTersimpan.id, true);
-        materiTersimpan.terindeks = true;
+      const potongan = potongTeks(teks);
+      if (!potongan.length) return false;
+      const daftarPotongan = [];
+      for (const [urutan, teksChunk] of potongan.entries()) {
+        const embedding = await this.penyediaEmbedding.buatEmbedding(teksChunk);
+        daftarPotongan.push({ materi_id: materiId, urutan, teks: teksChunk, embedding });
       }
+
+      await this.penyimpanan.simpanPotongan(daftarPotongan);
+      await this.penyimpanan.perbaruiStatusTerindeks(materiId, true);
+      return true;
     } catch (galat) {
-      // Bila pengindeksan gagal, materi tetap tersimpan dengan terindeks = false.
       // PROJECT_RULES 5.10: catat nama galat saja, bukan objek utuh yang bisa memuat detail query.
       console.error('pengindeksan materi gagal:', galat instanceof Error ? galat.name : 'unknown');
-      materiTersimpan.terindeks = false;
+      return false;
     }
-
-    return materiTersimpan;
   }
 }

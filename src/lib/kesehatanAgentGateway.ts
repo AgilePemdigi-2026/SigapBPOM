@@ -1,12 +1,15 @@
 // Adapter produksi PemeriksaKesehatanAgent: membaca GET /voice/kesehatan milik Voice Gateway (T-F5.4-01).
-// Respons gateway: { status, message, data: { siap, korpus, katalog, cekbpom } } (PROJECT_RULES 4.4). Gateway sehat bila menjawab,
-// dengan latensi diukur dari permintaan ini; Hermes dan STT/TTS dinilai dari `siap` (kunci keduanya terpasang); cekbpom
-// dari `cekbpom`, yaitu hasil pencarian terakhir gateway.
-// ponytail: Hermes dan STT/TTS dinilai dari konfigurasi, bukan ping langsung; ganti bila gateway melaporkan hasil probe.
+// Respons gateway: { status, message, data: { siap, korpus, katalog, hermes, stt, tts, cekbpom } } (PROJECT_RULES 4.4). Gateway sehat
+// bila menjawab, dengan latensi diukur dari permintaan ini. Hermes, STT, dan TTS dinilai dari hasil dan latensi panggilan nyata
+// terakhir gateway; sebelum ada panggilan sejak gateway mulai (atau gateway lama tanpa field itu) dipakai `siap`, yaitu kunci
+// keduanya terpasang. STT/TTS sehat bila keduanya sehat, dengan latensi terbesar yang diketahui. cekbpom dari `cekbpom`, yaitu
+// hasil pencarian terakhir gateway.
 import type { KomponenTersimpan, PemeriksaKesehatanAgent } from './PemantauanLayananController.ts';
 
 // Halaman pantau tidak boleh ikut macet saat gateway tidak menjawab.
 const BATAS_TUNGGU_MS = 3000;
+
+type HasilTerakhir = { sehat?: unknown; latensiMs?: unknown } | null | undefined;
 
 export class PemeriksaKesehatanGateway implements PemeriksaKesehatanAgent {
   url: string;
@@ -24,12 +27,25 @@ export class PemeriksaKesehatanGateway implements PemeriksaKesehatanAgent {
     const res = await this.fetch(`${this.url}/voice/kesehatan`, { signal: AbortSignal.timeout(BATAS_TUNGGU_MS) });
     if (!res.ok) throw new Error(`gateway kesehatan ${res.status}`);
     const latensiMs = this.now() - mulai;
-    const body = (await res.json()) as { data?: { siap?: unknown; cekbpom?: { aktif?: unknown; sehat?: unknown; latensiMs?: unknown } } };
+    const body = (await res.json()) as {
+      data?: {
+        siap?: unknown;
+        hermes?: HasilTerakhir;
+        stt?: HasilTerakhir;
+        tts?: HasilTerakhir;
+        cekbpom?: { aktif?: unknown; sehat?: unknown; latensiMs?: unknown };
+      };
+    };
     const siap = body.data?.siap === true;
+    const kondisi = (h: HasilTerakhir) =>
+      typeof h?.sehat === 'boolean' ? { sehat: h.sehat, latensiMs: Number.isFinite(h.latensiMs) ? Number(h.latensiMs) : null } : { sehat: siap, latensiMs: null };
+    const stt = kondisi(body.data?.stt);
+    const tts = kondisi(body.data?.tts);
+    const latensiSuara = [stt.latensiMs, tts.latensiMs].filter((n): n is number => n !== null);
     const komponen: KomponenTersimpan[] = [
       { nama: 'Voice Gateway', sehat: true, latensiMs },
-      { nama: 'Hermes', sehat: siap, latensiMs: null },
-      { nama: 'STT/TTS', sehat: siap, latensiMs: null },
+      { nama: 'Hermes', ...kondisi(body.data?.hermes) },
+      { nama: 'STT/TTS', sehat: stt.sehat && tts.sehat, latensiMs: latensiSuara.length ? Math.max(...latensiSuara) : null },
     ];
     // cekbpom: nonaktif berarti cek legalitas tidak tersedia; belum ada pencarian berarti belum bisa dipastikan,
     // jadi tidak dilaporkan dan control memakai log tool.

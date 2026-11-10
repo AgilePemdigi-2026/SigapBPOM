@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP, TOPIK, ringkasanPanggilan } from './panggilanAktif.mjs';
+import { RiwayatPanggilan, pilihMenu } from './percakapan.mjs';
+import { PengaduanController } from './pengaduan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const ID2 = '7f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
@@ -111,10 +113,27 @@ test('req_4_2 penulisan di-throttle: perubahan tahap beruntun tidak ditulis satu
   assert.equal(pelapor.daftarAktif()[0].tahap, 'menjawab', 'tahap terbaru yang tertunda akhirnya ditulis');
 });
 
-test('req_4_2 jenis layanan dan topik baku dari keadaan panggilan tanpa isi ucapan', () => {
-  assert.deepEqual(ringkasanPanggilan({}), { jenisLayanan: null, topik: null });
+test('req_4_1 req_4_2 jenis layanan dan topik baku dari keadaan panggilan tanpa isi ucapan', () => {
+  // Tanpa pilihan menu gateway menjalankan alur UC-01, jadi panggilan dihitung informasi produk.
+  assert.deepEqual(ringkasanPanggilan({}), { jenisLayanan: 'informasi_produk', topik: TOPIK.INFORMASI });
+  assert.deepEqual(ringkasanPanggilan({ layanan: null }), { jenisLayanan: 'informasi_produk', topik: TOPIK.INFORMASI });
+  assert.deepEqual(ringkasanPanggilan({ layanan: null, eskalasi: true }), { jenisLayanan: 'informasi_produk', topik: TOPIK.ESKALASI });
   assert.deepEqual(ringkasanPanggilan({ layanan: 2 }), { jenisLayanan: 'pengaduan', topik: TOPIK.PENGADUAN });
   assert.deepEqual(ringkasanPanggilan({ layanan: 1, eskalasi: true }), { jenisLayanan: 'informasi_produk', topik: TOPIK.ESKALASI });
+});
+
+test('req_4_2 memilih menu langsung melaporkan panggilan dengan jenis, topik, dan tahap mendengar', async () => {
+  const riwayat = new RiwayatPanggilan();
+  const pelapor = new PelaporPanggilanTiruan();
+  const pantau = new PemantauPanggilan({ pelapor, konteks: (id) => ({ layanan: riwayat.layanan(id), eskalasi: riwayat.eskalasi(id) !== null }) });
+  pilihMenu(riwayat, new PengaduanController(), ID, 2, pantau);
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(pelapor.daftarAktif().map(({ percakapanId, jenisLayanan, topik, tahap }) => ({ percakapanId, jenisLayanan, topik, tahap })), [
+    { percakapanId: ID, jenisLayanan: 'pengaduan', topik: TOPIK.PENGADUAN, tahap: 'mendengar' },
+  ]);
+  // Pilihan tidak dikenal tidak melaporkan apa pun.
+  assert.equal(pilihMenu(riwayat, new PengaduanController(), ID2, 3, pantau), null);
+  assert.equal(pantau.sesi.has(ID2), false);
 });
 
 test('req_4_2 galat pelapor tidak melempar dan dicoba lagi pada tik berikutnya', async () => {

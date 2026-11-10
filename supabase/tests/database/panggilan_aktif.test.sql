@@ -97,7 +97,7 @@ select isnt(
 select public.laporkan_panggilan_aktif('77777777-0000-0000-0000-000000000002'::uuid, null, null, 'mendengar');
 select is(
   (select status_penyelesaian::text from public.percakapan where id = '77777777-0000-0000-0000-000000000002'),
-  'selesai_ai', 'Heartbeat terlambat tidak membuka kembali panggilan yang sudah selesai'
+  'terputus', 'Heartbeat terlambat tidak membuka kembali panggilan yang sudah selesai'
 );
 
 -- 8. Heartbeat berhenti: panggilan 3 tidak tampil lagi walau belum disapu
@@ -117,7 +117,7 @@ set local role service_role;
 select is(public.tutup_panggilan_yatim(), 1, 'Penyapuan menutup satu panggilan yatim');
 select is(
   (select status_penyelesaian::text from public.percakapan where id = '77777777-0000-0000-0000-000000000003'),
-  'selesai_ai', 'Panggilan yatim berstatus selesai setelah disapu'
+  'terputus', 'Panggilan yatim yang belum dijawab berstatus terputus setelah disapu (REQ-4.1)'
 );
 
 select * from finish();

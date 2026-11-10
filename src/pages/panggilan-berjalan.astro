@@ -5,7 +5,8 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { pemantauanLayanan } from '../lib/pemantauan';
 import { KAPASITAS_SALURAN_BAWAAN, PESAN_PEMANTAUAN, type Panggilan } from '../lib/PemantauanLayananController';
 
-const panggilan: Panggilan[] = await pemantauanLayanan(Astro.locals.tokenAkses).panggilanBerjalan().catch(() => []);
+// null berarti data gagal dimuat, dibedakan dari daftar yang memang kosong.
+const panggilan: Panggilan[] | null = await pemantauanLayanan(Astro.locals.tokenAkses).panggilanBerjalan().catch(() => null);
 const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
 ---
 <DashboardLayout title="Panggilan Berjalan">
@@ -15,7 +16,7 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
         <h1>Panggilan Berjalan</h1>
         <span>Panggilan aktif ke CS AI HaloBPOM, diperbarui otomatis</span>
       </div>
-      <span class="live" id="live"><span class="live-dot"></span>LIVE</span>
+      <span class:list={['live', { putus: !panggilan }]} id="live"><span class="live-dot"></span>LIVE</span>
     </section>
 
     <div class="sum" data-name="RingkasanPanggilanBerjalan">
@@ -29,6 +30,7 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
       <div class="row-grid cols-head" aria-hidden="true"><span>Nomor</span><span>Jenis Layanan</span><span>Topik</span><span>Mulai</span><span>Durasi</span><span>Tahap AI</span></div>
       <div id="rows" role="list" aria-label="Panggilan aktif"></div>
       <div class="empty" id="empty" hidden><i class="icon-phone-off"></i><span>{PESAN_PEMANTAUAN.tidakAdaPanggilan}</span></div>
+      <div class="empty" id="gagal" role="alert" hidden><i class="icon-file-x"></i><span>{PESAN_PEMANTAUAN.panggilanGagalDimuat}</span></div>
     </section>
   </div>
   <script type="application/json" id="data-panggilan" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
@@ -39,7 +41,7 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
 
   // REQ-4.2: panggilan baru dan yang berakhir muncul atau hilang tanpa memuat ulang halaman.
   const JEDA_POLLING_MS = 5000;
-  const awal = JSON.parse(document.getElementById('data-panggilan')!.textContent!) as { panggilan: Panggilan[]; kapasitas: number };
+  const awal = JSON.parse(document.getElementById('data-panggilan')!.textContent!) as { panggilan: Panggilan[] | null; kapasitas: number };
   let panggilan = awal.panggilan;
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -60,7 +62,7 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
 
   function render() {
     const rows = $('rows');
-    rows.replaceChildren(...panggilan.map((p) => {
+    rows.replaceChildren(...(panggilan ?? []).map((p) => {
       const r = document.createElement('div');
       r.className = 'row-grid row tile';
       r.setAttribute('role', 'listitem');
@@ -70,15 +72,23 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
       r.append(sel(p.noTelp, 'mono'), sel(p.jenis), sel(p.topik, 'topik'), sel(jam.format(new Date(p.waktuMulai)).replace(/\./g, ':'), 'mono'), sel('', 'mono durasi'), tahap);
       return r;
     }));
-    $('empty').hidden = panggilan.length > 0;
+    $('empty').hidden = !panggilan || panggilan.length > 0;
+    $('gagal').hidden = !!panggilan;
     tick();
   }
 
   function tick() {
+    const daftar = panggilan;
+    // Data gagal dimuat: kartu ringkasan tidak menampilkan angka.
+    if (!daftar) {
+      for (const id of ['s-aktif', 's-rata', 's-terlama', 's-saluran']) $(id).textContent = '—';
+      $('s-saluran-bar').style.width = '0%';
+      return;
+    }
     document.querySelectorAll<HTMLElement>('#rows .row').forEach((r, i) => {
-      r.querySelector('.durasi')!.textContent = durasi(detikSejak(panggilan[i].waktuMulai));
+      r.querySelector('.durasi')!.textContent = durasi(detikSejak(daftar[i].waktuMulai));
     });
-    const s = ringkasPanggilan(panggilan, new Date(), awal.kapasitas);
+    const s = ringkasPanggilan(daftar, new Date(), awal.kapasitas);
     $('s-aktif').textContent = String(s.aktif);
     $('s-rata').textContent = durasi(s.rataDurasiDetik);
     $('s-terlama').textContent = durasi(s.terlamaDetik);
@@ -95,8 +105,11 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
       $('live').classList.remove('putus');
       render();
     } catch {
-      // Data terakhir tetap tampil; label LIVE meredup sampai polling berikutnya berhasil.
+      // Galat muat: daftar dikosongkan dan pesan kamus tampil sampai polling berikutnya berhasil, agar baris basi tidak
+      // tampil dengan durasi yang terus bertambah; label LIVE meredup.
+      panggilan = null;
       $('live').classList.add('putus');
+      render();
     }
   }
 

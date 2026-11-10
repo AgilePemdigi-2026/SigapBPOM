@@ -69,14 +69,15 @@ set local role service_role;
 -- p6: selesai_ai, Obat
 -- 10 hari lalu (di luar 7 hari):
 -- p7: selesai_ai, Obat
-insert into public.percakapan (id, waktu_mulai, status_penyelesaian, topik) values
-  ('11111111-0000-0000-0000-000000000001', now(), 'selesai_ai', 'Obat'),
-  ('11111111-0000-0000-0000-000000000002', now(), 'selesai_ai', 'Obat'),
-  ('11111111-0000-0000-0000-000000000003', now(), 'dieskalasi', 'Makanan'),
-  ('11111111-0000-0000-0000-000000000004', now(), 'tiket_terbit', 'Kosmetik'),
-  ('11111111-0000-0000-0000-000000000005', now(), 'berjalan', 'Kosmetik'),
-  ('11111111-0000-0000-0000-000000000006', now() - interval '2 days', 'selesai_ai', 'Obat'),
-  ('11111111-0000-0000-0000-000000000007', now() - interval '10 days', 'selesai_ai', 'Obat');
+-- Panggilan yang sudah selesai punya waktu_selesai; hanya p5 yang masih aktif.
+insert into public.percakapan (id, waktu_mulai, waktu_selesai, status_penyelesaian, topik) values
+  ('11111111-0000-0000-0000-000000000001', now(), now(), 'selesai_ai', 'Obat'),
+  ('11111111-0000-0000-0000-000000000002', now(), now(), 'selesai_ai', 'Obat'),
+  ('11111111-0000-0000-0000-000000000003', now(), now(), 'dieskalasi', 'Makanan'),
+  ('11111111-0000-0000-0000-000000000004', now(), now(), 'tiket_terbit', 'Kosmetik'),
+  ('11111111-0000-0000-0000-000000000005', now(), null, 'berjalan', 'Kosmetik'),
+  ('11111111-0000-0000-0000-000000000006', now() - interval '2 days', now() - interval '2 days', 'selesai_ai', 'Obat'),
+  ('11111111-0000-0000-0000-000000000007', now() - interval '10 days', now() - interval '10 days', 'selesai_ai', 'Obat');
 -- p8: berjalan tetapi heartbeat berhenti 5 menit lalu (panggilan yatim yang belum disapu), di luar rentang 7 hari
 insert into public.percakapan (id, waktu_mulai, status_penyelesaian, heartbeat_terakhir) values
   ('11111111-0000-0000-0000-000000000008', now() - interval '10 days', 'berjalan', now() - interval '5 minutes');

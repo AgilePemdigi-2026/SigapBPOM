@@ -13,14 +13,17 @@ const KATA_MEREK_MAKS = 3;
 const BARIS_MEREK_MAKS = 50;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
-// Pola nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
-const POLA_NOMOR = /\b(MD|ML|PIRT|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL|DBL|DKL|DTL|DPL|GBL|GKL|GTL)\s?-?\s?(\d[\d\s]{5,16}\d)\b/i;
+// Kode nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
+export const KODE_IZIN_EDAR = 'MD|ML|PIRT|NA|NB|NC|ND|NE|TR|TI|TL|TS|SD|SI|SL|DBL|DKL|DTL|DPL|GBL|GKL|GTL';
+const POLA_NOMOR = new RegExp(`\\b(${KODE_IZIN_EDAR})\\s?-?\\s?(\\d[\\d\\s]{5,16}\\d)\\b`, 'i');
 const POLA_NIAT = /\b(terdaftar|daftar|izin edar|nomor (izin|registrasi|bpom|edar)|registrasi|legal|resmi|cek ?bpom|ada bpom|sudah bpom|udah bpom|bpom nya|bpomnya|cek produk|cekin|cek(kan)?)\b/i;
 // Pertanyaan cara atau alasan ("bagaimana cara cek nomor registrasi?") dijawab dari korpus, bukan dicari di cekbpom.
 const POLA_EDUKASI = /\b(bagaimana|gimana|cara|kenapa|mengapa|apa itu|apa arti|artinya|maksudnya|syarat|biaya|berapa lama)\b/i;
 // Ucapan pengaduan atau keluhan ("mau daftar pengaduan", "kulit saya gatal") tetap di alurnya sendiri, bukan dicari di cekbpom.
 const POLA_PENGADUAN = /\b(pengaduan|mengadu|lapor|melapor|laporkan|keluhan|efek samping|gatal|alergi)\b/i;
 const POLA_TANYA = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|berapa|siapa|dimana|bolehkah|bisakah)\b|\?/i;
+// Kata yang terpotong di tengah ucapan, ditandai titik-titik atau elipsis oleh STT atau ketikan ("Su... Formu...").
+const POLA_TERPOTONG = /[a-z0-9]+(?:\.{2,}|…)(?=[\s,.?!]|$)/gi;
 // Kata yang dibuang dari ucapan agar tersisa nama produk.
 const KATA_ISI = new Set(`apakah apa ya yah yang itu ini tuh sudah udah belum blm terdaftar daftar di ke dari bpom badan pom pengawas obat
   makanan izin edar nomor no registrasi produk cek cekin cekkan cekbpom coba tolong mohon bisa minta mau ingin tanya saya aku gw legal resmi
@@ -37,8 +40,9 @@ export function kueriProduk(ucapan, setelahMenu1 = false) {
 }
 
 /**
- * REQ-1.4: ucapan bermaksud cek registrasi, tetapi nama produknya tidak tertangkap, misalnya "apakah sudah terdaftar?"
- * atau gumaman setelah diminta menyebut nama produk. Ucapan seperti ini diminta ulang.
+ * REQ-1.4: ucapan bermaksud cek registrasi, tetapi nama produknya tidak tertangkap, misalnya "apakah sudah terdaftar?",
+ * gumaman setelah diminta menyebut nama produk, atau nama yang sebagian besar katanya terpotong ("Su... Formu... Seh...",
+ * SRS Tabel B.2 Exception Path 2). Ucapan seperti ini diminta ulang.
  */
 export const namaKurangJelas = (ucapan, setelahMenu1 = false) => Boolean(uraikanUcapan(ucapan, setelahMenu1)?.kurangJelas);
 
@@ -51,7 +55,10 @@ function uraikanUcapan(ucapan, setelahMenu1) {
   const niat = POLA_NIAT.test(teks) || (setelahMenu1 && kata.length <= 6 && !POLA_TANYA.test(teks));
   if (!niat) return null;
   const nama = kata.filter((k) => !KATA_ISI.has(k)).join(' ').trim();
-  return nama.length >= 3 ? { nama } : { kurangJelas: true };
+  // ponytail: hanya mengenali penanda potong yang ditulis STT atau ketikan, dan nama utuh yang diucapkan terbata
+  // ("Susu... formula... sehat...") ikut diminta ulang. Ganti dengan skor keyakinan kata STT setelah uji panggilan nyata.
+  const terpotong = (teks.match(POLA_TERPOTONG) ?? []).filter((k) => !KATA_ISI.has(k.replace(/[.…]+$/, '').toLowerCase())).length;
+  return nama.length >= 3 && terpotong * 2 <= nama.split(' ').length ? { nama } : { kurangJelas: true };
 }
 
 const bersihkan = (t) => String(t ?? '')
@@ -204,12 +211,12 @@ function saring(hasil, nama, kataMerek) {
   return { total: produk.length, produk };
 }
 
-/** HasilProduk untuk kartu di panel suara (src/lib/kartuPanggilan.ts). */
-export function hasilProduk({ produk }) {
+/** HasilProduk untuk kartu di panel suara (src/lib/kartuPanggilan.ts). Kandidat membawa jumlah seluruh hasil (REQ-1.5). */
+export function hasilProduk({ produk, total }) {
   const bentuk = (p) => ({ nama: p.nama, nomorIzinEdar: p.nomorIzinEdar, status: p.status, pendaftar: p.pendaftar, sumber: p.sumber });
   if (!produk.length) return { jenis: 'tidak_ditemukan' };
   if (produk.length === 1) return { jenis: 'tunggal', produk: bentuk(produk[0]) };
-  return { jenis: 'kandidat', produk: produk.slice(0, KANDIDAT_MAKS).map(bentuk) };
+  return { jenis: 'kandidat', total: total ?? produk.length, produk: produk.slice(0, KANDIDAT_MAKS).map(bentuk) };
 }
 
 /** Teks kueri yang ditampilkan di panel Cari Produk halaman publik. */

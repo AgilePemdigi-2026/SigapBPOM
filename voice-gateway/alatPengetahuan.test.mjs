@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFINISI_TOOL, NAMA_TOOL, PencariPengetahuanSupabase, cariBasisPengetahuan, pesanBasisPengetahuan, sumberUntukPanel,
+  DEFINISI_TOOL, NAMA_TOOL, PencariPengetahuanSupabase, cariBasisPengetahuan, kalimatSumber, pesanBasisPengetahuan, sumberUntukPanel,
 } from './alatPengetahuan.mjs';
 import { PESAN_BUTUH_PETUGAS } from './eskalasi.mjs';
 import { PESAN_DI_LUAR_TOPIK, PESAN_TAWARAN_PENUTUP } from './percakapan.mjs';
@@ -105,9 +105,28 @@ test('t_f1_3_03 hasil kosong masuk jalur eskalasi dan tidak boleh dijawab dari p
   assert.ok(pesan.includes(PESAN_DI_LUAR_TOPIK));
 });
 
-test('t_f1_3_03 hasil kosong korpus lokal tanpa pesan tool agar pertanyaan dasar tidak dieskalasi (REQ-1.7)', () => {
-  assert.equal(pesanBasisPengetahuan([], 'lokal'), null);
-  assert.ok(pesanBasisPengetahuan([], 'basis').includes(PESAN_BUTUH_PETUGAS));
+test('req_1_7 nfr_8 hasil kosong korpus lokal juga masuk jalur eskalasi, tidak dijawab tanpa sumber', async () => {
+  const { mode, kutipan } = await cariBasisPengetahuan({ pencari: null, korpus: { cari: () => [] }, pertanyaan: 'apa itu BPOM' });
+  assert.equal(mode, 'lokal');
+  const pesan = pesanBasisPengetahuan(kutipan);
+  assert.ok(pesan.includes(PESAN_BUTUH_PETUGAS));
+  assert.ok(pesan.includes('jangan menjawab dari pengetahuan sendiri'));
+});
+
+test('req_1_7 kutipan yang tidak menjawab pertanyaan edukasi diarahkan ke pesan butuh petugas', () => {
+  const pesan = pesanBasisPengetahuan([{ judul: 'Label Pangan Olahan', label: 'Peraturan BPOM Nomor 26 Tahun 2021', sumber: '', teks: POTONGAN.teks }]);
+  assert.ok(pesan.includes(`tidak terjawab oleh potongan di bawah, jangan menjawab dari pengetahuan sendiri; jawab hanya dengan kalimat: ${PESAN_BUTUH_PETUGAS}`));
+  assert.ok(pesan.includes('"Sumber: <rujukan>"'));
+});
+
+test('nfr_8 kalimat sumber disusun dari rujukan kutipan tanpa duplikat, sama dengan chip panel', () => {
+  const k = (label) => ({ judul: 'J', label, sumber: '', teks: 't' });
+  assert.equal(kalimatSumber([k('Peraturan BPOM Nomor 17 Tahun 2019')]), 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019.');
+  assert.equal(kalimatSumber([k('Peraturan BPOM Nomor 17 Tahun 2019'), k('Peraturan BPOM Nomor 17 Tahun 2019')]), 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019.');
+  const dua = [k('Peraturan BPOM Nomor 17 Tahun 2019'), k('Peraturan BPOM Nomor 26 Tahun 2021')];
+  assert.equal(kalimatSumber(dua), 'Sumber: Peraturan BPOM Nomor 17 Tahun 2019 dan Peraturan BPOM Nomor 26 Tahun 2021.');
+  assert.equal(kalimatSumber(dua), `Sumber: ${sumberUntukPanel(dua).map((s) => s.peraturan).join(' dan ')}.`);
+  assert.equal(kalimatSumber([]), null);
 });
 
 test('t_f1_3_03 sumber untuk panel sama dengan rujukan materi yang dipakai', () => {

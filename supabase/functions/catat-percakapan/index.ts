@@ -1,6 +1,7 @@
 // Boundary UC-01: Voice Gateway mencatat transkrip percakapan dan pemanggilan tool lokalnya (T-F1.1-05, NFR-20, T-F5.4-01).
 // POST { aksi: 'ucapan', percakapanId, pembicara, teks } -> { urutan }
 //   atau { aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil } -> { tersimpan }
+//   atau { aksi: 'ringkasan', percakapanId, ringkasan } -> { tersimpan } (T-F6.3-01, setelah panggilan berakhir)
 // Dipanggil dengan header x-sigap-kunci setelah baris percakapan dibuat laporan panggilan aktif pertama.
 import { PenyimpananSupabase } from '../_shared/adapter/penyimpananSupabase.ts';
 import { tanganiCatatPercakapan } from '../_shared/boundary/catatPercakapan.ts';
