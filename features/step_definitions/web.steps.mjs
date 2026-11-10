@@ -52,7 +52,15 @@ async function isi(page, label, nilai) {
   for (const l of lingkup) {
     for (const exact of [true, false]) {
       const kolom = l.getByLabel(label, { exact }).and(page.locator('input, textarea, select')).filter({ visible: true });
-      if (await kolom.count()) return kolom.first().fill(nilai);
+      if (await kolom.count()) {
+        const tag = await kolom.first().evaluate((el) => el.tagName.toLowerCase());
+        if (tag === 'select') {
+          await kolom.first().selectOption({ label: nilai }).catch(() => kolom.first().selectOption(nilai));
+          await kolom.first().dispatchEvent('change');
+          return;
+        }
+        return kolom.first().fill(nilai);
+      }
     }
   }
   throw new Error(`Kolom "${label}" tidak ditemukan`);
@@ -94,6 +102,22 @@ When('I fill in {string} with {string}', async function (label, nilai) {
   await isi(this.page, label, nilai);
 });
 
+When('I select {string} from {string}', async function (pilihan, label) {
+  const dialog = this.page.locator('dialog[open], [role="dialog"][aria-modal="true"]').filter({ visible: true });
+  const lingkup = (await dialog.count()) ? [dialog.last(), this.page] : [this.page];
+  for (const l of lingkup) {
+    for (const exact of [true, false]) {
+      const select = l.getByLabel(label, { exact }).and(this.page.locator('select')).filter({ visible: true });
+      if (await select.count()) {
+        await select.first().selectOption({ label: pilihan }).catch(() => select.first().selectOption(pilihan));
+        await select.first().dispatchEvent('change');
+        return;
+      }
+    }
+  }
+  throw new Error(`Select "${label}" tidak ditemukan`);
+});
+
 When('I press {string}', async function (nama) {
   await tekan(this.page, nama);
 });
@@ -108,6 +132,19 @@ When('I press {string} on the material {string}', async function (tombol, judul)
   const baris = this.page.locator('tr, li, .row').filter({ hasText: judul }).filter({ visible: true }).first();
   await tunggu(baris, `materi "${judul}"`);
   await tekan(this.page, tombol, baris);
+});
+
+When('I press {string} on a complaint with status {string}', async function (tombol, status) {
+  const baris = this.page.locator('tr, li, .row').filter({ hasText: status }).filter({ visible: true }).first();
+  await tunggu(baris, `pengaduan berstatus "${status}"`);
+  await tekan(this.page, tombol, baris);
+});
+
+Given('the complaint status is {string}', async function (statusLabel) {
+  const el = this.page.locator('[data-name="StatusPengaduan"]').filter({ visible: true }).first();
+  if (await el.count()) {
+    await tunggu(el.filter({ hasText: statusLabel }), `status pengaduan "${statusLabel}"`);
+  }
 });
 
 When('I press {string} on the graph', async function (simpul) {
