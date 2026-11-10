@@ -111,7 +111,7 @@ const ikonTahap: Record<TahapStepper, string> = {
       class="form-section"
       id="section-jadwal"
       data-name="FormulirJadwalPemeriksaan"
-      hidden
+      hidden={status !== 'menunggu_pemeriksaan'}
     >
       <legend class="section-title">
         <i class="icon-calendar" aria-hidden="true"></i>
@@ -206,11 +206,16 @@ const ikonTahap: Record<TahapStepper, string> = {
     const btnTutupTiket = document.getElementById('btn-tutup-tiket') as HTMLButtonElement;
 
     function tampilkanPesan(pesan: string, tipe: 'success' | 'error' = 'success') {
-      if (!pesanEl) return;
-      pesanEl.textContent = pesan;
-      pesanEl.className = `pesan-alert ${tipe}`;
-      pesanEl.hidden = false;
+      if (pesanEl) {
+        pesanEl.textContent = pesan;
+        pesanEl.className = `pesan-alert ${tipe}`;
+        pesanEl.hidden = false;
+        pesanEl.removeAttribute('hidden');
+      }
+      (window as any).sigapToast?.(pesan, tipe === 'error' ? 'err' : 'ok');
     }
+
+    const getTiket = () => root.dataset.tiket || new URLSearchParams(window.location.search).get('tiket') || noTiket;
 
     function perbaruiStatusPengaduan(statusBaru: string, labelBaru: string) {
       statusTiket = statusBaru;
@@ -255,8 +260,14 @@ const ikonTahap: Record<TahapStepper, string> = {
         if (selectTindakLanjut) selectTindakLanjut.disabled = true;
         if (textCatatan) textCatatan.disabled = true;
         if (btnSimpanTelaah) btnSimpanTelaah.disabled = true;
-        if (sectionJadwal) sectionJadwal.hidden = true;
-        if (sectionTanggapan) sectionTanggapan.hidden = true;
+        if (sectionJadwal) {
+          sectionJadwal.hidden = true;
+          sectionJadwal.setAttribute('hidden', '');
+        }
+        if (sectionTanggapan) {
+          sectionTanggapan.hidden = true;
+          sectionTanggapan.setAttribute('hidden', '');
+        }
       } else if (statusTiket === 'selesai') {
         if (selectTindakLanjut) selectTindakLanjut.disabled = true;
         if (textCatatan) textCatatan.disabled = true;
@@ -271,9 +282,10 @@ const ikonTahap: Record<TahapStepper, string> = {
     // Toggle formulir jadwal saat dropdown tindak lanjut berubah sebelum disimpan
     selectTindakLanjut?.addEventListener('change', () => {
       const perluJadwal = selectTindakLanjut.value === 'Perlu Pemeriksaan Lapangan';
-      if (sectionJadwal && statusTiket === 'belum_ditelaah') {
-        // Tampilkan/sembunyikan jadwal berdasarkan pilihan
+      if (sectionJadwal && (statusTiket === 'belum_ditelaah' || statusTiket === 'sedang_ditelaah')) {
         sectionJadwal.hidden = !perluJadwal;
+        if (perluJadwal) sectionJadwal.removeAttribute('hidden');
+        else sectionJadwal.setAttribute('hidden', '');
       }
     });
 
@@ -281,13 +293,14 @@ const ikonTahap: Record<TahapStepper, string> = {
     btnSimpanTelaah?.addEventListener('click', async () => {
       const tindakLanjut = selectTindakLanjut.value as TindakLanjut;
       const catatan = textCatatan.value.trim();
+      const tiketId = getTiket();
 
       if (tindakLanjut === 'Perlu Pemeriksaan Lapangan') {
         jadwalDibutuhkan = true;
       }
 
       try {
-        const res = await fetch(`/api/pengaduan/${encodeURIComponent(noTiket)}/telaah`, {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/telaah`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tindakLanjut, catatan }),
@@ -303,9 +316,15 @@ const ikonTahap: Record<TahapStepper, string> = {
         const labelBaru = d?.data?.labelStatus || (tindakLanjut === 'Bukan Kewenangan BPOM' ? 'Diteruskan ke Instansi Lain' : 'Sedang Ditelaah');
 
         if (tindakLanjut === 'Perlu Pemeriksaan Lapangan') {
-          if (sectionJadwal) sectionJadwal.hidden = false;
+          if (sectionJadwal) {
+            sectionJadwal.hidden = false;
+            sectionJadwal.removeAttribute('hidden');
+          }
         } else {
-          if (sectionJadwal) sectionJadwal.hidden = true;
+          if (sectionJadwal) {
+            sectionJadwal.hidden = true;
+            sectionJadwal.setAttribute('hidden', '');
+          }
         }
 
         perbaruiStatusPengaduan(statusBaru, labelBaru);
@@ -319,9 +338,10 @@ const ikonTahap: Record<TahapStepper, string> = {
     btnSimpanJadwal?.addEventListener('click', async () => {
       const tanggal = formatTanggalIso(inputTanggal.value);
       const unit = selectUnit.value.trim();
+      const tiketId = getTiket();
 
       try {
-        const res = await fetch(`/api/pengaduan/${encodeURIComponent(noTiket)}/jadwal`, {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/jadwal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tanggal, unit }),
@@ -344,9 +364,10 @@ const ikonTahap: Record<TahapStepper, string> = {
     // 3. Simpan Tanggapan
     btnSimpanTanggapan?.addEventListener('click', async () => {
       const isi = textTanggapan.value.trim();
+      const tiketId = getTiket();
 
       try {
-        const res = await fetch(`/api/pengaduan/${encodeURIComponent(noTiket)}/tanggapan`, {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/tanggapan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isi }),
@@ -367,8 +388,9 @@ const ikonTahap: Record<TahapStepper, string> = {
 
     // 4. Tutup Tiket
     btnTutupTiket?.addEventListener('click', async () => {
+      const tiketId = getTiket();
       try {
-        const res = await fetch(`/api/pengaduan/${encodeURIComponent(noTiket)}/tutup`, {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/tutup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -391,7 +413,10 @@ const ikonTahap: Record<TahapStepper, string> = {
 
     // Inisialisasi tampilan awal
     if (statusTiket === 'menunggu_pemeriksaan') {
-      if (sectionJadwal) sectionJadwal.hidden = false;
+      if (sectionJadwal) {
+        sectionJadwal.hidden = false;
+        sectionJadwal.removeAttribute('hidden');
+      }
     }
   }
 </script>

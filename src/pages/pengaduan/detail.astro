@@ -7,7 +7,17 @@ import { chip } from '../../lib/data';
 import { pemantauanLayanan } from '../../lib/pemantauan';
 import { PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
 
-const hasil = await pemantauanLayanan(Astro.locals.tokenAkses).detailKasus(Astro.url.searchParams.get('tiket'));
+const pemantauan = pemantauanLayanan(Astro.locals.tokenAkses);
+let noTiket = Astro.url.searchParams.get('tiket');
+if (!noTiket) {
+  const antrean = await pemantauan.antreanTiket();
+  if ('tiket' in antrean && antrean.tiket.length > 0) {
+    const pengaduan = antrean.tiket.find((t) => t.jenis.toLowerCase() === 'pengaduan') || antrean.tiket[0];
+    noTiket = pengaduan.noTiket;
+  }
+}
+
+const hasil = await pemantauan.detailKasus(noTiket);
 const gagal = 'gagal' in hasil ? hasil.gagal : '';
 const d = 'gagal' in hasil ? null : hasil;
 // Tiket tidak ada: 404; penyimpanan gagal: 503 (PROJECT_RULES 4.4).

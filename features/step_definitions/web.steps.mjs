@@ -59,7 +59,13 @@ async function isi(page, label, nilai) {
           await kolom.first().dispatchEvent('change');
           return;
         }
-        return kolom.first().fill(nilai);
+        const type = await kolom.first().getAttribute('type');
+        let nilaiIsi = nilai;
+        if (type === 'date' && /^\d{2}[-/]\d{2}[-/]\d{4}$/.test(nilai)) {
+          const [d, m, y] = nilai.split(/[-/]/);
+          nilaiIsi = `${y}-${m}-${d}`;
+        }
+        return kolom.first().fill(nilaiIsi);
       }
     }
   }
@@ -141,10 +147,31 @@ When('I press {string} on a complaint with status {string}', async function (tom
 });
 
 Given('the complaint status is {string}', async function (statusLabel) {
-  const el = this.page.locator('[data-name="StatusPengaduan"]').filter({ visible: true }).first();
-  if (await el.count()) {
-    await tunggu(el.filter({ hasText: statusLabel }), `status pengaduan "${statusLabel}"`);
+  const mapStatus = {
+    'Belum Ditelaah': 'belum_ditelaah',
+    'Sedang Ditelaah': 'sedang_ditelaah',
+    'Menunggu Pemeriksaan': 'menunggu_pemeriksaan',
+    'Tanggapan Disusun': 'tanggapan_disusun',
+    'Selesai': 'selesai',
+    'Diteruskan ke Instansi Lain': 'diteruskan',
+  };
+  const statusDb = mapStatus[statusLabel];
+  if (statusDb) {
+    if (statusDb === 'tanggapan_disusun') {
+      sqlLokal(
+        `update public.tiket set status = 'sedang_ditelaah' where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`,
+        `insert into public.tanggapan (tiket_id, isi, petugas_id, status) select id, 'Produk telah ditelaah dan pelaku usaha diberi peringatan tertulis.', (select id from public.petugas limit 1), 'tanggapan_disusun' from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1`,
+        `update public.tiket set status = 'tanggapan_disusun' where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`,
+      );
+    } else {
+      sqlLokal(`update public.tiket set status = '${statusDb}' where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`);
+    }
   }
+  if (this.page.url().includes('/pengaduan/detail')) {
+    await this.page.reload();
+  }
+  const el = this.page.locator('[data-name="StatusPengaduan"]').filter({ visible: true }).first();
+  await tunggu(el.filter({ hasText: statusLabel }), `status pengaduan "${statusLabel}"`);
 });
 
 When('I press {string} on the graph', async function (simpul) {
