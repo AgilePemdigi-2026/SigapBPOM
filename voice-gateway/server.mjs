@@ -29,10 +29,11 @@ import { PeringkasHermes, PeringkasPercakapan, PeringkasTiruan } from './ringkas
 import { kirimAudio } from './audio.mjs';
 import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
 import { KondisiLayanan } from './kesehatan.mjs';
+import { buatCekOrigin, buatIpKlien } from './alamatKlien.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
-const ASAL_SITUS = env('SITE_ORIGIN', '');
+const originDiizinkan = buatCekOrigin(env('SITE_ORIGIN', ''));
 const ELEVENLABS_KEY = env('ELEVENLABS_API_KEY', '');
 // Hanya diganti oleh uji beban (ujiKinerja.mjs) agar STT dan TTS mengarah ke ElevenLabs tiruan.
 const ELEVENLABS_URL = env('ELEVENLABS_URL', 'https://api.elevenlabs.io');
@@ -216,12 +217,8 @@ function bacaBody(req, maks) {
   });
 }
 
-// Gateway hanya bisa dicapai lewat Caddy, yang menambahkan alamat klien sebagai entri TERAKHIR
-// X-Forwarded-For. Entri sebelumnya bisa dipalsukan klien, jadi tidak dipakai.
-const ipKlien = (req) => {
-  const xff = String(req.headers['x-forwarded-for'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  return xff.at(-1) ?? req.socket.remoteAddress ?? '';
-};
+// Aturan alamat klien dan kunci proxy dashboard terpisah ada di alamatKlien.mjs.
+const ipKlien = buatIpKlien(env('PROXY_KUNCI', ''));
 
 function catatTts(teks, ip) {
   const hari = new Date().toISOString().slice(0, 10);
@@ -691,7 +688,7 @@ const server = createServer(async (req, res) => {
         cekbpom: { aktif: Boolean(cekBpom), ...(kondisi.terakhir.cekbpom ?? {}) },
       });
     }
-    if (req.method === 'POST' && ASAL_SITUS && req.headers.origin !== ASAL_SITUS) throw new ErrorGateway(403, 'Akses ditolak.');
+    if (req.method === 'POST' && !originDiizinkan(req.headers.origin)) throw new ErrorGateway(403, 'Akses ditolak.');
     if (req.method === 'GET' && path.startsWith('/voice/statis/')) return await statis(req, res, path.slice('/voice/statis/'.length));
     if (req.method === 'GET' && path.startsWith('/voice/suara/')) return await suara(req, res, path.slice('/voice/suara/'.length));
     if (req.method === 'POST' && path === '/voice/giliran') return await giliran(req, res, url);
