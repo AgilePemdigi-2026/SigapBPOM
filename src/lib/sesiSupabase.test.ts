@@ -78,6 +78,20 @@ test('req_3_2 login dengan token dari Edge Function yang bukan petugas ditolak t
   assert.ok(panggilan.some((p) => p.url.endsWith('/auth/v1/logout?scope=local') && p.method === 'POST' && p.auth === `Bearer ${TOKEN}`));
 });
 
+test('login diterima Edge Function tetapi token ditolak Supabase (kunci anon server salah) menjadi pesan sistem, bukan password salah', async () => {
+  const { sesi, panggilan } = buat((p) => {
+    if (p.url.endsWith('/functions/v1/login')) return loginOk;
+    if (p.url.endsWith('/auth/v1/user')) return { status: 401, json: { message: 'Invalid API key' } };
+    return undefined;
+  });
+  const { cookies, isi } = buatCookies();
+  assert.deepEqual(await sesi.masuk('a@pom.go.id', 'x', cookies), { gagal: PESAN_SISTEM, kode: 503 });
+  assert.equal(isi.size, 0);
+  assert.ok(panggilan.some((p) => p.url.endsWith('/auth/v1/logout?scope=local')));
+  const c = new AutentikasiController(sesi);
+  assert.deepEqual(await c.masuk({ email: 'a@pom.go.id', password: 'x' }, buatCookies().cookies), { kode: 503, pesan: PESAN_SISTEM, petugas: null });
+});
+
 test('req_3_4 pesan kredensial salah dan akun terkunci dari Edge Function diteruskan, tanpa cookie', async () => {
   for (const pesan of [PESAN_LOGIN.kosong, PESAN_LOGIN.salah, PESAN_LOGIN.dikunci]) {
     const { sesi } = buat(() => ditolak(pesan));

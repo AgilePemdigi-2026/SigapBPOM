@@ -69,16 +69,28 @@ export class SesiSupabase implements AdapterSesi {
 
   /** Validasi token ke Supabase Auth, lalu pastikan pemiliknya petugas. Null bila token tidak sah atau bukan petugas. */
   async periksa(token: string): Promise<Petugas | null> {
+    const hasil = await this.periksaRinci(token);
+    return typeof hasil === 'string' ? null : hasil;
+  }
+
+  /**
+   * Seperti periksa(), tetapi membedakan 'bukan' (pemilik token terbaca dan bukan petugas) dari 'galat' (token tidak
+   * bisa divalidasi). Untuk token yang baru diterbitkan, 'galat' berarti masalah sistem, misalnya kunci anon server
+   * ditolak Supabase, bukan kredensial salah.
+   */
+  async periksaRinci(token: string): Promise<Petugas | 'bukan' | 'galat'> {
     const resUser = await this.panggil('/auth/v1/user', { token });
-    if (!resUser?.ok) return null;
+    if (!resUser?.ok) return 'galat';
     const user = (await resUser.json().catch(() => null)) as { id?: unknown; email?: unknown } | null;
-    if (typeof user?.id !== 'string' || !POLA_UUID.test(user.id) || typeof user.email !== 'string') return null;
+    if (typeof user?.id !== 'string' || !POLA_UUID.test(user.id) || typeof user.email !== 'string') return 'galat';
 
     const [resPeran, resNama] = await Promise.all([
       this.panggil('/rest/v1/rpc/is_petugas', { token, body: {} }),
       this.panggil(`/rest/v1/petugas?select=nama&id=eq.${user.id}`, { token }),
     ]);
-    if (!resPeran?.ok || (await resPeran.json().catch(() => null)) !== true) return null;
+    if (!resPeran?.ok) return 'galat';
+    const peran = await resPeran.json().catch(() => null);
+    if (peran !== true) return peran === false ? 'bukan' : 'galat';
     const baris = resNama?.ok ? ((await resNama.json().catch(() => null)) as { nama?: unknown }[] | null) : null;
     const nama = typeof baris?.[0]?.nama === 'string' ? baris[0].nama : '';
     return { nama, email: user.email };
@@ -118,11 +130,12 @@ export class SesiSupabase implements AdapterSesi {
       const { access_token: akses, refresh_token: refresh } = hasil.data?.sesi ?? hasil.sesi ?? {};
       if (typeof akses !== 'string' || typeof refresh !== 'string') return sistem;
       // Token dari Edge Function tidak dipercaya begitu saja: divalidasi dan dicek perannya sebelum cookie dipasang.
-      const petugas = await this.periksa(akses);
-      if (!petugas) {
+      const petugas = await this.periksaRinci(akses);
+      if (typeof petugas === 'string') {
         // Sesi yang sudah dibuat Edge Function dicabut agar refresh token-nya tidak menggantung.
         await this.panggil('/auth/v1/logout?scope=local', { token: akses, method: 'POST' });
-        return null;
+        // Kredensial sudah diterima, jadi kegagalan validasi token adalah galat sistem, bukan "password salah".
+        return petugas === 'bukan' ? null : sistem;
       }
       this.pasangCookie(cookies, { akses, refresh });
       return petugas;
