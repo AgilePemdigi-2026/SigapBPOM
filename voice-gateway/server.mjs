@@ -218,7 +218,7 @@ function bacaBody(req, maks) {
 }
 
 // Aturan alamat klien dan kunci proxy dashboard terpisah ada di alamatKlien.mjs.
-const ipKlien = buatIpKlien(env('PROXY_KUNCI', ''));
+const ipKlien = buatIpKlien({ kunciProxy: env('PROXY_KUNCI', ''), ipTepercaya: env('PROXY_IP_TEPERCAYA', '') });
 
 function catatTts(teks, ip) {
   const hari = new Date().toISOString().slice(0, 10);

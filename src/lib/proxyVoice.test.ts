@@ -30,11 +30,12 @@ test('POST /voice/giliran diteruskan dengan path, query, origin, dan alamat klie
   assert.equal(await res.text(), '{"a":1}\n');
 });
 
-test('tanpa kunci proxy alamat klien tidak dikirim; GET tanpa body', async () => {
+test('tanpa kunci proxy alamat klien tetap dikirim tanpa header kunci; GET tanpa body', async () => {
   const { f, dipanggil } = fetchTiruan(new Response(null, { status: 404 }));
   const res = await teruskanKeGateway(new Request('http://x/voice/statis/menu'), { gatewayUrl: 'http://gw:8090', ipKlien: '1.1.1.1', fetch: f });
   const h = new Headers(dipanggil[0].init.headers);
-  assert.equal(h.get('x-sigap-ip-klien'), null);
+  assert.equal(h.get('x-sigap-ip-klien'), '1.1.1.1');
+  assert.equal(h.get('x-sigap-kunci-proxy'), null);
   assert.equal(dipanggil[0].init.body, undefined);
   assert.equal(res.status, 404);
 });
