@@ -40,6 +40,7 @@ export class PenyimpananPengetahuanSupabase implements PenyimpananPengetahuan {
     if (potongan.length === 0) return;
     const baris = potongan.map((p) => ({
       materi_id: p.materi_id,
+      urutan: p.urutan,
       teks: p.teks,
       embedding: p.embedding,
     }));

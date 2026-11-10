@@ -1,11 +1,12 @@
-// Langkah Gherkin UC-05 Membaca Transkrip Percakapan. Daftar percakapan memakai TranskripController dengan
-// PenyimpananRiwayatTiruan, seperti halaman /riwayat-percakapan; detail transkrip dan catatan pemeriksaan memakai
-// TranskripController dengan PenyimpananTranskripMock. Kedua penyimpanan diisi dari tabel Latar Belakang yang sama.
+// Langkah Gherkin UC-05 Membaca Transkrip Percakapan. Daftar percakapan disusun ambilDaftarPercakapan seperti halaman
+// /riwayat-percakapan; detail transkrip dan catatan pemeriksaan memakai TranskripController. Keduanya memakai satu
+// PenyimpananTranskripMock yang diisi dari tabel Latar Belakang.
 // Elemen TranskripPercakapan dan RingkasanPercakapan (Lampiran B) diperiksa dari detail yang disiapkan control untuk elemen itu.
 import assert from 'node:assert/strict';
 import { Given, When, Then } from '@cucumber/cucumber';
-import { LABEL_STATUS_PENYELESAIAN, PenyimpananTranskripMock, TranskripController } from '../../src/lib/TranskripController.ts';
-import { PenyimpananRiwayatTiruan } from '../../src/lib/mock/riwayatTiruan.ts';
+import { PenyimpananTranskripMock, TranskripController } from '../../src/lib/TranskripController.ts';
+import { LABEL_STATUS_PENYELESAIAN } from '../../src/lib/detailTranskrip.ts';
+import { ambilDaftarPercakapan } from '../../src/lib/riwayatPercakapan.ts';
 import { tombol } from '../support/dashboard.mjs';
 
 // Nomor telepon Indonesia yang tidak tersamar (NFR-13), misalnya 081234567890.
@@ -83,7 +84,7 @@ Given('petugas membuka transkrip percakapan {string}', async function (id) {
 // Langkah 1 dan 2 Basic Path: halaman riwayat percakapan menampilkan periode bulan berjalan.
 When('petugas membuka halaman riwayat percakapan', async function () {
   const d = uc05(this);
-  const daftar = await new TranskripController(new PenyimpananRiwayatTiruan(d.percakapan)).ambilDaftarPercakapan({}, d.sekarang);
+  const daftar = await ambilDaftarPercakapan(controllerDetail(this), {}, d.sekarang);
   assert.ok(!('gagal' in daftar), daftar.gagal);
   this.halaman = '/riwayat-percakapan';
   d.daftar = daftar;
@@ -110,7 +111,8 @@ Then('daftar percakapan menampilkan:', function (tabel) {
 });
 
 Then('ringkasan periode berisi {int} percakapan, {int} informasi produk, {int} pengaduan produk, dan {int} dieskalasi', function (total, informasiProduk, pengaduanProduk, dieskalasi) {
-  assert.deepEqual(this.uc05.daftar.ringkasan, { total, informasiProduk, pengaduanProduk, dieskalasi });
+  const r = this.uc05.daftar.ringkasan;
+  assert.deepEqual({ total: r.totalPercakapan, informasiProduk: r.informasiProduk, pengaduanProduk: r.pengaduanProduk, dieskalasi: r.dieskalasi }, { total, informasiProduk, pengaduanProduk, dieskalasi });
 });
 
 Then('TranskripPercakapan menampilkan {int} ucapan berurutan dengan stempel waktu', function (jumlah) {

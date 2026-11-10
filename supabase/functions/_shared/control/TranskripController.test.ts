@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PANJANG_MAKS_TEKS_UCAPAN, TranskripController, type PenyimpananTranskrip } from './TranskripController.ts';
+import { PANJANG_MAKS_RINGKASAN, PANJANG_MAKS_TEKS_UCAPAN, TranskripController, type PenyimpananTranskrip } from './TranskripController.ts';
 import type { LogTool } from './InformasiProdukController.ts';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
@@ -8,11 +8,13 @@ const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 function siapkan() {
   const ucapan: Parameters<PenyimpananTranskrip['catatUcapan']>[0][] = [];
   const log: LogTool[] = [];
+  const ringkasan: Parameters<PenyimpananTranskrip['simpanRingkasan']>[0][] = [];
   const p: PenyimpananTranskrip = {
     async catatUcapan(d) { ucapan.push(d); return ucapan.length; },
     async catatLogTool(l) { log.push(l); },
+    async simpanRingkasan(d) { ringkasan.push(d); },
   };
-  return { c: new TranskripController(p), ucapan, log };
+  return { c: new TranskripController(p), ucapan, log, ringkasan };
 }
 
 test('nfr_20 ucapan penelepon dan jawaban sistem diteruskan berurutan dengan teks dirapikan', async () => {
@@ -70,4 +72,21 @@ test('t_f5_4_01 pemanggilan tool tidak valid ditolak dengan 422 tanpa menyimpan'
     await assert.rejects(() => c.catatPemanggilanTool(masuk), (e: { status?: number }) => e.status === 422);
   }
   assert.equal(log.length, 0);
+});
+
+test('req_5_2 ringkasan dirapikan, nomor telepon disamarkan, dan ringkasan tidak sah ditolak 422', async () => {
+  const { c, ringkasan } = siapkan();
+  assert.deepEqual(
+    await c.simpanRingkasan({ percakapanId: ID, ringkasan: '  Penelepon mengadukan Krim X.\n Nomor 081234567890 dicatat. ' }),
+    { tersimpan: true },
+  );
+  assert.equal(ringkasan.length, 1);
+  assert.equal(ringkasan[0].percakapanId, ID);
+  assert.doesNotMatch(ringkasan[0].ringkasan, /081234567890/);
+  assert.match(ringkasan[0].ringkasan, /^Penelepon mengadukan Krim X\. Nomor 0812\*+7890 dicatat\.$/);
+  for (const r of ['', '   ', 'a'.repeat(PANJANG_MAKS_RINGKASAN + 1), 12]) {
+    await assert.rejects(() => c.simpanRingkasan({ percakapanId: ID, ringkasan: r }), (e: { status?: number }) => e.status === 422);
+  }
+  await assert.rejects(() => c.simpanRingkasan({ percakapanId: 'bukan-uuid', ringkasan: 'Ringkasan.' }), (e: { status?: number }) => e.status === 422);
+  assert.equal(ringkasan.length, 1);
 });

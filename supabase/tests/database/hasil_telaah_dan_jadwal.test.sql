@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(24);
 
 -- 1. Hak akses: pengguna anon ditolak
 set local role anon;
@@ -216,5 +216,5 @@ select throws_ok(
   'Petugas tidak boleh melakukan direct INSERT ke tabel jadwal_pemeriksaan'
 );
 
-finish();
+select * from finish();
 rollback;

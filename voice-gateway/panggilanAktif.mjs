@@ -15,10 +15,14 @@ export const TOPIK = Object.freeze({
 // Nilai mengikuti JENIS_LAYANAN di supabase/functions/_shared/entity/panggilan.ts.
 const JENIS_LAYANAN = { 1: 'informasi_produk', 2: 'pengaduan' };
 
-/** Jenis layanan dan topik dari keadaan panggilan: layanan menu (1 atau 2, atau null) dan apakah sedang eskalasi. */
+/**
+ * Jenis layanan dan topik dari keadaan panggilan: layanan menu (1 atau 2, atau null) dan apakah sedang eskalasi.
+ * Tanpa pilihan menu gateway menjalankan alur UC-01, jadi panggilan dihitung sebagai informasi produk.
+ */
 export function ringkasanPanggilan({ layanan = null, eskalasi = false } = {}) {
-  const jenisLayanan = JENIS_LAYANAN[layanan] ?? null;
-  const topik = eskalasi ? TOPIK.ESKALASI : layanan === 1 ? TOPIK.INFORMASI : layanan === 2 ? TOPIK.PENGADUAN : null;
+  const menu = layanan ?? 1;
+  const jenisLayanan = JENIS_LAYANAN[menu] ?? null;
+  const topik = eskalasi ? TOPIK.ESKALASI : menu === 1 ? TOPIK.INFORMASI : menu === 2 ? TOPIK.PENGADUAN : null;
   return { jenisLayanan, topik };
 }
 

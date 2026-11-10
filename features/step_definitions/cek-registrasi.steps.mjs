@@ -1,10 +1,11 @@
 // Langkah Gherkin UC-01 cek registrasi dan tool cek_registrasi_bpom. cekbpom diganti server tiruan yang meniru antarmuka
-// /all-produk dan /produk-dt/all, kecuali skenario @live yang memakai situs asli.
+// /all-produk dan /produk-dt/all (features/support/tiruan.mjs), kecuali skenario @live yang memakai situs asli.
 import assert from 'node:assert/strict';
 import { Given, When, Then, Before } from '@cucumber/cucumber';
 import { CekBpom, cekRegistrasi } from '../../voice-gateway/cekbpom.mjs';
 import { cekRegistrasiBpom } from '../../voice-gateway/alatCekRegistrasi.mjs';
 import { PESAN_LAYANAN_1, PESAN_TAWARAN_PENUTUP } from '../../voice-gateway/percakapan.mjs';
+import { cekbpomTiruan } from '../support/tiruan.mjs';
 
 Before(function () {
   this.data = [];
@@ -15,25 +16,6 @@ Before(function () {
   // Keadaan tool cek_registrasi_bpom antargiliran, seperti yang disimpan RiwayatPanggilan di server.mjs.
   this.agen = { ulangNama: 0, kandidat: null, jawabanTerakhir: '' };
 });
-
-// Meniru filter cekbpom: kolom yang diisi dicocokkan sebagai substring tanpa membedakan huruf besar.
-function cekbpomTiruan(dunia) {
-  return async (url, opsi = {}) => {
-    if (dunia.gangguan) throw new Error('cekbpom tidak terjangkau');
-    if (url.endsWith('/all-produk')) {
-      return new Response('<meta name="csrf-token" content="tok">', { headers: { 'set-cookie': 'sesi=1; Path=/' } });
-    }
-    const f = new URLSearchParams(opsi.body);
-    dunia.pencarian.push(Object.fromEntries([...f].filter(([k, v]) => v && k.startsWith('product_'))));
-    const cocok = (isi, cari) => !cari || isi.toLowerCase().includes(cari.toLowerCase());
-    const baris = dunia.data.filter((d) =>
-      cocok(d.nama, f.get('product_name')) && cocok(d.merek, f.get('product_brand')) && cocok(d.nomor, f.get('product_register')));
-    return Response.json({
-      recordsFiltered: baris.length,
-      data: baris.map((d) => ({ PRODUCT_NAME: d.nama, PRODUCT_BRANDS: d.merek, PRODUCT_REGISTER: d.nomor, STATUS: d.status, REGISTRAR: d.pendaftar })),
-    });
-  };
-}
 
 Given('data registrasi cekbpom berisi:', function (tabel) {
   this.data = tabel.hashes();

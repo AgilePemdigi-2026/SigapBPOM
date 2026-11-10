@@ -1,0 +1,109 @@
+---
+// Boundary UC-06 Menangani Pengaduan, halaman Daftar Pengaduan (T-F7.1-02, UC-06 langkah 1 sampai 3, SRS 3.1.9):
+// filter status dengan jumlah per tahap, tabel pengaduan bertiket, dan pengaduan tidak lengkap tanpa tiket yang
+// ditampilkan terpisah. Tombol "Telaah" hanya pada pengaduan Belum Ditelaah. Daftar tidak memuat data pribadi pelapor.
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { chip } from '../../lib/data';
+import { daftarPengaduan } from '../../lib/daftarPengaduan';
+
+const hasil = await daftarPengaduan(Astro.locals.tokenAkses, { status: Astro.url.searchParams.get('status') });
+const gagal = 'gagal' in hasil ? hasil.gagal : '';
+const d = 'gagal' in hasil ? null : hasil;
+// Penyimpanan gagal: 503 (PROJECT_RULES 4.4).
+if (gagal) Astro.response.status = 503;
+---
+<DashboardLayout title="Daftar Pengaduan">
+  <div class="page">
+    <section class="panel head">
+      <div class="head-title">
+        <h1>Daftar Pengaduan</h1>
+        <span>Pengaduan produk dari penelepon beserta status penanganannya</span>
+      </div>
+    </section>
+
+    {d && (
+      <nav class="filter" aria-label="Filter status pengaduan" data-name="FilterStatusPengaduan">
+        {d.filter.map((f) => (
+          <a href={f.tautan} class="tab" aria-current={f.aktif ? 'page' : undefined} aria-label={`${f.label}, ${f.jumlah} pengaduan`}>{f.label}<span class="jumlah" aria-hidden="true">{f.jumlah}</span></a>
+        ))}
+      </nav>
+    )}
+
+    <section class="panel list" data-name="DaftarPengaduan">
+      <div class="row-grid cols-head" aria-hidden="true"><span>NOMOR TIKET</span><span>PRODUK DIADUKAN</span><span>KATEGORI</span><span>TANGGAL PENGADUAN</span><span>STATUS</span><span></span></div>
+      {gagal && <div class="empty" role="alert"><i class="icon-file-x"></i><span>{gagal}</span></div>}
+      {d && d.pengaduan.length === 0 && <div class="empty"><i class="icon-circle-check"></i><span>Tidak ada kasus yang perlu ditindaklanjuti.</span></div>}
+      <ol class="rows" aria-label="Daftar pengaduan">
+        {d?.pengaduan.map((p) => {
+          const warna = chip(p.labelStatus);
+          return (
+            <li class="row-grid tile row">
+              <span class="mono no">{p.noTiket}</span>
+              <span class="produk" title={p.produk}>{p.produk}</span>
+              <span>{p.kategori}</span>
+              <span>{p.tanggal}</span>
+              <span class="chip" style={`background:${warna.bg};color:${warna.fg}`}>{p.labelStatus}</span>
+              {p.tautanTelaah
+                ? <a href={p.tautanTelaah} class="btn-primary aksi">Telaah</a>
+                : <a href={p.tautanKasus} class="pill aksi">Buka Kasus</a>}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+
+    {d && d.tidakLengkap.length > 0 && (
+      <section class="panel list tidak-lengkap" data-name="PengaduanTidakLengkap" aria-labelledby="judul-tidak-lengkap">
+        <div class="sub-head">
+          <h2 id="judul-tidak-lengkap">Pengaduan tidak lengkap</h2>
+          <span>Panggilan berakhir sebelum data lengkap, nomor tiket tidak diterbitkan</span>
+        </div>
+        <ol class="rows" aria-label="Pengaduan tidak lengkap">
+          {d.tidakLengkap.map((p) => (
+            <li class="row-grid tile row">
+              <span class="chip abu">Tanpa tiket</span>
+              <span class="muted">—</span>
+              <span>{p.kategori}</span>
+              <span>{p.waktu}</span>
+              <span class="chip abu">pengaduan tidak lengkap</span>
+              <a href={p.tautanTranskrip} class="link"><i class="icon-file-text"></i>Lihat Transkrip</a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .head { padding: 22px 28px; display: flex; align-items: center; gap: 16px; }
+  .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.02em; }
+  .head-title span { font-size: 15px; color: var(--muted); }
+
+  .filter { display: flex; flex-wrap: wrap; gap: 10px; }
+  .filter .tab { text-decoration: none; }
+  .filter .tab[aria-current='page'] { background: #e6edfe; box-shadow: none; color: #2557e0; font-weight: 600; }
+  .jumlah { min-width: 26px; height: 26px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .list { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+  .tidak-lengkap { flex: none; max-height: 40%; }
+  .row-grid { display: grid; grid-template-columns: 1.2fr 1.8fr 1.1fr 1.3fr 1.2fr 140px; gap: 14px; align-items: center; padding: 0 18px; }
+  .cols-head { font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--muted); padding-bottom: 4px; }
+  .rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .row { min-height: 64px; border-radius: 18px; font-size: 15px; }
+  .no { font-weight: 600; }
+  .produk { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .muted { color: var(--muted-2); }
+  .row .chip { justify-self: start; }
+  .chip.abu { background: #e8e9ed; color: #3a3f4d; }
+  .aksi { height: 44px; padding: 0 18px; font-size: 14px; font-weight: 500; text-decoration: none; justify-self: start; }
+  .pill.aksi { color: var(--ink); }
+  .link { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: #2152c9; white-space: nowrap; text-decoration: none; }
+  .sub-head { display: flex; flex-direction: column; gap: 2px; padding: 0 4px 6px; }
+  .sub-head h2 { margin: 0; font-size: 20px; font-weight: 500; }
+  .sub-head span { font-size: 14px; color: var(--muted); }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; min-height: 220px; }
+  .empty i { font-size: 28px; color: var(--muted-2); }
+</style>

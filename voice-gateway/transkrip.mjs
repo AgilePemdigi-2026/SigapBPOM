@@ -6,8 +6,9 @@
 export const PEMBICARA = Object.freeze({ SISTEM: 'sistem', PENELEPON: 'penelepon' });
 
 /**
- * Interface pengirim: `kirim(body)` dengan body `{ aksi: 'ucapan', percakapanId, pembicara, teks }` atau
- * `{ aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil }`. Tiruan menyimpan di memori seperti tabel ucapan dan log_tool.
+ * Interface pengirim: `kirim(body)` dengan body `{ aksi: 'ucapan', percakapanId, pembicara, teks }`,
+ * `{ aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil }`, atau `{ aksi: 'ringkasan', percakapanId, ringkasan }`
+ * (ringkasan.mjs). Tiruan menyimpan di memori seperti tabel ucapan, log_tool, dan kolom percakapan.ringkasan.
  */
 export class PengirimTranskripTiruan {
   constructor(maks = 200) {
@@ -23,6 +24,7 @@ export class PengirimTranskripTiruan {
       this.percakapan.set(percakapanId, p);
     }
     if (aksi === 'ucapan') p.ucapan.push({ urutan: p.ucapan.length + 1, ...isi });
+    else if (aksi === 'ringkasan') p.ringkasan = isi.ringkasan;
     else p.tool.push(isi);
   }
 }
@@ -89,8 +91,8 @@ export class PencatatTranskrip {
     let s = this.sesi.get(id);
     if (s) return s;
     if (this.sesi.size >= this.batas.maks) {
-      // Penuh: geser dulu sesi tertua yang belum tercatat (pilihan menu dengan id sembarang tidak melewati kuota), baru
-      // sesi tercatat yang tidak sedang mengirim, biasanya panggilan yang ditinggalkan tanpa akhiri.
+      // Penuh: geser dulu sesi tertua yang laporan panggilan aktifnya belum sampai, baru sesi tercatat yang tidak sedang
+      // mengirim, biasanya panggilan yang ditinggalkan tanpa akhiri.
       const semua = [...this.sesi];
       const korban = (semua.find(([, v]) => !v.tercatat) ?? semua.find(([, v]) => !v.jalan))?.[0];
       if (korban === undefined) return null;

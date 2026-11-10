@@ -6,10 +6,10 @@ export type StatusIzin = 'Berlaku' | 'Tidak Berlaku' | 'Dibatalkan';
 /** Bentuk sama dengan entity `Produk` di supabase/functions/_shared/entity/produk.ts. */
 export type Produk = { nama: string; nomorIzinEdar: string; status: StatusIzin; pendaftar: string; sumber: string };
 
-/** Hasil cek registrasi yang ditampilkan: satu produk, beberapa kandidat (BR-7), atau tidak ditemukan. */
+/** Hasil cek registrasi yang ditampilkan: satu produk, beberapa kandidat dengan jumlah seluruh hasil (BR-7), atau tidak ditemukan. */
 export type HasilProduk =
   | { jenis: 'tunggal'; produk: Produk }
-  | { jenis: 'kandidat'; produk: Produk[] }
+  | { jenis: 'kandidat'; produk: Produk[]; total?: number }
   | { jenis: 'tidak_ditemukan' };
 
 /** REQ-1.5, BR-7: kandidat yang disebutkan paling banyak tiga. */
@@ -36,17 +36,22 @@ function barisProduk(p: Produk) {
     </dl>`;
 }
 
-/** Kartu hasil cek produk (T-F1.2-01). */
+/**
+ * Kartu hasil cek produk (T-F1.2-01). Kartu tidak ditemukan memuat tombol 2 ke pengaduan (UC-01 Alternative Path 3) dengan
+ * label tombol menu 2 di panel (SRS Panel Percakapan Suara).
+ */
 export function htmlKartuProduk(h: HasilProduk): string {
   if (h.jenis === 'tidak_ditemukan') {
-    return `<section class="k-produk kosong" aria-label="Hasil cek produk"><i class="icon-search-x" aria-hidden="true"></i><p>${PESAN_TIDAK_DITEMUKAN}</p></section>`;
+    return `<section class="k-produk kosong" aria-label="Hasil cek produk"><i class="icon-search-x" aria-hidden="true"></i><p>${PESAN_TIDAK_DITEMUKAN}</p>
+    <button type="button" data-pick="2" aria-label="2: Pengaduan Produk"><span class="no purple" aria-hidden="true">2</span><span class="t">Pengaduan Produk</span></button></section>`;
   }
   if (h.jenis === 'tunggal') {
     return `<section class="k-produk" aria-label="Hasil cek produk">${barisProduk(h.produk)}<p class="k-sumber">Sumber: ${esc(h.produk.sumber)}</p></section>`;
   }
   const tampil = h.produk.slice(0, KANDIDAT_MAKS);
+  const n = h.total ?? h.produk.length;
   return `<section class="k-produk" aria-label="Kandidat produk">
-    <p class="k-judul">${h.produk.length} hasil ditemukan${h.produk.length > KANDIDAT_MAKS ? `, ${KANDIDAT_MAKS} teratas` : ''}. Sebutkan nomor pilihan Anda.</p>
+    <p class="k-judul">${n} hasil ditemukan${n > tampil.length ? `, ${tampil.length} teratas` : ''}. Sebutkan nomor pilihan Anda.</p>
     <ol>${tampil.map((p) => `<li>${barisProduk(p)}</li>`).join('')}</ol>
     <p class="k-sumber">Sumber: ${esc(tampil[0]?.sumber ?? '')}</p>
   </section>`;
@@ -89,6 +94,28 @@ export function htmlKartuTiket(e: { tiket?: string; pengaduan?: string | null })
 
 /** Pesan akhir panggilan selain pengaduan tidak lengkap. */
 export const PESAN_PANGGILAN_BERAKHIR = 'Panggilan berakhir. Transkrip tersimpan di register layanan.';
+
+/** Kamus pesan Lampiran A (UC-01, UC-02 "Gateway suara gagal atau jaringan putus"). */
+export const PESAN_GANGGUAN_SUARA = 'Layanan suara sedang gangguan. Silakan coba lagi.';
+
+/** Galat yang pesannya berasal dari balasan Voice Gateway. */
+export class GalatGateway extends Error {}
+
+// Galat gateway yang terdaftar di kamus Lampiran A (UC-01, UC-02) dan boleh ditampilkan apa adanya. Pesan API internal
+// ("Akses ditolak.", "Permintaan tidak valid.") dan galat browser (jaringan putus, JSON rusak) tidak (PROJECT_RULES 4.4 dan 5.12).
+const PESAN_GALAT_TERDAFTAR: readonly string[] = [
+  'Suara tidak terdengar. Silakan ulangi.',
+  'Rekaman terlalu panjang.',
+  'Terlalu banyak permintaan. Coba lagi sebentar lagi.',
+  'Layanan sedang penuh. Coba lagi sebentar lagi.',
+  'Percakapan ini tidak dapat dilanjutkan. Silakan mulai panggilan baru.',
+  'Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok.',
+  'Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru.',
+  'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.',
+];
+
+export const pesanGalatPanggilan = (e: unknown) =>
+  e instanceof GalatGateway && PESAN_GALAT_TERDAFTAR.includes(e.message) ? e.message : PESAN_GANGGUAN_SUARA;
 
 /**
  * Status akhir panggilan di panel (T-F4.3-03, REQ-2.5). Layanan pengaduan yang belum bertiket memakai pesan kamus

@@ -19,7 +19,7 @@ export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
   }],
   'produk-kandidat': [{
     ucapan: 'Paracetamol terdaftar tidak?',
-    jawaban: 'Ada 3 produk paracetamol yang cocok. Sebutkan nomor pilihan Anda.',
+    jawaban: 'Ditemukan 3 produk. Pilih salah satu: Paracetamol 500 mg Tablet, Paracetamol Sirup Anak, atau Paracetamol Kaplet Forte.',
     produk: { jenis: 'kandidat', produk: PRODUK_TIRUAN.slice(1) },
   }],
   'produk-tidak-ditemukan': [{

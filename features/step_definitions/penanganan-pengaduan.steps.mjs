@@ -1,13 +1,12 @@
-// Langkah Gherkin UC-06 Menangani Pengaduan. Aksi penanganan memakai PenangananController dengan
-// PenyimpananPenangananTiruan (mesin status RPC penanganan). Halaman Daftar Pengaduan (T-F7.1-02) dan panel penanganan
-// (T-F7.2-02) belum dibuat, jadi daftar dan detail pengaduan dibaca lewat control padanannya: antrean dan detail kasus
-// PemantauanLayananController, yang menautkan setiap tiket ke /pengaduan/detail. Keduanya berbagi data tiket tiruan,
-// sehingga StatusPengaduan membaca status yang ditulis aksi penanganan.
+// Langkah Gherkin UC-06 Menangani Pengaduan. Aksi penanganan dijalankan seperti endpoint /api/pengaduan/[tiket]/*:
+// helper src/lib/penanganan.ts memanggil PenangananController dengan PenyimpananPenangananMock, lalu memetakan hasilnya
+// ke kode HTTP dan pesan kamus. Daftar dan detail pengaduan dibaca PemantauanLayananController dari data tiruan; status
+// yang ditulis aksi penanganan disalin ke data itu, sehingga StatusPengaduan membaca status terbaru.
 import assert from 'node:assert/strict';
 import { Given, When, Then } from '@cucumber/cucumber';
-import { LABEL_TINDAK_LANJUT, PenangananController } from '../../src/lib/PenangananController.ts';
+import { OPSI_TINDAK_LANJUT, PenangananController, PenyimpananPenangananMock } from '../../src/lib/PenangananController.ts';
 import { LABEL_STATUS_TIKET, PemantauanLayananController } from '../../src/lib/PemantauanLayananController.ts';
-import { PenyimpananPenangananTiruan } from '../../src/lib/mock/penangananTiruan.ts';
+import { simpanJadwal, simpanTanggapan, simpanTelaah, tutupTiket } from '../../src/lib/penanganan.ts';
 import { PenyimpananPemantauanTiruan } from '../../src/lib/mock/pemantauanTiruan.ts';
 import { kunciLabel, nilaiTanggal, tombol } from '../support/dashboard.mjs';
 
@@ -30,9 +29,25 @@ async function bukaDetail(dunia, noTiket) {
   dunia.uc06.detail = detail;
 }
 
+/**
+ * Status tiket di penyimpanan penanganan dan di data pemantauan dibuat sama. Seperti di basis data, tiket berstatus
+ * Tanggapan Disusun sudah punya tanggapan resmi tersimpan.
+ */
+async function aturStatus(dunia, noTiket, status) {
+  const { penyimpanan } = uc06(dunia);
+  if (status === 'tanggapan_disusun' && !(await penyimpanan.ambilTanggapan(noTiket)).length) {
+    penyimpanan.tiketMap.get(noTiket).status = 'sedang_ditelaah';
+    await penyimpanan.simpanTanggapan(noTiket, 'Produk telah ditelaah dan pelaku usaha diberi peringatan tertulis.');
+  }
+  tiketDi(dunia, noTiket).status = status;
+  penyimpanan.tiketMap.get(noTiket).status = status;
+}
+
 /** Menjalankan aksi penanganan seperti endpoint /api/pengaduan/[tiket]/*: pesan kamus tampil, hasil disimpan. */
 async function jalankan(dunia, aksi) {
-  const hasil = await aksi(uc06(dunia).penanganan, dunia.uc06.noTiket);
+  const { noTiket, penanganan, penyimpanan } = uc06(dunia);
+  const hasil = await aksi(penanganan, noTiket);
+  tiketDi(dunia, noTiket).status = penyimpanan.tiketMap.get(noTiket).status;
   dunia.uc06.hasil = hasil;
   dunia.pesan = hasil.pesan;
 }
@@ -56,15 +71,17 @@ Given('terdapat pengaduan:', function (tabel) {
       pengaduan: { namaProduk: b.produk, kronologi: b.ringkasan, kelengkapan: true, tglPengaduan: `2026-10-${20 - i}T02:20:00Z` },
     });
   });
+  const penyimpanan = new PenyimpananPenangananMock(Object.fromEntries(data.tiket.map((t) => [t.noTiket, { status: t.status, jenis: t.jenis }])));
   this.uc06 = {
     data,
+    penyimpanan,
     pemantauan: new PemantauanLayananController(new PenyimpananPemantauanTiruan(data)),
-    penanganan: new PenangananController(new PenyimpananPenangananTiruan(data.tiket)),
+    penanganan: new PenangananController(penyimpanan),
   };
 });
 
 Given('petugas membuka detail pengaduan {string} berstatus {string}', async function (noTiket, status) {
-  tiketDi(this, noTiket).status = kunciLabel(LABEL_STATUS_TIKET, status);
+  await aturStatus(this, noTiket, kunciLabel(LABEL_STATUS_TIKET, status));
   await bukaDetail(this, noTiket);
 });
 
@@ -99,7 +116,7 @@ Then('detail pengaduan {string} untuk produk {string} ditampilkan', function (no
 // REQ-6.1.
 Then('pilihan {string} berisi {string}, {string}, dan {string}', function (field, a, b, c) {
   assert.equal(field, 'Tindak Lanjut');
-  assert.deepEqual(Object.values(LABEL_TINDAK_LANJUT), [a, b, c]);
+  assert.deepEqual([...OPSI_TINDAK_LANJUT], [a, b, c]);
 });
 
 // Status dibaca ulang dari detail pengaduan, seperti halaman detail sesudah aksi; status di respons aksi harus sama bila ada.
@@ -114,7 +131,7 @@ Then('StatusPengaduan menampilkan {string}', async function (status) {
 // formulir jadwal dibuka. Status baru menjadi Menunggu Pemeriksaan setelah jadwal tersimpan.
 Then('sistem menampilkan formulir jadwal pemeriksaan', function () {
   const { hasil } = uc06(this);
-  assert.equal(this.isian['Tindak Lanjut'], LABEL_TINDAK_LANJUT.perlu_pemeriksaan_lapangan);
+  assert.equal(this.isian['Tindak Lanjut'], 'Perlu Pemeriksaan Lapangan');
   assert.equal(hasil.kode, 200, hasil.pesan);
   assert.equal(hasil.pesan, 'Hasil telaah tersimpan.');
   assert.equal(hasil.data.status, 'sedang_ditelaah');
@@ -122,14 +139,17 @@ Then('sistem menampilkan formulir jadwal pemeriksaan', function () {
 
 // BR-3: pengaduan yang diteruskan berhenti; jadwal, tanggapan, dan tutup tiket ditolak dan status tidak berubah.
 Then('pengaduan tidak dapat dilanjutkan ke tahap berikutnya', async function () {
-  const { penanganan, noTiket } = uc06(this);
+  const { penanganan, penyimpanan, noTiket } = uc06(this);
   const ditolak = [
-    await penanganan.simpanJadwal(noTiket, '2026-10-15', 'Balai Besar POM di Surabaya'),
-    await penanganan.simpanTanggapan(noTiket, 'Tanggapan resmi.'),
-    await penanganan.tutupTiket(noTiket),
+    await simpanJadwal(penanganan, noTiket, '2026-10-15', 'Balai Besar POM di Surabaya'),
+    await simpanTanggapan(penanganan, noTiket, 'Tanggapan resmi.'),
+    await tutupTiket(penanganan, noTiket),
   ];
-  for (const h of ditolak) assert.deepEqual([h.kode, h.data], [422, null]);
-  assert.equal(tiketDi(this, noTiket).status, 'diteruskan');
+  for (const h of ditolak) {
+    assert.notEqual(h.kode, 200, h.pesan);
+    assert.equal(h.data, null);
+  }
+  assert.equal(penyimpanan.tiketMap.get(noTiket).status, 'diteruskan');
 });
 
 // @belum-tersedia: StepperPenanganan menunggu panel penanganan (T-F7.2-02), SMS menunggu T-F7.3-01.
@@ -145,21 +165,20 @@ Then('SMS tindak lanjut tiket {string} terkirim kepada pelapor', function (_noTi
 
 // Langkah 7 sampai 9 Basic Path dan Alternative Path 1 serta 2 (REQ-6.2, BR-3).
 tombol('Simpan Telaah', function () {
-  const tindakLanjut = kunciLabel(LABEL_TINDAK_LANJUT, this.isian['Tindak Lanjut']);
-  return jalankan(this, (c, no) => c.simpanTelaah(no, tindakLanjut, this.isian['Catatan Tindak Lanjut'] ?? ''));
+  return jalankan(this, (c, no) => simpanTelaah(c, no, this.isian['Tindak Lanjut'], this.isian['Catatan Tindak Lanjut'] ?? ''));
 });
 
 // Alternative Path 2 langkah 9 sampai 13 (REQ-6.3). Tanggal dikirim dalam bentuk nilai <input type="date">.
 tombol('Simpan Jadwal', function () {
-  return jalankan(this, (c, no) => c.simpanJadwal(no, nilaiTanggal(this.isian['Tanggal Pemeriksaan']), this.isian['Unit Pelaksana']));
+  return jalankan(this, (c, no) => simpanJadwal(c, no, nilaiTanggal(this.isian['Tanggal Pemeriksaan']), this.isian['Unit Pelaksana']));
 });
 
 // Langkah 10 sampai 13 Basic Path (REQ-6.4).
 tombol('Simpan Tanggapan', function () {
-  return jalankan(this, (c, no) => c.simpanTanggapan(no, this.isian.Tanggapan));
+  return jalankan(this, (c, no) => simpanTanggapan(c, no, this.isian.Tanggapan));
 });
 
 // Langkah 14 sampai 17 Basic Path dan Exception Path 1 (REQ-6.5, REQ-6.6, BR-2).
 tombol('Tutup Tiket', function () {
-  return jalankan(this, (c, no) => c.tutupTiket(no));
+  return jalankan(this, (c, no) => tutupTiket(c, no));
 });

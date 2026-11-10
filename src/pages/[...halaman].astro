@@ -1,11 +1,10 @@
 ---
 // Placeholder menu dashboard yang belum dibangun (F3.3). Diganti halaman aslinya di Sprint 3.
-// Detail Transkrip ikut didaftarkan karena tautan "Lihat Transkrip" UC-04 sudah mengarah ke sana.
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 
 const HALAMAN: Record<string, [string, string]> = {
-  'riwayat-percakapan/detail': ['Detail Transkrip', 'Sprint 3'],
-  pengaduan: ['Daftar Pengaduan', 'Sprint 3'],
+  'riwayat-percakapan': ['Riwayat Percakapan', 'Sprint 3'],
+  'rekap-laporan': ['Rekap & Laporan', 'Sprint 3'],
 };
 
 const halaman = Astro.params.halaman ?? '';
