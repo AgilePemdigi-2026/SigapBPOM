@@ -1,8 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan, pesanTiketEskalasi,
+  samarkanDeretTelepon,
 } from './eskalasi.mjs';
+import { kueriProduk } from './cekbpom.mjs';
 import { PROMPT_SISTEM, RiwayatPanggilan, teksUntukSuara } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
@@ -22,6 +26,19 @@ test('nfr_6 pertanyaan medis dan keamanan konsumsi diteruskan ke petugas', () =>
     'Efek samping obat ini apa saja?',
     'Anak saya demam, obat apa yang cocok?',
     'Susu formula ini aman diminum bayi saya?',
+    'Apakah obat X yang terdaftar aman untuk ibu hamil?',
+    'Apakah paracetamol terdaftar, berapa dosis untuk anak?',
+    'Apakah obat X yang terdaftar bisa diminum anak?',
+    'Apakah obat X terdaftar dan bisa untuk anak?',
+    'Apakah jamu ini cocok untuk ibu hamil?',
+    // Kata registrasi atau nomor izin edar tidak membuat pertanyaan kecocokan untuk kondisi tertentu dijawab lewat cekbpom.
+    'Apakah obat MD 123456789012 cocok untuk ibu hamil?',
+    'Apakah produk yang sudah terdaftar ini cocok untuk penderita diabetes?',
+    'Apakah jamu terdaftar ini cocok untuk lansia?',
+    'Apakah suplemen ini sudah terdaftar dan cocok untuk anak?',
+    'Apakah jamu resmi ini cocok untuk penderita darah tinggi?',
+    'Apakah obat legal ini cocok untuk anak?',
+    'Apakah jamu terdaftar ini untuk penderita diabetes?',
   ]) assert.ok(butuhPetugas(u), u);
   for (const u of [
     'Apa bedanya obat bebas dan obat keras?',
@@ -29,6 +46,34 @@ test('nfr_6 pertanyaan medis dan keamanan konsumsi diteruskan ke petugas', () =>
     'Bagaimana cara cek nomor registrasi kosmetik?',
     'Apa tugas BPOM?',
   ]) assert.ok(!butuhPetugas(u), u);
+});
+
+test('req_1_3 nfr_6 pertanyaan legalitas produk anak dan bayi dicek di cekbpom, bukan dieskalasi', () => {
+  for (const u of [
+    'Apakah Paracetamol Sirup Anak sudah terdaftar di BPOM?',
+    'Apakah susu formula bayi merek Sehat terdaftar?',
+    'Apakah bedak bayi Y punya izin edar?',
+    'Apakah susu formula bayi merek Sehat sudah ada BPOM-nya?',
+    'Apakah bedak bayi Y resmi?',
+  ]) {
+    assert.ok(!butuhPetugas(u), u);
+    assert.ok(kueriProduk(u), u);
+  }
+  assert.deepEqual(kueriProduk('Apakah Paracetamol Sirup Anak sudah terdaftar di BPOM?'), { nama: 'paracetamol sirup anak' });
+});
+
+test('nfr_13 deret nomor telepon disamarkan, nomor izin edar, tanggal, dan tiket tidak', () => {
+  for (const u of [
+    '0812 345', '0812-3456-7890', '+62 812 3456 7890', 'nol delapan satu dua tiga', 'kosong delapan satu dua',
+    'nol delapan satu tiga belas dua puluh satu empat lima enam tujuh', 'nol delapan sebelas sepuluh dua',
+  ]) {
+    assert.equal(samarkanDeretTelepon(u), '(nomor telepon)', u);
+  }
+  assert.equal(samarkanDeretTelepon('Apakah obat X aman untuk ibu hamil? nomor saya 0812-3456-7890'), 'Apakah obat X aman untuk ibu hamil? nomor saya (nomor telepon)');
+  for (const u of [
+    'POM TR 083 245 461', 'SD 051 234 567', 'DKL 0812345678A1', 'MD 865009001234', 'kedaluwarsa 05-06-2026', 'kedaluwarsa 15-08-2026',
+    'ESK-20261019-0001', 'umur 0 - 12 bulan', 'Tahun 2019', 'HaloBPOM 1500533', 'layanan 1', 'dua botol', 'satu dua tiga empat lima produk',
+  ]) assert.equal(samarkanDeretTelepon(u), u, u);
 });
 
 test('t_f1_4_02 nomor telepon dari transkrip angka atau kata, format Indonesia', () => {
@@ -92,4 +137,13 @@ test('kuota tiket dipesan sebelum penerbitan dan dikembalikan bila gagal', () =>
   assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), 'panggilan');
   b.batalkan('p1', 'ip1', '081234567890');
   assert.equal(b.cadangkan('p1', 'ip1', '081234567890'), null);
+});
+
+test('req_1_7 req_2_3 gateway produksi tanpa SUPABASE_URL atau SIGAP_KUNCI_INTERNAL berhenti saat start, bukan menerbitkan tiket tiruan', () => {
+  const server = fileURLToPath(new URL('./server.mjs', import.meta.url));
+  for (const sebagian of [{}, { SUPABASE_URL: 'http://127.0.0.1:54321' }, { SIGAP_KUNCI_INTERNAL: 'kunci-uji' }]) {
+    const hasil = spawnSync(process.execPath, [server], { env: { NODE_ENV: 'production', PORT: '0', ...sebagian }, encoding: 'utf8', timeout: 5000 });
+    assert.equal(hasil.status, 1, JSON.stringify(sebagian));
+    assert.match(hasil.stderr, /env_supabase_kurang/);
+  }
 });

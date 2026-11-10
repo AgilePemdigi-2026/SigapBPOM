@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BATAS_ULANG_NAMA, DEFINISI_TOOL, NAMA_TOOL, PESAN_BATAS_ULANG_NAMA, PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom,
-  nomorPilihan, pesanProdukDitemukan,
+  nomorPilihan, pesanHasilGanda, pesanProdukDitemukan,
 } from './alatCekRegistrasi.mjs';
 import { PESAN_LAYANAN_1, PESAN_TAWARAN_PENUTUP } from './percakapan.mjs';
 
@@ -55,25 +55,54 @@ test('t_f1_2_03 kalimat produk ditemukan mengikuti kamus pesan Lampiran A', () =
   assert.equal(pesanProdukDitemukan(PRODUK[3]), 'Paracetamol Kaplet Forte terdaftar dengan nomor izin edar DBL1234567904A1, status izin Tidak Berlaku.');
 });
 
-test('req_1_5 hasil ganda: jumlah dan paling banyak tiga kandidat dibacakan Hermes, lalu penelepon memilih nomornya', async () => {
+test('req_1_5 br_7 hasil ganda: jumlah dan paling banyak tiga kandidat dibacakan tanpa AI, lalu penelepon memilih nomornya', async () => {
   const cek = new CekBpomTiruan();
   const ganda = await cekRegistrasiBpom(cek, 'Apakah paracetamol sudah terdaftar di BPOM?');
   assert.equal(ganda.jalur, 'ganda');
-  assert.equal(ganda.jawaban, null, 'dibacakan AI dari pesan sistem');
-  assert.match(ganda.konteks, /^Hasil pencarian data registrasi BPOM/);
-  assert.match(ganda.konteks, /Ada 4 produk yang cocok/);
-  assert.match(ganda.konteks, /nomor pilihannya/);
-  assert.ok(!ganda.konteks.includes('Paracetamol Drop Bayi'), 'kandidat keempat tidak disebut (BR-7)');
+  assert.equal(ganda.jawaban, 'Ditemukan 4 produk. Pilih salah satu: Paracetamol 500 mg Tablet, Paracetamol Sirup Anak, atau Paracetamol Kaplet Forte.');
+  assert.equal(ganda.konteks, null, 'tidak ada pesan untuk AI');
   assert.equal(ganda.produk.jenis, 'kandidat');
+  assert.equal(ganda.produk.total, 4);
   assert.equal(ganda.produk.produk.length, 3);
   assert.equal(ganda.keadaan.kandidat.length, 3);
 
-  const pilih = await cekRegistrasiBpom(cek, 'yang nomor dua', { ...ganda.keadaan, jawabanTerakhir: 'Ada empat produk paracetamol.' });
+  const pilih = await cekRegistrasiBpom(cek, 'yang nomor dua', { ...ganda.keadaan, jawabanTerakhir: ganda.jawaban });
   assert.equal(pilih.jalur, 'tunggal');
   assert.ok(pilih.jawaban.startsWith('Paracetamol Sirup Anak terdaftar dengan nomor izin edar DBL1234567837A1, status izin Berlaku.'));
   assert.equal(pilih.produk.produk.nama, 'Paracetamol Sirup Anak');
   assert.equal(pilih.keadaan.kandidat, null);
   assert.equal(cek.kueri.length, 1, 'pilihan diambil dari kandidat tanpa memanggil cekbpom lagi');
+});
+
+test('req_1_5 br_7 SRS Tabel B.2 Alternative Path 4: "Susu Formula" menyebut jumlah dan tiga kandidat tanpa AI, lalu kandidat dipilih dengan namanya', async () => {
+  const susu = ['Prima', 'Bunda', 'Anak', 'Lanjutan'].map((n, i) => ({ ...PRODUK[0], nama: `Susu Formula ${n}`, nomorIzinEdar: `MD 86500900000${i}` }));
+  const cek = new CekBpomTiruan([PRODUK[0], ...susu]);
+  const ganda = await cekRegistrasiBpom(cek, 'Susu Formula', SETELAH_MENU_1);
+  assert.equal(ganda.jawaban, 'Ditemukan 5 produk. Pilih salah satu: Susu Formula Sehat, Susu Formula Prima, atau Susu Formula Bunda.');
+  assert.equal(ganda.konteks, null);
+
+  const keadaan = { ...ganda.keadaan, jawabanTerakhir: ganda.jawaban };
+  const pilih = await cekRegistrasiBpom(cek, 'Susu Formula Sehat', keadaan);
+  assert.equal(pilih.jalur, 'tunggal');
+  assert.ok(pilih.jawaban.startsWith('Susu Formula Sehat terdaftar dengan nomor izin edar BPOM RI MD 865009001234, status izin Berlaku.'), pilih.jawaban);
+  assert.equal(cek.kueri.length, 1, 'kandidat dipilih tanpa memanggil cekbpom lagi');
+
+  const ulang = await cekRegistrasiBpom(cek, 'Susu Formula', keadaan);
+  assert.equal(ulang.jalur, 'ganda', 'nama yang cocok dengan beberapa kandidat dicari ulang');
+  assert.equal(cek.kueri.length, 2);
+});
+
+test('req_1_5 br_7 dua kandidat digabung dengan "atau", dan nama kandidat kembar tidak dipilih lewat namanya', async () => {
+  assert.equal(pesanHasilGanda(2, PRODUK.slice(1, 3)), 'Ditemukan 2 produk. Pilih salah satu: Paracetamol 500 mg Tablet atau Paracetamol Sirup Anak.');
+  const kembar = [PRODUK[1], { ...PRODUK[1], merek: 'Lain', nomorIzinEdar: 'DBL9999999999A1' }];
+  const cek = new CekBpomTiruan(kembar);
+  const ganda = await cekRegistrasiBpom(cek, 'Paracetamol 500 mg Tablet', SETELAH_MENU_1);
+  assert.equal(ganda.jawaban, 'Ditemukan 2 produk. Pilih salah satu: Paracetamol 500 mg Tablet atau Paracetamol 500 mg Tablet.');
+  const ulang = await cekRegistrasiBpom(cek, 'Paracetamol 500 mg Tablet', { ...ganda.keadaan, jawabanTerakhir: ganda.jawaban });
+  assert.equal(ulang.jalur, 'ganda');
+  assert.equal(cek.kueri.length, 2);
+  const nomor = await cekRegistrasiBpom(cek, 'nomor dua', { ...ulang.keadaan, jawabanTerakhir: ulang.jawaban });
+  assert.equal(nomor.produk.produk.nomorIzinEdar, 'DBL9999999999A1', 'nama kembar tetap bisa dipilih dengan nomornya');
 });
 
 test('req_1_5 nomor pilihan dikenali dari kata atau angka, di luar jumlah kandidat ditolak', () => {
@@ -93,6 +122,24 @@ test('t_f1_2_03 hasil kosong: pesan baku tidak ditemukan tanpa AI dan tanpa stat
   assert.equal(PESAN_TIDAK_DITEMUKAN, 'Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan.');
   assert.equal(hasil.konteks, null);
   assert.equal(hasil.produk.jenis, 'tidak_ditemukan');
+});
+
+test('req_1_3 SRS Tabel B.2 Alternative Path 3: "Krim Pemutih Instan" setelah menu 1 dijawab pesan tidak ditemukan tanpa AI', async () => {
+  const hasil = await cekRegistrasiBpom(new CekBpomTiruan(), 'Krim Pemutih Instan', SETELAH_MENU_1);
+  assert.equal(hasil.jawaban, PESAN_TIDAK_DITEMUKAN);
+  assert.equal(hasil.konteks, null);
+});
+
+test('req_1_4 br_6 SRS Tabel B.2 Exception Path 2: "Su... Formu... Seh..." diminta ulang tanpa cekbpom, lalu "Susu Formula Sehat" dibacakan tanpa AI', async () => {
+  const cek = new CekBpomTiruan();
+  const samar = await cekRegistrasiBpom(cek, 'Su... Formu... Seh...', SETELAH_MENU_1);
+  assert.equal(samar.jalur, 'tidak_jelas');
+  assert.equal(samar.jawaban, PESAN_NAMA_TIDAK_JELAS);
+  assert.equal(cek.kueri.length, 0);
+
+  const jelas = await cekRegistrasiBpom(cek, 'Susu Formula Sehat', { ...samar.keadaan, jawabanTerakhir: samar.jawaban });
+  assert.ok(jelas.jawaban.startsWith('Susu Formula Sehat terdaftar dengan nomor izin edar BPOM RI MD 865009001234, status izin Berlaku.'), jelas.jawaban);
+  assert.equal(jelas.konteks, null);
 });
 
 test('br_6 nama tidak jelas diminta ulang paling banyak dua kali, lalu tidak diminta lagi', async () => {

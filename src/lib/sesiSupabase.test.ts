@@ -9,6 +9,7 @@ const jwt = (sessionId: string | null) =>
   `h.${Buffer.from(JSON.stringify(sessionId ? { session_id: sessionId } : {})).toString('base64url')}.s`;
 const TOKEN = jwt('sesi-1');
 const KUNCI_ANON = 'anon-uji';
+const KUNCI_LOGIN = 'kunci-login-uji';
 
 function buatCookies(awal: Record<string, string> = {}) {
   const isi = new Map(Object.entries(awal));
@@ -21,21 +22,24 @@ function buatCookies(awal: Record<string, string> = {}) {
   return { cookies, isi, dipasang };
 }
 
-type Panggilan = { url: string; method: string; auth: string; apikey: string; body: unknown };
+type Panggilan = { url: string; method: string; auth: string; apikey: string; kunci?: string; body: unknown };
 type Penangan = (p: Panggilan) => { status?: number; json?: unknown } | undefined;
 
-function buat(penangan: Penangan) {
+function buat(penangan: Penangan, kunciLogin = KUNCI_LOGIN) {
   const panggilan: Panggilan[] = [];
   const fakeFetch = (async (url: string, init: RequestInit) => {
     const h = init.headers as Record<string, string>;
-    const p = { url, method: init.method ?? 'GET', auth: h.Authorization, apikey: h.apikey, body: init.body ? JSON.parse(String(init.body)) : undefined };
+    const p = { url, method: init.method ?? 'GET', auth: h.Authorization, apikey: h.apikey, kunci: h['x-sigap-kunci'], body: init.body ? JSON.parse(String(init.body)) : undefined };
     panggilan.push(p);
     const r = penangan(p) ?? { status: 404 };
     return new Response(JSON.stringify(r.json ?? null), { status: r.status ?? 200 });
   }) as unknown as typeof fetch;
-  const sesi = new SesiSupabase({ url: 'http://supabase.uji/', kunciAnon: KUNCI_ANON, secure: true, fetch: fakeFetch });
+  const sesi = new SesiSupabase({ url: 'http://supabase.uji/', kunciAnon: KUNCI_ANON, kunciLogin, secure: true, fetch: fakeFetch });
   return { sesi, panggilan };
 }
+
+const loginOk = { json: { status: 'success', message: 'OK', data: { sesi: { access_token: TOKEN, refresh_token: 'rt-1' }, petugas: { id: UID, nama: 'Dewi Lestari' } } } };
+const ditolak = (message: string) => ({ status: 401, json: { status: 'error', message, data: null } });
 
 // Supabase palsu: token yang dikenal menghasilkan petugas, sisanya 401.
 const petugasOk = (tokenSah: string, adalahPetugas = true): Penangan => (p) => {
@@ -45,9 +49,9 @@ const petugasOk = (tokenSah: string, adalahPetugas = true): Penangan => (p) => {
   return undefined;
 };
 
-test('login memanggil Edge Function login dengan kunci anon dan memasang cookie HttpOnly Secure SameSite Lax', async () => {
+test('login memanggil Edge Function login dengan kunci anon dan kunci login server, lalu memasang cookie HttpOnly Secure SameSite Lax', async () => {
   const { sesi, panggilan } = buat((p) => {
-    if (p.url.endsWith('/functions/v1/login')) return { json: { sukses: true, pesan: 'Login berhasil!', sesi: { access_token: TOKEN, refresh_token: 'rt-1' } } };
+    if (p.url.endsWith('/functions/v1/login')) return loginOk;
     return petugasOk(TOKEN)(p);
   });
   const { cookies, isi, dipasang } = buatCookies();
@@ -56,6 +60,8 @@ test('login memanggil Edge Function login dengan kunci anon dan memasang cookie 
   assert.deepEqual(panggilan[0].body, { email: 'dewi@pom.go.id', password: 'rahasia' });
   assert.ok(panggilan.every((p) => p.apikey === KUNCI_ANON));
   assert.equal(panggilan[0].auth, `Bearer ${KUNCI_ANON}`);
+  assert.equal(panggilan[0].kunci, KUNCI_LOGIN);
+  assert.ok(panggilan.slice(1).every((p) => p.kunci === undefined), 'kunci login hanya untuk fungsi login');
   assert.equal(isi.get(COOKIE_AKSES), TOKEN);
   assert.equal(isi.get(COOKIE_REFRESH), 'rt-1');
   for (const o of Object.values(dipasang)) assert.deepEqual(o, { path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
@@ -63,7 +69,7 @@ test('login memanggil Edge Function login dengan kunci anon dan memasang cookie 
 
 test('req_3_2 login dengan token dari Edge Function yang bukan petugas ditolak tanpa cookie dan sesinya dicabut', async () => {
   const { sesi, panggilan } = buat((p) => {
-    if (p.url.endsWith('/functions/v1/login')) return { json: { sukses: true, sesi: { access_token: TOKEN, refresh_token: 'rt-1' } } };
+    if (p.url.endsWith('/functions/v1/login')) return loginOk;
     return petugasOk(TOKEN, false)(p);
   });
   const { cookies, isi } = buatCookies();
@@ -72,15 +78,31 @@ test('req_3_2 login dengan token dari Edge Function yang bukan petugas ditolak t
   assert.ok(panggilan.some((p) => p.url.endsWith('/auth/v1/logout?scope=local') && p.method === 'POST' && p.auth === `Bearer ${TOKEN}`));
 });
 
-test('pesan kredensial salah dan akun terkunci dari Edge Function diteruskan, tanpa cookie', async () => {
-  for (const pesan of [PESAN_LOGIN.salah, 'Akses dikunci sementara. Hubungi administrator.']) {
-    const { sesi } = buat(() => ({ status: 401, json: { sukses: false, pesan } }));
+test('req_3_4 pesan kredensial salah dan akun terkunci dari Edge Function diteruskan, tanpa cookie', async () => {
+  for (const pesan of [PESAN_LOGIN.kosong, PESAN_LOGIN.salah, PESAN_LOGIN.dikunci]) {
+    const { sesi } = buat(() => ditolak(pesan));
     const { cookies, isi } = buatCookies();
     assert.deepEqual(await sesi.masuk('a@pom.go.id', 'x', cookies), { gagal: pesan, kode: 401 });
     assert.equal(isi.size, 0);
   }
-  const { sesi } = buat(() => ({ status: 429, json: { sukses: false, pesan: 'Terlalu cepat.' } }));
-  assert.deepEqual(await sesi.masuk('a@pom.go.id', 'x', buatCookies().cookies), { gagal: 'Terlalu cepat.', kode: 429 });
+});
+
+test('req_3_4 pesan Edge Function di luar kamus UC-03, misalnya kunci server ditolak, menjadi pesan sistem', async () => {
+  for (const [status, message] of [[401, 'Akses ditolak.'], [503, 'Terjadi kesalahan pada sistem.']] as const) {
+    const { sesi } = buat(() => ({ status, json: { status: 'error', message, data: null } }));
+    assert.deepEqual(await sesi.masuk('a@pom.go.id', 'x', buatCookies().cookies), { gagal: PESAN_SISTEM, kode: 503 });
+  }
+});
+
+test('req_3_2 format lama Edge Function login tetap terbaca dan tanpa SIGAP_KUNCI_LOGIN header kunci tidak dikirim', async () => {
+  const { sesi, panggilan } = buat((p) => {
+    if (p.url.endsWith('/functions/v1/login')) return { json: { sukses: true, pesan: 'Login berhasil!', sesi: { access_token: TOKEN, refresh_token: 'rt-1' } } };
+    return petugasOk(TOKEN)(p);
+  }, '');
+  assert.deepEqual(await sesi.masuk('dewi@pom.go.id', 'x', buatCookies().cookies), { nama: 'Dewi Lestari', email: 'dewi@pom.go.id' });
+  assert.equal(panggilan[0].kunci, undefined);
+  const lama = buat(() => ({ status: 401, json: { sukses: false, pesan: PESAN_LOGIN.salah } })).sesi;
+  assert.deepEqual(await lama.masuk('a@pom.go.id', 'x', buatCookies().cookies), { gagal: PESAN_LOGIN.salah, kode: 401 });
 });
 
 test('galat Edge Function atau jaringan tidak membocorkan detail dan menjadi pesan sistem', async () => {
@@ -162,11 +184,11 @@ test('keluar tetap menghapus cookie walau Supabase tidak terjangkau', async () =
 });
 
 test('controller meneruskan pesan penguncian dari adapter dan mencatat aktivitas sesi nyata', async () => {
-  const terkunci = buat(() => ({ status: 401, json: { sukses: false, pesan: 'Akses dikunci sementara. Hubungi administrator.' } }));
+  const terkunci = buat(() => ditolak(PESAN_LOGIN.dikunci));
   const c1 = new AutentikasiController(terkunci.sesi);
   assert.deepEqual(await c1.masuk({ email: 'a@pom.go.id', password: 'x' }, buatCookies().cookies), { kode: 401, pesan: 'Akses dikunci sementara. Hubungi administrator.', petugas: null });
 
-  const ok = buat((p) => (p.url.endsWith('/functions/v1/login') ? { json: { sukses: true, sesi: { access_token: TOKEN, refresh_token: 'rt-1' } } } : petugasOk(TOKEN)(p)));
+  const ok = buat((p) => (p.url.endsWith('/functions/v1/login') ? loginOk : petugasOk(TOKEN)(p)));
   const c2 = new AutentikasiController(ok.sesi);
   const { cookies } = buatCookies();
   assert.equal((await c2.masuk({ email: 'dewi@pom.go.id', password: 'x' }, cookies)).kode, 200);

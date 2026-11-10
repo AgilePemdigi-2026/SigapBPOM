@@ -1,0 +1,157 @@
+---
+// Boundary UC-05 Membaca Transkrip Percakapan, halaman Riwayat Percakapan (REQ-5.1, T-F6.1-02, SRS 3.1.7): ringkasan
+// periode dan Daftar Percakapan dari view riwayat_percakapan dan RPC ambil_ringkasan_periode_percakapan. Tata letak mengikuti mockup Figma 09 · Riwayat Percakapan;
+// isi kartu dan label mengikuti SRS. Detail transkrip ada di /riwayat-percakapan/detail.
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { chip } from '../lib/data';
+import { LABEL_JENIS_INTERAKSI } from '../lib/PemantauanLayananController';
+import { transkripPetugas } from '../lib/detailTranskrip';
+import { PESAN_RIWAYAT, ambilDaftarPercakapan, nomorHalaman } from '../lib/riwayatPercakapan';
+
+const q = Astro.url.searchParams;
+const hasil = await ambilDaftarPercakapan(transkripPetugas(Astro.locals.tokenAkses), { halaman: q.get('halaman'), periode: q.get('periode'), jenis: q.get('jenis') });
+const gagal = 'gagal' in hasil ? hasil.gagal : '';
+const d = 'gagal' in hasil ? null : hasil;
+// Penyimpanan gagal: 503 (PROJECT_RULES 4.4).
+if (gagal) Astro.response.status = 503;
+
+const fmt = (n: number) => n.toLocaleString('id-ID');
+const persen = (n: number | undefined) => (d && n !== undefined ? `${d.ringkasan.totalPercakapan ? Math.round((n / d.ringkasan.totalPercakapan) * 100) : 0}% dari total` : '');
+const KARTU = [
+  { label: 'Total Percakapan', value: d?.ringkasan.totalPercakapan, sub: d?.periode.labelPendek ?? '', icon: 'icon-message-square', bg: '#e6edfe', fg: '#2557e0' },
+  { label: 'Informasi Produk', value: d?.ringkasan.informasiProduk, sub: persen(d?.ringkasan.informasiProduk), icon: 'icon-search-check', bg: '#ddf5e6', fg: '#15803d' },
+  { label: 'Pengaduan Produk', value: d?.ringkasan.pengaduanProduk, sub: persen(d?.ringkasan.pengaduanProduk), icon: 'icon-clipboard-list', bg: '#eee8fe', fg: '#6d3fd9' },
+  { label: 'Dieskalasi ke Petugas', value: d?.ringkasan.dieskalasi, sub: persen(d?.ringkasan.dieskalasi), icon: 'icon-user-check', bg: '#fdf1cc', fg: '#a16207' },
+];
+const JENIS: [string, string][] = [['', 'Semua'], ['informasi_produk', LABEL_JENIS_INTERAKSI.informasi_produk], ['pengaduan', LABEL_JENIS_INTERAKSI.pengaduan]];
+
+// Tautan yang mempertahankan periode dan jenis yang sedang dipilih; nilai bawaan tidak ditulis di URL.
+const tautan = (ubah: { jenis?: string; halaman?: number }) => {
+  const p = new URLSearchParams();
+  if (d && d.periode.nilai !== d.pilihanPeriode[0].nilai) p.set('periode', d.periode.nilai);
+  const jenis = ubah.jenis ?? d?.jenis ?? '';
+  if (jenis) p.set('jenis', jenis);
+  if (ubah.halaman && ubah.halaman > 1) p.set('halaman', String(ubah.halaman));
+  const s = String(p);
+  return `/riwayat-percakapan${s ? `?${s}` : ''}`;
+};
+---
+<DashboardLayout title="Riwayat Percakapan">
+  <section class="panel riwayat">
+    <header class="kepala">
+      <div class="judul">
+        <h1>Riwayat Percakapan</h1>
+        <span>Setiap percakapan tersimpan dengan transkrip dan ringkasan</span>
+      </div>
+      <span class="grow"></span>
+      {d && (<>
+        <nav class="jenis" aria-label="Jenis percakapan">
+          {JENIS.map(([nilai, teks]) => <a href={tautan({ jenis: nilai })} class="tab" aria-current={d.jenis === nilai ? 'page' : undefined}>{teks}</a>)}
+        </nav>
+        <form method="get" action="/riwayat-percakapan" class="periode">
+          {d.jenis && <input type="hidden" name="jenis" value={d.jenis} />}
+          <i class="icon-calendar" aria-hidden="true"></i>
+          <select id="periode" name="periode" aria-label="Periode">
+            {d.pilihanPeriode.map((p) => <option value={p.nilai} selected={p.nilai === d.periode.nilai}>{p.label}</option>)}
+          </select>
+          <i class="icon-chevron-down" aria-hidden="true"></i>
+          <noscript><button type="submit" class="tab">Tampilkan</button></noscript>
+        </form>
+      </>)}
+    </header>
+
+    <div class="kartu" data-name="RingkasanPeriode">
+      {KARTU.map((k) => (
+        <div class="stat">
+          <div class="stat-head"><span>{k.label}</span><span class="stat-icon" style={`background:${k.bg};color:${k.fg}`}><i class={k.icon}></i></span></div>
+          <span class="stat-nilai">{k.value === undefined ? '—' : fmt(k.value)}</span>
+          <span class="stat-sub">{k.sub}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="daftar" data-name="DaftarPercakapan">
+      <div class="baris-grid kolom" aria-hidden="true"><span>WAKTU</span><span>JENIS</span><span>RINGKASAN</span><span>STATUS PENYELESAIAN</span><span>AKSI</span></div>
+      {gagal && <div class="kosong" role="alert"><i class="icon-file-x"></i><span>{gagal}</span></div>}
+      {d && d.percakapan.length === 0 && <div class="kosong"><i class="icon-history"></i><span>{PESAN_RIWAYAT.kosong}</span></div>}
+      <ol class="rows" aria-label="Daftar percakapan">
+        {d?.percakapan.map((p) => {
+          const jenis = chip(p.jenis);
+          const status = chip(p.labelStatus);
+          return (
+            <li class="baris-grid baris">
+              <span class="waktu">{p.waktu}</span>
+              <span>{p.jenis === '—' ? '—' : <span class="chip" style={`background:${jenis.bg};color:${jenis.fg}`}>{p.jenis}</span>}</span>
+              <span class="ringkasan" title={p.ringkasan}>{p.ringkasan}</span>
+              <span><span class="chip" style={`background:${status.bg};color:${status.fg}`}>{p.labelStatus}</span></span>
+              <a href={p.tautanTranskrip} class="lihat"><i class="icon-file-text"></i>Lihat Transkrip</a>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+
+    <footer class="kaki">
+      {d && d.jumlah > 0 && <span>Menampilkan {d.awal}–{d.akhir} dari {fmt(d.jumlah)} percakapan pada periode ini</span>}
+      <span class="grow"></span>
+      {d && d.jumlahHalaman > 1 && (
+        <nav class="pager" aria-label="Halaman Daftar Percakapan">
+          {d.halaman > 1 ? <a href={tautan({ halaman: d.halaman - 1 })} class="tab pg" aria-label="Halaman sebelumnya"><i class="icon-chevron-left"></i></a> : <span class="tab pg off" aria-hidden="true"><i class="icon-chevron-left"></i></span>}
+          {nomorHalaman(d.halaman, d.jumlahHalaman).map((n) =>
+            n === null ? <span class="gap">…</span> : <a href={tautan({ halaman: n })} class="tab pg" aria-current={n === d.halaman ? 'page' : undefined}>{n}</a>,
+          )}
+          {d.halaman < d.jumlahHalaman ? <a href={tautan({ halaman: d.halaman + 1 })} class="tab pg" aria-label="Halaman berikutnya"><i class="icon-chevron-right"></i></a> : <span class="tab pg off" aria-hidden="true"><i class="icon-chevron-right"></i></span>}
+        </nav>
+      )}
+    </footer>
+  </section>
+</DashboardLayout>
+
+<script>
+  // Periode langsung diterapkan saat dipilih; tanpa JavaScript, tombol di <noscript> yang mengirim formulir.
+  document.querySelector<HTMLSelectElement>('#periode')?.addEventListener('change', (e) => (e.currentTarget as HTMLSelectElement).form?.requestSubmit());
+</script>
+
+<style>
+  /* Ukuran, warna, dan bayangan dari mockup Figma 09 · Riwayat Percakapan. */
+  .riwayat { --bayang: 0 4px 14px rgba(31, 38, 71, .05); --biru: #2557e0; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 26px 25px; border-radius: 28px; }
+  .grow { flex: 1; }
+
+  .kepala { display: flex; align-items: center; gap: 10px; }
+  .judul { display: flex; flex-direction: column; gap: 4px; }
+  .judul h1 { margin: 0; font-size: 40px; font-weight: 400; color: var(--ink); }
+  .judul span { font-size: 15px; color: var(--muted); }
+  .jenis { display: flex; gap: 10px; }
+  .tab { height: 46px; padding: 0 18px; border: 0; box-shadow: var(--bayang); color: var(--ink-3); text-decoration: none; }
+  .tab[aria-current='page'] { background: #e6edfe; box-shadow: none; color: var(--biru); font-weight: 600; }
+  .periode { height: 46px; padding: 0 18px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--bayang); display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
+  .periode i { font-size: 16px; }
+  .periode .icon-chevron-down { margin-left: -24px; pointer-events: none; }
+  .periode select { appearance: none; border: 0; background: transparent; font-size: 15px; color: var(--ink); padding: 0 24px 0 0; cursor: pointer; }
+
+  .kartu { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .stat { height: 134px; box-sizing: border-box; padding: 18px 20px; border-radius: 20px; background: var(--surface-2); box-shadow: var(--bayang); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; font-size: 15px; color: var(--ink-3); }
+  .stat-icon { width: 32px; height: 32px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .stat-nilai { font-size: 36px; font-weight: 500; color: var(--ink); }
+  .stat-sub { font-size: 14px; color: var(--muted); }
+
+  .daftar { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+  .baris-grid { display: grid; grid-template-columns: 186px 186px minmax(0, 1fr) 246px 160px; align-items: center; padding: 0 20px; }
+  .kolom { font-size: 13px; font-weight: 600; letter-spacing: 1.04px; color: var(--muted); }
+  .rows { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .baris { flex: none; height: 54px; border-radius: 18px; background: var(--surface-2); box-shadow: var(--bayang); font-size: 16px; }
+  .waktu { color: var(--ink-3); }
+  .ringkasan { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 32px; color: var(--ink); }
+  .baris .chip { font-size: 13px; }
+  .lihat { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--biru); text-decoration: none; }
+  .lihat i { font-size: 16px; }
+  .kosong { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; min-height: 220px; }
+  .kosong i { font-size: 28px; color: var(--muted-2); }
+
+  .kaki { flex: none; display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 15px; color: var(--muted); }
+  .pager { display: flex; align-items: center; gap: 8px; }
+  .pg { height: 36px; min-width: 36px; padding: 0 10px; justify-content: center; font-size: 14px; }
+  .pg.off { opacity: .45; }
+  .gap { padding: 0 2px; }
+</style>

@@ -419,6 +419,9 @@ enabled = true
 [functions.cek-registrasi]
 verify_jwt = false
 
+[functions.cari-pengetahuan]
+verify_jwt = false
+
 [functions.terbitkan-tiket-eskalasi]
 verify_jwt = false
 

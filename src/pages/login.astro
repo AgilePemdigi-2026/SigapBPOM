@@ -37,12 +37,12 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
           <span class="field-label">Password</span>
           <span class="input-wrap pw" id="pw-wrap"><i class="icon-lock"></i><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" /><button type="button" id="toggle-pw" class="eye" aria-label="Tampilkan password"><i class="icon-eye"></i></button></span>
         </label>
+        <button type="submit" id="login-btn" class="btn-primary submit">Login<i class="icon-arrow-right"></i></button>
         <div id="login-err" class="err" role="alert" hidden>
           <i class="icon-circle-alert"></i>
-          <span><span id="err-msg"></span><span id="err-hint" class="err-hint" hidden></span></span>
+          <span><span id="err-msg"></span><span id="err-hint" class="err-hint" hidden>Akses akun dikunci sementara setelah tiga kali gagal login berturut-turut.</span></span>
         </div>
-        <button type="submit" id="login-btn" class="btn-primary submit">Login<i class="icon-arrow-right"></i></button>
-        <span class="help">Lupa password atau akun terkunci? Hubungi administrator.</span>
+        <p class="info"><i class="icon-info"></i><span>Akun dibuat oleh administrator SIGAP. Bila muncul pesan "Akses dikunci sementara. Hubungi administrator.", hubungi administrator melalui ext. 1500533-2.</span></p>
         {demo && <span class="demo mono"><i class="icon-info"></i>demo · dewi.lestari@pom.go.id / sigap2026</span>}
       </form>
     </section>
@@ -50,13 +50,11 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
 </BaseLayout>
 
 <script>
-  // Kredensial dan penguncian diperiksa di server (/api/login, Edge Function login T-F3.2-02), yang juga mengirim pesan
-  // "Akses dikunci" pada kegagalan ketiga. Penghitung di browser hanya untuk petunjuk sisa percobaan, bukan pengunci.
-  const MAX_GAGAL = 3; // REQ-3.5, NFR-11
-  const FAIL_KEY = 'sigap-gagal-login';
-  const AKTIF_KEY = 'sigap-aktif';
+  // Kredensial dan penguncian dihitung dan diputuskan hanya di server (/api/login, Edge Function login T-F3.2-02), yang
+  // juga mengirim pesan "Akses dikunci" pada kegagalan ketiga. Keterangan penguncian adalah baris tetap SRS 3.1.3.
   const MSG = {
     kosong: 'Login gagal. Semua field harus diisi!',
+    salah: 'Login gagal. Email atau password Anda salah.',
     kunci: 'Akses dikunci sementara. Hubungi administrator.',
     galat: 'Terjadi kesalahan pada sistem.',
   };
@@ -71,17 +69,12 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
   const btn = document.getElementById('login-btn') as HTMLButtonElement;
   const toggle = document.getElementById('toggle-pw') as HTMLButtonElement;
 
-  const gagal = () => Number(sessionStorage.getItem(FAIL_KEY) || 0);
-
   function showErr(msg: string) {
-    const n = gagal();
     errMsg.textContent = msg;
-    const terkunci = msg === MSG.kunci;
-    errHint.hidden = terkunci || !(n > 0 && n < MAX_GAGAL);
-    errHint.textContent = `Percobaan gagal ${n} dari ${MAX_GAGAL}. Akun dikunci sementara setelah ${MAX_GAGAL} kali gagal.`;
+    errHint.hidden = msg !== MSG.salah;
     errBox.hidden = false;
     pwWrap.classList.add('invalid');
-    btn.classList.toggle('locked', terkunci);
+    btn.classList.toggle('locked', msg === MSG.kunci);
   }
 
   toggle.addEventListener('click', () => {
@@ -100,14 +93,7 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
       body: JSON.stringify({ email: email.value, password: pw.value }),
     }).catch(() => null);
     const hasil: { message?: string } | null = await res?.json().catch(() => null);
-    if (res?.status === 401) {
-      const n = gagal() + 1;
-      sessionStorage.setItem(FAIL_KEY, String(n));
-      return showErr(hasil?.message ?? MSG.galat);
-    }
     if (!res?.ok) return showErr(hasil?.message ?? MSG.galat);
-    sessionStorage.removeItem(FAIL_KEY);
-    sessionStorage.setItem(AKTIF_KEY, String(Date.now()));
     sessionStorage.setItem('sigap-toast', hasil?.message ?? '');
     location.href = '/ringkasan';
   });
@@ -147,8 +133,10 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
   .err > i { font-size: 19px; margin-top: 1px; }
   .err > span { flex: 1; }
   .err-hint { display: block; font-size: 14px; color: #b54646; margin-top: 2px; }
+  .err-hint[hidden] { display: none; }
   .submit { height: 62px; font-size: 18px; gap: 10px; box-shadow: 0 8px 20px rgba(47, 107, 245, .28), inset 0 1px 0 rgba(255, 255, 255, .3); }
   .submit.locked { background: linear-gradient(180deg, #a9b4c8, #8f9bb2); }
-  .help { font-size: 15px; color: var(--muted); text-align: center; }
+  .info { margin: 0; display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--muted); font-size: 15px; line-height: 1.4; }
+  .info > i { font-size: 18px; margin-top: 2px; }
   .demo { align-self: center; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: #e9ebef; font-size: 13px; color: #4b5260; }
 </style>

@@ -79,10 +79,13 @@ export class PenyimpananTranskripPetugasSupabase implements PenyimpananTranskrip
   }
 
   async ambilRiwayat(filter: FilterRiwayat = {}): Promise<BarisRiwayatPercakapan[]> {
-    const p = new URLSearchParams({ select: KOLOM_RIWAYAT, order: 'waktu_mulai.desc' });
+    // id sebagai pemutus urutan agar paginasi stabil bila dua percakapan mulai di detik yang sama.
+    const p = new URLSearchParams({ select: KOLOM_RIWAYAT, order: 'waktu_mulai.desc,id.desc' });
     if (filter.jenis) p.set('jenis_interaksi', `eq.${filter.jenis}`);
     if (filter.awal) p.append('waktu_mulai', `gte.${filter.awal}`);
     if (filter.akhir) p.append('waktu_mulai', `lte.${filter.akhir}`);
+    if (filter.offset) p.set('offset', String(filter.offset));
+    if (filter.batas !== undefined) p.set('limit', String(filter.batas));
     return (await this.json<BarisRiwayat[]>(`riwayat_percakapan?${p}`)).map(keRiwayat);
   }
 

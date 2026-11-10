@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
+  GalatGateway,
   KANDIDAT_MAKS,
   PESAN_TIDAK_DITEMUKAN,
   PESAN_PENGADUAN_TIDAK_LENGKAP,
@@ -9,6 +12,7 @@ import {
   htmlKartuProduk,
   htmlKartuTiket,
   pesanAkhirPanggilan,
+  pesanGalatPanggilan,
   pesanTiketEskalasi,
   pesanTiketPengaduan,
   type Produk,
@@ -31,10 +35,18 @@ test('req_1_5 kartu kandidat menampilkan jumlah hasil dan paling banyak tiga kan
   assert.match(html, /5 hasil ditemukan, 3 teratas/);
   assert.equal(html.match(/<li>/g)?.length, KANDIDAT_MAKS);
   assert.ok(!html.includes('Produk 4'));
+  // Gateway hanya mengirim tiga kandidat, jumlahnya dari total hasil cekbpom.
+  assert.match(htmlKartuProduk({ jenis: 'kandidat', total: 5, produk: lima.slice(0, KANDIDAT_MAKS) }), /5 hasil ditemukan, 3 teratas/);
 });
 
 test('t_f1_2_01 kartu produk tidak ditemukan memakai pesan baku kamus PRD', () => {
   assert.ok(htmlKartuProduk({ jenis: 'tidak_ditemukan' }).includes(PESAN_TIDAK_DITEMUKAN));
+});
+
+test('req_2_1 UC-01 Alternative Path 3: kartu tidak ditemukan memuat tombol 2 Pengaduan Produk', () => {
+  const html = htmlKartuProduk({ jenis: 'tidak_ditemukan' });
+  assert.match(html, /<button type="button" data-pick="2" aria-label="2: Pengaduan Produk">/);
+  assert.match(html, /<span class="t">Pengaduan Produk<\/span>/);
 });
 
 test('isi kartu di-escape', () => {
@@ -112,4 +124,71 @@ test('t_f4_3_03 pengaduan bertiket dan layanan informasi produk tidak menampilka
   assert.notEqual(pesanAkhirPanggilan({ layanan: 2, tiketPengaduan: true }), PESAN_PENGADUAN_TIDAK_LENGKAP);
   assert.notEqual(pesanAkhirPanggilan({ layanan: 1, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
   assert.notEqual(pesanAkhirPanggilan({ layanan: null, tiketPengaduan: false }), PESAN_PENGADUAN_TIDAK_LENGKAP);
+});
+
+test('or_1 galat jaringan panel suara tampil sebagai pesan kamus, bukan pesan browser', () => {
+  assert.equal(pesanGalatPanggilan(new TypeError('Failed to fetch')), 'Layanan suara sedang gangguan. Silakan coba lagi.');
+  assert.equal(pesanGalatPanggilan(new SyntaxError('Unexpected token')), 'Layanan suara sedang gangguan. Silakan coba lagi.');
+  assert.equal(pesanGalatPanggilan(new GalatGateway()), 'Layanan suara sedang gangguan. Silakan coba lagi.');
+  assert.equal(pesanGalatPanggilan(new GalatGateway('Suara tidak terdengar. Silakan ulangi.')), 'Suara tidak terdengar. Silakan ulangi.');
+});
+
+test('or_1 galat gateway yang terdaftar di kamus Lampiran A tampil apa adanya, pesan API internal tidak', () => {
+  for (const pesan of [
+    'Suara tidak terdengar. Silakan ulangi.',
+    'Rekaman terlalu panjang.',
+    'Terlalu banyak permintaan. Coba lagi sebentar lagi.',
+    'Layanan sedang penuh. Coba lagi sebentar lagi.',
+    'Percakapan ini tidak dapat dilanjutkan. Silakan mulai panggilan baru.',
+    'Layanan AI sudah mencapai batas pemakaian hari ini. Silakan coba lagi besok.',
+    'Batas percakapan untuk panggilan ini sudah tercapai. Silakan akhiri dan mulai panggilan baru.',
+    'Batas penerbitan tiket hari ini sudah tercapai. Silakan coba lagi besok.',
+  ]) assert.equal(pesanGalatPanggilan(new GalatGateway(pesan)), pesan);
+  for (const pesan of [
+    'Akses ditolak.', 'Permintaan tidak valid.', 'Pilihan layanan tidak dikenal.', 'Format rekaman tidak didukung.',
+    'Kuota suara hari ini sudah habis. Coba lagi besok.', 'Tidak ditemukan.',
+  ]) assert.equal(pesanGalatPanggilan(new GalatGateway(pesan)), 'Layanan suara sedang gangguan. Silakan coba lagi.', pesan);
+});
+
+test('t_f4_1_03 kriteria 2: tombol menu 1 dan 2 di PanelSuara.astro memiliki label aksesibel dan dapat dioperasikan via keyboard', () => {
+  const panelPath = resolve(process.cwd(), 'src/components/PanelSuara.astro');
+  const panelSource = readFileSync(panelPath, 'utf8');
+
+  // 1. Memeriksa keberadaan tombol angka 1 dan 2 bertipe button dengan label aksesibel
+  assert.match(
+    panelSource,
+    /<button data-pick="1" type="button" aria-label="1: Informasi Produk/,
+    'Tombol 1 harus memiliki type="button" dan aria-label yang menjelaskan Informai Produk',
+  );
+  assert.match(
+    panelSource,
+    /<button data-pick="2" type="button" aria-label="2: Pengaduan Produk/,
+    'Tombol 2 harus memiliki type="button" dan aria-label yang menjelaskan Pengaduan Produk',
+  );
+
+  // 2. Memeriksa group role semantik untuk menu pilihan layanan
+  assert.match(
+    panelSource,
+    /role="group"\s+aria-label="Pilihan menu layanan"/,
+    'Kontainer menu harus memiliki role="group" dan label aksesibel',
+  );
+
+  // 3. Memeriksa fokus keyboard terlihat (CSS :focus-visible)
+  assert.match(
+    panelSource,
+    /\.ps-tr :global\(\.m-menu button:focus-visible\)\s*\{\s*outline:\s*3px\s+solid/,
+    'Tombol menu harus memiliki styling fokus terlihat (:focus-visible)',
+  );
+
+  // 4. Memeriksa penanganan keyboard (angka 1, 2, Escape, serta tombol standar Enter/Space pada button)
+  assert.match(
+    panelSource,
+    /e\.key === '1' \|\| e\.key === '2'/,
+    'Mendukung shortcut tombol 1 dan 2 dari keyboard',
+  );
+  assert.match(
+    panelSource,
+    /data-pick/,
+    'Event delegasi klik (yang dipicu juga oleh Enter/Space pada elemen <button>) aktif',
+  );
 });

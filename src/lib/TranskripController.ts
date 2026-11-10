@@ -58,6 +58,9 @@ export interface FilterRiwayat {
   awal?: string;
   akhir?: string;
   jenis?: 'informasi_produk' | 'pengaduan';
+  /** Paginasi Daftar Percakapan (T-F6.1-02): lewati `offset` baris, ambil paling banyak `batas` baris. */
+  offset?: number;
+  batas?: number;
 }
 
 /** Mengubah nama pelapor "Budi Santoso" -> "B*** S******" (NFR-13, REQ-5.2). */
@@ -211,7 +214,10 @@ export class PenyimpananTranskripMock implements PenyimpananTranskripPetugas {
       const tAkhir = new Date(filter.akhir).getTime();
       hasil = hasil.filter((r) => new Date(r.waktuMulai).getTime() <= tAkhir);
     }
-    return hasil;
+    // Urutan sama dengan view riwayat_percakapan: terbaru lebih dulu.
+    hasil.sort((a, b) => b.waktuMulai.localeCompare(a.waktuMulai));
+    const offset = filter?.offset ?? 0;
+    return filter?.batas === undefined ? hasil.slice(offset) : hasil.slice(offset, offset + filter.batas);
   }
 
   async ambilRingkasanPeriode(filter?: { awal?: string; akhir?: string }): Promise<RingkasanPeriodePercakapan> {

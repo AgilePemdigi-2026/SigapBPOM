@@ -74,9 +74,14 @@ export class PenyimpananMateriSupabase implements PenyimpananMateri {
     return ((await res.json()) as unknown[]).length > 0;
   }
 
-  async potongan(materiIds: string[]) {
+  async potongan(materiIds: string[], batas: number) {
     if (!materiIds.length) return {};
-    const p = new URLSearchParams({ select: 'materi_id,teks', materi_id: `in.(${materiIds.join(',')})`, order: 'id' });
+    const p = new URLSearchParams({
+      select: 'materi_id,teks',
+      materi_id: `in.(${materiIds.join(',')})`,
+      urutan: `lt.${batas}`,
+      order: 'materi_id,urutan',
+    });
     const baris = (await (await this.ambil(`materi_potongan?${p}`)).json()) as { materi_id: string; teks: string }[];
     const hasil: Record<string, string[]> = {};
     for (const b of baris) (hasil[b.materi_id] ??= []).push(b.teks);

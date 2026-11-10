@@ -17,10 +17,10 @@ const POLA_KATEGORI: [RegExp, string][] = [
 const kategoriDari = (judul: string) => POLA_KATEGORI.find(([pola]) => pola.test(judul))?.[1] ?? 'Edukasi Umum';
 
 // `kategori` di manifest dipakai bila ada, karena judul seperti tanya jawab FAQ jarang memuat kata kuncinya.
-type DokumenManifest = { file: string; title: string; bentuk: string; tahun: string; nomor?: string; tanggal?: string; kategori?: string };
+type DokumenManifest = { file: string; title: string; bentuk: string; tahun: string; nomor?: string; tanggal?: string; kategori?: string; source_url?: string };
 
-/** Dokumen korpus beserta letak berkasnya, relatif terhadap akar repo. */
-export type DokumenKorpus = Omit<MateriTersimpan, 'id' | 'status'> & { berkas: string };
+/** Dokumen korpus beserta letak berkasnya, relatif terhadap akar repo, dan tautan dokumen sumbernya. */
+export type DokumenKorpus = Omit<MateriTersimpan, 'id' | 'status'> & { berkas: string; urlSumber: string | null };
 
 const dari = (folder: string, dokumen: DokumenManifest[]): DokumenKorpus[] =>
   dokumen.map((d) => ({
@@ -29,6 +29,7 @@ const dari = (folder: string, dokumen: DokumenManifest[]): DokumenKorpus[] =>
     kategori: d.kategori ?? kategoriDari(d.title),
     // Peraturan dirujuk dengan nomor dan tahun; informasi publik BPOM dengan bentuknya.
     rujukanSumber: d.nomor ? `${d.bentuk} No. ${d.nomor} Tahun ${d.tahun}` : d.bentuk,
+    urlSumber: d.source_url || null,
     // Tanggal terbit dipakai sebagai waktu pemutakhiran; peraturan tanpa tanggal memakai awal tahunnya.
     diperbaruiPada: `${d.tanggal ?? `${d.tahun}-01-01`}T00:00:00+07:00`,
   }));
@@ -44,7 +45,7 @@ export const DOKUMEN_KORPUS: DokumenKorpus[] = [
 const terbaru = (a: MateriTersimpan, b: MateriTersimpan) =>
   b.diperbaruiPada.localeCompare(a.diperbaruiPada) || a.judul.localeCompare(b.judul, 'id');
 
-export const MATERI_TIRUAN: MateriTersimpan[] = DOKUMEN_KORPUS.map(({ berkas, ...d }, i) => ({ ...d, id: `tiruan-${i + 1}`, status: 'aktif' as const })).sort(terbaru);
+export const MATERI_TIRUAN: MateriTersimpan[] = DOKUMEN_KORPUS.map(({ berkas, urlSumber, ...d }, i) => ({ ...d, id: `tiruan-${i + 1}`, status: 'aktif' as const })).sort(terbaru);
 
 export class PenyimpananMateriTiruan implements PenyimpananMateri {
   materi: MateriTersimpan[];

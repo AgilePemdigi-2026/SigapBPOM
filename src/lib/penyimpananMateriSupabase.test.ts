@@ -1,7 +1,10 @@
 // Uji integrasi terhadap Supabase lokal (`supabase start` lalu `supabase db reset`). Dilewati bila variabel
-// SIGAP_UJI_* tidak diisi, karena CI belum menjalankan Supabase. Contoh:
+// SIGAP_UJI_* tidak diisi; job `supabase` di .github/workflows/ci.yml mengisinya. Contoh:
 //   SIGAP_UJI_SUPABASE_URL=http://127.0.0.1:54321 SIGAP_UJI_KUNCI_PUBLIK=<anon key> \
 //   SIGAP_UJI_EMAIL=<email seed> SIGAP_UJI_PASSWORD=<password seed> npm test
+// Uji bagian dokumen terindeks juga butuh materi_potongan terisi: jalankan scripts/indeks-materi.ts pada Supabase lokal
+// lalu tambahkan SIGAP_UJI_TERINDEKS=1. CI tidak mengisinya, karena skenario @ui UC-01 butuh database tanpa materi
+// terindeks lain (features/README.md); jalankan `supabase db reset` sebelum menjalankan skenario itu lagi.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PenyimpananMateriSupabase } from './penyimpananMateriSupabase.ts';
@@ -10,6 +13,7 @@ import { DOKUMEN_KORPUS } from './mock/materiTiruan.ts';
 
 const { SIGAP_UJI_SUPABASE_URL: url = '', SIGAP_UJI_KUNCI_PUBLIK: kunciPublik = '', SIGAP_UJI_EMAIL: email = '', SIGAP_UJI_PASSWORD: password = '' } = process.env;
 const lewati = !(url && kunciPublik && email && password) && 'butuh Supabase lokal dan variabel SIGAP_UJI_*';
+const lewatiTerindeks = lewati || (!process.env.SIGAP_UJI_TERINDEKS && 'butuh materi_potongan dari scripts/indeks-materi.ts dan SIGAP_UJI_TERINDEKS=1');
 
 async function tokenPetugas() {
   const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -20,6 +24,19 @@ async function tokenPetugas() {
   assert.equal(res.status, 200, 'akun seed petugas bisa login');
   return ((await res.json()) as { access_token: string }).access_token;
 }
+
+test('req_7_4 potongan simpul dibaca berurutan dan paling banyak tiga per materi', async () => {
+  const diminta: URL[] = [];
+  const fetchPalsu = (async (alamat: string) => {
+    diminta.push(new URL(alamat));
+    return Response.json([{ materi_id: 'a', teks: 'a0' }, { materi_id: 'a', teks: 'a1' }, { materi_id: 'b', teks: 'b0' }]);
+  }) as typeof fetch;
+  const penyimpanan = new PenyimpananMateriSupabase({ url: 'http://supabase.uji', kunciPublik: 'k', tokenAkses: 't', fetch: fetchPalsu });
+
+  assert.deepEqual(await penyimpanan.potongan(['a', 'b'], 3), { a: ['a0', 'a1'], b: ['b0'] });
+  assert.equal(diminta[0].searchParams.get('urutan'), 'lt.3');
+  assert.equal(diminta[0].searchParams.get('order'), 'materi_id,urutan');
+});
 
 test('t_f2_1_03 sesi petugas membaca materi seed lewat RLS dengan filter, pencarian, dan paginasi', { skip: lewati }, async () => {
   const kb = new BasisPengetahuanController(new PenyimpananMateriSupabase({ url, kunciPublik, tokenAkses: await tokenPetugas() }));
@@ -65,4 +82,13 @@ test('t_f2_4_02 graf dari materi Supabase menunjuk materi yang benar-benar tersi
   const materi = graf.simpul.filter((n) => !n.hub);
   assert.ok(materi.length > 0);
   for (const n of materi) assert.equal(n.rujukan, perId.get(n.id)?.rujukan, `rujukan simpul ${n.label} sesuai tabel`);
+});
+
+test('req_7_4 setiap simpul materi menampilkan bagian dokumen terindeks setelah indeks ulang', { skip: lewatiTerindeks }, async () => {
+  const kb = new BasisPengetahuanController(new PenyimpananMateriSupabase({ url, kunciPublik, tokenAkses: await tokenPetugas() }));
+  const graf = await kb.grafPengetahuan();
+  assert.ok('simpul' in graf);
+  for (const n of graf.simpul.filter((s) => !s.hub)) {
+    assert.ok(n.bagian.length >= 1 && n.bagian.length <= 3, `simpul ${n.label} punya ${n.bagian.length} bagian`);
+  }
 });

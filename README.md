@@ -134,9 +134,9 @@ flowchart TD
 SIGAP memakai arsitektur berlapis:
 
 1. **Presentasi (Astro).** Halaman publik dengan panel panggilan suara dan dashboard petugas.
-2. **Layanan suara.** *Voice Gateway*, layanan Node kecil, menerima audio mikrofon lewat WebSocket Secure, meneruskannya ke ElevenLabs Speech-to-Text secara streaming, mengirim teks ke Hermes Agent, lalu mengalirkan balik suara dari ElevenLabs Text-to-Speech.
-3. **Agen AI.** Hermes Agent menjalankan model GPT, menyusun jawaban, dan memanggil tool SIGAP: `cek_registrasi_bpom`, `cari_basis_pengetahuan`, `terbitkan_tiket_eskalasi`, dan pencatatan pengaduan.
-4. **Backend (Supabase).** Edge Functions menjadi lapisan control dan REST API. Postgres menyimpan seluruh data dengan Row Level Security, pgvector menyimpan indeks RAG, Realtime mengalirkan data live ke dashboard, Auth menangani sesi petugas, dan Storage menyimpan berkas laporan.
+2. **Layanan suara.** *Voice Gateway*, layanan Node kecil, melayani satu giliran percakapan per permintaan HTTPS. Selama penelepon bicara, panel mengalirkan audio mikrofon lewat WebSocket Secure langsung ke ElevenLabs Speech-to-Text realtime, dengan token sekali pakai dari gateway. Teks finalnya dikirim ke gateway, yang meneruskannya ke Hermes Agent lalu mengirim balik jawaban per kalimat beserta suara MP3 dari ElevenLabs Text-to-Speech. Percakapan bersifat half-duplex ([ADR 0003](docs/decisions/0003-transport-audio-per-giliran.md)).
+3. **Agen AI.** Hermes Agent menjalankan model GPT dan menyusun jawaban. Gateway menjalankan tool SIGAP atas nama agen: `cek_registrasi_bpom` (langsung ke cekbpom.pom.go.id) dan `cari_basis_pengetahuan`. Alur pengaduan dan eskalasi berjalan di gateway tanpa AI dan menerbitkan tiket lewat Edge Functions.
+4. **Backend (Supabase).** Edge Functions menjadi lapisan control untuk gateway (tiket, transkrip, panggilan aktif, katalog materi) dan untuk login serta simpan materi dari dashboard. Postgres menyimpan seluruh data dengan Row Level Security, pgvector menyimpan indeks RAG, dan Auth menangani sesi petugas. Dashboard membaca data lewat server Astro dengan token petugas, dan halaman Panggilan Berjalan memperbarui datanya dengan polling setiap 5 detik.
 
 ```mermaid
 flowchart LR
@@ -145,28 +145,28 @@ flowchart LR
     D[Astro: dashboard petugas]
   end
   subgraph VPS
-    G[Voice Gateway WSS]
+    W[Server Astro + /api]
+    G[Voice Gateway]
     H[Hermes Agent + GPT]
   end
   subgraph Supabase
-    EF[Edge Functions: control + REST]
+    EF[Edge Functions: control]
     DB[(Postgres + RLS + pgvector)]
-    RT[Realtime]
     AU[Auth]
-    ST[Storage]
   end
-  P -- audio WSS --> G
-  G -- STT/TTS --> EL[ElevenLabs]
+  P -- giliran HTTPS NDJSON, suara MP3 --> G
+  P -- audio WSS, STT realtime --> EL[ElevenLabs]
+  G -- STT unggahan, TTS --> EL
   G -- teks --> H
-  H -- tool calling --> EF
+  G -- scraping --> CB[cekbpom.pom.go.id]
+  G -- tiket, transkrip, panggilan aktif, katalog --> EF
+  G -. adapter tiruan .-> SMS[SMS Gateway]
+  D -- HTTPS --> W
+  W -- login, simpan materi --> EF
+  W -- PostgREST, token petugas --> DB
+  W -- sesi --> AU
+  W -- kesehatan --> G
   EF --> DB
-  EF -- adapter --> CB[cekbpom.pom.go.id]
-  EF -- adapter --> SMS[SMS Gateway]
-  D -- HTTPS --> EF
-  D -- sesi --> AU
-  RT -- perubahan live --> D
-  DB --> RT
-  EF --> ST
 ```
 
 Kode dipisah menurut pola **Boundary, Control, Entity** (NFR-18):
@@ -189,8 +189,8 @@ Keputusan lengkap ada di [ADR 0001](docs/decisions/0001-stack.md).
 | Backend | **Supabase** | Satu platform menyediakan semua yang dibutuhkan dashboard: Postgres, Auth untuk sesi petugas, Realtime untuk dashboard live (UC-04), Storage untuk berkas laporan (UC-08), dan Edge Functions untuk aturan bisnis. Jauh lebih sedikit kode dibanding membangun backend sendiri. |
 | Database | **Postgres + pgvector + RLS** | Data layanan bersifat relasional (percakapan, tiket, pengaduan, tanggapan), dan status butuh constraint yang ketat. pgvector membuat indeks RAG berada di database yang sama dengan materinya, sehingga materi yang dinonaktifkan langsung tidak ikut dicari. Row Level Security menjaga akses di tingkat baris. |
 | Agen AI | **Hermes Agent + model GPT (langganan)** | Mendukung pengenalan maksud, RAG, dan *tool calling*. Tool calling penting karena status legalitas produk wajib berasal dari data registrasi, tidak boleh dibangkitkan model (NFR-7). |
-| STT dan TTS | **ElevenLabs API** | Mendukung streaming dua arah untuk mengejar target jawaban ≤ 3 detik. Belum ada data uji yang menunjukkan penyedia lain lebih akurat untuk bahasa Indonesia. |
-| Deployment | **VPS Linux di Indonesia (Docker + Nginx)** | Menjalankan Astro, Voice Gateway, dan Hermes Agent. Nginx menjadi reverse proxy HTTPS dan WSS. |
+| STT dan TTS | **ElevenLabs API** | STT realtime lewat WebSocket dan TTS streaming membantu mengejar target jawaban ≤ 3 detik ([ADR 0003](docs/decisions/0003-transport-audio-per-giliran.md)). Belum ada data uji yang menunjukkan penyedia lain lebih akurat untuk bahasa Indonesia. |
+| Deployment | **VPS Linux di Indonesia (Docker + Caddy)** | Menjalankan Astro, Voice Gateway, dan Hermes Agent. Caddy menjadi reverse proxy HTTPS ([ADR 0004](docs/decisions/0004-caddy-reverse-proxy.md)). VPS demo saat ini belum berada di Indonesia (issue #30). |
 
 ### Mengapa Astro, bukan framework JavaScript lain?
 
@@ -222,7 +222,7 @@ Kelemahan Astro yang disadari: bagian yang sangat interaktif tetap butuh kompone
 - Setiap tabel wajib dijaga Row Level Security. Kunci `service_role` hanya dipakai di sisi server.
 - Model GPT diakses lewat langganan, jadi syarat layanan dan kuotanya harus dipastikan. Bila tidak memadai, cukup ganti adapter LLM ke OpenAI API.
 - SRS mensyaratkan data disimpan di Indonesia (UU No. 27 Tahun 2022 tentang PDP). Supabase belum punya region Indonesia (terdekat Singapura), jadi sebelum produksi lokasi data harus dikonfirmasi ke dosen atau BPOM, atau Supabase di-self-host di server Indonesia.
-- Behat (PHP) tidak cocok dengan stack TypeScript. Kerangka uji penerimaan Gherkin (misalnya Playwright + Cucumber) ditetapkan lewat ADR berikutnya.
+- Behat (PHP) tidak cocok dengan stack TypeScript, jadi skenario Gherkin dijalankan dengan Cucumber.js dan Playwright ([ADR 0002](docs/decisions/0002-kerangka-uji-penerimaan.md)).
 
 ## Skema Database
 
@@ -232,14 +232,14 @@ Database adalah Postgres milik Supabase. Migrasi dikelola lewat Supabase CLI.
 
 | Tabel | Kolom utama | Catatan |
 |---|---|---|
-| `petugas` | `id uuid` (sama dengan `auth.users`), `nama`, `email` (unik), `hak_ekspor boolean`, `gagal_login int`, `terkunci_sampai timestamptz`, `aktif boolean` | Menyimpan penghitung gagal login untuk penguncian akun. Fungsi helper `is_petugas()` dipakai kebijakan RLS seluruh tabel dashboard. |
+| `petugas` | `id uuid` (sama dengan `auth.users`), `nama`, `hak_ekspor boolean`, `gagal_login int`, `terkunci_sampai timestamptz` | Email dan hash password disimpan Supabase Auth di `auth.users`. Menyimpan penghitung gagal login untuk penguncian akun. Fungsi helper `is_petugas()` dipakai kebijakan RLS seluruh tabel dashboard. |
 | `penelepon` | `id uuid`, `no_telp`, `nama_pelapor`, `nik_pelapor` (nullable) | Hanya dibuka oleh Edge Functions. Dashboard membaca view `penelepon_tersamar` yang mengembalikan nama dan nomor yang sudah disamarkan. |
 
 ### Percakapan
 
 | Tabel | Kolom utama | Catatan |
 |---|---|---|
-| `percakapan` | `id`, `penelepon_id` (nullable), `waktu_mulai`, `waktu_selesai`, `jenis_interaksi` enum (`informasi_produk`, `pengaduan`), `status_penyelesaian` enum (`berjalan`, `selesai_ai`, `dieskalasi`, `tiket_terbit`, `pengaduan_tidak_lengkap`), `tahap_ai`, `topik`, `ringkasan` | Satu baris per sesi panggilan. Diindeks pada `waktu_mulai` dan `status_penyelesaian`. |
+| `percakapan` | `id`, `penelepon_id` (nullable), `waktu_mulai`, `waktu_selesai`, `jenis_interaksi` enum (`informasi_produk`, `pengaduan`), `status_penyelesaian` enum (`berjalan`, `selesai_ai`, `dieskalasi`, `tiket_terbit`, `pengaduan_tidak_lengkap`, `terputus`), `tahap_ai`, `topik`, `ringkasan` | Satu baris per sesi panggilan. Diindeks pada `waktu_mulai` dan `status_penyelesaian`. |
 | `ucapan` | `percakapan_id`, `urutan`, `pembicara` enum (`sistem`, `penelepon`), `teks`, `detik_ke` | Transkrip per baris ucapan. |
 | `log_tool` | `percakapan_id`, `nama_tool`, `durasi_ms`, `berhasil`, `waktu` | Rekam pemanggilan tool agen untuk halaman AI Agent. |
 
@@ -330,23 +330,29 @@ Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 3 (mulai Minggu 13).**
 ├── .github/              # template pull request (wajib isi Sprint dan Task)
 ├── docs/
 │   ├── decisions/        # Architecture Decision Records (ADR)
+│   ├── panduan/          # panduan pengguna dashboard petugas (draf)
 │   ├── prd/              # PRD, features.json, tasks.json, spec per fitur (F1, F2, F3, ...)
 │   ├── reference/        # PRD rinci: REQ, NFR, BR, kamus pesan, label tombol dan field
 │   ├── source/           # SRS v1.0 dan Sprint Planning (docx)
 │   ├── assets/           # logo SIGAP
+│   ├── api.md            # kontrak endpoint Astro /api dan Voice Gateway /voice
 │   └── PROJECT_RULES.md  # aturan proyek yang mengikat semua kontributor
+├── features/             # skenario Gherkin per UC dan langkahnya (ADR 0002)
+├── knowledge/            # korpus dokumen BPOM untuk RAG Voice Gateway
+├── public/               # aset statis, termasuk AudioWorklet transkrip live
 ├── scripts/
+│   ├── seed-materi.ts    # membuat supabase/seed_materi.sql dari knowledge/
 │   └── setup-hooks.sh    # mengaktifkan .githooks
-└── src/
-    ├── components/       # komponen Astro
-    ├── layouts/          # layout dasar dan dashboard
-    ├── lib/              # data tiruan dan logika pendukung
-    ├── pages/            # halaman (homepage, login, ringkasan, basis pengetahuan) dan endpoint api/
-    ├── styles/           # CSS global
-    └── middleware.ts     # pemeriksaan sesi petugas di server untuk semua route dashboard
+├── src/
+│   ├── components/       # komponen Astro, termasuk panel suara
+│   ├── layouts/          # layout dasar dan dashboard
+│   ├── lib/              # control, adapter, dan data tiruan
+│   ├── pages/            # halaman publik dan dashboard, serta endpoint api/
+│   ├── styles/           # CSS global
+│   └── middleware.ts     # pemeriksaan sesi petugas di server untuk semua route dashboard
+├── supabase/             # migrasi, Edge Functions, tes basis data (lihat supabase/README.md)
+└── voice-gateway/        # Voice Gateway Node: giliran suara, tool agen, alur pengaduan dan eskalasi
 ```
-
-Kode aplikasi Astro untuk Sprint 1 (login, ringkasan, basis pengetahuan) ada di `src/`.
 
 ## Memulai
 
@@ -360,23 +366,34 @@ bash scripts/setup-hooks.sh
 
 `setup-hooks.sh` wajib dijalankan sekali setelah clone agar hook commit dan push aktif.
 
-Untuk menjalankan prototipe dashboard yang ada sekarang:
+Untuk menjalankan halaman publik dan dashboard tanpa Supabase, dengan akun demo yang tertera di halaman login:
 
 ```bash
 npm install
-npm run dev
+SIGAP_SESI=tiruan npm run dev
 ```
 
 | Perintah | Fungsi |
 |---|---|
-| `npm run dev` | Server pengembangan di `http://localhost:4321` |
+| `npm run dev` | Server pengembangan di `http://localhost:4321`. `/voice/*` diteruskan ke Voice Gateway lokal di port 8090 |
 | `npm run build` | Build produksi ke folder `dist/`. Servernya dijalankan dengan `node dist/server/entry.mjs` |
 | `npm run preview` | Menjalankan hasil build secara lokal |
-| `npm test` | Unit test lapisan control |
+| `npm test` | Unit test lapisan control, adapter, dan Voice Gateway |
 | `npm run test:bdd` | Uji penerimaan Gherkin di `features/` (cekbpom tiruan) |
+| `npm run test:bdd:ui` | Skenario `@ui` SRS Lampiran F lewat browser, butuh stack lokal penuh |
 | `npm run test:bdd:live` | Skenario `@live`: scraping cekbpom.pom.go.id asli |
 
-Astro berjalan dalam mode server (adapter Node), dan `src/middleware.ts` memeriksa sesi petugas sebelum halaman dashboard dikirim. Membuka halaman dashboard tanpa login mengarah ke `/login`. Penyedia autentikasinya masih tiruan, dengan satu akun demo yang tertera di halaman login, sampai Supabase Auth terpasang (T-F3.1-03). Data dashboard juga masih kosong. Variabel environment (Supabase, ElevenLabs, model GPT) akan dicatat di `.env.example` begitu dibutuhkan. Berkas `.env` tidak pernah di-commit.
+Astro berjalan dalam mode server (adapter Node), dan `src/middleware.ts` memeriksa sesi petugas sebelum halaman dashboard dikirim. Membuka halaman dashboard tanpa login mengarah ke `/login`. Login memakai Supabase Auth lewat Edge Function `login`. `SIGAP_SESI=tiruan` hanya berlaku di pengembangan lokal dan diabaikan di build produksi. Cara menjalankan stack lokal penuh (Supabase, Edge Functions, Voice Gateway, dashboard) ada di [features/README.md](features/README.md).
+
+### Variabel environment
+
+Setiap variabel beserta keterangannya tercatat di berkas contoh. Nilainya hanya placeholder, dan berkas `.env` tidak pernah di-commit.
+
+| Berkas | Dipakai oleh | Cara memuat |
+|---|---|---|
+| [`.env.example`](.env.example) | Server Astro (dashboard) | Environment proses, misalnya diisi di shell atau `environment` docker compose |
+| [`voice-gateway/.env.example`](voice-gateway/.env.example) | Voice Gateway | Environment proses: `node --env-file=voice-gateway/.env voice-gateway/server.mjs` saat lokal, daftar `environment` docker compose di VPS |
+| [`supabase/functions/.env.example`](supabase/functions/.env.example) | Edge Functions | `supabase functions serve --env-file supabase/functions/.env` saat lokal, `supabase secrets set` di cloud |
 
 ## Aturan Kontribusi
 
@@ -394,7 +411,10 @@ Baca [docs/PROJECT_RULES.md](docs/PROJECT_RULES.md) sebelum berkontribusi. Ringk
 
 - [PRD](docs/prd/PRD.md) dan spec fitur: [F1](docs/prd/specs/F1.md), [F2](docs/prd/specs/F2.md), [F3](docs/prd/specs/F3.md)
 - [PRD rinci](docs/reference/PRD-rinci.md): REQ, NFR, BR, kamus pesan sistem
-- [ADR 0001: Stack Teknologi](docs/decisions/0001-stack.md)
+- ADR: [0001 Stack Teknologi](docs/decisions/0001-stack.md), [0002 Kerangka Uji Penerimaan Gherkin](docs/decisions/0002-kerangka-uji-penerimaan.md), [0003 Transport Audio per Giliran](docs/decisions/0003-transport-audio-per-giliran.md), [0004 Caddy sebagai Reverse Proxy](docs/decisions/0004-caddy-reverse-proxy.md)
+- Kontrak API: [endpoint Astro dan Voice Gateway](docs/api.md), [Edge Functions](supabase/README.md)
+- [Panduan dashboard petugas](docs/panduan/panduan-dashboard-petugas.md) (draf, SRS 2.6 butir 1)
+- Bantuan "Telepon CS AI" (SRS 2.6 butir 2): bagian "TELEPON CS AI, LALU PILIH LAYANAN" di halaman `/homepage`
 - [Aturan Proyek](docs/PROJECT_RULES.md)
 - SRS v1.0 dan Sprint Planning di [docs/source/](docs/source/)
 

@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 
 -- 1. Hak akses: pengguna anon ditolak
 set local role anon;
@@ -138,6 +138,8 @@ select is(
   'Status tiket t6 menjadi selesai'
 );
 
+-- notifikasi tertutup bagi petugas (hanya service_role): antreannya diperiksa sebagai pemilik tabel.
+reset role;
 select is(
   (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060'),
   1,
@@ -149,6 +151,8 @@ select is(
   'tertunda'::public.status_kirim_notifikasi,
   'Status kirim notifikasi awal adalah tertunda'
 );
+set local role authenticated;
+set local "request.jwt.claim.sub" to '00000000-0000-0000-0000-000000000099';
 
 -- Skenario E: Menutup dua kali tidak membuat notifikasi ganda (Idempoten)
 select is(
@@ -157,11 +161,14 @@ select is(
   'Memanggil tutup_tiket kembali tetap mengembalikan status selesai'
 );
 
+reset role;
 select is(
   (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060'),
   1,
   'Jumlah notifikasi tidak bertambah saat tiket ditutup ulang (idempoten)'
 );
+set local role authenticated;
+set local "request.jwt.claim.sub" to '00000000-0000-0000-0000-000000000099';
 
 -- Skenario F: Tiket berstatus diteruskan ditolak untuk ditanggapi atau ditutup
 select throws_ok(
@@ -186,5 +193,5 @@ select throws_ok(
   'Petugas tidak boleh direct INSERT ke tabel tanggapan'
 );
 
-finish();
+select * from finish();
 rollback;

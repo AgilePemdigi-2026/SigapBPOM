@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 import { ErrorSigap, type LogTool, type PenyimpananLayanan, type PotonganPengetahuan } from '../control/InformasiProdukController.ts';
 import type { PenyimpananPengaduan } from '../control/PengaduanController.ts';
 import type { PenyimpananTranskrip } from '../control/TranskripController.ts';
+import type { JenisLayanan } from '../entity/panggilan.ts';
 import type { Pembicara } from '../entity/ucapan.ts';
 
 export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPengaduan, PenyimpananTranskrip {
@@ -39,6 +40,8 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
   }
 
   async terbitkanTiketEskalasi(data: { percakapanId: string; nomorTelepon: string; ringkasan: string }) {
+    // Tiket ESK terbit dari alur UC-01; baris yang sudah ada (termasuk percakapan pengaduan) dibiarkan apa adanya.
+    await this.pastikanPercakapan(data.percakapanId, 'informasi_produk');
     const { data: nomorTiket, error } = await this.db.rpc('terbitkan_tiket_eskalasi', {
       p_percakapan_id: data.percakapanId,
       p_no_telp: data.nomorTelepon,
@@ -108,11 +111,12 @@ export class PenyimpananSupabase implements PenyimpananLayanan, PenyimpananPenga
     return (data?.no_tiket as string | undefined) ?? null;
   }
 
-  // Percakapan dibuat saat panggilan dimulai di gateway tanpa menulis ke basis data; baris dibuat di sini bila belum ada.
-  async pastikanPercakapan(percakapanId: string) {
+  // Baris percakapan dibuat oleh laporan panggilan aktif pertama dari gateway; bila laporan itu belum sampai atau gagal,
+  // baris dibuat di sini.
+  async pastikanPercakapan(percakapanId: string, jenis: JenisLayanan = 'pengaduan') {
     const { error } = await this.db
       .from('percakapan')
-      .upsert({ id: percakapanId, jenis_interaksi: 'pengaduan' }, { onConflict: 'id', ignoreDuplicates: true });
+      .upsert({ id: percakapanId, jenis_interaksi: jenis }, { onConflict: 'id', ignoreDuplicates: true });
     if (error) throw error;
   }
 

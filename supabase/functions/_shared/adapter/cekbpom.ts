@@ -250,12 +250,7 @@ export function resetCacheCekBpom(): void {
   sesiBpomGlobal = null;
 }
 
+// `mode` adalah nilai secret CEKBPOM_ADAPTER yang dibaca setiap Edge Function.
 export function buatAdapterCekBpom(mode: string | undefined): AdapterCekBpom {
-  const envMode = typeof Deno !== 'undefined'
-    ? (Deno.env.get('CEKBPOM_ADAPTER') ?? Deno.env.get('CEKBPM_ADAPTER'))
-    : (typeof process !== 'undefined' && process.env
-        ? (process.env.CEKBPOM_ADAPTER ?? process.env.CEKBPM_ADAPTER)
-        : undefined);
-  const pilihan = (mode && mode.trim()) ? mode : envMode;
-  return pilihan === 'resmi' ? new AdapterCekBpomResmi() : new AdapterCekBpomTiruan();
+  return mode === 'resmi' ? new AdapterCekBpomResmi() : new AdapterCekBpomTiruan();
 }

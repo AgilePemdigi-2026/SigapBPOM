@@ -91,8 +91,8 @@ export class PencatatTranskrip {
     let s = this.sesi.get(id);
     if (s) return s;
     if (this.sesi.size >= this.batas.maks) {
-      // Penuh: geser dulu sesi tertua yang belum tercatat (pilihan menu dengan id sembarang tidak melewati kuota), baru
-      // sesi tercatat yang tidak sedang mengirim, biasanya panggilan yang ditinggalkan tanpa akhiri.
+      // Penuh: geser dulu sesi tertua yang laporan panggilan aktifnya belum sampai, baru sesi tercatat yang tidak sedang
+      // mengirim, biasanya panggilan yang ditinggalkan tanpa akhiri.
       const semua = [...this.sesi];
       const korban = (semua.find(([, v]) => !v.tercatat) ?? semua.find(([, v]) => !v.jalan))?.[0];
       if (korban === undefined) return null;

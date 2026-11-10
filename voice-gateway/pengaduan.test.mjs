@@ -61,6 +61,50 @@ test('req_2_2 satu ucapan memuat keempat data wajib', () => {
   assert.equal(h.nomorTelepon, '081234567890');
 });
 
+test('req_2_2 ucapan ketik santai dengan "nama X" dan "nomer telpon" tetap memberi keempat data', () => {
+  const kurang = ['namaProduk', 'kronologi', 'namaPelapor', 'nomorTelepon'];
+  const h = ekstrak('nama produk susu greenfield,saya kemarin beli padahal expired masi lama tapi setelah minum peut lgsg mual,nama hariz,nomer telpon 08928128888', null, {}, kurang);
+  assert.equal(h.namaProduk, 'susu greenfield');
+  assert.equal(h.kronologi, 'saya kemarin beli padahal expired masi lama tapi setelah minum peut lgsg mual');
+  assert.equal(h.namaPelapor, 'hariz');
+  assert.equal(h.nomorTelepon, '08928128888');
+});
+
+test('req_2_2 jawaban sesuai template layanan 2 (berlabel atau berurutan) langsung lengkap tanpa tanya ulang', async () => {
+  const kasus = [
+    ['nama produk: susu greenfield, kronologi: setelah minum perut mual dan muntah, nama: hariz, no hp: 08928128888',
+      ['susu greenfield', 'setelah minum perut mual dan muntah', 'hariz', '08928128888']],
+    ['Nama produk: Susu Greenfield\nKronologi: setelah diminum perut saya mual\nNama: Hariz Adhim\nNomor telepon: 08928128888',
+      ['Susu Greenfield', 'setelah diminum perut saya mual', 'Hariz Adhim', '08928128888']],
+    ['produk susu greenfield, kronologinya setelah minum perut mual, nama hariz, telepon 08928128888',
+      ['susu greenfield', 'setelah minum perut mual', 'hariz', '08928128888']],
+    ['nama produk susu greenfield, kronologi saya beli kemarin tapi setelah minum perut mual, nama hariz, nomor telepon 08928128888',
+      ['susu greenfield', 'saya beli kemarin tapi setelah minum perut mual', 'hariz', '08928128888']],
+    ['susu greenfield, setelah minum perut langsung mual, hariz, 08928128888',
+      ['susu greenfield', 'setelah minum perut langsung mual', 'hariz', '08928128888']],
+    ['susu greenfield, perut saya mual setelah minum susunya, hariz, 0892 8128 888',
+      ['susu greenfield', 'perut saya mual setelah minum susunya', 'hariz', '08928128888']],
+    ['susu greenfield kemarin saya beli di indomaret lalu diminum perut saya sakit, nama saya hariz, 08928128888',
+      ['susu greenfield', 'susu greenfield kemarin saya beli di indomaret lalu diminum perut saya sakit', 'hariz', '08928128888']],
+    ['Mie instan sedap, ada belatung di dalam bungkusnya waktu dibuka, Rina, 081234567890',
+      ['Mie instan sedap', 'ada belatung di dalam bungkusnya waktu dibuka', 'Rina', '081234567890']],
+  ];
+  for (const [ucapan, [namaProduk, kronologi, namaPelapor, nomorTelepon]] of kasus) {
+    assert.deepEqual(ekstrak(ucapan, null, {}, [...FIELD_PENGADUAN]), { namaProduk, kronologi, namaPelapor, nomorTelepon }, ucapan);
+    const c = new PengaduanController({ gerbang: new GerbangPengaduanTiruan(), pengirimSms: new PengirimSmsTiruan() });
+    c.mulai(ID);
+    assert.equal((await c.tangani(ID, ucapan)).lengkap, true, ucapan);
+  }
+});
+
+test('req_2_2 bentuk singkat pengantar nama pelapor dikenali, nama toko atau produk tidak', () => {
+  for (const [ucapan, nama] of [['nama hariz', 'hariz'], ['namanya Rina Wati', 'Rina Wati'], ['nama aku Budi', 'Budi'], ['nama gw Andi', 'Andi']]) {
+    assert.equal(ekstrak(`Susu Greenfield bikin mual, ${ucapan}, 081234567890`).namaPelapor, nama, ucapan);
+  }
+  assert.equal(ekstrak('Saya beli susu di toko, nama tokonya Indomaret, setelah minum mual').namaPelapor, undefined);
+  assert.equal(ekstrak('Nama produknya Krim Glowing Ajaib').namaPelapor, undefined);
+});
+
 test('req_2_2 data sebagian hanya mengisi yang disebutkan', () => {
   const h = ekstrak('Nama produknya Krim Glowing Ajaib. Atas nama Siti Aminah.');
   assert.deepEqual(h, { namaProduk: 'Krim Glowing Ajaib', namaPelapor: 'Siti Aminah' });
@@ -138,9 +182,12 @@ test('req_2_2 kalimat akibat: anak kalimat dibuang, subjek kata ganti atau permi
   assert.deepEqual(ekstrak('Krim ini membuat kulit saya gatal'), {});
 });
 
-test('req_2_2 prompt tanya ulang per data, nomor telepon persis kamus Lampiran A', () => {
+test('req_2_2 prompt tanya ulang per data persis kamus Lampiran A', () => {
   assert.equal(PESAN_MINTA_NOMOR_TELEPON, 'Mohon sebutkan nomor telepon Anda.');
   assert.equal(PROMPT_DATA_KURANG.nomorTelepon.pesan, 'Mohon sebutkan nomor telepon Anda.');
+  assert.equal(PROMPT_DATA_KURANG.namaProduk.pesan, 'Mohon sebutkan nama produk yang Anda adukan.');
+  assert.equal(PROMPT_DATA_KURANG.kronologi.pesan, 'Mohon ceritakan kronologi kejadiannya.');
+  assert.equal(PROMPT_DATA_KURANG.namaPelapor.pesan, 'Mohon sebutkan nama Anda.');
   assert.deepEqual(Object.keys(PROMPT_DATA_KURANG), FIELD_PENGADUAN);
 });
 
