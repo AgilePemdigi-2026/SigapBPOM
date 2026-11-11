@@ -165,3 +165,20 @@ test('halaman Detail Pengaduan memuat StepperPenanganan dan StatusPengaduan', ()
   assert.match(halaman, /<StepperPenanganan/);
   assert.match(halaman, /data-name="StatusPengaduan"/);
 });
+
+test('skrip klien StepperPenanganan mengimpor semua simbol runtime yang dipakainya', () => {
+  const komponen = readFileSync(new URL('../../components/StepperPenanganan.astro', import.meta.url), 'utf8');
+  const scriptMatch = komponen.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(scriptMatch, 'Blok <script> klien harus ada');
+  const skrip = scriptMatch[1];
+
+  const importMatch = skrip.match(/import\s*\{([\s\S]*?)\}\s*from\s*['"]\.\.\/lib\/stepperPenanganan['"]/);
+  assert.ok(importMatch, 'Skrip klien harus mengimpor dari ../lib/stepperPenanganan');
+  const impor = importMatch[1];
+
+  for (const simbol of ['DAFTAR_TAHAP', 'formatTanggalIso', 'hitungStatusTahap', 'tentukanTahapAktif']) {
+    if (skrip.includes(simbol)) {
+      assert.match(impor, new RegExp(`\\b${simbol}\\b`), `Simbol ${simbol} dipakai di skrip klien tetapi belum diimpor`);
+    }
+  }
+});
