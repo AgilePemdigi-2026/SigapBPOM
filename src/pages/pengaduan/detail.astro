@@ -1,12 +1,29 @@
 ---
-// Boundary UC-04, halaman Detail Pengaduan yang dibuka tombol "Buka Kasus" (REQ-4.4, T-F5.3-03).
-// Read-only: telaah, tanggapan, dan tutup tiket menyusul di Sprint 3 (UC-06). Data pribadi sudah tersamar (NFR-13).
+// Boundary UC-04 & UC-06, halaman Detail Pengaduan yang dibuka tombol "Buka Kasus" atau "Telaah" (REQ-4.4, REQ-6.1 - REQ-6.6, T-F7.2-02, SRS 3.1.10).
+// Menampilkan ringkasan berkas pengaduan, data pelapor tersamar (NFR-13), dan StepperPenanganan pengaduan.
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import StepperPenanganan from '../../components/StepperPenanganan.astro';
 import { chip } from '../../lib/data';
 import { pemantauanLayanan } from '../../lib/pemantauan';
+import { daftarPengaduan } from '../../lib/daftarPengaduan';
 import { PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
 
-const hasil = await pemantauanLayanan(Astro.locals.tokenAkses).detailKasus(Astro.url.searchParams.get('tiket'));
+const pemantauan = pemantauanLayanan(Astro.locals.tokenAkses);
+let noTiket = Astro.url.searchParams.get('tiket');
+if (!noTiket) {
+  const daftar = await daftarPengaduan(Astro.locals.tokenAkses, {});
+  if ('pengaduan' in daftar && daftar.pengaduan.length > 0) {
+    noTiket = daftar.pengaduan[0].noTiket;
+  } else {
+    const antrean = await pemantauan.antreanTiket();
+    if ('tiket' in antrean && antrean.tiket.length > 0) {
+      const pengaduan = antrean.tiket.find((t) => t.jenis.toLowerCase() === 'pengaduan') || antrean.tiket[0];
+      noTiket = pengaduan.noTiket;
+    }
+  }
+}
+
+const hasil = await pemantauan.detailKasus(noTiket);
 const gagal = 'gagal' in hasil ? hasil.gagal : '';
 const d = 'gagal' in hasil ? null : hasil;
 // Tiket tidak ada: 404; penyimpanan gagal: 503 (PROJECT_RULES 4.4).
@@ -23,8 +40,10 @@ const warna = d ? chip(d.labelStatus) : null;
             <span class="eyebrow">{d.jenis.toUpperCase()}</span>
             <h1 class="mono">{d.noTiket}</h1>
           </div>
-          <span class="chip big" style={`background:${warna!.bg};color:${warna!.fg}`}>{d.labelStatus}</span>
+          <span class="chip big" data-name="StatusPengaduan" style={`background:${warna!.bg};color:${warna!.fg}`}>{d.labelStatus}</span>
         </section>
+
+        <StepperPenanganan noTiket={d.noTiket} status={d.status} labelStatus={d.labelStatus} />
 
         <div class="grid">
           <section class="panel card">
@@ -59,7 +78,7 @@ const warna = d ? chip(d.labelStatus) : null;
 </DashboardLayout>
 
 <style>
-  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 4px; padding-bottom: 24px; }
   .grow { flex: 1; }
   .back { align-self: flex-start; }
   .head { padding: 22px 28px; display: flex; align-items: center; gap: 16px; }
@@ -67,7 +86,7 @@ const warna = d ? chip(d.labelStatus) : null;
   .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
   .head h1 { margin: 0; font-size: 32px; font-weight: 500; letter-spacing: -.01em; }
   .chip.big { font-size: 15px; padding: 8px 16px; }
-  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+  .grid { min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
   .card { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
   .card h2 { margin: 0; font-size: 24px; font-weight: 400; letter-spacing: -.01em; }
   .ringkasan { margin: 0; font-size: 18px; line-height: 1.5; text-wrap: pretty; }

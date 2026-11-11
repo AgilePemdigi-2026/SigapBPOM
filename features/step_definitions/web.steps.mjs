@@ -52,7 +52,21 @@ async function isi(page, label, nilai) {
   for (const l of lingkup) {
     for (const exact of [true, false]) {
       const kolom = l.getByLabel(label, { exact }).and(page.locator('input, textarea, select')).filter({ visible: true });
-      if (await kolom.count()) return kolom.first().fill(nilai);
+      if (await kolom.count()) {
+        const tag = await kolom.first().evaluate((el) => el.tagName.toLowerCase());
+        if (tag === 'select') {
+          await kolom.first().selectOption({ label: nilai }).catch(() => kolom.first().selectOption(nilai));
+          await kolom.first().dispatchEvent('change');
+          return;
+        }
+        const type = await kolom.first().getAttribute('type');
+        let nilaiIsi = nilai;
+        if (type === 'date' && /^\d{2}[-/]\d{2}[-/]\d{4}$/.test(nilai)) {
+          const [d, m, y] = nilai.split(/[-/]/);
+          nilaiIsi = `${y}-${m}-${d}`;
+        }
+        return kolom.first().fill(nilaiIsi);
+      }
     }
   }
   throw new Error(`Kolom "${label}" tidak ditemukan`);
@@ -66,6 +80,10 @@ async function masuk(page, email, password) {
 }
 
 Given('I am on the {string} page', async function (path) {
+  if (path === '/pengaduan/detail' && this.noTiketAktif) {
+    await this.page.goto(`${URL_DASAR}/pengaduan/detail?tiket=${encodeURIComponent(this.noTiketAktif)}`);
+    return;
+  }
   await this.page.goto(`${URL_DASAR}${path}`);
 });
 
@@ -94,6 +112,22 @@ When('I fill in {string} with {string}', async function (label, nilai) {
   await isi(this.page, label, nilai);
 });
 
+When('I select {string} from {string}', async function (pilihan, label) {
+  const dialog = this.page.locator('dialog[open], [role="dialog"][aria-modal="true"]').filter({ visible: true });
+  const lingkup = (await dialog.count()) ? [dialog.last(), this.page] : [this.page];
+  for (const l of lingkup) {
+    for (const exact of [true, false]) {
+      const select = l.getByLabel(label, { exact }).and(this.page.locator('select')).filter({ visible: true });
+      if (await select.count()) {
+        await select.first().selectOption({ label: pilihan }).catch(() => select.first().selectOption(pilihan));
+        await select.first().dispatchEvent('change');
+        return;
+      }
+    }
+  }
+  throw new Error(`Select "${label}" tidak ditemukan`);
+});
+
 When('I press {string}', async function (nama) {
   await tekan(this.page, nama);
 });
@@ -108,6 +142,47 @@ When('I press {string} on the material {string}', async function (tombol, judul)
   const baris = this.page.locator('tr, li, .row').filter({ hasText: judul }).filter({ visible: true }).first();
   await tunggu(baris, `materi "${judul}"`);
   await tekan(this.page, tombol, baris);
+});
+
+When('I press {string} on a complaint with status {string}', async function (tombol, status) {
+  const baris = this.page.locator('tr, li, .row').filter({ hasText: status }).filter({ visible: true }).first();
+  await tunggu(baris, `pengaduan berstatus "${status}"`);
+  await tekan(this.page, tombol, baris);
+});
+
+Given('the complaint status is {string}', async function (statusLabel) {
+  const mapStatus = {
+    'Belum Ditelaah': 'belum_ditelaah',
+    'Sedang Ditelaah': 'sedang_ditelaah',
+    'Menunggu Pemeriksaan': 'menunggu_pemeriksaan',
+    'Tanggapan Disusun': 'tanggapan_disusun',
+    'Selesai': 'selesai',
+    'Diteruskan ke Instansi Lain': 'diteruskan',
+  };
+  const statusDb = mapStatus[statusLabel];
+  const kondisi = this.noTiketAktif
+    ? `where no_tiket = '${this.noTiketAktif}'`
+    : `where id = (select id from public.tiket where jenis = 'pengaduan' order by tgl_terbit desc limit 1)`;
+  if (statusDb) {
+    if (statusDb === 'tanggapan_disusun') {
+      sqlLokal(
+        `update public.tiket set status = 'sedang_ditelaah' ${kondisi}`,
+        `insert into public.tanggapan (tiket_id, isi, petugas_id, status) select id, 'Produk telah ditelaah dan pelaku usaha diberi peringatan tertulis.', (select id from public.petugas limit 1), 'tanggapan_disusun' from public.tiket ${kondisi}`,
+        `update public.tiket set status = 'tanggapan_disusun' ${kondisi}`,
+      );
+    } else {
+      sqlLokal(`update public.tiket set status = '${statusDb}' ${kondisi}`);
+    }
+  }
+  if (this.page.url().includes('/pengaduan/detail')) {
+    if (this.noTiketAktif) {
+      await this.page.goto(`${URL_DASAR}/pengaduan/detail?tiket=${encodeURIComponent(this.noTiketAktif)}`);
+    } else {
+      await this.page.reload();
+    }
+  }
+  const el = this.page.locator('[data-name="StatusPengaduan"]').filter({ visible: true }).first();
+  await tunggu(el.filter({ hasText: statusLabel }), `status pengaduan "${statusLabel}"`);
 });
 
 When('I press {string} on the graph', async function (simpul) {
@@ -159,9 +234,15 @@ Given('there is a complaint ticket waiting for review', function () {
   const id = randomUUID();
   sqlLokal(
     `select public.laporkan_panggilan_aktif('${id}', 'pengaduan', 'Pengaduan produk', 'mendengar')`,
-    `select public.terbitkan_tiket_pengaduan('${id}', 'Krim Wajah Glowing', 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
-      'Budi Santoso', '081234567890', 'Krim Wajah Glowing membuat kulit iritasi')`,
   );
+  const out = sqlLokal(
+    `select public.terbitkan_tiket_pengaduan('${id}', 'Krim Wajah Glowing', 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
+      'Budi Santoso', '081234567890', 'Krim Wajah Glowing membuat kulit iritasi') as no_tiket`,
+  );
+  const m = String(out || '').match(/ADU-\d{8}-\d{4}/);
+  if (m) {
+    this.noTiketAktif = m[0];
+  }
 });
 
 // Layanan luar untuk Voice Gateway: cekbpom dan Hermes tiruan di features/support/tiruan.mjs.

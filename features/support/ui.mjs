@@ -11,7 +11,11 @@ export const AKUN_UJI = { email: 'petugas@halobpom.go.id', password: 'halobpom20
 
 /** Menjalankan SQL di Supabase lokal (`supabase db query --local`, satu pernyataan per panggilan) untuk data uji. */
 export function sqlLokal(...pernyataan) {
-  for (const q of pernyataan) execFileSync('supabase', ['db', 'query', '--local', q], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  let hasil = '';
+  for (const q of pernyataan) {
+    hasil = execFileSync('supabase', ['db', 'query', '--local', q], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  }
+  return hasil;
 }
 
 let browser = null;

@@ -1,0 +1,674 @@
+---
+// Boundary UC-06 Menangani Pengaduan (SRS 3.1.10, REQ-6.1 - REQ-6.6, BR-2, BR-3, T-F7.2-02).
+// Komponen StepperPenanganan mengelola alur penanganan tiket dalam satu halaman:
+// 1. Telaah
+// 2. Jadwal Pemeriksaan (hanya jika Perlu Pemeriksaan Lapangan)
+// 3. Susun Tanggapan
+// 4. Selesai (Tutup Tiket)
+import {
+  DAFTAR_TAHAP,
+  OPSI_TINDAK_LANJUT,
+  hitungStatusTahap,
+  tentukanTahapAktif,
+  type TahapStepper,
+} from '../lib/stepperPenanganan';
+
+interface Props {
+  noTiket: string;
+  status: string;
+  labelStatus: string;
+}
+
+const { noTiket, status, labelStatus } = Astro.props;
+const statusTahap = hitungStatusTahap(status, null, status === 'menunggu_pemeriksaan');
+const tahapAktif = tentukanTahapAktif(statusTahap);
+
+const ikonTahap: Record<TahapStepper, string> = {
+  'Telaah': 'icon-clipboard-check',
+  'Jadwal Pemeriksaan': 'icon-calendar',
+  'Susun Tanggapan': 'icon-file-text',
+  'Selesai': 'icon-check-circle',
+};
+---
+
+<section class="panel stepper-penanganan" data-name="StepperPenanganan" data-tiket={noTiket} data-status={status}>
+  <div class="stepper-head">
+    <h2>Penanganan Pengaduan</h2>
+    <span class="sub-head">Proses telaah, jadwal pemeriksaan, penyusunan tanggapan resmi, hingga penutupan tiket</span>
+  </div>
+
+  <!-- Stepper 4 Tahap -->
+  <ol class="stepper-nav" aria-label="Tahapan Penanganan">
+    {DAFTAR_TAHAP.map((tahap, idx) => {
+      const st = statusTahap[tahap];
+      const isAktif = tahap === tahapAktif;
+      return (
+        <li class:list={['step-item', st, { aktif: isAktif }]} data-step={tahap}>
+          <div class="step-num">
+            {st === 'selesai' ? (
+              <i class="icon-check" aria-hidden="true"></i>
+            ) : (
+              <span>{idx + 1}</span>
+            )}
+          </div>
+          <div class="step-info">
+            <span class="step-label">{tahap}</span>
+            <span class="step-status">
+              {st === 'selesai'
+                ? 'Selesai'
+                : st === 'dilewati'
+                ? 'Tidak diperlukan'
+                : isAktif
+                ? 'Tahap aktif'
+                : 'Menunggu'}
+            </span>
+          </div>
+        </li>
+      );
+    })}
+  </ol>
+
+  <!-- Notifikasi / Pesan Sistem -->
+  <div class="pesan-alert" id="pesan-penanganan" role="alert" aria-live="polite" hidden></div>
+
+  <!-- Form Penanganan -->
+  <div class="forms-wrapper">
+    <!-- 1. Formulir Telaah -->
+    <fieldset class="form-section" id="section-telaah">
+      <legend class="section-title">
+        <i class="icon-clipboard-check" aria-hidden="true"></i>
+        <span>Tahap 1: Telaah Berkas</span>
+      </legend>
+
+      <div class="field-group">
+        <label for="tindak-lanjut">Tindak Lanjut</label>
+        <select id="tindak-lanjut" name="tindakLanjut" aria-label="Tindak Lanjut" class="input-control">
+          <option value="Telaah Dokumen">Telaah Dokumen</option>
+          <option value="Perlu Pemeriksaan Lapangan">Perlu Pemeriksaan Lapangan</option>
+          <option value="Bukan Kewenangan BPOM">Bukan Kewenangan BPOM</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="catatan-tindak-lanjut">Catatan Tindak Lanjut</label>
+        <textarea
+          id="catatan-tindak-lanjut"
+          name="catatan"
+          aria-label="Catatan Tindak Lanjut"
+          rows="3"
+          placeholder="Masukkan catatan tindak lanjut..."
+          class="input-control textarea-control"
+        ></textarea>
+      </div>
+
+      <div class="action-row">
+        <button type="button" class="btn-primary" id="btn-simpan-telaah">Simpan Telaah</button>
+      </div>
+    </fieldset>
+
+    <!-- 2. Formulir Jadwal Pemeriksaan (data-name="FormulirJadwalPemeriksaan") -->
+    <fieldset
+      class="form-section"
+      id="section-jadwal"
+      data-name="FormulirJadwalPemeriksaan"
+      hidden={status !== 'menunggu_pemeriksaan'}
+    >
+      <legend class="section-title">
+        <i class="icon-calendar" aria-hidden="true"></i>
+        <span>Tahap 2: Jadwal Pemeriksaan Lapangan</span>
+      </legend>
+
+      <div class="field-group">
+        <label for="tanggal-pemeriksaan">Tanggal Pemeriksaan</label>
+        <input
+          type="date"
+          id="tanggal-pemeriksaan"
+          name="tanggal"
+          aria-label="Tanggal Pemeriksaan"
+          class="input-control"
+        />
+      </div>
+
+      <div class="field-group">
+        <label for="unit-pelaksana">Unit Pelaksana</label>
+        <select id="unit-pelaksana" name="unit" aria-label="Unit Pelaksana" class="input-control">
+          <option value="">Pilih Unit Pelaksana</option>
+          <option value="Balai Besar POM di Surabaya">Balai Besar POM di Surabaya</option>
+          <option value="Balai Besar POM di Jakarta">Balai Besar POM di Jakarta</option>
+          <option value="Balai Besar POM di Bandung">Balai Besar POM di Bandung</option>
+          <option value="Balai Besar POM di Semarang">Balai Besar POM di Semarang</option>
+          <option value="Balai Besar POM di Medan">Balai Besar POM di Medan</option>
+          <option value="Direktorat Pengawasan Obat Tradisional dan Suplemen Kesehatan">Direktorat Pengawasan Obat Tradisional dan Suplemen Kesehatan</option>
+          <option value="Direktorat Pengawasan Pangan Olahan">Direktorat Pengawasan Pangan Olahan</option>
+        </select>
+      </div>
+
+      <div class="action-row">
+        <button type="button" class="btn-primary" id="btn-simpan-jadwal">Simpan Jadwal</button>
+      </div>
+    </fieldset>
+
+    <!-- 3. Formulir Susun Tanggapan & Tutup Tiket -->
+    <fieldset class="form-section" id="section-tanggapan">
+      <legend class="section-title">
+        <i class="icon-file-text" aria-hidden="true"></i>
+        <span>Tahap 3 &amp; 4: Susun Tanggapan dan Tutup Tiket</span>
+      </legend>
+
+      <div class="field-group">
+        <label for="tanggapan">Tanggapan</label>
+        <textarea
+          id="tanggapan"
+          name="isi"
+          aria-label="Tanggapan"
+          rows="4"
+          placeholder="Tulis tanggapan resmi yang akan dikirim ke pelapor..."
+          class="input-control textarea-control"
+        ></textarea>
+      </div>
+
+      <div class="action-row tanggapan-actions">
+        <button type="button" class="btn-primary" id="btn-simpan-tanggapan">Simpan Tanggapan</button>
+        <button type="button" class="pill btn-tutup" id="btn-tutup-tiket">Tutup Tiket</button>
+      </div>
+    </fieldset>
+  </div>
+</section>
+
+<script>
+  import {
+    DAFTAR_TAHAP,
+    formatTanggalIso,
+    hitungStatusTahap,
+    tentukanTahapAktif,
+    type TindakLanjut,
+    type TahapStepper,
+  } from '../lib/stepperPenanganan';
+
+  const root = document.querySelector<HTMLElement>('[data-name="StepperPenanganan"]');
+  if (root) {
+    const noTiket = root.dataset.tiket || '';
+    let statusTiket = root.dataset.status || 'belum_ditelaah';
+    let jadwalDibutuhkan = statusTiket === 'menunggu_pemeriksaan';
+
+    const pesanEl = document.getElementById('pesan-penanganan') as HTMLElement;
+    const selectTindakLanjut = document.getElementById('tindak-lanjut') as HTMLSelectElement;
+    const textCatatan = document.getElementById('catatan-tindak-lanjut') as HTMLTextAreaElement;
+    const btnSimpanTelaah = document.getElementById('btn-simpan-telaah') as HTMLButtonElement;
+
+    const sectionJadwal = document.getElementById('section-jadwal') as HTMLElement;
+    const inputTanggal = document.getElementById('tanggal-pemeriksaan') as HTMLInputElement;
+    const selectUnit = document.getElementById('unit-pelaksana') as HTMLSelectElement;
+    const btnSimpanJadwal = document.getElementById('btn-simpan-jadwal') as HTMLButtonElement;
+
+    const sectionTanggapan = document.getElementById('section-tanggapan') as HTMLElement;
+    const textTanggapan = document.getElementById('tanggapan') as HTMLTextAreaElement;
+    const btnSimpanTanggapan = document.getElementById('btn-simpan-tanggapan') as HTMLButtonElement;
+    const btnTutupTiket = document.getElementById('btn-tutup-tiket') as HTMLButtonElement;
+
+    function tampilkanPesan(pesan: string, tipe: 'success' | 'error' = 'success') {
+      if (pesanEl) {
+        pesanEl.textContent = pesan;
+        pesanEl.className = `pesan-alert ${tipe}`;
+        pesanEl.hidden = false;
+        pesanEl.removeAttribute('hidden');
+      }
+      (window as any).sigapToast?.(pesan, tipe === 'error' ? 'err' : 'ok');
+    }
+
+    const getTiket = () => root.dataset.tiket || new URLSearchParams(window.location.search).get('tiket') || noTiket;
+
+    function perbaruiStatusPengaduan(statusBaru: string, labelBaru: string) {
+      statusTiket = statusBaru;
+      root.dataset.status = statusBaru;
+
+      // Perbarui elemen StatusPengaduan global di halaman
+      document.querySelectorAll<HTMLElement>('[data-name="StatusPengaduan"]').forEach((el) => {
+        el.textContent = labelBaru;
+      });
+
+      // Perbarui tampilan stepper
+      const statusTahap = hitungStatusTahap(statusTiket, (selectTindakLanjut?.value as TindakLanjut) || null, jadwalDibutuhkan);
+      const tahapAktif = tentukanTahapAktif(statusTahap);
+
+      root.querySelectorAll<HTMLElement>('.step-item').forEach((item) => {
+        const tahap = item.dataset.step as TahapStepper;
+        const st = statusTahap[tahap];
+        const isAktif = tahap === tahapAktif;
+
+        item.className = `step-item ${st}${isAktif ? ' aktif' : ''}`;
+        const numEl = item.querySelector('.step-num');
+        if (numEl) {
+          numEl.innerHTML = st === 'selesai'
+            ? '<i class="icon-check" aria-hidden="true"></i>'
+            : `<span>${DAFTAR_TAHAP.indexOf(tahap) + 1}</span>`;
+        }
+        const statusEl = item.querySelector('.step-status');
+        if (statusEl) {
+          statusEl.textContent = st === 'selesai'
+            ? 'Selesai'
+            : st === 'dilewati'
+            ? 'Tidak diperlukan'
+            : isAktif
+            ? 'Tahap aktif'
+            : 'Menunggu';
+        }
+      });
+
+      // Sesuaikan visibilitas dan status formulir
+      if (statusTiket === 'diteruskan') {
+        // Alternative Path 1: BR-3 pengaduan diteruskan ke instansi lain, penanganan berhenti
+        if (selectTindakLanjut) selectTindakLanjut.disabled = true;
+        if (textCatatan) textCatatan.disabled = true;
+        if (btnSimpanTelaah) btnSimpanTelaah.disabled = true;
+        if (sectionJadwal) {
+          sectionJadwal.hidden = true;
+          sectionJadwal.setAttribute('hidden', '');
+        }
+        if (sectionTanggapan) {
+          sectionTanggapan.hidden = true;
+          sectionTanggapan.setAttribute('hidden', '');
+        }
+      } else if (statusTiket === 'selesai') {
+        if (selectTindakLanjut) selectTindakLanjut.disabled = true;
+        if (textCatatan) textCatatan.disabled = true;
+        if (btnSimpanTelaah) btnSimpanTelaah.disabled = true;
+        if (btnSimpanJadwal) btnSimpanJadwal.disabled = true;
+        if (textTanggapan) textTanggapan.disabled = true;
+        if (btnSimpanTanggapan) btnSimpanTanggapan.disabled = true;
+        if (btnTutupTiket) btnTutupTiket.disabled = true;
+      }
+    }
+
+    // 1. Simpan Telaah
+    btnSimpanTelaah?.addEventListener('click', async () => {
+      const tindakLanjut = selectTindakLanjut.value as TindakLanjut;
+      const catatan = textCatatan.value.trim();
+      const tiketId = getTiket();
+
+      if (tindakLanjut === 'Perlu Pemeriksaan Lapangan') {
+        jadwalDibutuhkan = true;
+      }
+
+      try {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/telaah`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tindakLanjut, catatan }),
+        });
+        const d = await res.json().catch(() => null);
+
+        if (!res.ok || d?.status === 'error') {
+          tampilkanPesan(d?.message || 'Permintaan tidak valid.', 'error');
+          return;
+        }
+
+        const statusBaru = d?.data?.status || (tindakLanjut === 'Bukan Kewenangan BPOM' ? 'diteruskan' : 'sedang_ditelaah');
+        const labelBaru = d?.data?.labelStatus || (tindakLanjut === 'Bukan Kewenangan BPOM' ? 'Diteruskan ke Instansi Lain' : 'Sedang Ditelaah');
+
+        if (tindakLanjut === 'Perlu Pemeriksaan Lapangan') {
+          if (sectionJadwal) {
+            sectionJadwal.hidden = false;
+            sectionJadwal.removeAttribute('hidden');
+          }
+        } else {
+          if (sectionJadwal) {
+            sectionJadwal.hidden = true;
+            sectionJadwal.setAttribute('hidden', '');
+          }
+        }
+
+        perbaruiStatusPengaduan(statusBaru, labelBaru);
+        tampilkanPesan(d?.message || 'Hasil telaah tersimpan.', 'success');
+      } catch {
+        tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
+      }
+    });
+
+    // 2. Simpan Jadwal
+    btnSimpanJadwal?.addEventListener('click', async () => {
+      const tanggal = formatTanggalIso(inputTanggal.value);
+      const unit = selectUnit.value.trim();
+      const tiketId = getTiket();
+
+      try {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/jadwal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tanggal, unit }),
+        });
+        const d = await res.json().catch(() => null);
+
+        if (!res.ok || d?.status === 'error') {
+          tampilkanPesan(d?.message || 'Permintaan tidak valid.', 'error');
+          return;
+        }
+
+        jadwalDibutuhkan = true;
+        perbaruiStatusPengaduan(d?.data?.status || 'menunggu_pemeriksaan', d?.data?.labelStatus || 'Menunggu Pemeriksaan');
+        tampilkanPesan(d?.message || 'Jadwal pemeriksaan tersimpan.', 'success');
+      } catch {
+        tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
+      }
+    });
+
+    // 3. Simpan Tanggapan
+    btnSimpanTanggapan?.addEventListener('click', async () => {
+      const isi = textTanggapan.value.trim();
+      const tiketId = getTiket();
+
+      try {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/tanggapan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isi }),
+        });
+        const d = await res.json().catch(() => null);
+
+        if (!res.ok || d?.status === 'error') {
+          tampilkanPesan(d?.message || 'Permintaan tidak valid.', 'error');
+          return;
+        }
+
+        perbaruiStatusPengaduan(d?.data?.status || 'tanggapan_disusun', d?.data?.labelStatus || 'Tanggapan Disusun');
+        tampilkanPesan(d?.message || 'Tanggapan tersimpan.', 'success');
+      } catch {
+        tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
+      }
+    });
+
+    // 4. Tutup Tiket
+    btnTutupTiket?.addEventListener('click', async () => {
+      const tiketId = getTiket();
+      try {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/tutup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const d = await res.json().catch(() => null);
+
+        if (!res.ok || d?.status === 'error') {
+          // Status tiket TIDAK boleh berubah bila server menolak!
+          tampilkanPesan(d?.message || 'Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.', 'error');
+          return;
+        }
+
+        // Status tiket baru berubah menjadi tertutup setelah server merespons sukses!
+        perbaruiStatusPengaduan(d?.data?.status || 'selesai', d?.data?.labelStatus || 'Selesai');
+        tampilkanPesan(d?.message || 'Tiket ditutup.', 'success');
+      } catch {
+        tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
+      }
+    });
+
+    // Inisialisasi tampilan awal
+    if (statusTiket === 'menunggu_pemeriksaan') {
+      if (sectionJadwal) {
+        sectionJadwal.hidden = false;
+        sectionJadwal.removeAttribute('hidden');
+      }
+    }
+  }
+</script>
+
+<style>
+  .stepper-penanganan {
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    box-shadow: var(--shadow-panel);
+  }
+
+  .stepper-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stepper-head h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+
+  .sub-head {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* Stepper Bar */
+  .stepper-nav {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    background: var(--surface-2);
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+  }
+
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--line-2);
+    box-shadow: var(--shadow-row);
+    transition: all 0.2s ease;
+  }
+
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  .step-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .step-label {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .step-status {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Step States */
+  .step-item.aktif {
+    border-color: #93b4f8;
+    background: #eef4ff;
+  }
+
+  .step-item.aktif .step-num {
+    background: var(--grad-blue);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .step-item.aktif .step-label {
+    color: #1a3a8f;
+  }
+
+  .step-item.aktif .step-status {
+    color: #2152c9;
+    font-weight: 500;
+  }
+
+  .step-item.selesai {
+    border-color: #a9dcb9;
+    background: #f0fdf4;
+  }
+
+  .step-item.selesai .step-num {
+    background: #16a34a;
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .step-item.selesai .step-label {
+    color: #14532d;
+  }
+
+  .step-item.selesai .step-status {
+    color: #16a34a;
+  }
+
+  .step-item.dilewati {
+    opacity: 0.6;
+    background: #f4f5f7;
+  }
+
+  /* Pesan Feedback Alert */
+  .pesan-alert {
+    padding: 12px 18px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pesan-alert.success {
+    background: #eefaf2;
+    border: 1px solid #a9dcb9;
+    color: #14532d;
+  }
+
+  .pesan-alert.error {
+    background: #fdecec;
+    border: 1px solid #f8b4b4;
+    color: #991b1b;
+  }
+
+  .pesan-alert[hidden] {
+    display: none;
+  }
+
+  /* Forms Sections */
+  .forms-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form-section {
+    margin: 0;
+    padding: 20px 22px;
+    border-radius: 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-section[hidden] {
+    display: none !important;
+  }
+
+  .section-title {
+    padding: 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+
+  .input-control {
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--line-2);
+    outline: none;
+    font-size: 15px;
+    color: var(--ink);
+    box-shadow: inset 0 1px 2px rgba(16, 24, 40, .03);
+    transition: border-color 0.15s ease;
+  }
+
+  .input-control:focus {
+    border-color: var(--blue);
+  }
+
+  .textarea-control {
+    height: auto;
+    padding: 12px 16px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .action-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-primary {
+    height: 46px;
+    padding: 0 24px;
+    font-size: 15px;
+  }
+
+  .btn-tutup {
+    height: 46px;
+    padding: 0 22px;
+    font-size: 15px;
+    color: var(--danger);
+    border-color: #fca5a5;
+    background: #fff;
+  }
+
+  .btn-tutup:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+  }
+</style>
