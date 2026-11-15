@@ -5,10 +5,16 @@
 const URL_TOKEN = 'https://api.elevenlabs.io/v1/single-use-token/realtime_scribe';
 const URL_SESI = 'wss://api.elevenlabs.io/v1/speech-to-text/realtime';
 
-/** Alamat WebSocket satu sesi: parameter ditetapkan server, panel mengirim PCM 16 kHz, VAD menutup ucapan setelah jeda. */
-export function alamatSttRealtime(token, { model = 'scribe_v2_realtime', jedaDetik = 0.8 } = {}) {
+/**
+ * Alamat WebSocket satu sesi: parameter ditetapkan server, panel mengirim PCM 16 kHz, VAD menutup ucapan setelah jeda.
+ * Peredam bising: `ambangVad` di atas bawaan ElevenLabs (0,4) dan `bicaraMinMs` membuat suara pelan, jauh, atau sekejap
+ * (orang lain di sekitar, ketukan) tidak dianggap ucapan; `filter_background_audio` menyaring suara latar di server.
+ * Naikkan ambangVad bila suara luar masih masuk, turunkan bila ucapan penelepon sering terpotong.
+ */
+export function alamatSttRealtime(token, { model = 'scribe_v2_realtime', jedaDetik = 0.8, ambangVad = 0.5, bicaraMinMs = 250 } = {}) {
   const p = new URLSearchParams({
     model_id: model, token, audio_format: 'pcm_16000', language_code: 'ind', commit_strategy: 'vad', vad_silence_threshold_secs: String(jedaDetik),
+    vad_threshold: String(ambangVad), min_speech_duration_ms: String(bicaraMinMs), filter_background_audio: 'true',
   });
   return `${URL_SESI}?${p}`;
 }
