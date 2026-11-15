@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buatPengirimSms, PengirimSmsTiruan } from '../adapter/sms.ts';
+import { buatPengirimSms, PengirimSmsTiruan, PengirimSmsZenziva, URL_ZENZIVA_BAWAAN } from '../adapter/sms.ts';
 import type { HasilNotifikasi, NotifikasiDiklaim, StatusKirimNotifikasi } from '../entity/notifikasi.ts';
 import {
   BATAS_PERCOBAAN_KIRIM,
@@ -213,11 +213,42 @@ test('req_6_6 teks SMS tindak lanjut memuat nomor tiket dan bukan data pribadi',
   assert.doesNotMatch(teks, /08\d{8,}/);
 });
 
-test('req_6_6 adapter SMS bawaan adalah tiruan dan mode resmi ditolak sampai gateway dipilih', () => {
+test('req_6_6 SMS_ADAPTER wajib dipilih: tiruan untuk lokal, zenziva butuh kredensial, nilai lain ditolak', () => {
   assert.throws(() => buatPengirimSms(undefined), /belum diatur/);
   assert.throws(() => buatPengirimSms(' '), /belum diatur/);
   assert.ok(buatPengirimSms('tiruan') instanceof PengirimSmsTiruan);
   assert.throws(() => buatPengirimSms('resmi'), /belum tersedia/);
+  assert.throws(() => buatPengirimSms('zenziva', () => undefined), /ZENZIVA_USERKEY dan ZENZIVA_PASSKEY wajib diisi/);
+  const env: Record<string, string> = { ZENZIVA_USERKEY: 'uk', ZENZIVA_PASSKEY: 'pk' };
+  const zenziva = buatPengirimSms('zenziva', (n) => env[n]);
+  assert.ok(zenziva instanceof PengirimSmsZenziva);
+  assert.equal(zenziva.url, URL_ZENZIVA_BAWAAN);
+});
+
+const zenzivaPalsu = (status: number, isi: unknown) => {
+  const panggilan: { url: string; init: RequestInit }[] = [];
+  const ambil = (async (url: string, init: RequestInit) => {
+    panggilan.push({ url, init });
+    return new Response(typeof isi === 'string' ? isi : JSON.stringify(isi), { status });
+  }) as unknown as typeof fetch;
+  return { panggilan, pengirim: new PengirimSmsZenziva('uk', 'pk', 'https://zenziva.test/masking/api/sendsms/', ambil) };
+};
+
+test('req_6_6 Zenziva menerima POST JSON berisi kunci, nomor, dan teks; status "1" berarti terkirim', async () => {
+  const { panggilan, pengirim } = zenzivaPalsu(200, { messageId: '157365', to: '081234567890', status: '1', text: 'Success' });
+  await pengirim.kirim('081234567890', 'Nomor tiket Anda ESK-20261115-0001.');
+  assert.equal(panggilan.length, 1);
+  assert.equal(panggilan[0].url, 'https://zenziva.test/masking/api/sendsms/');
+  assert.equal(panggilan[0].init.method, 'POST');
+  assert.deepEqual(JSON.parse(String(panggilan[0].init.body)), { userkey: 'uk', passkey: 'pk', to: '081234567890', message: 'Nomor tiket Anda ESK-20261115-0001.' });
+});
+
+test('req_6_6 Zenziva menolak atau tak terjangkau menjadi galat tanpa nomor tujuan dan tanpa kunci', async () => {
+  const ditolak = zenzivaPalsu(200, { status: '0', text: 'Saldo tidak cukup' });
+  await assert.rejects(ditolak.pengirim.kirim('081234567890', 'x'), (e: Error) => e.message === 'Zenziva menolak: Saldo tidak cukup');
+  await assert.rejects(zenzivaPalsu(500, 'bukan json').pengirim.kirim('081234567890', 'x'), /Zenziva menolak: HTTP 500/);
+  const putus = new PengirimSmsZenziva('uk', 'pk', 'https://zenziva.test/', (async () => { throw new TypeError('network'); }) as unknown as typeof fetch);
+  await assert.rejects(putus.kirim('081234567890', 'x'), (e: Error) => !/0812|uk|pk/.test(e.message) && /tidak dapat dihubungi/.test(e.message));
 });
 
 test('req_2_4 req_1_7 SMS nomor tiket sama persis dengan pesan yang diucapkan gateway', () => {
