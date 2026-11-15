@@ -47,9 +47,50 @@ test('cari mengembalikan peraturan yang relevan dengan label nomor dan tahun', (
   assert.match(hasil.teks, /tramadol/);
 });
 
-test('cari paling banyak satu potongan per peraturan', () => {
+test('cari paling banyak satu potongan utama per peraturan; tambahan hanya tetangga graf yang ditandai', () => {
   const hasil = korpusUji().cari('label gizi pangan olahan tabel gizi', 3, 0);
-  assert.equal(new Set(hasil.map((h) => h.judul)).size, hasil.length);
+  const utama = hasil.filter((h) => !h.perluasan);
+  assert.equal(new Set(utama.map((h) => h.judul)).size, utama.length);
+  assert.ok(hasil.filter((h) => h.perluasan).every((h) => h.label === hasil[0].label));
+});
+
+test('graf: pasal lain dari peraturan kutipan teratas ikut diambil lewat sisi rujukan sama', () => {
+  const k = new Korpus();
+  k.tambah('suplemen.md', dok('Pengawasan Suplemen Kesehatan', '17', '2019',
+    'Pasal 3 Suplemen kesehatan wajib memiliki izin edar sebelum diedarkan. '
+    + 'Pasal 9 Izin edar suplemen kesehatan berlaku lima tahun dan dapat diperpanjang. '
+    + 'Pasal 20 Label kemasan memuat komposisi bahan.'));
+  k.tambah('pangan.md', dok('Label Gizi Pangan Olahan', '26', '2021', 'Pasal 1 Informasi nilai gizi wajib dicantumkan pada label pangan olahan.'));
+  k.selesai();
+  const hasil = k.cari('izin edar suplemen kesehatan', 3, 1);
+  assert.equal(hasil[0].label, 'Peraturan BPOM Nomor 17 Tahun 2019');
+  assert.equal(hasil[1].perluasan, true);
+  assert.equal(hasil[1].label, hasil[0].label);
+  assert.notEqual(hasil[1].teks, hasil[0].teks);
+  assert.ok(!hasil.some((h) => /Pasal 20/.test(h.teks)), 'pasal yang tidak menyinggung pertanyaan tidak ikut');
+  assert.match(pesanKutipan(hasil), /\[2\] .*bagian lain dari rujukan yang sama dengan kutipan \[1\]/);
+});
+
+test('graf: tanpa kutipan utama tidak ada perluasan, dan tetangga dari materi nonaktif tidak diambil', () => {
+  const k = new Korpus();
+  const isi = (judul, badan) => dok(judul, '17', '2019', badan);
+  k.tambah('a.md', isi('Izin Edar Suplemen', 'Pasal 3 Suplemen kesehatan wajib memiliki izin edar sebelum diedarkan.'), 'a|peraturan bpom no. 17 tahun 2019');
+  k.tambah('b.md', isi('Perpanjangan Izin Suplemen', 'Pasal 9 Izin edar suplemen berlaku lima tahun.'), 'b|peraturan bpom no. 17 tahun 2019');
+  k.selesai();
+  assert.deepEqual(k.cari('halo selamat pagi', 3, 1), []);
+  const aktif = k.cari('izin edar suplemen kesehatan', 1, 0.5);
+  assert.deepEqual(aktif.map((h) => [h.judul, Boolean(h.perluasan)]), [['Izin Edar Suplemen', false], ['Perpanjangan Izin Suplemen', true]]);
+  k.nonaktif = new Set(['b|peraturan bpom no. 17 tahun 2019']);
+  assert.deepEqual(k.cari('izin edar suplemen kesehatan', 1, 0.5).map((h) => h.judul), ['Izin Edar Suplemen']);
+});
+
+test('graf: rujukan umum tanpa nomor tidak menyambungkan dokumen lain, hanya bagian lain dokumen yang sama', () => {
+  const k = new Korpus();
+  const pers = (judul, url, badan) => `---\ntitle: "${judul}"\nbentuk_singkat: "Siaran Pers BPOM"\nsource_url: "${url}"\n---\n${badan}`;
+  k.tambah('a.md', pers('Bahaya Merkuri', 'https://a', 'Krim pemutih bermerkuri merusak ginjal dan kulit pemakainya.'), 'bahaya merkuri|siaran pers bpom');
+  k.tambah('b.md', pers('Penarikan Es Krim', 'https://b', 'Es krim mengandung etilen oksida ditarik dari peredaran.'), 'penarikan es krim|siaran pers bpom');
+  k.selesai();
+  assert.deepEqual(k.cari('merkuri merusak ginjal', 1, 0.1).map((h) => h.judul), ['Bahaya Merkuri']);
 });
 
 test('cari mengembalikan kosong untuk sapaan', () => {

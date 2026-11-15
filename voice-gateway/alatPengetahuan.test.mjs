@@ -135,3 +135,8 @@ test('t_f1_3_03 sumber untuk panel sama dengan rujukan materi yang dipakai', () 
     [{ peraturan: 'Peraturan BPOM Nomor 26 Tahun 2021', judul: 'Label Pangan Olahan', url: '' }],
   );
 });
+
+test('graf: tetangga dari dokumen yang sama tidak menggandakan chip sumber di panel', () => {
+  const k = { judul: 'Pengawasan Suplemen Kesehatan', label: 'Peraturan BPOM Nomor 17 Tahun 2019', sumber: 'https://contoh', teks: 'a' };
+  assert.deepEqual(sumberUntukPanel([k, { ...k, teks: 'b', perluasan: true }]), [{ peraturan: k.label, judul: k.judul, url: k.sumber }]);
+});

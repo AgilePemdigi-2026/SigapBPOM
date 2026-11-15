@@ -100,4 +100,8 @@ ${isi}`;
 export const kalimatSumber = (kutipan) => (kutipan.length ? `Sumber: ${[...new Set(kutipan.map((k) => k.label))].join(' dan ')}.` : null);
 
 /** Entri `sumber` untuk panel (chip), sama dengan rujukan yang disebut dalam jawaban. */
-export const sumberUntukPanel = (kutipan) => kutipan.map((k) => ({ peraturan: k.label, judul: k.judul, url: k.sumber }));
+export const sumberUntukPanel = (kutipan) => {
+  // Tetangga graf bisa berasal dari dokumen yang sama dengan kutipan utama; satu chip per dokumen.
+  const unik = new Map(kutipan.map((k) => [`${k.label}|${k.judul}`, { peraturan: k.label, judul: k.judul, url: k.sumber }]));
+  return [...unik.values()];
+};
