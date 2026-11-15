@@ -25,4 +25,8 @@ test('req_1_2 alamat sesi memakai PCM 16 kHz, bahasa Indonesia, dan commit VAD s
   assert.equal(url.searchParams.get('language_code'), 'ind');
   assert.equal(url.searchParams.get('commit_strategy'), 'vad');
   assert.equal(url.searchParams.get('vad_silence_threshold_secs'), '0.8');
+  // Peredam bising: suara pelan atau sekejap di sekitar penelepon tidak memicu ucapan.
+  assert.equal(url.searchParams.get('vad_threshold'), '0.5');
+  assert.equal(url.searchParams.get('min_speech_duration_ms'), '250');
+  assert.equal(url.searchParams.get('filter_background_audio'), 'true');
 });

@@ -63,6 +63,11 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
 <script>
   import { GalatGateway, PESAN_GANGGUAN_SUARA, esc, htmlKartuProduk, htmlKartuTiket, pesanAkhirPanggilan, pesanGalatPanggilan, type HasilProduk } from '../lib/kartuPanggilan';
   import { NAMA_PERISTIWA, type PeristiwaCari, type TabelCek } from '../lib/cariProduk';
+  import { ambangSuara } from '../lib/ambangSuara';
+  import { RnnoiseWorkletNode, loadRnnoise } from '@sapphi-red/web-noise-suppressor';
+  import urlWorkletRnnoise from '@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url';
+  import urlRnnoise from '@sapphi-red/web-noise-suppressor/rnnoise.wasm?url';
+  import urlRnnoiseSimd from '@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url';
 
   type Sumber = { peraturan: string; judul: string; url: string };
   // `live`: gelembung penelepon yang masih diperbarui transkrip live (teks sementara STT realtime).
@@ -82,8 +87,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
   // Panel Cari Produk di halaman publik mengikuti layanan dan pencarian cekbpom dalam panggilan ini.
   const kabari = (p: PeristiwaCari) => window.dispatchEvent(new CustomEvent(NAMA_PERISTIWA, { detail: p }));
   const PESAN_MENU = 'Tekan 1 untuk informasi produk, tekan 2 untuk pengaduan.'; // REQ-1.1
-  // Deteksi giliran bicara sederhana dari kekuatan sinyal mikrofon.
-  const AMBANG_SUARA = 0.025;
+  // Deteksi giliran bicara sederhana dari kekuatan sinyal mikrofon; ambangnya mengikuti bising ruangan (lib/ambangSuara).
   const JEDA_SELESAI_MS = 800;
   const UCAPAN_MAKS_MS = 15_000;
   const TUNGGU_MAKS_MS = 8_000;
@@ -129,6 +133,9 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     let tick: number | undefined, idPanggilan = '';
     let mic: MediaStream | null = null, ctx: AudioContext | null = null, analis: AnalyserNode | null = null, rekam: MediaRecorder | null = null;
     let pantau: number | undefined;
+    // Peredam bising: `keluaran` adalah ujung rangkaian audio mikrofon (RNNoise bila berhasil dimuat, selain itu mikrofon mentah)
+    // yang dialirkan ke STT realtime dan penganalisis; `micBersih` stream hasilnya untuk MediaRecorder; `lantai` taksiran bising ruangan.
+    let keluaran: AudioNode | null = null, micBersih: MediaStream | null = null, lantai = 0;
     // Transkrip live: `realtime` mati untuk sisa panggilan bila token atau koneksi STT realtime gagal; `stt` adalah sesi yang berjalan.
     let realtime = true, stt: { tutup: () => void } | null = null, modulPcm: Promise<void> | null = null;
     // Pesan diketik: `sibuk` selama satu giliran berjalan (input dikunci), `mengetik` selama ada draf di kolom
@@ -413,14 +420,14 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
     // tampil di gelembung penelepon. Begitu ucapan ditetapkan (jeda 0,8 detik), teksnya dikirim sebagai giliran teks. Bila token
     // atau koneksi gagal, sisa panggilan kembali ke rekam lalu unggah.
     async function dengarLive() {
-      let ws: WebSocket | null = null, node: AudioWorkletNode | null = null, sumber: MediaStreamAudioSourceNode | null = null;
+      let ws: WebSocket | null = null, node: AudioWorkletNode | null = null;
       let gelembung: Msg | null = null, siap = false, batasDiam: number | undefined, batasUcapan: number | undefined;
       const tertunda: string[] = [];
       const s = {
         tutup() {
           clearTimeout(batasDiam);
           clearTimeout(batasUcapan);
-          sumber?.disconnect();
+          try { if (node) keluaran?.disconnect(node); } catch { /* sudah terputus */ }
           node?.port.close();
           node?.disconnect();
           if (ws && ws.readyState <= WebSocket.OPEN) ws.close();
@@ -444,8 +451,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
         if (!aktif()) return;
         ws = new WebSocket(d.data.url);
         node = new AudioWorkletNode(ctx!, 'pcm16', { numberOfOutputs: 0 });
-        sumber = ctx!.createMediaStreamSource(mic!);
-        sumber.connect(node);
+        keluaran!.connect(node);
       } catch {
         return gagalLive(true);
       }
@@ -488,7 +494,7 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       const a = analis;
       const sampel = new Float32Array(a.fftSize);
       const tipe = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find((t) => MediaRecorder.isTypeSupported(t));
-      const r = new MediaRecorder(mic, tipe ? { mimeType: tipe } : undefined);
+      const r = new MediaRecorder(micBersih ?? mic, tipe ? { mimeType: tipe } : undefined);
       const potongan: Blob[] = [];
       const mulai = Date.now();
       let bicaraSejak = 0, heningSejak = 0;
@@ -504,7 +510,9 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
         a.getFloatTimeDomainData(sampel);
         const rms = Math.sqrt(sampel.reduce((n, x) => n + x * x, 0) / sampel.length);
         const t = Date.now();
-        if (rms > AMBANG_SUARA) { if (!bicaraSejak) bicaraSejak = t; heningSejak = 0; }
+        const deteksi = ambangSuara(lantai, rms, !!bicaraSejak);
+        lantai = deteksi.lantai;
+        if (deteksi.bicara) { if (!bicaraSejak) bicaraSejak = t; heningSejak = 0; }
         else if (bicaraSejak && !heningSejak) heningSejak = t;
         const selesai = bicaraSejak && ((heningSejak && t - heningSejak > JEDA_SELESAI_MS) || t - bicaraSejak > UCAPAN_MAKS_MS);
         if (selesai || (!bicaraSejak && t - mulai > TUNGGU_MAKS_MS)) { clearInterval(pantau); pantau = undefined; r.stop(); }
@@ -550,15 +558,36 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
         mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
         // Mikrofon dibisukan sebelum izin selesai diberikan: track baru langsung ikut bisu.
         mic.getAudioTracks().forEach((t) => { t.enabled = micAktif; });
-        ctx = new AudioContext();
-        analis = ctx.createAnalyser();
-        analis.fftSize = 1024;
-        ctx.createMediaStreamSource(mic).connect(analis);
+        lantai = 0;
+        // Tanpa RNNoise (AudioWorklet atau WebAssembly tidak ada, berkas gagal dimuat) panel tetap jalan dengan mikrofon mentah.
+        try { await rangkaiAudio(true); } catch { ctx?.close().catch(() => {}); await rangkaiAudio(false); }
         return true;
       } catch {
         mic = null;
         return false;
       }
+    }
+
+    // Mikrofon -> [RNNoise] -> penganalisis (deteksi suara lokal), STT realtime, dan stream untuk MediaRecorder.
+    // RNNoise hanya bekerja pada 48 kHz, jadi AudioContext-nya dipaksa 48 kHz; worklet pcm16 tetap menurunkan ke 16 kHz.
+    async function rangkaiAudio(peredam: boolean) {
+      const c = new AudioContext(peredam ? { sampleRate: 48_000 } : undefined);
+      ctx = c;
+      let ujung: AudioNode = c.createMediaStreamSource(mic!);
+      micBersih = mic;
+      if (peredam) {
+        const [wasm] = await Promise.all([loadRnnoise({ url: urlRnnoise, simdUrl: urlRnnoiseSimd }), c.audioWorklet.addModule(urlWorkletRnnoise)]);
+        const rn = new RnnoiseWorkletNode(c, { maxChannels: 2, wasmBinary: wasm });
+        ujung.connect(rn);
+        ujung = rn;
+        const tujuan = c.createMediaStreamDestination();
+        rn.connect(tujuan);
+        micBersih = tujuan.stream;
+      }
+      analis = c.createAnalyser();
+      analis.fftSize = 1024;
+      ujung.connect(analis);
+      keluaran = ujung;
     }
 
     async function pick(n: 1 | 2) {
@@ -582,6 +611,10 @@ const bars = [0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.85, 0.55, 0.95, 0.5, 0.7, 0.45];
       ctx?.close().catch(() => {});
       ctx = null;
       analis = null;
+      keluaran = null;
+      micBersih = null;
+      // Modul worklet terdaftar per AudioContext; panggilan berikutnya membuat AudioContext baru.
+      modulPcm = null;
     }
 
     function end() {
