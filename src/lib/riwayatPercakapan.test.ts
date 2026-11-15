@@ -56,7 +56,7 @@ test('req_5_1 status penyelesaian tampil dengan label baku PRD-rinci Bagian 9', 
   const data = Object.keys(LABEL_STATUS_PENYELESAIAN).map((s, i) => baris(`s-${i}`, `2026-11-02T0${i}:00:00Z`, { statusPenyelesaian: s }));
   const hasil = await daftar({}, data);
   assert.ok('percakapan' in hasil);
-  assert.deepEqual(hasil.percakapan.map((p) => p.labelStatus).sort(), ['dieskalasi', 'pengaduan tidak lengkap', 'selesai oleh AI', 'tiket terbit']);
+  assert.deepEqual(hasil.percakapan.map((p) => p.labelStatus).sort(), ['dieskalasi', 'pengaduan tidak lengkap', 'selesai oleh AI', 'terputus', 'tiket terbit']);
 });
 
 test('req_5_1 saringan jenis membatasi daftar dan paginasi, sedangkan kartu ringkasan tetap untuk seluruh periode', async () => {

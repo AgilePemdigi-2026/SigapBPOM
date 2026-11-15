@@ -11,6 +11,7 @@ import {
 import { PESAN_DETAIL_TRANSKRIP, bacaDetailTranskrip, pilihPenyimpananTranskrip, samarkanNomorDiTeks, simpanCatatan } from './detailTranskrip.ts';
 import { PenyimpananTranskripPetugasSupabase } from './penyimpananTranskripPetugasSupabase.ts';
 import { PESAN_SISTEM } from './sesiSupabase.ts';
+import { chip } from './data.ts';
 
 const ID = '9b2f6c1e-3a4d-4e5f-8a6b-7c8d9e0f1a2b';
 // Nomor telepon Indonesia yang tidak tersamar (NFR-13), misalnya 081234567890.
@@ -97,6 +98,24 @@ test('t_f6_2_02 req_5_3 catatan tersimpan pada percakapan terkait dengan pesan p
   assert.deepEqual(await simpanCatatan(c, ID, '  Perlu verifikasi ulang data pelapor '), { berhasil: true, pesan: 'Catatan pemeriksaan tersimpan.' });
   assert.equal(PESAN_CATATAN_TERSIMPAN, 'Catatan pemeriksaan tersimpan.');
   assert.deepEqual((await c.ambilCatatanPemeriksaan(ID)).map((x) => x.isi), ['Perlu verifikasi ulang data pelapor']);
+});
+
+test('t_f6_2_02 req_5_3 catatan yang sudah tersimpan tampil lagi di detail, terbaru dulu', async () => {
+  const c = controller();
+  await simpanCatatan(c, ID, 'Catatan pertama');
+  await simpanCatatan(c, ID, 'Catatan kedua');
+  const hasil = await bacaDetailTranskrip(c, ID);
+  assert.ok('detail' in hasil);
+  assert.deepEqual(hasil.detail.catatan.map((x) => [x.petugas, x.isi]), [['Petugas Uji', 'Catatan kedua'], ['Petugas Uji', 'Catatan pertama']]);
+  assert.match(hasil.detail.catatan[0].waktu, /^\d{2} \S+ \d{4} · \d{2}:\d{2}$/);
+});
+
+test('t_f6_2_02 status terputus memakai label baku dan chip berwarna sendiri', async () => {
+  const c = new TranskripController(new PenyimpananTranskripMock({ riwayat: [{ ...percakapan, statusPenyelesaian: 'terputus' }], transkrip: { [ID]: TRANSKRIP }, catatan: {} }));
+  const hasil = await bacaDetailTranskrip(c, ID);
+  assert.ok('detail' in hasil);
+  assert.equal(hasil.detail.labelStatus, 'terputus');
+  assert.notDeepEqual(chip('terputus'), chip('status tak dikenal'));
 });
 
 test('t_f6_2_02 simpan catatan gagal di server memberi pesan sistem, tanpa detail teknis', async () => {

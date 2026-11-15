@@ -17,6 +17,7 @@ export const LABEL_STATUS_PENYELESAIAN: Record<string, string> = {
   dieskalasi: 'dieskalasi',
   tiket_terbit: 'tiket terbit',
   pengaduan_tidak_lengkap: 'pengaduan tidak lengkap',
+  terputus: 'terputus',
 };
 
 const LABEL_PEMBICARA = { sistem: 'CS AI', penelepon: 'Penelepon' } as const;
@@ -27,7 +28,9 @@ const NOMOR_TELEPON = /(?<![\d*])(?:\+62|62|0)8(?:[\s-]?\d){8,11}(?![\d*])/g;
 
 export type UcapanTampil = { urutan: number; stempel: string; pembicara: (typeof LABEL_PEMBICARA)[keyof typeof LABEL_PEMBICARA]; dariPenelepon: boolean; teks: string };
 
-export type DetailTranskripTampil = { waktu: string; jenis: string; ringkasan: string; labelStatus: string; ucapan: UcapanTampil[] };
+export type CatatanTampil = { waktu: string; petugas: string; isi: string };
+
+export type DetailTranskripTampil = { waktu: string; jenis: string; ringkasan: string; labelStatus: string; ucapan: UcapanTampil[]; catatan: CatatanTampil[] };
 
 /**
  * NFR-13: view ucapan_petugas dan Voice Gateway sudah menyamarkan data pribadi. Nomor telepon yang masih utuh di teks
@@ -79,6 +82,8 @@ export async function bacaDetailTranskrip(transkrip: TranskripController, id: un
             dariPenelepon: u.pembicara === 'penelepon',
             teks: samarkanNomorDiTeks(u.teks),
           })),
+        // REQ-5.3: catatan yang sudah tersimpan, terbaru dulu (urutan dari ambil_catatan_pemeriksaan).
+        catatan: (d.catatanPemeriksaan ?? []).map((c) => ({ waktu: waktuTampil(c.waktu), petugas: c.petugasNama?.trim() || 'Petugas', isi: c.isi })),
       },
     };
   } catch {
