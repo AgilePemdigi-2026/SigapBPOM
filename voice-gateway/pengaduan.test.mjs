@@ -5,7 +5,7 @@ import {
   PengaduanController, PESAN_PENGADUAN_TIDAK_LENGKAP, PercakapanDitolak, SUARA_PENGADUAN, pesanTiketPengaduan, promptDataKurang, prosesGiliranPengaduan,
   validasiNomorTelepon,
 } from './pengaduan.mjs';
-import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
+import { GerbangPengaduanSupabase, GerbangPengaduanTiruan } from './layananPengaduan.mjs';
 import { PESAN_NOMOR_SALAH, PembatasTiket, digitDariUcapan, masalahNomorTelepon } from './eskalasi.mjs';
 import { PESAN_BATAS_AI, PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, SesiPenuh, pilihMenu } from './percakapan.mjs';
 
@@ -91,7 +91,7 @@ test('req_2_2 jawaban sesuai template layanan 2 (berlabel atau berurutan) langsu
   ];
   for (const [ucapan, [namaProduk, kronologi, namaPelapor, nomorTelepon]] of kasus) {
     assert.deepEqual(ekstrak(ucapan, null, {}, [...FIELD_PENGADUAN]), { namaProduk, kronologi, namaPelapor, nomorTelepon }, ucapan);
-    const c = new PengaduanController({ gerbang: new GerbangPengaduanTiruan(), pengirimSms: new PengirimSmsTiruan() });
+    const c = new PengaduanController({ gerbang: new GerbangPengaduanTiruan() });
     c.mulai(ID);
     assert.equal((await c.tangani(ID, ucapan)).lengkap, true, ucapan);
   }
@@ -289,11 +289,10 @@ const UCAPAN_LENGKAP = 'Nama produknya Sirup Batuk Sehat. Setelah diminum anak s
 
 function rakitan(opsi = {}) {
   const gerbang = new GerbangPengaduanTiruan(() => new Date('2026-11-02T03:00:00Z'));
-  const sms = new PengirimSmsTiruan();
-  const pengaduan = new PengaduanController({ gerbang, pengirimSms: sms, ...opsi });
+  const pengaduan = new PengaduanController({ gerbang, ...opsi });
   const riwayat = new RiwayatPanggilan();
   pilihMenu(riwayat, pengaduan, ID, 2);
-  return { gerbang, sms, pengaduan, riwayat };
+  return { gerbang, pengaduan, riwayat };
 }
 
 test('req_2_3 pesan tiket pengaduan sama persis dengan kamus PRD Lampiran A', () => {
@@ -311,20 +310,6 @@ test('req_2_3 pengaduan lengkap menghasilkan satu tiket ADU dan pesan tiket diuc
   assert.equal(gerbang.tiketPerPercakapan.size, 1);
   // Masih di layanan 2: giliran berikutnya tetap di control ini, bukan ke AI.
   assert.ok(pengaduan.aktif(ID));
-});
-
-test('req_2_4 SMS tindak lanjut hanya lewat adapter tiruan, sekali per tiket', async () => {
-  const { sms, pengaduan, riwayat } = rakitan();
-  await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
-  assert.equal(sms.terkirim.length, 1);
-  assert.equal(sms.terkirim[0].nomorTelepon, '081234567890');
-  assert.match(sms.terkirim[0].teks, /^Pengaduan Anda telah dicatat dengan nomor tiket ADU-\d{8}-\d{4}\./);
-});
-
-test('req_2_4 SMS gagal tidak membatalkan tiket', async () => {
-  const { pengaduan, riwayat } = rakitan({ pengirimSms: { kirim: async () => { throw new Error('sms down'); } } });
-  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
-  assert.equal(h.tiket, 'ADU-20261102-0001');
 });
 
 test('br_1 tiket tidak terbit sebelum keempat data lengkap', async () => {
@@ -384,7 +369,7 @@ test('req_2_3 pesan pengaduan kedua sama persis dengan kamus Lampiran A (batas p
 });
 
 test('req_2_3 tetap di layanan 2 atau menekan 2 lagi setelah tiket terbit tidak mencatat atau mengaku mencatat pengaduan kedua', async () => {
-  const { gerbang, sms, pengaduan, riwayat } = rakitan();
+  const { gerbang, pengaduan, riwayat } = rakitan();
   const tercatat = catatTerbit(gerbang);
   await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
   // [] = langsung menyampaikan pengaduan kedua tanpa memilih menu lagi.
@@ -398,7 +383,6 @@ test('req_2_3 tetap di layanan 2 atau menekan 2 lagi setelah tiket terbit tidak 
     assert.equal(h.suara, null);
   }
   assert.equal(tercatat.length, 1);
-  assert.equal(sms.terkirim.length, 1);
   const model = JSON.stringify(riwayat.untukModel(ID));
   for (const data of ['Ahmad Fauzi', 'Budi Santoso', '0812', 'Sirup Batuk Sehat']) assert.ok(!model.includes(data));
   assert.equal(await pengaduan.panggilanBerakhir(ID), null);
@@ -475,7 +459,7 @@ test('req_2_5 pesan pengaduan tidak lengkap sama persis dengan kamus PRD Lampira
 });
 
 test('req_2_5 akhiri panggilan dengan data sebagian menyimpan pengaduan_tidak_lengkap tanpa tiket', async () => {
-  const { gerbang, sms, pengaduan, riwayat } = rakitan();
+  const { gerbang, pengaduan, riwayat } = rakitan();
   await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: 'Nama produknya Krim Glowing Ajaib. Atas nama Siti Aminah.', ip: '1.1.1.1' });
   const hasil = await pengaduan.panggilanBerakhir(ID);
   assert.equal(hasil.pesan, PESAN_PENGADUAN_TIDAK_LENGKAP);
@@ -485,7 +469,6 @@ test('req_2_5 akhiri panggilan dengan data sebagian menyimpan pengaduan_tidak_le
   assert.equal(simpan.namaProduk, 'Krim Glowing Ajaib');
   assert.equal(simpan.namaPelapor, 'Siti Aminah');
   assert.equal(gerbang.tiketPerPercakapan.size, 0);
-  assert.equal(sms.terkirim.length, 0);
   assert.ok(!pengaduan.aktif(ID));
 });
 

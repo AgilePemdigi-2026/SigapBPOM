@@ -1,7 +1,6 @@
 // Adapter UC-02 Voice Gateway (PROJECT_RULES 4.3): layanan eksternal di balik interface, masing-masing dengan implementasi tiruan.
 //
 // Gerbang pengaduan: `terbitkanTiket(data) -> nomorTiket`, `simpanTidakLengkap(data) -> void`.
-// Pengirim SMS: `kirim(nomorTelepon, teks) -> void`.
 // Gateway tidak pernah memegang service_role: gerbang Supabase memanggil Edge Function dengan kunci internal bersama.
 
 import { PercakapanDitolak } from './pengaduan.mjs';
@@ -63,17 +62,5 @@ export class GerbangPengaduanTiruan {
 
   async simpanTidakLengkap(data) {
     this.tidakLengkap.set(data.percakapanId, { ...data, status: 'pengaduan_tidak_lengkap' });
-  }
-}
-
-/** Pengirim SMS tiruan: hanya mencatat di memori, tidak mengirim apa pun dan tidak menulis nomor ke log. */
-export class PengirimSmsTiruan {
-  constructor() {
-    this.terkirim = [];
-  }
-
-  async kirim(nomorTelepon, teks) {
-    this.terkirim.push({ nomorTelepon, teks });
-    if (this.terkirim.length > 100) this.terkirim.shift();
   }
 }

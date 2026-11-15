@@ -7,8 +7,11 @@ import {
   GALAT_NOMOR_TIDAK_TERSEDIA,
   PenangananController,
   type PenyimpananNotifikasi,
+  teksSms,
   teksSmsTindakLanjut,
 } from './PenangananController.ts';
+import { pesanTiketPengaduan } from '../../../../voice-gateway/pengaduan.mjs';
+import { pesanTiketEskalasi } from '../../../../voice-gateway/eskalasi.mjs';
 
 const TIKET_A = 'ADU-20261105-0001';
 const TIKET_B = 'ADU-20261105-0002';
@@ -38,7 +41,7 @@ function antreanTiruan(nomorPerTiket: Record<string, string | null>) {
       return dipilih.map((b): NotifikasiDiklaim => {
         b.status = 'mengirim';
         b.percobaan++;
-        return { id: b.id, noTiket: b.noTiket, nomorTelepon: nomorPerTiket[b.noTiket] ?? null };
+        return { id: b.id, jenis: 'tindak_lanjut', noTiket: b.noTiket, nomorTelepon: nomorPerTiket[b.noTiket] ?? null };
       });
     },
     async catatHasilNotifikasi(hasil: HasilNotifikasi) {
@@ -74,7 +77,7 @@ test('req_6_6 menutup tiket menghasilkan tepat satu notifikasi terkirim lewat SM
   const { controller, sms, baris, tutupTiket } = rakit();
 
   tutupTiket(TIKET_A);
-  const ringkasan = await controller.kirimNotifikasiTindakLanjut();
+  const ringkasan = await controller.kirimNotifikasi();
 
   assert.deepEqual(ringkasan, { diproses: 1, terkirim: 1, gagal: 0 });
   assert.equal(sms.terkirim.length, 1);
@@ -90,7 +93,7 @@ test('req_6_6 menutup tiket dua kali tetap mengirim satu SMS', async (t) => {
 
   tutupTiket(TIKET_A);
   tutupTiket(TIKET_A);
-  await controller.kirimNotifikasiTindakLanjut();
+  await controller.kirimNotifikasi();
 
   assert.equal(baris.length, 1);
   assert.equal(sms.terkirim.length, 1);
@@ -102,13 +105,13 @@ test('req_6_6 gagal kirim tercatat beserta galatnya dan berhasil saat diulang', 
   tutupTiket(TIKET_A);
   sms.gagalkan(1, 'Gateway tidak menjawab.');
 
-  const pertama = await controller.kirimNotifikasiTindakLanjut();
+  const pertama = await controller.kirimNotifikasi();
   assert.deepEqual(pertama, { diproses: 1, terkirim: 0, gagal: 1 });
   assert.equal(baris[0].status, 'gagal');
   assert.equal(baris[0].galat, 'Gateway tidak menjawab.');
   assert.equal(sms.terkirim.length, 0);
 
-  const kedua = await controller.kirimNotifikasiTindakLanjut();
+  const kedua = await controller.kirimNotifikasi();
   assert.deepEqual(kedua, { diproses: 1, terkirim: 1, gagal: 0 });
   assert.equal(baris[0].status, 'terkirim');
   assert.equal(baris[0].galat, null);
@@ -123,10 +126,10 @@ test('req_6_6 putaran ulang hanya mengirim yang gagal, bukan yang sudah terkirim
   tutupTiket(TIKET_B);
   sms.gagalkan(1);
 
-  await controller.kirimNotifikasiTindakLanjut();
+  await controller.kirimNotifikasi();
   assert.deepEqual(baris.map((b) => b.status), ['gagal', 'terkirim']);
 
-  const ulang = await controller.kirimNotifikasiTindakLanjut();
+  const ulang = await controller.kirimNotifikasi();
   assert.deepEqual(ulang, { diproses: 1, terkirim: 1, gagal: 0 });
   assert.deepEqual(sms.terkirim.map((s) => s.nomorTelepon), [NOMOR_B, NOMOR_A]);
 });
@@ -136,10 +139,10 @@ test('req_6_6 menjalankan ulang sesudah terkirim tidak mengirim SMS ganda', asyn
   const { controller, sms, tutupTiket } = rakit();
   tutupTiket(TIKET_A);
 
-  await controller.kirimNotifikasiTindakLanjut();
-  const ulang = await controller.kirimNotifikasiTindakLanjut();
+  await controller.kirimNotifikasi();
+  const ulang = await controller.kirimNotifikasi();
   tutupTiket(TIKET_A);
-  const ulangSesudahTutupLagi = await controller.kirimNotifikasiTindakLanjut();
+  const ulangSesudahTutupLagi = await controller.kirimNotifikasi();
 
   assert.deepEqual(ulang, { diproses: 0, terkirim: 0, gagal: 0 });
   assert.deepEqual(ulangSesudahTutupLagi, { diproses: 0, terkirim: 0, gagal: 0 });
@@ -152,7 +155,7 @@ test('req_6_6 dua putaran bersamaan tidak mengirim SMS ganda', async (t) => {
   tutupTiket(TIKET_A);
   tutupTiket(TIKET_B);
 
-  const [a, b] = await Promise.all([controller.kirimNotifikasiTindakLanjut(), controller.kirimNotifikasiTindakLanjut()]);
+  const [a, b] = await Promise.all([controller.kirimNotifikasi(), controller.kirimNotifikasi()]);
 
   assert.equal(a.terkirim + b.terkirim, 2);
   assert.equal(sms.terkirim.length, 2);
@@ -163,7 +166,7 @@ test('req_6_6 notifikasi tanpa nomor tujuan tercatat gagal tanpa memanggil gatew
   const { controller, sms, baris, tutupTiket } = rakit({ [TIKET_A]: null });
   tutupTiket(TIKET_A);
 
-  const ringkasan = await controller.kirimNotifikasiTindakLanjut();
+  const ringkasan = await controller.kirimNotifikasi();
 
   assert.deepEqual(ringkasan, { diproses: 1, terkirim: 0, gagal: 1 });
   assert.equal(baris[0].galat, GALAT_NOMOR_TIDAK_TERSEDIA);
@@ -176,7 +179,7 @@ test('req_6_6 notifikasi yang terus gagal berhenti diklaim setelah batas percoba
   tutupTiket(TIKET_A);
   sms.gagalkan(BATAS_PERCOBAAN_KIRIM + 1);
 
-  for (let i = 0; i < BATAS_PERCOBAAN_KIRIM + 1; i++) await controller.kirimNotifikasiTindakLanjut();
+  for (let i = 0; i < BATAS_PERCOBAAN_KIRIM + 1; i++) await controller.kirimNotifikasi();
 
   assert.equal(baris[0].percobaan, BATAS_PERCOBAAN_KIRIM);
   assert.equal(baris[0].status, 'gagal');
@@ -191,7 +194,7 @@ test('nfr_13 log, ringkasan, dan galat tersimpan tidak memuat nomor telepon utuh
   // Galat gateway yang menyebut nomor tujuan tetap disamarkan sebelum disimpan.
   sms.gagalkan(1, `Nomor ${NOMOR_A} ditolak operator.`);
 
-  const ringkasan = await controller.kirimNotifikasiTindakLanjut();
+  const ringkasan = await controller.kirimNotifikasi();
 
   const keluaran = [
     JSON.stringify(ringkasan),
@@ -211,7 +214,25 @@ test('req_6_6 teks SMS tindak lanjut memuat nomor tiket dan bukan data pribadi',
 });
 
 test('req_6_6 adapter SMS bawaan adalah tiruan dan mode resmi ditolak sampai gateway dipilih', () => {
-  assert.ok(buatPengirimSms(undefined) instanceof PengirimSmsTiruan);
+  assert.throws(() => buatPengirimSms(undefined), /belum diatur/);
+  assert.throws(() => buatPengirimSms(' '), /belum diatur/);
   assert.ok(buatPengirimSms('tiruan') instanceof PengirimSmsTiruan);
   assert.throws(() => buatPengirimSms('resmi'), /belum tersedia/);
+});
+
+test('req_2_4 req_1_7 SMS nomor tiket sama persis dengan pesan yang diucapkan gateway', () => {
+  assert.equal(teksSms('nomor_tiket', TIKET_A), pesanTiketPengaduan(TIKET_A));
+  assert.equal(teksSms('nomor_tiket', 'ESK-20261115-0001'), pesanTiketEskalasi('ESK-20261115-0001'));
+  assert.equal(teksSms('tindak_lanjut', TIKET_A), teksSmsTindakLanjut(TIKET_A));
+});
+
+test('req_2_4 notifikasi nomor tiket dikirim dengan teks nomor tiket', async (t) => {
+  t.mock.method(console, 'info', () => {});
+  const sms = new PengirimSmsTiruan();
+  const antrean: PenyimpananNotifikasi = {
+    klaimNotifikasiTertunda: async () => [{ id: 'n-1', jenis: 'nomor_tiket', noTiket: 'ESK-20261115-0001', nomorTelepon: NOMOR_A }],
+    catatHasilNotifikasi: async () => {},
+  };
+  await new PenangananController(antrean, sms).kirimNotifikasi();
+  assert.deepEqual(sms.terkirim, [{ nomorTelepon: NOMOR_A, teks: pesanTiketEskalasi('ESK-20261115-0001') }]);
 });

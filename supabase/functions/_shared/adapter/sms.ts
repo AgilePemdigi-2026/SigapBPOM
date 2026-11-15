@@ -33,9 +33,11 @@ export class PengirimSmsTiruan implements PengirimSms {
  * Memilih adapter dari env `SMS_ADAPTER`. Titik pasang adapter resmi: setelah tim memutuskan penyedia SMS Gateway,
  * buat kelas `PengirimSmsResmi implements PengirimSms` di berkas ini (REST/HTTPS, TLS 1.2+, kredensial dari env)
  * dan kembalikan untuk mode `resmi`. Sampai saat itu mode `resmi` ditolak agar tiruan tidak dikira gateway sungguhan.
+ * Env kosong juga ditolak: tiruan menandai SMS "terkirim", jadi di cloud ia harus dipilih secara sadar, bukan bawaan.
  */
 export function buatPengirimSms(mode: string | undefined): PengirimSms {
-  const pilihan = mode?.trim() || 'tiruan';
+  const pilihan = mode?.trim();
+  if (!pilihan) throw new Error('SMS_ADAPTER belum diatur.');
   if (pilihan === 'tiruan') return new PengirimSmsTiruan();
   throw new Error(`Adapter SMS "${pilihan}" belum tersedia.`);
 }
