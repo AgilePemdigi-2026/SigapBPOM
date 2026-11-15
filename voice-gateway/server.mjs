@@ -18,7 +18,7 @@ import {
   BatasTiketTercapai, PercakapanDitolak, PESAN_MINTA_KRONOLOGI, PESAN_MINTA_NAMA_PELAPOR, PESAN_MINTA_NAMA_PRODUK, PengaduanController, SUARA_PENGADUAN,
   prosesGiliranPengaduan,
 } from './pengaduan.mjs';
-import { GerbangPengaduanSupabase, GerbangPengaduanTiruan, PengirimSmsTiruan } from './layananPengaduan.mjs';
+import { GerbangPengaduanSupabase, GerbangPengaduanTiruan } from './layananPengaduan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, mintaUlangTelepon,
   nomorTeleponDariUcapan, pesanTiketEskalasi,
@@ -111,10 +111,10 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
 
 const riwayat = new RiwayatPanggilan();
-// Tiket pengaduan lewat Edge Function bila Supabase dikonfigurasi, selain itu tiruan di memori. SMS selalu lewat adapter tiruan (REQ-2.4).
+// Tiket pengaduan lewat Edge Function bila Supabase dikonfigurasi, selain itu tiruan di memori. SMS nomor tiket (REQ-2.4)
+// diantrekan basis data saat tiket terbit dan dikirim Edge Function kirim-notifikasi.
 const pengaduan = new PengaduanController({
   gerbang: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new GerbangPengaduanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new GerbangPengaduanTiruan(),
-  pengirimSms: new PengirimSmsTiruan(),
   pembatas: pembatasTiket,
 });
 // NFR-20: transkrip dan log tool gateway tersimpan di register layanan lewat Edge Function, selain itu tiruan di memori.

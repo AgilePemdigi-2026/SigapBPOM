@@ -141,13 +141,13 @@ select is(
 -- notifikasi tertutup bagi petugas (hanya service_role): antreannya diperiksa sebagai pemilik tabel.
 reset role;
 select is(
-  (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060'),
+  (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060' and jenis = 'tindak_lanjut'),
   1,
   'Notifikasi SMS berhasil diantrekan saat tiket ditutup'
 );
 
 select is(
-  (select status_kirim from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060'),
+  (select status_kirim from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060' and jenis = 'tindak_lanjut'),
   'tertunda'::public.status_kirim_notifikasi,
   'Status kirim notifikasi awal adalah tertunda'
 );
@@ -163,7 +163,7 @@ select is(
 
 reset role;
 select is(
-  (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060'),
+  (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060' and jenis = 'tindak_lanjut'),
   1,
   'Jumlah notifikasi tidak bertambah saat tiket ditutup ulang (idempoten)'
 );

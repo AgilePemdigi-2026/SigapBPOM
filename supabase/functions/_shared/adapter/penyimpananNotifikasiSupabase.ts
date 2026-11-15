@@ -2,7 +2,7 @@
 // Nomor tujuan dibaca RPC klaim_notifikasi_tertunda dan tidak pernah keluar dari Edge Function.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 import type { PenyimpananNotifikasi } from '../control/PenangananController.ts';
-import type { HasilNotifikasi, NotifikasiDiklaim } from '../entity/notifikasi.ts';
+import type { HasilNotifikasi, JenisNotifikasi, NotifikasiDiklaim } from '../entity/notifikasi.ts';
 
 export class PenyimpananNotifikasiSupabase implements PenyimpananNotifikasi {
   db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -15,8 +15,9 @@ export class PenyimpananNotifikasiSupabase implements PenyimpananNotifikasi {
       p_batas_percobaan: batasPercobaan,
     });
     if (error) throw error;
-    return (data ?? []).map((b: { id: string; no_tiket: string; nomor_telepon: string | null }) => ({
+    return (data ?? []).map((b: { id: string; jenis: JenisNotifikasi; no_tiket: string; nomor_telepon: string | null }) => ({
       id: b.id,
+      jenis: b.jenis,
       noTiket: b.no_tiket,
       nomorTelepon: b.nomor_telepon,
     }));

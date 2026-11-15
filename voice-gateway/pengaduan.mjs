@@ -365,7 +365,7 @@ export class EkstraktorAturan {
   }
 }
 
-/** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). Juga isi SMS tindak lanjut (REQ-2.4). */
+/** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). Juga isi SMS nomor tiket (REQ-2.4) di Edge Function kirim-notifikasi. */
 export const pesanTiketPengaduan = (nomorTiket) => `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Tindak lanjut akan dikirim melalui SMS.`;
 
 /** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
@@ -392,15 +392,16 @@ export class BatasTiketTercapai extends Error {
 }
 
 /**
- * Control UC-02 di Voice Gateway. Gerbang (Edge Function) dan pengirim SMS dipasang lewat interface:
- * `gerbang.terbitkanTiket(data) -> nomorTiket`, `gerbang.simpanTidakLengkap(data) -> void`, `pengirimSms.kirim(nomor, teks)`.
+ * Control UC-02 di Voice Gateway. Gerbang (Edge Function) dipasang lewat interface:
+ * `gerbang.terbitkanTiket(data) -> nomorTiket`, `gerbang.simpanTidakLengkap(data) -> void`.
+ * SMS nomor tiket (REQ-2.4) tidak dikirim dari sini: basis data mengantrekannya saat tiket terbit dan Edge Function
+ * kirim-notifikasi mengirimnya, sehingga semua SMS lewat satu adapter dan dicoba ulang bila gagal.
  * Seluruh alur tanpa AI: data pelapor tidak pernah masuk riwayat atau prompt model.
  */
 export class PengaduanController {
-  constructor({ ekstraktor = new EkstraktorAturan(), gerbang = null, pengirimSms = null, pembatas = null } = {}) {
+  constructor({ ekstraktor = new EkstraktorAturan(), gerbang = null, pembatas = null } = {}) {
     this.ekstraktor = ekstraktor;
     this.gerbang = gerbang;
-    this.pengirimSms = pengirimSms;
     this.pembatas = pembatas;
     // Status pengumpulan data per panggilan. Hanya ada selama pengaduan berjalan.
     this.sesi = new Map();
@@ -496,8 +497,6 @@ export class PengaduanController {
     // Penelepon masih di layanan 2: pengaduan berikutnya tetap dijawab control ini, bukan AI yang akan menanyakan data
     // pelapor lalu menjanjikan penerusan pengaduan yang tidak pernah tercatat. `batal()` mengembalikannya ke alur UC-01.
     s.ulang = true;
-    // REQ-2.4: SMS lewat adapter. Kegagalan SMS tidak membatalkan tiket yang sudah terbit.
-    try { await this.pengirimSms?.kirim(nomorTelepon, pesanTiketPengaduan(nomorTiket)); } catch { /* tiket tetap sah */ }
     // Data pelapor tidak perlu disimpan lagi di memori gateway setelah tiket terbit.
     s.data = {};
     return nomorTiket;

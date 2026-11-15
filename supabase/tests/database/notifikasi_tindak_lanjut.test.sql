@@ -23,6 +23,9 @@ values
   ('99999999-0000-0000-0000-000000000731', 'ADU-20261105-0731', 'pengaduan', '88888888-0000-0000-0000-000000000731', 'tanggapan_disusun'),
   ('99999999-0000-0000-0000-000000000732', 'ADU-20261105-0732', 'pengaduan', '88888888-0000-0000-0000-000000000732', 'tanggapan_disusun');
 
+-- Tiket baru juga mengantrekan SMS nomor tiket (migrasi 20261115100000); tes ini hanya tentang tindak lanjut.
+delete from public.notifikasi where jenis = 'nomor_tiket';
+
 -- Nomor di register pengaduan didahulukan dari nomor penelepon.
 insert into public.pengaduan (percakapan_id, tiket_id, nama_produk, kronologi, nama_pelapor, nomor_telepon)
 values ('88888888-0000-0000-0000-000000000731', '99999999-0000-0000-0000-000000000731', 'Sirup', 'Ruam', 'Budi', '081298765432');
