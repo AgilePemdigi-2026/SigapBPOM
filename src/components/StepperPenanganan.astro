@@ -194,6 +194,7 @@ const ikonTahap: Record<TahapStepper, string> = {
     type TindakLanjut,
     type TahapStepper,
   } from '../lib/stepperPenanganan';
+  import { tandaiSibuk } from '../lib/statusSistem';
 
   const root = document.querySelector<HTMLElement>('[data-name="StepperPenanganan"]');
   if (root) {
@@ -317,6 +318,7 @@ const ikonTahap: Record<TahapStepper, string> = {
         jadwalDibutuhkan = true;
       }
 
+      const selesai = tandaiSibuk(btnSimpanTelaah);
       try {
         const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/telaah`, {
           method: 'POST',
@@ -324,6 +326,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           body: JSON.stringify({ tindakLanjut, catatan }),
         });
         const d = await res.json().catch(() => null);
+        selesai();
 
         if (!res.ok || d?.status === 'error') {
           tampilkanPesan(d?.message || 'Permintaan tidak valid.', 'error');
@@ -349,6 +352,7 @@ const ikonTahap: Record<TahapStepper, string> = {
         perbaruiStatusPengaduan(statusBaru, labelBaru);
         tampilkanPesan(d?.message || 'Hasil telaah tersimpan.', 'success');
       } catch {
+        selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
       }
     });
@@ -359,6 +363,7 @@ const ikonTahap: Record<TahapStepper, string> = {
       const unit = selectUnit.value.trim();
       const tiketId = getTiket();
 
+      const selesai = tandaiSibuk(btnSimpanJadwal);
       try {
         const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/jadwal`, {
           method: 'POST',
@@ -366,6 +371,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           body: JSON.stringify({ tanggal, unit }),
         });
         const d = await res.json().catch(() => null);
+        selesai();
 
         if (!res.ok || d?.status === 'error') {
           tampilkanPesan(d?.message || 'Permintaan tidak valid.', 'error');
@@ -376,6 +382,7 @@ const ikonTahap: Record<TahapStepper, string> = {
         perbaruiStatusPengaduan(d?.data?.status || 'menunggu_pemeriksaan', d?.data?.labelStatus || 'Menunggu Pemeriksaan');
         tampilkanPesan(d?.message || 'Jadwal pemeriksaan tersimpan.', 'success');
       } catch {
+        selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
       }
     });
@@ -385,6 +392,7 @@ const ikonTahap: Record<TahapStepper, string> = {
       const isi = textTanggapan.value.trim();
       const tiketId = getTiket();
 
+      const selesai = tandaiSibuk(btnSimpanTanggapan);
       try {
         const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/tanggapan`, {
           method: 'POST',
@@ -392,6 +400,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           body: JSON.stringify({ isi }),
         });
         const d = await res.json().catch(() => null);
+        selesai();
 
         if (!res.ok || d?.status === 'error') {
           tampilkanPesan(d?.message || 'Permintaan tidak valid.', 'error');
@@ -401,6 +410,7 @@ const ikonTahap: Record<TahapStepper, string> = {
         perbaruiStatusPengaduan(d?.data?.status || 'tanggapan_disusun', d?.data?.labelStatus || 'Tanggapan Disusun');
         tampilkanPesan(d?.message || 'Tanggapan tersimpan.', 'success');
       } catch {
+        selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
       }
     });
@@ -408,6 +418,7 @@ const ikonTahap: Record<TahapStepper, string> = {
     // 4. Tutup Tiket
     btnTutupTiket?.addEventListener('click', async () => {
       const tiketId = getTiket();
+      const selesai = tandaiSibuk(btnTutupTiket);
       try {
         const res = await fetch(`/api/pengaduan/${encodeURIComponent(tiketId)}/tutup`, {
           method: 'POST',
@@ -415,6 +426,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           body: JSON.stringify({}),
         });
         const d = await res.json().catch(() => null);
+        selesai();
 
         if (!res.ok || d?.status === 'error') {
           // Status tiket TIDAK boleh berubah bila server menolak!
@@ -426,6 +438,7 @@ const ikonTahap: Record<TahapStepper, string> = {
         perbaruiStatusPengaduan(d?.data?.status || 'selesai', d?.data?.labelStatus || 'Selesai');
         tampilkanPesan(d?.message || 'Tiket ditutup.', 'success');
       } catch {
+        selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
       }
     });
