@@ -1,6 +1,8 @@
 // Control UC-02 Menyampaikan Pengaduan Produk di Voice Gateway (REQ-2.1, REQ-2.2, REQ-2.3, REQ-2.4, REQ-2.5, BR-1).
 // Nama kelas mengikuti class diagram SRS. Tanpa I/O langsung: layanan eksternal lewat interface agar bisa diuji dengan `node --test`.
 import { PESAN_MINTA_ULANG_TELEPON, PESAN_NOMOR_SALAH, masalahNomorTelepon, nomorTeleponDariUcapan } from './eskalasi.mjs';
+// Impor melingkar dengan percakapan.mjs aman: PESAN_TAWARAN_PENUTUP hanya dibaca saat giliran berjalan, bukan saat modul dimuat.
+import { PESAN_TAWARAN_PENUTUP } from './percakapan.mjs';
 
 /** Nilai enum `jenis_interaksi` di basis data (supabase/migrations/20261020131737_inti_percakapan.sql). */
 export const JENIS_INTERAKSI = Object.freeze({ INFORMASI_PRODUK: 'informasi_produk', PENGADUAN: 'pengaduan' });
@@ -538,8 +540,10 @@ export async function prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan, i
   const hasil = await pengaduan.tangani(id, ucapan, { ip });
   riwayat.tambah(id, 'user', '(menyampaikan data pengaduan)');
   if (hasil.lengkap && hasil.tiket) {
-    riwayat.tambah(id, 'assistant', hasil.jawaban);
-    return { jawaban: hasil.jawaban, tiket: hasil.tiket, suara: null, tahap: 'tiket' };
+    // Setelah nomor tiket dibacakan, agen menawarkan bantuan lagi. Tawaran ikut tercatat di riwayat agar jawaban
+    // "tidak, terima kasih" menutup panggilan lewat inginMenutup. Pesan tiket sendiri tetap sama dengan kamus (juga isi SMS).
+    riwayat.tambah(id, 'assistant', `${hasil.jawaban} ${PESAN_TAWARAN_PENUTUP}`);
+    return { jawaban: hasil.jawaban, tiket: hasil.tiket, suara: null, tahap: 'tiket', tawaran: PESAN_TAWARAN_PENUTUP };
   }
   riwayat.tambah(id, 'assistant', hasil.jawaban ?? '');
   // Belum ada suara statis untuk pesan ini di boundary, jadi panel hanya menampilkan teksnya.

@@ -7,7 +7,7 @@ import {
 } from './pengaduan.mjs';
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan } from './layananPengaduan.mjs';
 import { PESAN_NOMOR_SALAH, PembatasTiket, digitDariUcapan, masalahNomorTelepon } from './eskalasi.mjs';
-import { PESAN_BATAS_AI, PESAN_LAYANAN_1, PESAN_LAYANAN_2, RiwayatPanggilan, SesiPenuh, pilihMenu } from './percakapan.mjs';
+import { PESAN_BATAS_AI, PESAN_LAYANAN_1, PESAN_LAYANAN_2, PESAN_TAWARAN_PENUTUP, RiwayatPanggilan, SesiPenuh, inginMenutup, pilihMenu } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const ekstrak = (u, ditanya = null, data = {}, kurang = null) => new EkstraktorAturan().ekstrak(u, { ditanya, kurang, data });
@@ -336,6 +336,17 @@ test('req_2_3 skenario Basic Path SRS: satu kalimat lengkap langsung menerbitkan
     percakapanId: ID, namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
     namaPelapor: 'Budi Santoso', nomorTelepon: '081234567890',
   }]);
+});
+
+test('req_2_3 setelah tiket terbit agen menawarkan bantuan lagi, lalu "tidak, terima kasih" menutup panggilan', async () => {
+  const { pengaduan, riwayat } = rakitan();
+  const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
+  // Pesan tiket tetap sama dengan kamus (juga isi SMS); tawaran diucapkan terpisah sesudahnya.
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.equal(h.tawaran, PESAN_TAWARAN_PENUTUP);
+  assert.equal(riwayat.jawabanTerakhir(ID), `${h.jawaban} ${PESAN_TAWARAN_PENUTUP}`);
+  assert.equal(inginMenutup('tidak, terima kasih', riwayat.jawabanTerakhir(ID)), true);
+  assert.equal(inginMenutup('ya, saya mau tanya obat batuk', riwayat.jawabanTerakhir(ID)), false);
 });
 
 test('req_2_2 skenario Alternative Path 1 SRS: hanya nomor telepon yang ditanyakan kembali', async () => {
