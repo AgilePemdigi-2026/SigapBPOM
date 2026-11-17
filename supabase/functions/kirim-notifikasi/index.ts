@@ -8,6 +8,6 @@ import { buatPengirimSms } from '../_shared/adapter/sms.ts';
 import { layani } from '../_shared/boundary/http.ts';
 import { PenangananController } from '../_shared/control/PenangananController.ts';
 
-const controller = new PenangananController(new PenyimpananNotifikasiSupabase(), buatPengirimSms(Deno.env.get('SMS_ADAPTER')));
+const controller = new PenangananController(new PenyimpananNotifikasiSupabase(), buatPengirimSms(Deno.env.get('SMS_ADAPTER'), (nama) => Deno.env.get(nama)));
 
 layani(() => controller.kirimNotifikasi());

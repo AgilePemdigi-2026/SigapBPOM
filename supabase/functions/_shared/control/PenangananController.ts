@@ -10,6 +10,12 @@ export interface PengirimSms {
   kirim(nomorTelepon: string, teks: string): Promise<void>;
 }
 
+/**
+ * Gateway mungkin sudah mengirim SMS tetapi hasilnya tidak diketahui (batas waktu habis, balasan tidak terbaca).
+ * Notifikasi dicatat terkirim dan tidak diulang, karena mengulang bisa membuat penelepon menerima SMS ganda.
+ */
+export class GalatSmsTidakPasti extends Error {}
+
 export interface PenyimpananNotifikasi {
   /** Mengklaim baris tertunda atau gagal (tidak pernah yang terkirim) dan menandainya sedang dikirim. */
   klaimNotifikasiTertunda(batas: number, batasPercobaan: number): Promise<NotifikasiDiklaim[]>;
@@ -86,6 +92,11 @@ export class PenangananController {
       await this.pengirimSms.kirim(n.nomorTelepon, isi);
       return { id: n.id, status: 'terkirim', isi };
     } catch (e) {
+      if (e instanceof GalatSmsTidakPasti) {
+        // Log hanya nomor tiket dan alasan buatan adapter, tanpa nomor tujuan (PROJECT_RULES 5.10).
+        console.warn('notifikasi_tidak_pasti', n.jenis, n.noTiket, e.message);
+        return { id: n.id, status: 'terkirim', isi };
+      }
       // Pesan galat gateway bisa memuat nomor tujuan; disamarkan sebelum disimpan.
       const pesan = e instanceof Error && e.message ? e.message : 'Gagal mengirim.';
       return { id: n.id, status: 'gagal', galat: samarkanNomorTelepon(pesan).slice(0, PANJANG_MAKS_GALAT) };
