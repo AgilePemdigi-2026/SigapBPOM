@@ -3,8 +3,11 @@
 // dan log tool terbaru. Argumen tool tidak dibaca maupun ditampilkan karena bisa memuat data pribadi.
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { pemantauanLayanan } from '../lib/pemantauan';
+import KantorAgent from '../components/KantorAgent.astro';
 
-const pantau = await pemantauanLayanan(Astro.locals.tokenAkses).pantauAgent();
+const layanan = pemantauanLayanan(Astro.locals.tokenAkses);
+// Panggilan berjalan hanya untuk tampilan Kantor; bila gagal dibaca, kesehatan komponen tetap tampil.
+const [pantau, panggilan] = await Promise.all([layanan.pantauAgent(), layanan.panggilanBerjalan().catch(() => null)]);
 const { komponen, log } = pantau;
 const gangguan = komponen.filter((k) => k.status === 'Gangguan').length;
 const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString('id-ID')} ms`);
@@ -19,8 +22,18 @@ const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString
       <span class:list={['pill', 'pill-flat', 'ringkas', { buruk: gangguan }]}>
         <span class="dot"></span>{gangguan ? `${gangguan} komponen gangguan` : 'Semua komponen normal'}
       </span>
+      <div class="tampilan" role="group" aria-label="Pilih tampilan">
+        <button type="button" class="tab" data-pilih="kantor" aria-pressed="true"><i class="icon-building-2"></i>Kantor</button>
+        <button type="button" class="tab" data-pilih="tabel" aria-pressed="false"><i class="icon-table-2"></i>Tabel</button>
+      </div>
       <button class="pill" onclick="location.reload()"><i class="icon-refresh-cw"></i>Muat ulang</button>
     </section>
+
+    <div class="isi" data-tampilan="kantor">
+      <KantorAgent agent={pantau} panggilan={panggilan} />
+    </div>
+
+    <div class="isi tabel" data-tampilan="tabel" hidden>
 
     <div class="komponen" data-name="KesehatanKomponen">
       {komponen.map((k) => (
@@ -51,11 +64,30 @@ const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString
         ))}
       </ol>
     </section>
+    </div>
   </div>
 </DashboardLayout>
 
+<script>
+  // Pilihan tampilan Kantor/Tabel diingat per browser.
+  const KUNCI = 'sigap-pantau-tampilan';
+  const tombol = [...document.querySelectorAll<HTMLButtonElement>('[data-pilih]')];
+  const pilih = (nama: string) => {
+    tombol.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pilih === nama)));
+    document.querySelectorAll<HTMLElement>('[data-tampilan]').forEach((el) => { el.hidden = el.dataset.tampilan !== nama; });
+    try { localStorage.setItem(KUNCI, nama); } catch {}
+  };
+  tombol.forEach((b) => b.addEventListener('click', () => pilih(b.dataset.pilih!)));
+  let simpan: string | null = null;
+  try { simpan = localStorage.getItem(KUNCI); } catch {}
+  if (simpan === 'tabel') pilih('tabel');
+</script>
+
 <style>
   .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .isi { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .isi[hidden] { display: none; }
+  .tampilan { display: flex; gap: 6px; margin-right: 6px; }
   .head { padding: 22px 28px; display: flex; align-items: center; gap: 12px; }
   .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.02em; }
