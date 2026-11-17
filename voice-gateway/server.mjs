@@ -537,7 +537,8 @@ async function giliran(req, res, url) {
           pencari: pencariPengetahuan, korpus, pertanyaan: transkrip, catat: (e) => console.error(JSON.stringify(e)),
           saatLokal: (ms, berhasil) => pencatat.tool(id, TOOL_PENGETAHUAN, ms, berhasil),
         });
-        kutipan = basis.kutipan.slice(0, KUTIPAN_MAKS);
+        // Tetangga graf (perluasan, selalu di akhir) ikut di luar batas kutipan utama.
+        kutipan = basis.kutipan.filter((k, i) => i < KUTIPAN_MAKS || k.perluasan);
         konteks = pesanBasisPengetahuan(kutipan);
       }
       if (batal.signal.aborted) return;

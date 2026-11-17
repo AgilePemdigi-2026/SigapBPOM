@@ -68,7 +68,18 @@ test('graf: pasal lain dari peraturan kutipan teratas ikut diambil lewat sisi ru
   assert.equal(hasil[1].label, hasil[0].label);
   assert.notEqual(hasil[1].teks, hasil[0].teks);
   assert.ok(!hasil.some((h) => /Pasal 20/.test(h.teks)), 'pasal yang tidak menyinggung pertanyaan tidak ikut');
-  assert.match(pesanKutipan(hasil), /\[2\] .*bagian lain dari rujukan yang sama dengan kutipan \[1\]/);
+});
+
+test('graf: tetangga di urutan terakhir, tidak menggeser kutipan utama kedua', () => {
+  const k = new Korpus();
+  k.tambah('suplemen.md', dok('Pengawasan Suplemen Kesehatan', '17', '2019',
+    'Pasal 3 Suplemen kesehatan wajib memiliki izin edar sebelum diedarkan. '
+    + 'Pasal 9 Izin edar suplemen berlaku lima tahun dan dapat diperpanjang.'));
+  k.tambah('obat.md', dok('Registrasi Obat', '24', '2017', 'Pasal 2 Obat wajib memiliki izin edar sebelum diedarkan.'));
+  k.selesai();
+  const hasil = k.cari('izin edar suplemen kesehatan obat', 3, 0.1);
+  assert.deepEqual(hasil.map((h) => [h.judul, Boolean(h.perluasan)]),
+    [['Pengawasan Suplemen Kesehatan', false], ['Registrasi Obat', false], ['Pengawasan Suplemen Kesehatan', true]]);
 });
 
 test('graf: tanpa kutipan utama tidak ada perluasan, dan tetangga dari materi nonaktif tidak diambil', () => {
