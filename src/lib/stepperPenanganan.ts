@@ -31,6 +31,14 @@ export const DAFTAR_TAHAP: readonly TahapStepper[] = [
   'Selesai',
 ] as const;
 
+/** Label tahap yang tampil di halaman. Tahap terakhir disebut "Tutup Tiket" seperti PRD-rinci 3.6 dan skenario UC-06. */
+export const LABEL_TAHAP: Record<TahapStepper, string> = {
+  Telaah: 'Telaah',
+  'Jadwal Pemeriksaan': 'Jadwal Pemeriksaan',
+  'Susun Tanggapan': 'Susun Tanggapan',
+  Selesai: 'Tutup Tiket',
+};
+
 export type StatusTahap = 'aktif' | 'selesai' | 'dilewati' | 'menunggu';
 
 export type ResponApiPenanganan = {
