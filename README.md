@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="docs/assets/sigap-logo.png" alt="SIGAP — Sistem Informasi dan Gerbang Aduan Publik Berbasis AI Voice Agent untuk Layanan HaloBPOM" width="560">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/sigap-logo-v2-dark.png">
+  <img src="docs/assets/sigap-logo-v2.png" alt="SIGAP — Sistem Informasi dan Gerbang Aduan Publik" width="360">
+</picture>
 
 <p><strong>AI Voice Agent untuk layanan HaloBPOM</strong><br>
 Jawaban instan bersumber resmi untuk masyarakat, antrean yang hanya berisi kasus yang benar-benar butuh petugas.</p>
@@ -35,6 +38,11 @@ SIGAP adalah AI Voice Agent untuk kanal layanan HaloBPOM milik Badan Pengawas Ob
 - **meneruskan ke petugas** pertanyaan yang butuh penilaian manusia, misalnya nasihat medis, dengan tiket eskalasi.
 
 Petugas HaloBPOM memakai dashboard web untuk memantau layanan secara live, membaca transkrip, menangani pengaduan sampai tiket ditutup, mengelola basis pengetahuan, dan mengunduh laporan.
+
+<div align="center">
+  <img src="docs/assets/sigi.png" alt="Sigi, burung raja-udang biru kehijauan yang sedang menyimak lewat headset" width="176">
+  <p><strong>Sigi</strong> · Maskot asisten suara SIGAP</p>
+</div>
 
 ## Daftar Isi
 
