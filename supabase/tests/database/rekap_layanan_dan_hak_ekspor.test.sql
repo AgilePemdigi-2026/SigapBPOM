@@ -99,10 +99,10 @@ values
   ('88888888-0000-0000-0000-000000000102', '77777777-0000-0000-0000-000000000009', 'pengaduan', 'tiket_terbit', '2026-09-05 14:00:00+07')
 on conflict (id) do nothing;
 
-insert into public.tiket (id, no_tiket, jenis, percakapan_id, status, tgl_terbit, ringkasan)
+insert into public.tiket (id, no_tiket, jenis, percakapan_id, status, tgl_terbit, tgl_selesai, ringkasan)
 values
-  ('99999999-0000-0000-0000-000000000101', 'ESK-20260902-0001', 'eskalasi', '88888888-0000-0000-0000-000000000101', 'belum_ditelaah', '2026-09-02 10:00:00+07', 'Kasus medis'),
-  ('99999999-0000-0000-0000-000000000102', 'ADU-20260905-0001', 'pengaduan', '88888888-0000-0000-0000-000000000102', 'selesai', '2026-09-05 14:00:00+07', 'Pengaduan m1')
+  ('99999999-0000-0000-0000-000000000101', 'ESK-20260902-0001', 'eskalasi', '88888888-0000-0000-0000-000000000101', 'belum_ditelaah', '2026-09-02 10:00:00+07', null, 'Kasus medis'),
+  ('99999999-0000-0000-0000-000000000102', 'ADU-20260905-0001', 'pengaduan', '88888888-0000-0000-0000-000000000102', 'selesai', '2026-09-05 14:00:00+07', '2026-09-06 09:00:00+07', 'Pengaduan m1')
 on conflict (id) do nothing;
 
 -- Minggu 2: 2026-09-08 s.d. 2026-09-14 (1 panggilan pengaduan belum selesai)

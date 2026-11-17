@@ -18,6 +18,13 @@ export const OPSI_TINDAK_LANJUT: readonly TindakLanjut[] = [
   'Bukan Kewenangan BPOM',
 ] as const;
 
+/** Enum basis data `tindak_lanjut` ke label pilihan "Tindak Lanjut" (REQ-6.1). */
+const LABEL_TINDAK_LANJUT: Record<string, TindakLanjut> = {
+  telaah_dokumen: 'Telaah Dokumen',
+  pemeriksaan_lapangan: 'Perlu Pemeriksaan Lapangan',
+  bukan_kewenangan: 'Bukan Kewenangan BPOM',
+};
+
 export interface HasilTelaah {
   id: string;
   tiketId: string;
@@ -368,28 +375,35 @@ export class PenyimpananPenangananSupabase implements PenyimpananPenanganan {
     };
   }
 
-  async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
-    const res = await this.klien.rpc('ambil_riwayat_telaah', {
-      p_no_tiket: noTiket,
-    });
+  // RPC ambil_* mengembalikan larik jsonb ber-snake_case, terbaru lebih dulu (migrasi 20261104120000, 20261105130000).
+  async ambil_(fn: string, noTiket: string): Promise<Record<string, unknown>[]> {
+    const res = await this.klien.rpc(fn, { p_no_tiket: noTiket });
     if (res.error) throw res.error;
-    return (res.data as HasilTelaah[]) ?? [];
+    return Array.isArray(res.data) ? (res.data as Record<string, unknown>[]) : [];
+  }
+
+  async ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]> {
+    return (await this.ambil_('ambil_riwayat_telaah', noTiket)).map((r) => ({
+      id: String(r.id), tiketId: String(r.tiket_id), noTiket,
+      tindakLanjut: LABEL_TINDAK_LANJUT[String(r.tindak_lanjut)] ?? (String(r.tindak_lanjut) as TindakLanjut),
+      catatan: (r.catatan as string | null) ?? null, petugasId: String(r.petugas_id),
+      petugasNama: (r.petugas_nama as string | null) ?? null, waktu: String(r.waktu),
+    }));
   }
 
   async ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]> {
-    const res = await this.klien.rpc('ambil_jadwal_pemeriksaan', {
-      p_no_tiket: noTiket,
-    });
-    if (res.error) throw res.error;
-    return (res.data as JadwalPemeriksaan[]) ?? [];
+    return (await this.ambil_('ambil_jadwal_pemeriksaan', noTiket)).map((r) => ({
+      id: String(r.id), tiketId: String(r.tiket_id), noTiket, tanggal: String(r.tanggal),
+      unitPelaksana: String(r.unit_pelaksana), status: String(r.status), petugasId: String(r.petugas_id),
+      petugasNama: (r.petugas_nama as string | null) ?? null, waktu: String(r.waktu),
+    }));
   }
 
   async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
-    const res = await this.klien.rpc('ambil_tanggapan', {
-      p_no_tiket: noTiket,
-    });
-    if (res.error) throw res.error;
-    return (res.data as TanggapanResmi[]) ?? [];
+    return (await this.ambil_('ambil_tanggapan', noTiket)).map((r) => ({
+      id: String(r.id), tiketId: String(r.tiket_id), noTiket, isi: String(r.isi), petugasId: String(r.petugas_id),
+      petugasNama: (r.petugas_nama as string | null) ?? null, status: String(r.status), waktu: String(r.waktu),
+    }));
   }
 }
 

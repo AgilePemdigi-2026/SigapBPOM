@@ -261,3 +261,19 @@ test('adapter Supabase memanggil RPC penanganan pengaduan', async () => {
   assert.equal(resTutup.status, 'selesai');
   assert.equal(panggilanRpc[3].fn, 'tutup_tiket');
 });
+
+test('req_6_2 adapter Supabase memetakan isian tersimpan agar stepper utuh setelah dimuat ulang', async () => {
+  const data: Record<string, unknown[]> = {
+    ambil_riwayat_telaah: [{ id: 't1', tiket_id: 'x', tindak_lanjut: 'pemeriksaan_lapangan', catatan: 'Cek sarana', petugas_id: 'p', petugas_nama: 'A', waktu: '2026-11-17T01:00:00Z' }],
+    ambil_jadwal_pemeriksaan: [{ id: 'j1', tiket_id: 'x', tanggal: '2026-11-20', unit_pelaksana: 'Balai Besar POM di Surabaya', status: 'menunggu_pemeriksaan', petugas_id: 'p', waktu: '2026-11-17T02:00:00Z' }],
+    ambil_tanggapan: [{ id: 'g1', tiket_id: 'x', isi: 'Sarana diberi peringatan.', petugas_id: 'p', status: 'tanggapan_disusun', waktu: '2026-11-17T03:00:00Z' }],
+  };
+  const adapter = new PenyimpananPenangananSupabase({ rpc: async (fn: string) => ({ data: data[fn] ?? null, error: null }) });
+  const [telaah] = await adapter.ambilRiwayatTelaah('ADU-20261117-0001');
+  assert.equal(telaah.tindakLanjut, 'Perlu Pemeriksaan Lapangan');
+  assert.equal(telaah.catatan, 'Cek sarana');
+  const [jadwal] = await adapter.ambilJadwal('ADU-20261117-0001');
+  assert.deepEqual([jadwal.tanggal, jadwal.unitPelaksana], ['2026-11-20', 'Balai Besar POM di Surabaya']);
+  const [tanggapan] = await adapter.ambilTanggapan('ADU-20261117-0001');
+  assert.equal(tanggapan.isi, 'Sarana diberi peringatan.');
+});

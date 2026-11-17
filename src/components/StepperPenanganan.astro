@@ -11,16 +11,25 @@ import {
   hitungStatusTahap,
   tentukanTahapAktif,
   type TahapStepper,
+  type TindakLanjut,
 } from '../lib/stepperPenanganan';
 
 interface Props {
   noTiket: string;
   status: string;
   labelStatus: string;
+  // Isian tersimpan terakhir (RPC ambil_riwayat_telaah, ambil_jadwal_pemeriksaan, ambil_tanggapan).
+  tindakLanjut?: string | null;
+  catatan?: string | null;
+  tanggalPemeriksaan?: string;
+  unitPelaksana?: string;
+  tanggapan?: string;
 }
 
-const { noTiket, status, labelStatus } = Astro.props;
-const statusTahap = hitungStatusTahap(status, null, status === 'menunggu_pemeriksaan');
+const { noTiket, status, labelStatus, tindakLanjut = null, catatan = '', tanggalPemeriksaan = '', unitPelaksana = '', tanggapan = '' } = Astro.props;
+// Formulir jadwal dibutuhkan setelah telaah "Perlu Pemeriksaan Lapangan" (Alternative Path 2), juga setelah dimuat ulang.
+const jadwalDibutuhkan = status === 'menunggu_pemeriksaan' || tindakLanjut === 'Perlu Pemeriksaan Lapangan';
+const statusTahap = hitungStatusTahap(status, tindakLanjut as TindakLanjut | null, jadwalDibutuhkan);
 const tahapAktif = tentukanTahapAktif(statusTahap);
 
 const ikonTahap: Record<TahapStepper, string> = {
@@ -31,7 +40,7 @@ const ikonTahap: Record<TahapStepper, string> = {
 };
 ---
 
-<section class="panel stepper-penanganan" data-name="StepperPenanganan" data-tiket={noTiket} data-status={status}>
+<section class="panel stepper-penanganan" data-name="StepperPenanganan" data-tiket={noTiket} data-status={status} data-label={labelStatus} data-jadwal={jadwalDibutuhkan ? '1' : ''} data-unit={unitPelaksana} data-telaah={tindakLanjut ?? ''}>
   <div class="stepper-head">
     <h2>Penanganan Pengaduan</h2>
     <span class="sub-head">Proses telaah, jadwal pemeriksaan, penyusunan tanggapan resmi, hingga penutupan tiket</span>
@@ -83,9 +92,9 @@ const ikonTahap: Record<TahapStepper, string> = {
       <div class="field-group">
         <label for="tindak-lanjut">Tindak Lanjut</label>
         <select id="tindak-lanjut" name="tindakLanjut" aria-label="Tindak Lanjut" class="input-control">
-          <option value="Telaah Dokumen">Telaah Dokumen</option>
-          <option value="Perlu Pemeriksaan Lapangan">Perlu Pemeriksaan Lapangan</option>
-          <option value="Bukan Kewenangan BPOM">Bukan Kewenangan BPOM</option>
+          {['Telaah Dokumen', 'Perlu Pemeriksaan Lapangan', 'Bukan Kewenangan BPOM'].map((o) => (
+            <option value={o} selected={o === tindakLanjut}>{o}</option>
+          ))}
         </select>
       </div>
 
@@ -98,7 +107,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           rows="3"
           placeholder="Masukkan catatan tindak lanjut..."
           class="input-control textarea-control"
-        ></textarea>
+        >{catatan}</textarea>
       </div>
 
       <div class="action-row">
@@ -111,7 +120,7 @@ const ikonTahap: Record<TahapStepper, string> = {
       class="form-section"
       id="section-jadwal"
       data-name="FormulirJadwalPemeriksaan"
-      hidden={status !== 'menunggu_pemeriksaan'}
+      hidden={!jadwalDibutuhkan}
     >
       <legend class="section-title">
         <i class="icon-calendar" aria-hidden="true"></i>
@@ -126,6 +135,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           name="tanggal"
           aria-label="Tanggal Pemeriksaan"
           class="input-control"
+          value={tanggalPemeriksaan}
         />
       </div>
 
@@ -164,7 +174,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           rows="4"
           placeholder="Tulis tanggapan resmi yang akan dikirim ke pelapor..."
           class="input-control textarea-control"
-        ></textarea>
+        >{tanggapan}</textarea>
       </div>
 
       <div class="action-row tanggapan-actions">
@@ -189,7 +199,7 @@ const ikonTahap: Record<TahapStepper, string> = {
   if (root) {
     const noTiket = root.dataset.tiket || '';
     let statusTiket = root.dataset.status || 'belum_ditelaah';
-    let jadwalDibutuhkan = statusTiket === 'menunggu_pemeriksaan';
+    let jadwalDibutuhkan = root.dataset.jadwal === '1';
 
     const pesanEl = document.getElementById('pesan-penanganan') as HTMLElement;
     const selectTindakLanjut = document.getElementById('tindak-lanjut') as HTMLSelectElement;
@@ -217,6 +227,22 @@ const ikonTahap: Record<TahapStepper, string> = {
     }
 
     const getTiket = () => root.dataset.tiket || new URLSearchParams(window.location.search).get('tiket') || noTiket;
+
+    // Tindak lanjut telaah tersimpan terakhir; diperbarui setelah Simpan Telaah berhasil.
+    let telaahTerakhir = root.dataset.telaah || '';
+
+    // Aksi yang tidak sah dinonaktifkan, sama dengan aturan RPC (migrasi 20261117100000), agar petugas tidak menerima
+    // penolakan di alur normal. Tutup Tiket tetap aktif sebelum tanggapan: SRS Exception Path 1 menampilkan pesan BR-2.
+    function kunciTelaah() {
+      const s = statusTiket;
+      const pemeriksaan = telaahTerakhir === 'Perlu Pemeriksaan Lapangan';
+      const telaahBoleh = s === 'belum_ditelaah' || s === 'sedang_ditelaah';
+      const jadwalBoleh = s === 'menunggu_pemeriksaan' || (s === 'sedang_ditelaah' && pemeriksaan);
+      const tanggapanBoleh = s === 'menunggu_pemeriksaan' || s === 'tanggapan_disusun' || (s === 'sedang_ditelaah' && !pemeriksaan);
+      selectTindakLanjut.disabled = textCatatan.disabled = btnSimpanTelaah.disabled = !telaahBoleh;
+      inputTanggal.disabled = selectUnit.disabled = btnSimpanJadwal.disabled = !jadwalBoleh;
+      textTanggapan.disabled = btnSimpanTanggapan.disabled = !tanggapanBoleh;
+    }
 
     function perbaruiStatusPengaduan(statusBaru: string, labelBaru: string) {
       statusTiket = statusBaru;
@@ -278,6 +304,7 @@ const ikonTahap: Record<TahapStepper, string> = {
         if (btnSimpanTanggapan) btnSimpanTanggapan.disabled = true;
         if (btnTutupTiket) btnTutupTiket.disabled = true;
       }
+      kunciTelaah();
     }
 
     // 1. Simpan Telaah
@@ -303,6 +330,7 @@ const ikonTahap: Record<TahapStepper, string> = {
           return;
         }
 
+        telaahTerakhir = tindakLanjut;
         const statusBaru = d?.data?.status || (tindakLanjut === 'Bukan Kewenangan BPOM' ? 'diteruskan' : 'sedang_ditelaah');
         const labelBaru = d?.data?.labelStatus || (tindakLanjut === 'Bukan Kewenangan BPOM' ? 'Diteruskan ke Instansi Lain' : 'Sedang Ditelaah');
 
@@ -402,13 +430,10 @@ const ikonTahap: Record<TahapStepper, string> = {
       }
     });
 
-    // Inisialisasi tampilan awal
-    if (statusTiket === 'menunggu_pemeriksaan') {
-      if (sectionJadwal) {
-        sectionJadwal.hidden = false;
-        sectionJadwal.removeAttribute('hidden');
-      }
-    }
+    // Inisialisasi tampilan awal: isian tersimpan dan kunci formulir untuk tiket diteruskan atau selesai.
+    if (root.dataset.unit) selectUnit.value = root.dataset.unit;
+    if (statusTiket === 'diteruskan' || statusTiket === 'selesai') perbaruiStatusPengaduan(statusTiket, root.dataset.label || '');
+    kunciTelaah();
   }
 </script>
 
