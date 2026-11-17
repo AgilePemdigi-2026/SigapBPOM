@@ -10,6 +10,16 @@ const BM25_K1 = 1.4;
 const BM25_B = 0.75;
 // Skor minimal agar kutipan dianggap relevan; di bawahnya tidak ada kutipan dan pertanyaan edukasi dieskalasi (alatPengetahuan.mjs).
 export const SKOR_MINIMAL = 9;
+// Skor minimal tetangga graf: lebih rendah karena sudah tersambung ke kutipan teratas lewat rujukan yang sama,
+// tapi tetap harus menyinggung pertanyaan. Kalibrasi: naikkan bila tetangga sering tidak nyambung.
+export const SKOR_MINIMAL_TETANGGA = 4;
+
+/** Rujukan sumber potongan, sama dengan sisi "rujukan sama" di Graf Pengetahuan (BasisPengetahuanController.susunGraf). */
+const rujukanDari = (p) => (p.kunci ? p.kunci.slice(p.kunci.lastIndexOf('|') + 1) : p.label).toLowerCase().trim();
+const dokumenDari = (p) => p.sumber || p.kunci || p.judul;
+// Rujukan umum tanpa nomor ("Siaran Pers BPOM", "Cek Fakta BPOM") menyambungkan dokumen yang tidak berhubungan,
+// jadi sisi antardokumen hanya dipakai untuk peraturan bernomor; selain itu perluasan tetap di dokumen yang sama.
+const RUJUKAN_BERNOMOR = /\bno(?:mor)?\.?\s*\S+\s+tahun\s+\d{4}/i;
 
 const STOPWORD = new Set(`yang dan di ke dari untuk dengan pada dalam atau ini itu adalah sebagai oleh akan dapat tidak
   juga telah karena bahwa harus serta tersebut setiap secara lebih antara apa apakah bagaimana berapa siapa kapan mana
@@ -168,19 +178,34 @@ export class Korpus {
     return { nonaktif: this.nonaktif.size, tambahan: baru, tanpaKatalog };
   }
 
-  /** Potongan paling relevan (paling banyak satu per dokumen) dengan skor di atas `skorMinimal`. */
+  /**
+   * Potongan paling relevan (paling banyak satu per dokumen) dengan skor di atas `skorMinimal`, ditambah satu tetangga
+   * graf di urutan terakhir: potongan lain dengan rujukan yang sama dengan kutipan teratas (pasal lain dari peraturan
+   * yang sama), ditandai `perluasan: true`. Tetangga hanya diambil bila skornya di atas SKOR_MINIMAL_TETANGGA.
+   */
   cari(pertanyaan, jumlah = 3, skorMinimal = SKOR_MINIMAL) {
+    const batasBawah = Math.min(skorMinimal, SKOR_MINIMAL_TETANGGA);
     // Materi tambahan punya indeks sendiri, tapi keduanya dinilai dengan statistik gabungan agar skornya setara.
-    const urut = [...this.nilai_(pertanyaan, skorMinimal, this.tambahan), ...(this.tambahan?.nilai_(pertanyaan, skorMinimal, this) ?? [])]
+    const urut = [...this.nilai_(pertanyaan, batasBawah, this.tambahan), ...(this.tambahan?.nilai_(pertanyaan, batasBawah, this) ?? [])]
       .sort((a, b) => b.s - a.s);
-    const hasil = [], sudah = new Set();
-    for (const { p, s } of urut) {
-      const dokumen = p.sumber || p.kunci || p.judul;
+    const kutip = ({ p, s }, tanda = {}) => ({ ...p, teks: p.teks.slice(0, PANJANG_KUTIPAN), skor: Math.round(s * 10) / 10, ...tanda });
+    const hasil = [], sudah = new Set(), dipakai = new Set();
+    for (const h of urut) {
+      if (h.s < skorMinimal || hasil.length >= jumlah) break;
+      const dokumen = dokumenDari(h.p);
       if (sudah.has(dokumen)) continue;
       sudah.add(dokumen);
-      hasil.push({ ...p, teks: p.teks.slice(0, PANJANG_KUTIPAN), skor: Math.round(s * 10) / 10 });
-      if (hasil.length >= jumlah) break;
+      dipakai.add(h.p);
+      hasil.push(kutip(h));
     }
+    if (!hasil.length) return hasil;
+    const rujukan = rujukanDari(hasil[0]);
+    const lintasDokumen = RUJUKAN_BERNOMOR.test(rujukan);
+    // Dokumen kutipan utama lain tidak dipakai sebagai tetangga: isinya sudah terwakili.
+    const tetangga = urut.find((h) => !dipakai.has(h.p) && (dokumenDari(h.p) === dokumenDari(hasil[0])
+      || (lintasDokumen && !sudah.has(dokumenDari(h.p)) && rujukanDari(h.p) === rujukan)));
+    // Di akhir agar pemanggil yang membatasi jumlah kutipan utama (server.mjs KUTIPAN_MAKS) tidak kehilangan kutipan utama.
+    if (tetangga) hasil.push(kutip(tetangga, { perluasan: true }));
     return hasil;
   }
 
