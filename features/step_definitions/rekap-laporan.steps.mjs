@@ -3,7 +3,7 @@
 // dan kartu total (Lampiran B, SRS 3.1.12) diperiksa dari rekap yang disiapkan control untuk ketiganya.
 import assert from 'node:assert/strict';
 import { Given, When, Then } from '@cucumber/cucumber';
-import { LaporanController, daftarPeriode } from '../../src/lib/LaporanController.ts';
+import { LaporanController, PESAN_LAPORAN, daftarPeriode } from '../../src/lib/LaporanController.ts';
 import { PenyimpananLaporanTiruan } from '../../src/lib/mock/laporanTiruan.ts';
 import { tombol } from '../support/dashboard.mjs';
 
@@ -86,9 +86,18 @@ Then('tidak ada pesan penolakan', function () {
   assert.equal(this.pesan, null);
 });
 
-// @belum-tersedia: berkas laporan disusun GET /api/laporan (T-F8.2-01).
-Then('berkas laporan PDF periode {string} tersusun', function (_periode) {
-  return 'pending';
+// Langkah 11 Basic Path (REQ-8.4): berkas yang disusun LaporanController.unduhLaporan, sama dengan isi GET /api/laporan.
+Then('berkas laporan {word} periode {string} tersusun', function (format, label) {
+  const d = uc08(this);
+  const periode = d.pilihanPeriode.find((p) => p.label === label);
+  assert.ok(periode, `periode "${label}" tidak ada di pilihan`);
+  assert.equal(d.unduh?.kode, 200, d.unduh?.pesan);
+  const { nama, tipe, isi } = d.unduh.berkas;
+  const ext = format.toLowerCase();
+  assert.equal(nama, `laporan-layanan_${periode.awal}_${periode.akhir}.${ext}`);
+  assert.equal(tipe.split(';')[0], ext === 'pdf' ? 'application/pdf' : 'text/csv');
+  assert.ok(isi.length > 0, 'berkas kosong');
+  if (ext === 'pdf') assert.equal(new TextDecoder().decode(isi.slice(0, 5)), '%PDF-');
 });
 
 // Langkah 4 sampai 6 Basic Path dan Alternative Path 1 (REQ-8.1, REQ-8.2).
@@ -109,7 +118,12 @@ tombol('Unduh Laporan', async function () {
   this.pesan = hak.boleh ? null : hak.pesan;
 });
 
-// Langkah 9 sampai 12 Basic Path menunggu GET /api/laporan (T-F8.2-01).
-tombol('Konfirmasi Unduh', function () {
-  return 'pending';
+// Langkah 9 sampai 12 Basic Path (REQ-8.4, NFR-14): berkas disusun untuk periode yang ditampilkan dan format yang dipilih.
+// Halaman menampilkan pesan unduh sukses setelah berkas diterima; penolakan menampilkan pesan dari server.
+tombol('Konfirmasi Unduh', async function () {
+  const d = uc08(this);
+  const periode = d.pilihanPeriode.find((p) => p.label === this.isian.Periode);
+  assert.ok(periode, `periode "${this.isian.Periode}" tidak ada di pilihan`);
+  d.unduh = await d.laporan.unduhLaporan(periode.awal, periode.akhir, String(this.isian['Format Berkas'] ?? '').toLowerCase());
+  this.pesan = d.unduh.kode === 200 ? PESAN_LAPORAN.unduhSukses : d.unduh.pesan;
 });

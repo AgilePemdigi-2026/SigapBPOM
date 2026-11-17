@@ -78,14 +78,12 @@ Fitur: Menangani pengaduan
     Maka sistem menampilkan pesan "Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu."
     Dan StatusPengaduan menampilkan "Sedang Ditelaah"
 
-  # Halaman detail pengaduan dengan StepperPenanganan (#101) belum dibuat, dan belum ada control yang menyusun tahapannya.
-  @belum-tersedia
   Skenario: StepperPenanganan menampilkan tahapan penanganan (Basic Path langkah 4)
     Diketahui petugas membuka detail pengaduan "ADU-20261020-0456" berstatus "Sedang Ditelaah"
     Maka StepperPenanganan menampilkan tahap "Telaah", "Jadwal Pemeriksaan", "Susun Tanggapan", dan "Tutup Tiket"
     Dan tahap "Susun Tanggapan" aktif
 
-  # Pengiriman SMS dari notifikasi yang diantrekan RPC tutup_tiket (T-F7.3-01) belum dibuat.
+  # SMS tindak lanjut (T-F7.3-01) menunggu keputusan SMS gateway yang dipakai.
   @belum-tersedia
   Skenario: SMS tindak lanjut terkirim kepada pelapor (Basic Path langkah 16)
     Diketahui petugas membuka detail pengaduan "ADU-20261020-0456" berstatus "Tanggapan Disusun"

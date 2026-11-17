@@ -7,6 +7,7 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import { OPSI_TINDAK_LANJUT, PenangananController, PenyimpananPenangananMock } from '../../src/lib/PenangananController.ts';
 import { LABEL_STATUS_TIKET, PemantauanLayananController } from '../../src/lib/PemantauanLayananController.ts';
 import { simpanJadwal, simpanTanggapan, simpanTelaah, tutupTiket } from '../../src/lib/penanganan.ts';
+import { DAFTAR_TAHAP, LABEL_TAHAP, hitungStatusTahap, tentukanTahapAktif } from '../../src/lib/stepperPenanganan.ts';
 import { PenyimpananPemantauanTiruan } from '../../src/lib/mock/pemantauanTiruan.ts';
 import { kunciLabel, nilaiTanggal, tombol } from '../support/dashboard.mjs';
 
@@ -152,13 +153,22 @@ Then('pengaduan tidak dapat dilanjutkan ke tahap berikutnya', async function () 
   assert.equal(penyimpanan.tiketMap.get(noTiket).status, 'diteruskan');
 });
 
-// @belum-tersedia: StepperPenanganan menunggu panel penanganan (T-F7.2-02), SMS menunggu T-F7.3-01.
-Then('StepperPenanganan menampilkan tahap {string}, {string}, {string}, dan {string}', function (_a, _b, _c, _d) {
-  return 'pending';
+// Basic Path langkah 4 (SRS 3.1.10): StepperPenanganan memakai urutan, label, dan perhitungan tahap yang sama dengan
+// komponen di halaman Detail Pengaduan. Jadwal dibutuhkan dengan aturan yang sama seperti komponennya.
+function tahapStepper(dunia) {
+  const { noTiket, detail } = uc06(dunia);
+  const status = tiketDi(dunia, noTiket).status;
+  const tindakLanjut = detail?.tindakLanjut ?? null;
+  return hitungStatusTahap(status, tindakLanjut, status === 'menunggu_pemeriksaan' || tindakLanjut === 'Perlu Pemeriksaan Lapangan');
+}
+Then('StepperPenanganan menampilkan tahap {string}, {string}, {string}, dan {string}', function (a, b, c, d) {
+  assert.deepEqual(DAFTAR_TAHAP.map((t) => LABEL_TAHAP[t]), [a, b, c, d]);
 });
-Then('tahap {string} aktif', function (_tahap) {
-  return 'pending';
+Then('tahap {string} aktif', function (tahap) {
+  assert.equal(LABEL_TAHAP[tentukanTahapAktif(tahapStepper(this))], tahap);
 });
+
+// @belum-tersedia: SMS tindak lanjut menunggu keputusan SMS gateway (T-F7.3-01).
 Then('SMS tindak lanjut tiket {string} terkirim kepada pelapor', function (_noTiket) {
   return 'pending';
 });
