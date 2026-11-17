@@ -125,17 +125,17 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
   .head-title { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.02em; }
   .head-title span { font-size: 15px; color: var(--muted); }
-  .live { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: #fde8e7; color: var(--danger); font-size: 14px; font-weight: 700; letter-spacing: .12em; }
+  .live { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: var(--t-red-bg); color: var(--danger); font-size: 14px; font-weight: 700; letter-spacing: .12em; }
   .live-dot { width: 9px; height: 9px; border-radius: 9px; background: #ef4444; animation: denyut 1.6s ease-in-out infinite; }
-  .live.putus { background: #e9ebef; color: var(--muted); }
-  .live.putus .live-dot { background: #9aa1ad; animation: none; }
+  .live.putus { background: var(--t-gray-bg); color: var(--muted); }
+  .live.putus .live-dot { background: var(--placeholder); animation: none; }
   @keyframes denyut { 50% { opacity: .35; } }
   @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
 
   .sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
   .sum-card { padding: 20px 24px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--muted); }
   .sum-card .v { font-size: 34px; font-weight: 500; letter-spacing: -.02em; color: var(--ink); }
-  .track { height: 10px; border-radius: 99px; background: #e4e7ec; overflow: hidden; }
+  .track { height: 10px; border-radius: 99px; background: var(--line-2); overflow: hidden; }
   .track div { height: 100%; width: 0; border-radius: 99px; background: var(--blue); transition: width .3s; }
 
   .list { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
@@ -145,9 +145,9 @@ const data = { panggilan, kapasitas: KAPASITAS_SALURAN_BAWAAN };
   #rows { display: flex; flex-direction: column; gap: 8px; }
   :global(#rows .row) { min-height: 58px; border-radius: 18px; font-size: 15px; }
   :global(#rows .topik) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  :global(#rows .tahap) { justify-self: start; background: #e3ecff; color: #2152c9; }
-  :global(#rows .tahap[data-tahap='Mendengar']) { background: #dcf5e6; color: #15803d; }
-  :global(#rows .tahap[data-tahap='Menjawab']) { background: #ece7fe; color: #5b3fc4; }
-  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; min-height: 220px; }
+  :global(#rows .tahap) { justify-self: start; background: var(--t-blue-bg); color: var(--t-blue-fg); }
+  :global(#rows .tahap[data-tahap='Mendengar']) { background: var(--t-green-bg); color: var(--t-green-fg); }
+  :global(#rows .tahap[data-tahap='Menjawab']) { background: var(--t-violet-bg); color: var(--t-violet-fg); }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed var(--line-3); min-height: 220px; }
   .empty i { font-size: 28px; color: var(--muted-2); }
 </style>

@@ -36,7 +36,7 @@ const gagal = ringkasan === null;
 const st = ringkasan?.statistik;
 const urgent = ringkasan?.kasus ?? [];
 const KATEGORI = ringkasan?.kategori ?? [];
-const WARNA_KATEGORI = ['#2f6bf5', '#16a34a', '#f5b70f', '#6d4aff', '#0e9fb8', '#ef6b4a', '#8a919e'];
+const WARNA_KATEGORI = ['#2f6bf5', '#16a34a', '#f5b70f', '#6d4aff', '#0e9fb8', '#ef6b4a', 'var(--muted-2)'];
 const totalKategori = KATEGORI.reduce((n, k) => n + k.jumlah, 0);
 const maxKategori = Math.max(1, ...KATEGORI.map((k) => k.persen));
 const berjalan = st?.panggilanBerjalan ?? 0;
@@ -44,10 +44,10 @@ const kinerja = ringkasan?.kinerja;
 const lebarBar = (n: number) => Math.min(100, (n / Math.max(1, st?.panggilanHariIni ?? 0)) * 100);
 const agentNormal = agent.komponen.every((k) => k.status === 'Normal');
 const STATISTIK = [
-  { label: 'Panggilan Hari Ini', value: st?.panggilanHariIni, sub: st?.panggilanHariIni ? 'Sejak 00.00 WIB' : 'Belum ada panggilan', icon: 'icon-phone-incoming', bg: '#e3ecff', fg: '#2f6bf5' },
-  { label: 'Dijawab Otomatis AI', value: st?.jawabanOtomatisAi, sub: st?.jawabanOtomatisAi ? 'Selesai tanpa petugas' : 'Belum ada jawaban AI', icon: 'icon-bot', bg: '#dcf5e6', fg: '#16a34a' },
-  { label: 'Tiket Eskalasi Baru', value: st?.tiketEskalasiBaru, sub: `${fmt(ringkasan?.tiketBelumDitelaah ?? 0)} belum ditelaah`, icon: 'icon-ticket', bg: '#fdf0d3', fg: '#b26b00' },
-  { label: 'Pengaduan Selesai', value: st?.pengaduanSelesai, sub: 'Seluruh tiket pengaduan', icon: 'icon-circle-check', bg: '#ece7fe', fg: '#6d4aff' },
+  { label: 'Panggilan Hari Ini', value: st?.panggilanHariIni, sub: st?.panggilanHariIni ? 'Sejak 00.00 WIB' : 'Belum ada panggilan', icon: 'icon-phone-incoming', bg: 'var(--t-blue-bg)', fg: 'var(--t-blue-fg)' },
+  { label: 'Dijawab Otomatis AI', value: st?.jawabanOtomatisAi, sub: st?.jawabanOtomatisAi ? 'Selesai tanpa petugas' : 'Belum ada jawaban AI', icon: 'icon-bot', bg: 'var(--t-green-bg)', fg: 'var(--t-green-fg)' },
+  { label: 'Tiket Eskalasi Baru', value: st?.tiketEskalasiBaru, sub: `${fmt(ringkasan?.tiketBelumDitelaah ?? 0)} belum ditelaah`, icon: 'icon-ticket', bg: 'var(--t-amber-bg)', fg: 'var(--t-amber-fg)' },
+  { label: 'Pengaduan Selesai', value: st?.pengaduanSelesai, sub: 'Seluruh tiket pengaduan', icon: 'icon-circle-check', bg: 'var(--t-violet-bg)', fg: 'var(--t-violet-fg)' },
 ];
 const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
 ---
@@ -85,7 +85,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
                 <div class="col" title={`${x.label} · ${fmt(x.total)} panggilan`}>
                   <div class="area">
                     <div class="stack" style={`height:${(x.total / maks) * 100}%`}>
-                      {[[x.dijawabAi, '#3b74f6'], [x.dieskalasi, '#f5b70f'], [x.total - x.dijawabAi - x.dieskalasi, '#c9ced6']].map(([n, warna]) => n ? <span style={`flex:${n};background:${warna}`}></span> : null)}
+                      {[[x.dijawabAi, '#3b74f6'], [x.dieskalasi, '#f5b70f'], [x.total - x.dijawabAi - x.dieskalasi, 'var(--t-gray-line)']].map(([n, warna]) => n ? <span style={`flex:${n};background:${warna}`}></span> : null)}
                     </div>
                   </div>
                   <span class="tick">{i % langkah === 0 ? x.label : ''}</span>
@@ -112,11 +112,11 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
         </div>
         <div class="donut-row">
           {kinerja?.persen == null ? (
-            <div class="donut" style="background:#e4e7ec" role="img" aria-label="Belum ada data penyelesaian">
+            <div class="donut" style="background:var(--line-2)" role="img" aria-label="Belum ada data penyelesaian">
               <div><span>—</span><span>%</span></div>
             </div>
           ) : (
-            <div class="donut" style={`background:conic-gradient(#3b74f6 ${kinerja.persen * 3.6}deg, #e4e7ec 0)`} role="img" aria-label={`Tingkat Penyelesaian ${kinerja.persen}%`}>
+            <div class="donut" style={`background:conic-gradient(#3b74f6 ${kinerja.persen * 3.6}deg, var(--line-2) 0)`} role="img" aria-label={`Tingkat Penyelesaian ${kinerja.persen}%`}>
               <div><span>{kinerja.persen}</span><span>%</span></div>
             </div>
           )}
@@ -253,10 +253,10 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .load-total { display: flex; align-items: baseline; gap: 12px; }
   .big { font-size: 52px; font-weight: 500; letter-spacing: -.03em; line-height: 1.05; }
   .unit { font-size: 20px; color: var(--ink-3); }
-  .delta { padding: 4px 10px; border-radius: 999px; background: #dcf5e6; color: #15803d; font-size: 14px; font-weight: 600; }
-  .seg { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: #e9ebef; box-shadow: inset 0 1px 3px rgba(16, 24, 40, .08); }
-  .seg button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent; background: transparent; font-size: 15px; color: #4b5260; }
-  .seg button[aria-pressed='true'] { border-color: #fff; background: var(--surface); box-shadow: 0 2px 8px rgba(16, 24, 40, .1); font-weight: 500; color: var(--ink); }
+  .delta { padding: 4px 10px; border-radius: 999px; background: var(--t-green-bg); color: var(--t-green-fg); font-size: 14px; font-weight: 600; }
+  .seg { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: var(--t-gray-bg); box-shadow: inset 0 1px 3px rgba(var(--shadow-rgb), .08); }
+  .seg button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid transparent; background: transparent; font-size: 15px; color: var(--muted); }
+  .seg button[aria-pressed='true'] { border-color: var(--edge); background: var(--surface); box-shadow: 0 2px 8px rgba(var(--shadow-rgb), .1); font-weight: 500; color: var(--ink); }
   .chart { flex: 1; min-height: 0; position: relative; }
   .plot { display: flex; gap: 4px; }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -265,12 +265,12 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .stack span { min-height: 2px; border-radius: 2px; }
   .stack span:last-child { border-radius: 4px 4px 2px 2px; }
   .tick { height: 16px; font-size: 12px; color: var(--muted); text-align: center; white-space: nowrap; }
-  .chart.empty, .empty-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: 16px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; }
+  .chart.empty, .empty-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: 16px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed var(--line-3); }
   .chart.empty i, .empty-card i { font-size: 26px; color: var(--muted-2); }
   .empty-card { flex: 1; padding: 20px; }
-  .dot-idle { width: 10px; height: 10px; flex: none; border-radius: 9px; background: #9aa1ad; }
+  .dot-idle { width: 10px; height: 10px; flex: none; border-radius: 9px; background: var(--placeholder); }
   .dot-live { width: 10px; height: 10px; flex: none; border-radius: 9px; background: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, .18); }
-  .legend { display: flex; align-items: center; gap: 20px; font-size: 14.5px; color: #4b5260; }
+  .legend { display: flex; align-items: center; gap: 20px; font-size: 14.5px; color: var(--muted); }
   .leg { display: flex; align-items: center; gap: 7px; }
   .dot { width: 10px; height: 10px; border-radius: 9px; }
 
@@ -278,12 +278,12 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .kin-head { display: flex; justify-content: space-between; align-items: flex-start; }
   .kin-title { display: flex; flex-direction: column; gap: 4px; }
   .kin-title h2 { font-size: 30px; letter-spacing: -.01em; }
-  .link { display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 500; color: #2152c9; padding: 6px 0; }
+  .link { display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 500; color: var(--link); padding: 6px 0; }
   .donut-row { display: flex; align-items: center; gap: 24px; }
   .donut { width: 136px; height: 136px; flex: none; border-radius: 999px; box-shadow: 0 10px 24px rgba(47, 107, 245, .18); display: flex; align-items: center; justify-content: center; }
-  .donut > div { width: 108px; height: 108px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 1px 3px rgba(16, 24, 40, .08); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .donut > div { width: 108px; height: 108px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 1px 3px rgba(var(--shadow-rgb), .08); display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .donut > div span:first-child { font-size: 32px; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
-  .donut > div span:last-child { font-size: 13px; font-weight: 600; color: #15803d; }
+  .donut > div span:last-child { font-size: 13px; font-weight: 600; color: var(--t-green-fg); }
   .donut-text { display: flex; flex-direction: column; gap: 6px; }
   .donut-text span:first-child { font-size: 20px; font-weight: 500; }
   .donut-text span:last-child { font-size: 15.5px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
@@ -291,11 +291,11 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .bar { display: flex; flex-direction: column; gap: 8px; }
   .bar-row { display: flex; justify-content: space-between; font-size: 15px; }
   .bar-row .mono { font-weight: 600; }
-  .track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
+  .track { height: 12px; border-radius: 99px; background: var(--line-2); box-shadow: inset 0 1px 2px rgba(var(--shadow-rgb), .08); overflow: hidden; }
   .track div { height: 100%; border-radius: 99px; }
   .live-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; color: var(--ink); }
   .live-text { flex: 1; font-size: 15.5px; font-weight: 500; }
-  .live-go { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: #2152c9; }
+  .live-go { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--link); }
 
   .cards { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
   .card { padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
@@ -303,10 +303,10 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .card-title.sm { font-size: 24px; white-space: nowrap; }
   .stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; }
   .stat { border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13.5px; color: #4b5260; line-height: 1.25; }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13.5px; color: var(--muted); line-height: 1.25; }
   .stat-icon { width: 32px; height: 32px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
   .stat-value { font-size: 34px; font-weight: 500; letter-spacing: -.02em; margin-top: auto; }
-  .stat-sub { font-size: 13px; color: #4b5260; }
+  .stat-sub { font-size: 13px; color: var(--muted); }
 
   .urgent { overflow: hidden; position: relative; }
   .urgent-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -318,13 +318,13 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .case-wait span { width: 5px; height: 5px; border-radius: 5px; background: #b26b00; }
   .case-ring { font-size: 17px; font-weight: 500; line-height: 1.35; }
   .case-meta { height: 36px; padding: 0 12px; border-radius: 12px; background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .6); display: flex; align-items: center; gap: 7px; font-size: 13.5px; white-space: nowrap; }
-  .case-open { height: 38px; padding: 0 16px; border-radius: 999px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 500; box-shadow: 0 2px 6px rgba(120, 90, 0, .15); display: inline-flex; align-items: center; white-space: nowrap; flex: none; }
-  .case-open.alt { background: var(--line); border: 1px solid #fff; box-shadow: none; }
+  .case-open { height: 38px; padding: 0 16px; border-radius: 999px; background: var(--card); color: var(--ink); font-size: 14px; font-weight: 500; box-shadow: 0 2px 6px rgba(120, 90, 0, .15); display: inline-flex; align-items: center; white-space: nowrap; flex: none; }
+  .case-open.alt { background: var(--line); border: 1px solid var(--edge); box-shadow: none; }
   .case-rest { flex: none; border-radius: 22px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
   .case-rest-text { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
   .case-rest-text .mono { font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
   .case-rest-text span:last-child { font-size: 16px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(180deg, rgba(243, 244, 246, 0), var(--panel)); pointer-events: none; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(180deg, transparent, var(--panel)); pointer-events: none; }
 
   .kat-head { display: flex; flex-direction: column; gap: 2px; }
   .kat-head span { font-size: 14.5px; color: var(--muted); }
@@ -332,7 +332,7 @@ const namaDepan = Astro.locals.petugas!.nama.split(' ')[0];
   .kat { display: flex; flex-direction: column; gap: 7px; }
   .kat-row { display: flex; justify-content: space-between; font-size: 15px; }
   .kat-pct { font-weight: 600; }
-  .kat-track { height: 12px; border-radius: 99px; background: #e4e7ec; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .08); overflow: hidden; }
+  .kat-track { height: 12px; border-radius: 99px; background: var(--line-2); box-shadow: inset 0 1px 2px rgba(var(--shadow-rgb), .08); overflow: hidden; }
   .kat-track div { height: 100%; border-radius: 99px; }
 
   .greet { padding: 22px 24px 24px; align-items: center; gap: 10px; text-align: center; }

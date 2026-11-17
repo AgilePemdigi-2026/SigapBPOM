@@ -1,0 +1,25 @@
+---
+// Tombol ganti tema terang/gelap. Logikanya ada di BaseLayout (window.sigapGantiTema); class dipakai pemanggil untuk ukuran.
+interface Props { class?: string }
+const { class: kelas } = Astro.props;
+---
+<button type="button" class:list={['tema', kelas]} data-tema aria-label="Ganti tema terang atau gelap" title="Ganti tema">
+  <i class="icon-moon ic-gelap" aria-hidden="true"></i>
+  <i class="icon-sun ic-terang" aria-hidden="true"></i>
+</button>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-tema]').forEach((b) => {
+    if (b.dataset.siap) return;
+    b.dataset.siap = '1';
+    b.addEventListener('click', () => (window as any).sigapGantiTema?.());
+  });
+</script>
+
+<style>
+  .tema { position: relative; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; padding: 0; cursor: pointer; }
+  .tema i { position: absolute; transition: transform .45s cubic-bezier(.32, .72, 0, 1), opacity .3s; }
+  .ic-terang { opacity: 0; transform: translateY(120%) rotate(-90deg); }
+  :global(:root[data-theme='dark']) .tema .ic-gelap { opacity: 0; transform: translateY(-120%) rotate(90deg); }
+  :global(:root[data-theme='dark']) .tema .ic-terang { opacity: 1; transform: none; }
+</style>

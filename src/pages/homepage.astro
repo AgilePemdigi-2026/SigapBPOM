@@ -1,185 +1,712 @@
 ---
 // Boundary UC-01/UC-02: Halaman Publik HaloBPOM (/homepage), titik awal panggilan "Telepon CS AI".
-// Desktop memakai kanvas 1920×1080 yang diskalakan; di bawah 768px tampil tata letak ponsel.
+// Layar pertama tetap kanvas 1920×1080 yang diskalakan (panel suara dan Cari Produk menumpang di sana),
+// lalu section landing di bawahnya mengalir biasa dan responsif. Di bawah 768px layar pertama memakai tata letak ponsel.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Orb from '../components/Orb.astro';
 import PanelSuara from '../components/PanelSuara.astro';
 import CariProduk from '../components/CariProduk.astro';
+import ToggleTema from '../components/ToggleTema.astro';
 
 const LAYANAN = [
-  { no: '1', judul: 'Informasi Produk', desk: 'Nomor izin edar, status izin, dan edukasi obat & makanan', mob: 'Izin edar dan edukasi obat & makanan', contoh: '“Susu Formula Sehat terdaftar tidak?”', purple: false },
-  { no: '2', judul: 'Pengaduan Produk', desk: 'Laporkan produk bermasalah, nomor tiket dikirim lewat SMS', mob: 'Nomor tiket dikirim lewat SMS', contoh: '“Krim wajah bikin kulit saya iritasi.”', purple: true },
+  { no: '1', judul: 'Informasi produk', desk: 'Cek izin edar dan edukasi obat dan makanan' },
+  { no: '2', judul: 'Pengaduan produk', desk: 'Laporkan produk bermasalah, tiket dikirim lewat SMS' },
 ];
-const STAT = [['24/7', 'layanan suara AI']];
+const LANGKAH = [
+  { ic: 'icon-phone-call', t: 'Telepon CS AI', d: 'Gratis dan tanpa login' },
+  { ic: 'icon-list-ordered', t: 'Pilih layanan', d: 'Tekan 1 untuk informasi, 2 untuk pengaduan' },
+  { ic: 'icon-badge-check', t: 'Dapat jawaban', d: 'Hasil cek tampil di layar, tiket lewat SMS' },
+];
+const KLIK = [
+  { h: 'K', t: 'Kemasan', d: 'Pastikan kemasan utuh, tidak penyok, bocor, atau berkarat.' },
+  { h: 'L', t: 'Label', d: 'Baca komposisi, aturan pakai, dan peringatan pada label.' },
+  { h: 'I', t: 'Izin edar', d: 'Cari nomor izin edar BPOM dan cocokkan dengan datanya.' },
+  { h: 'K', t: 'Kedaluwarsa', d: 'Periksa tanggal kedaluwarsa sebelum membeli dan memakai.' },
+];
+const KODE = [
+  ['MD', 'Pangan olahan dalam negeri'],
+  ['ML', 'Pangan olahan impor'],
+  ['TR', 'Obat tradisional'],
+  ['DBL', 'Obat bebas produksi lokal'],
+  ['NA', 'Kosmetik ternotifikasi'],
+];
+const SUMBER = [
+  { ic: 'icon-database', t: 'Data registrasi produk', d: 'Status izin edar dibaca langsung dari cekbpom.pom.go.id saat Anda bertanya.', href: 'https://cekbpom.pom.go.id' },
+  { ic: 'icon-book-open', t: 'Materi peraturan BPOM', d: 'Jawaban edukasi disusun dari materi yang diunggah dan diperiksa petugas.' },
+  { ic: 'icon-headset', t: 'Petugas HaloBPOM', d: 'Pertanyaan di luar data dicatat sebagai tiket dan ditangani petugas.' },
+];
 ---
-<BaseLayout title="Halaman Publik HaloBPOM" responsive>
-  <div class="desk">
-    <header class="panel head">
-      <div class="logo"><i class="icon-shield-check"></i></div>
-      <div class="brand"><span>HaloBPOM</span><span>Layanan Informasi &amp; Pengaduan Publik</span></div>
-      <span class="grow"></span>
-      <span class="hotline"><i class="icon-phone"></i>HaloBPOM 1500533</span>
-      <a href="/login" class="pill login"><i class="icon-lock"></i>Masuk Petugas</a>
-    </header>
-
-    <div class="hero-row">
-      <section class="panel hero">
-        <span class="tag"><span></span>LAYANAN INFORMASI PUBLIK · AKTIF 24 JAM</span>
-        <h1>Pastikan obat dan makanan yang Anda konsumsi aman dan terdaftar.</h1>
-        <p>Cek nomor izin edar, pelajari ketentuan keamanan produk, atau laporkan produk yang diduga bermasalah. Kini tersedia asisten suara CS AI yang menjawab langsung dari data resmi BPOM.</p>
-        <div class="services">
-          <span class="eyebrow">TELEPON CS AI, LALU PILIH LAYANAN</span>
-          <div class="svc-grid">
-            {LAYANAN.map((l) => (
-              <button class="svc" data-call>
-                <span class:list={['svc-no', { purple: l.purple }]}>{l.no}</span>
-                <span class="svc-text"><span class="t">{l.judul}</span><span class="d">{l.desk}</span><span class="e">{l.contoh}</span></span>
-                <i class="icon-phone-call svc-ic"></i>
-              </button>
-            ))}
-          </div>
-          <span class="note"><i class="icon-captions"></i>Transkrip tampil langsung di layar · tanpa login · dijawab dari data resmi BPOM</span>
-        </div>
-        <CariProduk />
-      </section>
-
-      <section class="panel csai">
-        <Orb size={170} />
-        <div class="csai-title"><span>CS AI HaloBPOM</span><span>Asisten suara berbasis data resmi BPOM</span></div>
-        <div class="stats">{STAT.map(([v, l]) => <div class="stat"><span>{v}</span><span>{l}</span></div>)}</div>
-        <span class="grow"></span>
-        <button class="call" data-call>
-          <span class="call-ic"><i class="icon-phone-call"></i></span>
-          <span class="call-text"><span>Telepon CS AI</span><span>Layanan suara · gratis · 24 jam</span></span>
+<BaseLayout title="Halaman Publik HaloBPOM" responsive landing>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="hero-stage">
+    <div class="canvas">
+      <span class="canvas-top" data-canvas-top aria-hidden="true"></span>
+      <div class="desk">
+        <header class="head">
+          <img class="logo" src="/brand/sigap-mark.png" alt="Logo SIGAP" width="56" height="56" />
+          <div class="brand"><span>HaloBPOM</span><span>Layanan Informasi dan Pengaduan Publik</span></div>
+          <nav class="nav" aria-label="Navigasi halaman">
+            <a href="#cara-kerja">Cara kerja</a>
+            <a href="#cek-klik">Cek KLIK</a>
+            <a href="#sumber">Sumber data</a>
+          </nav>
           <span class="grow"></span>
-          <i class="icon-arrow-right call-arrow"></i>
-        </button>
-      </section>
+          <span class="hotline"><i class="icon-phone"></i>HaloBPOM 1500533</span>
+          <ToggleTema class="tema-btn" />
+          <a href="/login" class="login"><i class="icon-lock"></i>Masuk Petugas</a>
+        </header>
+
+        <div class="hero-row">
+          <div class="big-orb" aria-hidden="true"><Orb size={540} /></div>
+          <section class="hero" aria-labelledby="judul-hero">
+            <div class="hero-main">
+              <span class="tag anim" style="--d:0"><span class="dot-live"></span>Layanan publik BPOM, aktif 24 jam</span>
+              <h1 id="judul-hero" class="anim" style="--d:1">Pastikan obat dan makanan Anda <span class="hl">aman dan terdaftar.</span></h1>
+              <p class="anim" style="--d:2">Telepon CS AI untuk cek izin edar atau laporkan produk bermasalah. Jawabannya diambil dari data resmi BPOM.</p>
+              <div class="ctas anim" style="--d:3">
+                <button class="call-btn" data-call>
+                  <span class="call-btn-ic"><i class="icon-phone-call"></i></span>Telepon CS AI
+                </button>
+                <a href="#cara-kerja" class="ghost-btn">Lihat cara kerja<span class="ghost-ic"><i class="icon-arrow-down"></i></span></a>
+              </div>
+            </div>
+            <ol class="steps anim" style="--d:4" aria-label="Cara memakai layanan">
+              {LANGKAH.map((l) => (
+                <li><span class="step-ic"><i class={l.ic}></i></span><span class="step-t">{l.t}</span><span class="step-d">{l.d}</span></li>
+              ))}
+            </ol>
+            <CariProduk />
+          </section>
+
+          <section class="show anim" style="--d:2" aria-label="Contoh percakapan dengan CS AI">
+            <span class="chip-f f1" aria-hidden="true"><i class="icon-badge-check"></i>Izin edar berlaku</span>
+            <span class="chip-f f2" aria-hidden="true"><i class="icon-captions"></i>Transkrip tersimpan</span>
+            <span class="chip-f f3" aria-hidden="true"><i class="icon-message-square-text"></i>Tiket dikirim lewat SMS</span>
+            <div class="show-head">
+              <Orb size={64} />
+              <span class="show-id"><span>CS AI HaloBPOM</span><span><span class="dot-live"></span>Siap menerima panggilan</span></span>
+              <span class="grow"></span>
+              <span class="badge">Contoh</span>
+            </div>
+            <div class="seg" role="group" aria-label="Pilih contoh layanan">
+              {LAYANAN.map((l, i) => (
+                <button type="button" class="seg-btn" data-demo={i} aria-pressed={i === 0 ? 'true' : 'false'}><span class="seg-no" aria-hidden="true">{l.no}</span>{l.judul}</button>
+              ))}
+            </div>
+            <div class="chat" data-chat aria-live="off"></div>
+            <div class="wave" data-wave aria-hidden="true">{Array.from({ length: 22 }, (_, i) => <span style={`--i:${i}`}></span>)}</div>
+            <button class="call" data-call>
+              <span class="call-ic"><i class="icon-phone-call"></i></span>
+              <span class="call-text"><span>Telepon CS AI</span><span>Layanan suara, gratis 24 jam</span></span>
+              <span class="grow"></span>
+              <i class="icon-arrow-right call-arrow"></i>
+            </button>
+          </section>
+        </div>
+
+        <PanelSuara mode="desktop" />
+      </div>
     </div>
-
-    <footer class="foot">
-      <span>© 2026 Badan Pengawas Obat dan Makanan RI · Jl. Percetakan Negara No. 23, Jakarta Pusat</span>
-      <span>Kebijakan Privasi · Syarat Layanan · LAPOR BPOM</span>
-    </footer>
-
-    <PanelSuara mode="desktop" />
   </div>
 
+  <header class="m-head">
+    <img class="m-logo" src="/brand/sigap-mark.png" alt="Logo SIGAP" width="44" height="44" />
+    <span class="m-brand"><span>HaloBPOM</span><span>Layanan Informasi dan Pengaduan</span></span>
+    <ToggleTema class="m-tema" />
+    <a href="/login" class="m-login" aria-label="Masuk Petugas"><i class="icon-lock"></i></a>
+  </header>
   <div class="mob">
-    <header class="m-head">
-      <span class="m-logo"><i class="icon-shield-check"></i></span>
-      <span class="m-brand"><span>HaloBPOM</span><span>Layanan Informasi &amp; Pengaduan</span></span>
-    </header>
     <section class="m-hero">
-      <span class="m-tag"><span></span>AKTIF 24 JAM</span>
-      <h1>Pastikan obat dan makanan yang Anda konsumsi aman dan terdaftar.</h1>
-      <p>Cek nomor izin edar, pelajari ketentuan keamanan produk, atau laporkan produk yang diduga bermasalah. Kini tersedia asisten suara CS AI yang menjawab langsung dari data resmi BPOM.</p>
-      <span class="m-eyebrow">TELEPON CS AI, LALU PILIH LAYANAN</span>
+      <span class="m-tag"><span class="dot-live"></span>Aktif 24 jam</span>
+      <h1>Pastikan obat dan makanan Anda <span class="hl">aman dan terdaftar.</span></h1>
+      <p>Telepon CS AI untuk cek izin edar atau laporkan produk bermasalah. Jawabannya diambil dari data resmi BPOM.</p>
       {LAYANAN.map((l) => (
         <button class="m-svc" data-call>
-          <span class:list={['m-svc-no', { purple: l.purple }]}>{l.no}</span>
-          <span class="m-svc-text"><span>{l.judul}</span><span>{l.mob}</span></span>
+          <span class="m-svc-no">{l.no}</span>
+          <span class="m-svc-text"><span>{l.judul}</span><span>{l.desk}</span></span>
+          <i class="icon-phone-call"></i>
         </button>
       ))}
-      <div class="m-stats">{STAT.map(([v, l]) => <div><span>{v}</span><span>{l}</span></div>)}</div>
     </section>
-    <span class="m-foot">© 2026 Badan Pengawas Obat dan Makanan RI · HaloBPOM 1500533</span>
     <button class="m-call" data-call aria-label="Telepon CS AI">
       <span class="m-call-ic"><i class="icon-phone-call"></i></span>
-      <span class="m-call-text"><span>Telepon CS AI</span><span>gratis · 24 jam</span></span>
+      <span class="m-call-text"><span>Telepon CS AI</span><span>gratis, 24 jam</span></span>
     </button>
     <PanelSuara mode="mobile" />
   </div>
+
+  <div class="float-wrap" data-float-nav inert>
+    <header class="head float-head">
+      <a href="#" class="float-home" aria-label="Kembali ke atas"><img class="logo" src="/brand/sigap-mark.png" alt="" width="56" height="56" /></a>
+      <div class="brand"><span>HaloBPOM</span><span>Layanan Informasi dan Pengaduan Publik</span></div>
+      <nav class="nav" aria-label="Navigasi halaman">
+        <a href="#cara-kerja">Cara kerja</a>
+        <a href="#cek-klik">Cek KLIK</a>
+        <a href="#sumber">Sumber data</a>
+      </nav>
+      <span class="grow"></span>
+      <span class="hotline"><i class="icon-phone"></i>HaloBPOM 1500533</span>
+      <ToggleTema class="tema-btn" />
+      <a href="/login" class="login"><i class="icon-lock"></i>Masuk Petugas</a>
+      <button class="fh-call" data-call><span class="fh-call-in"><i class="icon-phone-call"></i>Telepon CS AI</span></button>
+    </header>
+  </div>
+
+  <main class="land">
+    <section id="cara-kerja" class="sec">
+      <span class="eyebrow" data-reveal>Cara kerja</span>
+      <h2 class="sec-h" data-reveal>Satu panggilan untuk cek produk dan lapor masalah</h2>
+      <p class="sec-p" data-reveal>CS AI mendengarkan pertanyaan Anda, mencari datanya, lalu menampilkan hasilnya di layar selama panggilan berlangsung.</p>
+      <div class="bento">
+        <article class="cell c-cek" data-reveal>
+          <h3>Cek izin edar sambil bicara</h3>
+          <p>Sebutkan nama produk. CS AI mengetikkannya di pencarian cekbpom dan menunjukkan hasilnya.</p>
+          <div class="mini-cari" aria-hidden="true">
+            <div class="mini-input"><i class="icon-search"></i><span class="mini-ketik">biskuit gandum</span><span class="mini-btn">Cari</span></div>
+            <div class="mini-row" style="--i:0"><span class="mono">MD 227413001982</span><span>Biskuit Gandum Pagi</span><span class="ok">Berlaku</span></div>
+            <div class="mini-row" style="--i:1"><span class="mono">MD 227413001983</span><span>Biskuit Gandum Madu</span><span class="ok">Berlaku</span></div>
+            <div class="mini-row" style="--i:2"><span class="mono">ML 118920004417</span><span>Biskuit Gandum Oat</span><span class="no">Tidak berlaku</span></div>
+          </div>
+        </article>
+        <article class="cell c-sms" data-reveal>
+          <h3>Lapor produk bermasalah</h3>
+          <p>Ceritakan keluhan Anda. Setelah data lengkap, nomor tiket pengaduan dikirim ke ponsel Anda.</p>
+          <div class="sms" aria-hidden="true">
+            <span class="sms-ic"><i class="icon-message-square-text"></i></span>
+            <span class="sms-body"><span class="sms-top"><b>HaloBPOM</b><span>sekarang</span></span>Pengaduan Anda tercatat dengan nomor tiket ADU-20261117-0042. Simpan nomor ini untuk menanyakan perkembangannya.</span>
+          </div>
+        </article>
+        <article class="cell c-tr" data-reveal>
+          <h3>Transkrip tampil langsung</h3>
+          <p>Setiap ucapan Anda dan CS AI ditulis di layar, jadi tidak ada yang terlewat.</p>
+          <div class="caption" aria-hidden="true">
+            {'Produk ini terdaftar dan izin edarnya masih berlaku sampai 2029.'.split(' ').map((w, i) => <span style={`--i:${i}`}>{w} </span>)}
+          </div>
+        </article>
+        <article class="cell c-esk" data-reveal>
+          <h3>Diteruskan ke petugas bila perlu</h3>
+          <p>Pertanyaan yang tidak bisa dijawab dari data resmi tidak ditebak. CS AI mencatatnya sebagai tiket untuk petugas.</p>
+          <div class="flow" aria-hidden="true">
+            <span class="flow-node"><Orb size={28} />CS AI</span>
+            <span class="flow-line"></span>
+            <span class="flow-node"><i class="icon-ticket"></i>ESK-20261117-0007</span>
+            <span class="flow-line"></span>
+            <span class="flow-node"><i class="icon-headset"></i>Petugas HaloBPOM</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="cek-klik" class="sec">
+      <h2 class="sec-h" data-reveal>Cek KLIK sebelum membeli</h2>
+      <p class="sec-p" data-reveal>Empat hal yang dianjurkan BPOM untuk diperiksa sebelum membeli obat, makanan, atau kosmetik.</p>
+      <ol class="klik">
+        {KLIK.map((k, i) => (
+          <li data-reveal style={`--i:${i}`}><span class="klik-h" aria-hidden="true">{k.h}</span><span class="klik-t">{k.t}</span><span class="klik-d">{k.d}</span></li>
+        ))}
+      </ol>
+      <div class="kode" data-reveal>
+        <span class="kode-label">Kenali awalan nomor izin edar</span>
+        <ul>{KODE.map(([k, v]) => <li><span class="mono">{k}</span>{v}</li>)}</ul>
+      </div>
+    </section>
+
+    <section id="sumber" class="sec sumber">
+      <div class="sumber-kiri" data-reveal>
+        <h2 class="sec-h">Jawaban dari data resmi, bukan tebakan</h2>
+        <p class="sec-p">CS AI hanya menjawab dari sumber yang dikelola BPOM. Bila datanya tidak ada, CS AI mengatakannya dan meneruskan ke petugas.</p>
+      </div>
+      <ul class="sumber-list">
+        {SUMBER.map((s, i) => (
+          <li data-reveal style={`--i:${i}`}>
+            <span class="sumber-ic"><i class={s.ic}></i></span>
+            <span class="sumber-text"><span>{s.t}</span><span>{s.d}</span>{s.href && <a href={s.href} target="_blank" rel="noopener noreferrer">Buka cekbpom.pom.go.id<i class="icon-arrow-up-right"></i></a>}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="sec akhir" data-reveal>
+      <Orb size={88} />
+      <h2>Ada produk yang ingin Anda cek?</h2>
+      <p>CS AI siap 24 jam. Anda juga bisa menelepon petugas HaloBPOM di 1500533.</p>
+      <button class="call-btn" data-call><span class="call-btn-ic"><i class="icon-phone-call"></i></span>Telepon CS AI</button>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-brand">
+      <img class="logo sm" src="/brand/sigap-mark.png" alt="" width="44" height="44" />
+      <span><b>HaloBPOM</b><br />Badan Pengawas Obat dan Makanan RI<br />Jl. Percetakan Negara No. 23, Jakarta Pusat</span>
+    </div>
+    <nav class="foot-links" aria-label="Tautan terkait">
+      <a href="https://www.pom.go.id" target="_blank" rel="noopener noreferrer">pom.go.id</a>
+      <a href="https://cekbpom.pom.go.id" target="_blank" rel="noopener noreferrer">Cek BPOM</a>
+      <a href="https://www.lapor.go.id" target="_blank" rel="noopener noreferrer">LAPOR!</a>
+      <a href="/login">Masuk Petugas</a>
+    </nav>
+    <span class="foot-copy">© 2026 Badan Pengawas Obat dan Makanan RI</span>
+  </footer>
+
+  <template id="tpl-produk">
+    <div class="card-produk">
+      <span class="mono">BPOM RI MD 227413001982</span>
+      <span class="cp-row"><b>Biskuit Gandum Pagi</b><span class="ok">Berlaku</span></span>
+      <span class="cp-sub">PT Pangan Pagi Nusantara</span>
+    </div>
+  </template>
+  <template id="tpl-tiket">
+    <div class="card-tiket">
+      <span class="ct-ic"><i class="icon-ticket"></i></span>
+      <span><b>Pengaduan tercatat</b><br /><span class="mono">ADU-20261117-0042</span> dikirim lewat SMS</span>
+    </div>
+  </template>
 </BaseLayout>
 
 <script>
-  document.querySelectorAll('[data-call]').forEach((b) => b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('sigap:buka-panggilan'))));
+  const hemat = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Semua tombol "Telepon CS AI" membuka panel. Panel desktop menumpang di layar pertama, jadi halaman dikembalikan ke atas dulu.
+  document.querySelectorAll('[data-call]').forEach((b) => b.addEventListener('click', () => {
+    if (scrollY > 0) scrollTo({ top: 0, behavior: 'instant' });
+    window.dispatchEvent(new CustomEvent('sigap:buka-panggilan'));
+  }));
+
+  // Navbar menempel (desktop): navbar asli ada di kanvas yang diskalakan, jadi tidak bisa dibuat fixed. Salinannya
+  // berukuran dan berskala sama, dan tampil tepat saat bagian atas kanvas melewati atas layar, yaitu saat navbar asli
+  // sampai di posisi salinan. Keduanya bertukar di titik yang sama sehingga terlihat seperti satu navbar yang menempel.
+  const nav = document.querySelector<HTMLElement>('[data-float-nav]');
+  const atasKanvas = document.querySelector<HTMLElement>('[data-canvas-top]');
+  const headAsli = document.querySelector<HTMLElement>('.desk > .head');
+  if (nav && atasKanvas && headAsli) {
+    new IntersectionObserver(([e]) => {
+      const tampil = !e.isIntersecting && e.boundingClientRect.top < 0;
+      nav.classList.toggle('tampil', tampil);
+      nav.inert = !tampil;
+      headAsli.classList.toggle('lepas', tampil);
+    }).observe(atasKanvas);
+  }
+
+  // Section landing muncul saat masuk layar.
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: 0.2 });
+  document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+
+  // Sorotan kartu bento mengikuti kursor.
+  document.querySelectorAll<HTMLElement>('.cell').forEach((c) => c.addEventListener('pointermove', (e) => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    c.style.setProperty('--my', `${e.clientY - r.top}px`);
+  }));
+
+  // Contoh percakapan di layar pertama: diputar bergantian, berhenti saat tidak terlihat atau panggilan sungguhan berjalan.
+  const chat = document.querySelector<HTMLElement>('[data-chat]');
+  const wave = document.querySelector<HTMLElement>('[data-wave]');
+  const tombol = [...document.querySelectorAll<HTMLButtonElement>('[data-demo]')];
+  type Langkah = ['user' | 'ai', string] | ['produk' | 'tiket'];
+  const SKENARIO: Langkah[][] = [
+    [
+      ['user', 'Biskuit Gandum Pagi sudah terdaftar di BPOM?'],
+      ['ai', 'Sebentar, saya cek di data registrasi BPOM.'],
+      ['produk'],
+      ['ai', 'Produk ini terdaftar dan izin edarnya masih berlaku.'],
+    ],
+    [
+      ['user', 'Krim wajah yang saya beli bikin kulit iritasi.'],
+      ['ai', 'Maaf atas keluhannya. Apa nama produknya dan di mana Anda membelinya?'],
+      ['user', 'Krim Cerah Alami, saya beli di toko daring.'],
+      // Kalimat sama dengan gateway: pesanTiketPengaduan, PESAN_TAWARAN_PENUTUP, lalu PESAN_PENUTUP setelah penelepon menolak.
+      ['ai', 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261117-0042. Tindak lanjut akan dikirim melalui SMS.'],
+      ['tiket'],
+      ['ai', 'Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup.'],
+      ['user', 'Tidak, terima kasih.'],
+      ['ai', 'Terima kasih sudah menghubungi HaloBPOM. Percakapan ini saya tutup ya.'],
+    ],
+  ];
+
+  if (chat && wave) {
+    let putaran = 0;
+    let terlihat = true;
+    new IntersectionObserver(([e]) => { terlihat = e.isIntersecting; }).observe(chat);
+    const jeda = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const siap = async () => {
+      while (document.hidden || !terlihat || document.documentElement.classList.contains('panel-open')) await jeda(300);
+    };
+
+    const elemen = ([jenis, teks]: Langkah) => {
+      if (jenis === 'produk' || jenis === 'tiket') {
+        const tpl = document.getElementById(`tpl-${jenis}`) as HTMLTemplateElement;
+        return tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
+      }
+      const el = document.createElement('div');
+      el.className = `bub ${jenis}`;
+      el.textContent = teks!;
+      return el;
+    };
+
+    const pilih = (i: number) => tombol.forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
+
+    async function putar(i: number) {
+      const ini = ++putaran;
+      pilih(i);
+      chat!.replaceChildren();
+      if (hemat) { chat!.append(...SKENARIO[i].map(elemen)); return; }
+      for (const l of SKENARIO[i]) {
+        await siap();
+        if (ini !== putaran) return;
+        if (l[0] === 'ai') {
+          const ketik = document.createElement('div');
+          ketik.className = 'bub ai mengetik';
+          ketik.innerHTML = '<span></span><span></span><span></span>';
+          chat!.append(ketik);
+          await jeda(900);
+          if (ini !== putaran) return;
+          ketik.replaceWith(elemen(l));
+          wave!.classList.add('bicara');
+          await jeda(1800);
+          wave!.classList.remove('bicara');
+        } else {
+          chat!.append(elemen(l));
+          await jeda(l[0] === 'user' ? 1300 : 1600);
+        }
+        if (ini !== putaran) return;
+      }
+      await jeda(4200);
+      await siap();
+      if (ini === putaran) putar((i + 1) % SKENARIO.length);
+    }
+
+    tombol.forEach((b, i) => b.addEventListener('click', () => putar(i)));
+    putar(0);
+  }
 </script>
 
 <style>
+  /* Tema gelap khusus halaman publik: biru tua, kaca, dan pendaran biru. Panel suara dan Cari Produk tetap terang. */
   .grow { flex: 1; }
-  h1, p { margin: 0; }
+  h1, h2, h3, p { margin: 0; }
+  .mono { font-family: var(--mono); }
+  .ok { color: var(--t-green-fg); }
+  .no { color: var(--t-red-fg); }
+  :global(html[data-landing]) {
+    --night: #050a18;
+    --night-2: #0a1226;
+    --glass: rgba(255, 255, 255, .045);
+    --glass-2: rgba(255, 255, 255, .07);
+    --hair: rgba(255, 255, 255, .09);
+    --hair-2: rgba(255, 255, 255, .16);
+    --snow: #eef2fb;
+    --mist: #9aa7c2;
+    --sky: #8fb3ff;
+    --head-bg: rgba(10, 18, 40, .6);
+    --chipf-bg: rgba(13, 22, 46, .82);
+    --cell-bg: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .025));
+    --tint: rgba(91, 141, 255, .14);
+    --tint-line: rgba(143, 179, 255, .2);
+    --shell-1: rgba(255, 255, 255, .06);
+    --shell-2: rgba(255, 255, 255, .12);
+    --show-shadow: rgba(10, 30, 90, .55);
+    --dim-out: rgba(5, 10, 24, .45);
+    --seg-on: #34415f;
+    --ease: cubic-bezier(.32, .72, 0, 1);
+    background: var(--night);
+  }
+  /* Versi terang halaman publik: token yang sama dengan nilai terang. */
+  :global(html[data-landing][data-theme='light']) {
+    --night: #eef2f9;
+    --night-2: #e4eaf5;
+    --glass: rgba(255, 255, 255, .62);
+    --glass-2: rgba(255, 255, 255, .9);
+    --hair: rgba(16, 30, 70, .08);
+    --hair-2: rgba(16, 30, 70, .14);
+    --snow: #0d1630;
+    --mist: #56627c;
+    --sky: #2f6bf5;
+    --head-bg: rgba(255, 255, 255, .72);
+    --chipf-bg: rgba(255, 255, 255, .92);
+    --cell-bg: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .62));
+    --tint: rgba(47, 107, 245, .1);
+    --tint-line: rgba(47, 107, 245, .18);
+    --shell-1: rgba(16, 30, 70, .035);
+    --shell-2: rgba(16, 30, 70, .07);
+    --show-shadow: rgba(30, 60, 140, .2);
+    --dim-out: rgba(40, 46, 60, .3);
+    --seg-on: #ffffff;
+  }
+  :global(html[data-landing] body) { background: var(--night); color: var(--snow); }
+  :global(html[data-landing]) ::selection { background: rgba(91, 141, 255, .35); }
+  .grain { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .05; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
-  /* Desktop: kanvas 1920×1080 */
-  .desk { height: 100%; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: relative; }
-  .head { height: 96px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 20px; }
-  .logo { width: 56px; height: 56px; border-radius: 999px; background: var(--grad-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 6px 16px rgba(47, 107, 245, .3); }
-  .brand { display: flex; flex-direction: column; gap: 1px; margin-right: 24px; }
+  /* Layar pertama: kanvas 1920×1080 yang diskalakan memenuhi tinggi layar */
+  .hero-stage { position: relative; height: 100dvh; min-height: 480px; overflow: hidden; background:
+    radial-gradient(60vw 50vh at 78% 18%, rgba(47, 107, 245, .30), transparent 65%),
+    radial-gradient(50vw 45vh at 8% 95%, rgba(34, 197, 160, .10), transparent 70%),
+    radial-gradient(70vw 60vh at 40% 120%, rgba(47, 107, 245, .16), transparent 70%),
+    var(--night); }
+  /* Latar redup panel suara hanya menutupi kanvas; sisa layar di luar kanvas diberi warna yang sama. */
+  :global(html.panel-open) .hero-stage { box-shadow: inset 0 0 0 100vmax var(--dim-out); }
+  .canvas { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--s, 1)); }
+  .desk { height: 100%; padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 24px; position: relative; }
+
+  .head { position: relative; z-index: 2; height: 84px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 14px 0 16px; border-radius: 999px; background: var(--head-bg); border: 1px solid var(--hair); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); backdrop-filter: blur(18px); }
+  .logo { width: 56px; height: 56px; flex: none; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(19, 79, 230, .28)); }
+  .logo.sm { width: 44px; height: 44px; }
+  .brand { display: flex; flex-direction: column; gap: 1px; margin-right: 40px; }
   .brand span:first-child { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
-  .brand span:last-child { font-size: 13.5px; color: #6b7280; }
-  .hotline { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-3); margin-right: 8px; }
-  .hotline i { color: var(--blue); }
-  .login { height: 52px; padding: 0 22px; font-size: 16px; font-weight: 500; color: var(--ink); }
+  .brand span:last-child { font-size: 13.5px; color: var(--mist); }
+  .nav { display: flex; gap: 4px; }
+  .nav a { height: 46px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 999px; font-size: 16px; color: var(--mist); transition: background .5s var(--ease), color .5s var(--ease); }
+  .nav a:hover { background: var(--glass-2); color: var(--snow); }
+  .hotline { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--mist); margin-right: 10px; }
+  .hotline i { color: var(--sky); }
+  .head :global(.tema-btn) { width: 54px; height: 54px; flex: none; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); color: var(--snow); font-size: 20px; margin-right: 8px; transition: background .4s; }
+  .head :global(.tema-btn:hover) { background: var(--glass-2); }
+  .login { height: 54px; padding: 0 24px; border-radius: 999px; display: inline-flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 500; color: var(--night); background: var(--snow); transition: transform .5s var(--ease), background .3s; }
+  .login:hover { transform: translateY(-1px); opacity: .9; }
 
-  .hero-row { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 20px; }
-  .hero { position: relative; padding: 40px 60px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
-  /* Selama layanan 1, hero berganti menjadi panel Cari Produk dan tetap terang di atas latar redup panel suara. */
+  .hero-row { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 24px; }
+  .big-orb { position: absolute; right: -150px; top: -110px; opacity: .9; pointer-events: none; }
+  .big-orb::before { content: ''; position: absolute; inset: -30%; border-radius: 50%; background: radial-gradient(circle, rgba(70, 120, 255, .45), transparent 62%); }
+
+  .hero { position: relative; border-radius: 36px; padding: 40px 40px 8px 44px; display: flex; flex-direction: column; color: var(--snow); }
+  /* Selama layanan 1, hero berganti menjadi panel Cari Produk yang terang dan tetap di atas latar redup panel suara. */
   .hero.cari { z-index: 21; }
-  .tag { align-self: flex-start; display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--blue-ink); }
-  .tag span { width: 8px; height: 8px; border-radius: 9px; background: #22c55e; }
-  .hero h1 { font-size: 58px; line-height: 1.06; font-weight: 500; letter-spacing: -.03em; max-width: 980px; text-wrap: balance; }
-  .hero p { font-size: 20px; line-height: 1.55; color: var(--muted); max-width: 860px; text-wrap: pretty; }
-  .services { display: flex; flex-direction: column; gap: 12px; max-width: 960px; }
-  .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: .1em; color: var(--muted); }
-  .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .svc { text-align: left; display: flex; align-items: center; gap: 18px; padding: 20px 22px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 8px 20px rgba(16, 24, 40, .05); }
-  .svc:hover { background: #fff; box-shadow: 0 2px 4px rgba(16, 24, 40, .06), 0 12px 26px rgba(16, 24, 40, .08); }
-  .svc-no { width: 60px; height: 60px; flex: none; border-radius: 18px; background: var(--grad-blue); color: #fff; font-size: 28px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(47, 107, 245, .25); }
-  .svc-no.purple { background: linear-gradient(180deg, #a37bff, #7c4dff); }
-  .svc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-  .svc-text .t { font-size: 21px; font-weight: 500; }
-  .svc-text .d { font-size: 15.5px; line-height: 1.4; color: var(--muted); }
-  .svc-text .e { font-size: 14px; color: #2152c9; font-style: italic; margin-top: 2px; }
-  .svc-ic { font-size: 20px; color: var(--blue); flex: none; }
-  .note { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--muted); }
-  .note i { color: var(--blue); }
+  .hero :global(.cp) { color: var(--ink); }
+  .hero-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 30px; }
+  .tag { align-self: flex-start; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-size: 13px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--sky); }
+  .hero h1 { font-size: 88px; line-height: 1; font-weight: 500; letter-spacing: -.045em; max-width: 1120px; text-wrap: balance; }
+  .hl { color: var(--sky); }
+  .hero p { font-size: 23px; line-height: 1.5; color: var(--mist); max-width: 700px; text-wrap: pretty; }
+  .ctas { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
 
-  .csai { padding: 30px 36px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-  .csai-title { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-  .csai-title span:first-child { font-size: 30px; font-weight: 500; letter-spacing: -.02em; }
-  .csai-title span:last-child { font-size: 17px; color: var(--muted); }
-  .stats { width: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
-  .stat { padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
-  .stat span:first-child { font-size: 26px; font-weight: 500; }
-  .stat span:last-child { font-size: 13.5px; color: #6b7280; }
-  .call { width: 100%; height: 84px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 14px; box-shadow: 0 12px 26px rgba(22, 163, 74, .32), inset 0 1px 0 rgba(255, 255, 255, .3); }
+  .call-btn { height: 70px; padding: 0 32px 0 10px; border: 0; border-radius: 999px; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; font-size: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 14px; box-shadow: 0 14px 40px rgba(22, 163, 74, .4), inset 0 1px 0 rgba(255, 255, 255, .35); transition: transform .6s var(--ease), box-shadow .6s var(--ease); }
+  .call-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 50px rgba(22, 163, 74, .5), inset 0 1px 0 rgba(255, 255, 255, .35); }
+  .call-btn:active, .call:active, .ghost-btn:active, .m-svc:active, .seg-btn:active, .login:active { transform: scale(.98); }
+  .call-btn-ic { width: 50px; height: 50px; border-radius: 999px; background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .45); display: flex; align-items: center; justify-content: center; font-size: 22px; animation: sgPulse 1.8s ease-out infinite; transition: transform .6s var(--ease); }
+  .call-btn:hover .call-btn-ic { transform: scale(1.06) rotate(-8deg); }
+  .ghost-btn { height: 70px; padding: 0 10px 0 30px; border-radius: 999px; display: inline-flex; align-items: center; gap: 16px; font-size: 19px; font-weight: 500; color: var(--snow); background: var(--glass); border: 1px solid var(--hair-2); transition: transform .6s var(--ease), background .4s; }
+  .ghost-btn:hover { background: var(--glass-2); transform: translateY(-2px); }
+  .ghost-ic { width: 50px; height: 50px; border-radius: 999px; background: var(--glass-2); display: flex; align-items: center; justify-content: center; color: var(--sky); transition: transform .6s var(--ease); }
+  .ghost-btn:hover .ghost-ic { transform: translateY(3px) scale(1.05); }
+
+  .steps { list-style: none; margin: 0; padding: 18px 22px; border-radius: 28px; background: var(--glass); border: 1px solid var(--hair); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06); display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .steps li { display: grid; grid-template-columns: 52px 1fr; grid-template-rows: auto auto; column-gap: 14px; align-items: center; }
+  .step-ic { grid-row: span 2; width: 52px; height: 52px; border-radius: 16px; background: var(--tint); border: 1px solid var(--tint-line); color: var(--sky); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .step-t { font-size: 18px; font-weight: 500; }
+  .step-d { font-size: 15px; color: var(--mist); }
+
+  /* Kartu contoh produk: layar terang yang mengambang di atas latar gelap, dengan bingkai kaca ganda */
+  .show { position: relative; z-index: 1; padding: 26px 28px 28px; border-radius: 40px; display: flex; flex-direction: column; gap: 18px; background: linear-gradient(180deg, var(--card), var(--surface-2)); color: var(--ink); box-shadow: 0 0 0 8px var(--shell-1), 0 0 0 9px var(--shell-2), 0 40px 100px var(--show-shadow); }
+  .chip-f { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 20px 0 14px; border-radius: 999px; background: var(--chipf-bg); border: 1px solid var(--hair-2); color: var(--snow); font-size: 16px; font-weight: 500; white-space: nowrap; box-shadow: 0 18px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .1); backdrop-filter: blur(14px); animation: apung 7s ease-in-out infinite; }
+  .chip-f i { width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .f1 { left: -96px; top: 200px; }
+  .f1 i { background: var(--t-green-bg); color: var(--t-green-fg); }
+  .f2 { right: -26px; top: -26px; animation-delay: -2.4s; }
+  .f2 i { background: var(--t-blue-bg); color: var(--t-blue-fg); }
+  .f3 { left: -120px; bottom: 150px; animation-delay: -4.6s; }
+  .f3 i { background: var(--t-amber-bg); color: var(--t-amber-fg); }
+  @keyframes apung { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+  .show-head { display: flex; align-items: center; gap: 14px; }
+  .show-id { display: flex; flex-direction: column; gap: 3px; }
+  .show-id > span:first-child { font-size: 21px; font-weight: 600; }
+  .show-id > span:last-child { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--t-green-fg); }
+  .badge { padding: 5px 12px; border-radius: 8px; background: var(--t-blue-bg); color: var(--t-blue-fg); font-size: 13px; font-weight: 600; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px; border-radius: 999px; background: var(--line-2); }
+  .seg-btn { height: 46px; border: 0; border-radius: 999px; background: transparent; font-size: 16px; color: var(--ink-3); display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: background .5s var(--ease), color .5s var(--ease), box-shadow .5s var(--ease), transform .3s var(--ease); }
+  .seg-btn[aria-pressed='true'] { background: var(--seg-on); color: var(--ink); font-weight: 500; box-shadow: 0 2px 8px rgba(var(--shadow-rgb), .1); }
+  .seg-no { width: 26px; height: 26px; border-radius: 8px; background: var(--grad-blue); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+
+  .chat { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; padding: 18px; border-radius: 26px; background: var(--surface-2); border: 1px solid var(--line); box-shadow: inset 0 1px 3px rgba(var(--shadow-rgb), .04); }
+  .chat :global(.bub) { max-width: 82%; padding: 12px 16px; border-radius: 18px; font-size: 16.5px; line-height: 1.45; animation: masuk .55s var(--ease) both; }
+  .chat :global(.bub.user) { align-self: flex-end; background: var(--grad-blue); color: #fff; border-bottom-right-radius: 6px; box-shadow: 0 6px 16px rgba(47, 107, 245, .25); }
+  .chat :global(.bub.ai) { align-self: flex-start; background: var(--card); color: var(--ink); border: 1px solid var(--line-2); border-bottom-left-radius: 6px; }
+  .chat :global(.bub.mengetik) { display: flex; gap: 5px; padding: 16px 18px; }
+  .chat :global(.bub.mengetik span) { width: 7px; height: 7px; border-radius: 9px; background: var(--muted-2); animation: titik 1s ease-in-out infinite; }
+  .chat :global(.bub.mengetik span:nth-child(2)) { animation-delay: .15s; }
+  .chat :global(.bub.mengetik span:nth-child(3)) { animation-delay: .3s; }
+  .chat :global(.card-produk), .chat :global(.card-tiket) { align-self: stretch; padding: 14px 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--line-2); box-shadow: 0 10px 24px rgba(var(--shadow-rgb), .08); animation: masuk .6s var(--ease) both; }
+  .chat :global(.card-produk) { display: flex; flex-direction: column; gap: 4px; }
+  .chat :global(.card-produk .mono) { font-size: 13.5px; color: var(--muted); }
+  .chat :global(.cp-row) { display: flex; justify-content: space-between; font-size: 17px; }
+  .chat :global(.cp-row b) { font-weight: 500; }
+  .chat :global(.cp-row .ok) { padding: 1px 10px; border-radius: 999px; background: var(--t-green-bg); font-size: 14px; font-weight: 600; }
+  .chat :global(.cp-sub) { font-size: 14px; color: var(--muted); }
+  .chat :global(.card-tiket) { display: flex; align-items: center; gap: 14px; font-size: 15.5px; line-height: 1.45; color: var(--muted); }
+  .chat :global(.card-tiket b) { font-weight: 500; color: var(--ink); }
+  .chat :global(.card-tiket .mono) { color: var(--blue-ink); font-weight: 500; }
+  .chat :global(.ct-ic) { width: 44px; height: 44px; flex: none; border-radius: 14px; background: var(--t-green-bg); color: var(--t-green-fg); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+
+  .wave { height: 34px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .wave span { width: 4px; height: 100%; border-radius: 4px; background: var(--line-3); transform: scaleY(.18); transition: transform .5s var(--ease), background .5s; }
+  .wave.bicara span { background: var(--blue); animation: sgWave .9s ease-in-out infinite; animation-delay: calc(var(--i) * -.07s); }
+
+  .call { width: 100%; height: 84px; flex: none; border-radius: 999px; border: 0; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 14px; box-shadow: 0 14px 30px rgba(22, 163, 74, .32), inset 0 1px 0 rgba(255, 255, 255, .3); transition: transform .6s var(--ease); }
+  .call:hover { transform: translateY(-2px); }
   .call-ic { width: 58px; height: 58px; border-radius: 999px; background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .45); display: flex; align-items: center; justify-content: center; font-size: 24px; }
   .call-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
   .call-text span:first-child { font-size: 23px; font-weight: 600; }
   .call-text span:last-child { font-size: 14.5px; color: #eafff2; }
-  .call-arrow { font-size: 24px; margin-right: 14px; }
+  .call-arrow { width: 50px; height: 50px; border-radius: 999px; background: rgba(255, 255, 255, .18); display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .6s var(--ease); }
+  .call:hover .call-arrow { transform: translateX(4px) scale(1.05); }
 
-  .foot { flex: none; display: flex; justify-content: space-between; padding: 0 12px; font-size: 14px; color: var(--muted); }
+  /* Animasi masuk layar pertama */
+  .anim { animation: naik 1s var(--ease) both; animation-delay: calc(var(--d) * 100ms + 80ms); }
+  @keyframes naik { from { opacity: 0; transform: translateY(24px); filter: blur(8px); } }
+  @keyframes masuk { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+  @keyframes titik { 0%, 100% { opacity: .35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+
+  /* Navbar menempel (desktop): salinan navbar kanvas dengan skala yang sama, dipasang fixed di atas layar. */
+  .canvas-top { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
+  .float-wrap { position: fixed; top: 0; left: 50%; z-index: 40; width: 1920px; padding: 24px 28px 0; transform: translateX(-50%) scale(var(--s, 1)); transform-origin: 50% 0; pointer-events: none; visibility: hidden; }
+  .float-wrap.tampil { visibility: visible; }
+  .float-head { pointer-events: auto; transition: box-shadow .6s var(--ease); }
+  .float-wrap.tampil .float-head { box-shadow: 0 22px 50px rgba(var(--shadow-rgb), .22), inset 0 1px 0 rgba(255, 255, 255, .08); }
+  .desk > .head.lepas { visibility: hidden; }
+  .float-home { display: flex; }
+  /* Tombol telepon menyelinap masuk setelah navbar menempel, jadi saat bertukar kedua navbar masih identik. */
+  .fh-call { flex: none; max-width: 0; margin-left: -14px; padding: 0; border: 0; border-radius: 999px; overflow: hidden; opacity: 0; background: var(--grad-green); color: #fff; box-shadow: 0 10px 24px rgba(22, 163, 74, .3); transition: max-width .7s var(--ease), margin .7s var(--ease), opacity .4s var(--ease); }
+  .fh-call-in { height: 54px; padding: 0 24px 0 20px; display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .float-wrap.tampil .fh-call { max-width: 260px; margin-left: 0; opacity: 1; transition-delay: .1s; }
+  .fh-call:active { transform: scale(.98); }
+
+  /* Section landing di bawah layar pertama */
+  .land { position: relative; max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  .land::before { content: ''; position: absolute; left: 50%; top: 520px; width: 1100px; height: 900px; translate: -50% 0; background: radial-gradient(closest-side, rgba(47, 107, 245, .14), transparent); pointer-events: none; }
+  .sec { position: relative; padding: 140px 0 0; scroll-margin-top: 24px; }
+  .eyebrow { display: inline-flex; align-items: center; height: 30px; padding: 0 14px; margin-bottom: 22px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-size: 12px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--sky); }
+  .sec-h { font-size: clamp(36px, 5vw, 64px); line-height: 1.02; font-weight: 500; letter-spacing: -.04em; max-width: 860px; text-wrap: balance; }
+  .sec-p { margin-top: 20px; font-size: 19px; line-height: 1.6; color: var(--mist); max-width: 60ch; text-wrap: pretty; }
+
+  .bento { margin-top: 56px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 22px; }
+  .cell { position: relative; overflow: hidden; padding: 32px; border-radius: 32px; background: var(--cell-bg); border: 1px solid var(--hair); box-shadow: 0 0 0 6px var(--shell-1), inset 0 1px 0 rgba(255, 255, 255, .08); display: flex; flex-direction: column; gap: 10px; transition: translate .6s var(--ease), border-color .4s; }
+  .cell::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(143, 179, 255, .14), transparent 60%); transition: opacity .4s; }
+  .cell:hover { translate: 0 -4px; border-color: var(--hair-2); }
+  .cell:hover::after { opacity: 1; }
+  .cell h3 { font-size: 25px; font-weight: 500; letter-spacing: -.015em; }
+  .cell p { font-size: 16px; line-height: 1.55; color: var(--mist); max-width: 46ch; }
+  .c-cek { grid-column: span 7; background: radial-gradient(560px 320px at 100% 0%, rgba(47, 107, 245, .28), transparent 70%), var(--cell-bg); }
+  .c-sms { grid-column: span 5; }
+  .c-tr { grid-column: span 5; background: linear-gradient(150deg, #3b78ff, #1c3fa8 70%); border-color: rgba(255, 255, 255, .18); color: #fff; }
+  .c-tr p { color: #d9e4ff; }
+  .c-esk { grid-column: span 7; }
+
+  .mini-cari { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; color: var(--ink); }
+  .mini-input { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 18px; border-radius: 999px; background: var(--card); border: 1px solid var(--line-2); font-size: 16px; font-weight: 500; box-shadow: 0 12px 30px rgba(var(--shadow-rgb), .18); }
+  .mini-input i { color: var(--muted-2); }
+  .mini-ketik { flex: 1; }
+  .mini-btn { height: 40px; padding: 0 18px; border-radius: 999px; background: var(--grad-blue); color: #fff; display: flex; align-items: center; font-size: 15px; }
+  .mini-row { display: grid; grid-template-columns: 1.1fr 1.3fr auto; gap: 12px; align-items: center; padding: 12px 18px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 15px; }
+  .mini-row .mono { font-size: 13.5px; color: var(--muted); }
+  .mini-row .ok, .mini-row .no { font-size: 13.5px; font-weight: 600; }
+
+  .sms { margin-top: auto; display: flex; gap: 14px; padding: 16px 18px; border-radius: 24px; background: var(--card); border: 1px solid var(--line-2); box-shadow: 0 20px 50px rgba(var(--shadow-rgb), .22); font-size: 15px; line-height: 1.45; color: var(--ink-3); rotate: -2deg; transition: rotate .6s var(--ease); }
+  .c-sms:hover .sms { rotate: 0deg; }
+  .sms-ic { width: 42px; height: 42px; flex: none; border-radius: 12px; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+  .sms-body { display: flex; flex-direction: column; gap: 3px; }
+  .sms-top { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--muted-2); }
+  .sms-top b { color: var(--ink); font-weight: 600; }
+
+  .caption { margin-top: auto; padding-top: 18px; font-size: 28px; line-height: 1.25; font-weight: 500; letter-spacing: -.015em; }
+  .flow { margin-top: auto; padding-top: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .flow-node { display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px 0 12px; border-radius: 999px; background: var(--glass-2); border: 1px solid var(--hair-2); font-size: 15px; font-weight: 500; white-space: nowrap; }
+  .flow-node i { font-size: 20px; color: var(--sky); }
+  .flow-line { position: relative; flex: 1; min-width: 24px; height: 2px; overflow: hidden; background: rgba(143, 179, 255, .18); }
+  .flow-line::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, var(--sky), transparent); animation: alir 2.4s var(--ease) infinite; }
+  @keyframes alir { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+  .klik { list-style: none; margin: 56px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .klik li { position: relative; overflow: hidden; padding: 30px 28px 30px; border-radius: 30px; background: var(--cell-bg); border: 1px solid var(--hair); display: flex; flex-direction: column; gap: 8px; }
+  .klik-h { font-size: 132px; line-height: .86; font-weight: 600; letter-spacing: -.06em; color: var(--sky); -webkit-text-stroke: 2px var(--sky); }
+  .klik-t { margin-top: 18px; font-size: 22px; font-weight: 500; }
+  .klik-d { font-size: 15.5px; line-height: 1.55; color: var(--mist); }
+  .kode { margin-top: 22px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 18px 22px; border-radius: 26px; background: var(--glass); border: 1px solid var(--hair); }
+  .kode-label { font-size: 15px; font-weight: 500; color: var(--snow); }
+  .kode ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .kode li { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 6px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-size: 14.5px; color: var(--mist); }
+  .kode li .mono { padding: 3px 9px; border-radius: 999px; background: var(--tint); color: var(--sky); font-size: 13px; font-weight: 600; }
+
+  .sumber { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 72px; align-items: start; }
+  .sumber-list { list-style: none; margin: 0; padding: 8px 28px; border-radius: 32px; background: var(--glass); border: 1px solid var(--hair); display: flex; flex-direction: column; }
+  .sumber-list li { display: flex; gap: 18px; padding: 24px 0; }
+  .sumber-list li + li { border-top: 1px solid var(--hair); }
+  .sumber-ic { width: 52px; height: 52px; flex: none; border-radius: 16px; background: var(--tint); border: 1px solid var(--tint-line); color: var(--sky); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .sumber-text { display: flex; flex-direction: column; gap: 4px; }
+  .sumber-text > span:first-child { font-size: 20px; font-weight: 500; }
+  .sumber-text > span:nth-child(2) { font-size: 16px; line-height: 1.55; color: var(--mist); }
+  .sumber-text a { margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 500; color: var(--sky); }
+  .sumber-text a:hover { text-decoration: underline; }
+
+  .akhir { color: #fff; margin-top: 140px; position: relative; overflow: hidden; padding: 80px 32px; border-radius: 44px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; background: radial-gradient(600px 300px at 50% -10%, rgba(255, 255, 255, .28), transparent 70%), linear-gradient(160deg, #3b78ff, #1a3594 75%); border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 0 0 8px rgba(255, 255, 255, .03), 0 50px 120px rgba(25, 60, 180, .35); }
+  .akhir h2 { margin-top: 8px; font-size: clamp(34px, 4.6vw, 60px); line-height: 1.02; font-weight: 500; letter-spacing: -.04em; text-wrap: balance; }
+  .akhir p { font-size: 18px; color: #dbe5ff; max-width: 52ch; }
+  .akhir .call-btn { margin-top: 10px; }
+
+  .foot { max-width: 1240px; margin: 0 auto; padding: 72px 24px 44px; display: grid; grid-template-columns: 1fr auto; gap: 24px 40px; align-items: start; font-size: 15px; color: var(--mist); }
+  .foot-brand { display: flex; gap: 14px; line-height: 1.55; }
+  .foot-brand b { color: var(--snow); font-weight: 600; }
+  .foot-links { display: flex; flex-wrap: wrap; gap: 6px 24px; }
+  .foot-links a { color: var(--mist); transition: color .3s; }
+  .foot-links a:hover { color: var(--snow); }
+  .foot-copy { grid-column: 1 / -1; padding-top: 24px; border-top: 1px solid var(--hair); font-size: 14px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal] { opacity: 0; transform: translateY(40px); filter: blur(8px); transition: opacity 1s var(--ease) calc(var(--i, 0) * 100ms), transform 1s var(--ease) calc(var(--i, 0) * 100ms), filter 1s var(--ease) calc(var(--i, 0) * 100ms), translate .6s var(--ease), border-color .4s; }
+    [data-reveal].in { opacity: 1; transform: none; filter: none; }
+    /* Huruf KLIK mulai sebagai garis tepi lalu terisi saat masuk layar. */
+    .klik li .klik-h { color: transparent; transition: color 1s ease calc(var(--i, 0) * 140ms + 400ms); }
+    .klik li.in .klik-h { color: var(--sky); }
+    .c-cek.in .mini-ketik { animation: ketik 1.2s steps(14) .5s both; }
+    .c-cek.in .mini-row { animation: masuk .7s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 1.8s); }
+    .c-tr.in .caption span { animation: kata .5s ease both; animation-delay: calc(var(--i) * 110ms + .5s); }
+  }
+  @keyframes ketik { from { clip-path: inset(0 100% 0 0); } }
+  @keyframes kata { from { opacity: .15; } }
 
   /* Ponsel */
+  @media (max-width: 767px) { .float-wrap { display: none; } }
   .mob { display: none; }
   @media (max-width: 767px) {
-    .desk { display: none; }
-    .mob { display: flex; flex-direction: column; gap: 12px; min-height: 100vh; padding: max(14px, env(safe-area-inset-top)) 14px 110px; background: var(--bg); }
+    .hero-stage { display: none; }
+    .mob { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 14px 14px 0; background: radial-gradient(120vw 70vh at 100% 0%, rgba(47, 107, 245, .3), transparent 65%); }
+    .land { padding: 0 16px; }
+    .sec { padding-top: 88px; }
+    .bento { margin-top: 32px; grid-template-columns: 1fr; gap: 16px; }
+    .bento .cell { grid-column: auto; padding: 24px; }
+    .mini-row { grid-template-columns: 1fr auto; }
+    .mini-row .mono { grid-column: 1 / -1; }
+    .caption { font-size: 22px; }
+    .flow-line { display: none; }
+    .sms { rotate: 0deg; }
+    .klik { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .klik li { padding: 22px 18px; }
+    .klik-h { font-size: 76px; }
+    .sumber { grid-template-columns: 1fr; gap: 24px; }
+    .sumber-list { padding: 4px 20px; }
+    .akhir { margin-top: 88px; padding: 52px 20px; border-radius: 32px; }
+    .foot { grid-template-columns: 1fr; padding: 48px 16px 120px; }
   }
-  .m-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 26px; background: var(--panel); border: 1px solid #fff; }
-  .m-logo { width: 44px; height: 44px; flex: none; border-radius: 999px; background: var(--grad-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 21px; box-shadow: 0 4px 12px rgba(47, 107, 245, .3); }
+  /* Navbar ponsel menempel di atas layar sepanjang halaman. */
+  .m-head { position: sticky; top: max(12px, env(safe-area-inset-top)); z-index: 40; margin: max(12px, env(safe-area-inset-top)) 14px 0; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 999px; background: var(--head-bg); border: 1px solid var(--hair); backdrop-filter: blur(18px) saturate(140%); box-shadow: 0 12px 30px rgba(var(--shadow-rgb), .14); }
+  @media (min-width: 768px) { .m-head { display: none; } }
+  .m-logo { width: 44px; height: 44px; flex: none; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(19, 79, 230, .25)); }
   .m-brand { flex: 1; display: flex; flex-direction: column; }
   .m-brand span:first-child { font-size: 18px; font-weight: 600; }
-  .m-brand span:last-child { font-size: 12px; color: var(--muted); }
-  .m-hero { display: flex; flex-direction: column; gap: 14px; padding: 22px 18px; border-radius: 28px; background: var(--panel); border: 1px solid #fff; }
-  .m-tag { align-self: flex-start; display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--blue-ink); }
-  .m-tag span { width: 7px; height: 7px; border-radius: 9px; background: #22c55e; }
-  .m-hero h1 { font-size: 31px; line-height: 1.1; font-weight: 500; letter-spacing: -.02em; text-wrap: balance; }
-  .m-hero p { font-size: 15.5px; line-height: 1.5; color: var(--muted); }
-  .m-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
-  .m-svc { text-align: left; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 6px 16px rgba(16, 24, 40, .05); }
-  .m-svc-no { width: 48px; height: 48px; flex: none; border-radius: 15px; background: var(--grad-blue); color: #fff; font-size: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-  .m-svc-no.purple { background: linear-gradient(180deg, #a37bff, #7c4dff); }
+  .m-brand span:last-child { font-size: 12px; color: var(--mist); }
+  .m-head :global(.m-tema) { width: 44px; height: 44px; flex: none; border-radius: 999px; background: var(--glass-2); border: 1px solid var(--hair); color: var(--snow); font-size: 18px; }
+  .m-login { width: 44px; height: 44px; border-radius: 999px; background: var(--snow); color: var(--night); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .m-hero { display: flex; flex-direction: column; gap: 16px; padding: 28px 6px 8px; }
+  .m-tag { align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-size: 11.5px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--sky); }
+  .m-hero h1 { font-size: 40px; line-height: 1.02; font-weight: 500; letter-spacing: -.04em; text-wrap: balance; }
+  .m-hero p { font-size: 16.5px; line-height: 1.55; color: var(--mist); margin-bottom: 6px; }
+  .m-svc { text-align: left; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 24px; background: var(--glass); border: 1px solid var(--hair); color: var(--snow); transition: transform .3s var(--ease); }
+  .m-svc > i { color: var(--sky); font-size: 18px; }
+  .m-svc-no { width: 46px; height: 46px; flex: none; border-radius: 14px; background: var(--grad-blue); color: #fff; font-size: 21px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
   .m-svc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .m-svc-text span:first-child { font-size: 17px; font-weight: 500; }
-  .m-svc-text span:last-child { font-size: 13.5px; line-height: 1.4; color: var(--muted); }
-  .m-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
-  .m-stats div { padding: 10px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 1px; }
-  .m-stats span:first-child { font-size: 19px; font-weight: 500; }
-  .m-stats span:last-child { font-size: 11.5px; color: var(--muted); }
-  .m-foot { font-size: 12px; line-height: 1.5; color: var(--muted); text-align: center; padding: 4px 10px; }
-  .m-call { position: fixed; right: 16px; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 5; height: 62px; padding: 0 20px 0 8px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 26px rgba(22, 163, 74, .38), inset 0 1px 0 rgba(255, 255, 255, .3); }
+  .m-svc-text span:last-child { font-size: 13.5px; line-height: 1.4; color: var(--mist); }
+  .m-call { position: fixed; right: 16px; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 5; height: 62px; padding: 0 20px 0 8px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #3ad07f, #16a34a); color: #fff; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 30px rgba(22, 163, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .3); }
   .m-call-ic { width: 46px; height: 46px; border-radius: 999px; background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .45); display: flex; align-items: center; justify-content: center; font-size: 20px; animation: sgPulse 1.8s ease-out infinite; }
   .m-call-text { display: flex; flex-direction: column; align-items: flex-start; }
   .m-call-text span:first-child { font-size: 16px; font-weight: 600; }

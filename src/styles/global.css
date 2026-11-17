@@ -4,22 +4,82 @@
   --panel: #f3f4f6;
   --surface: #fbfbfc;
   --surface-2: #f8f9fb;
+  --card: #ffffff;
   --line: #eef0f3;
   --line-2: #e6e9ee;
+  --line-3: #dde0e5;
+  --edge: rgba(255, 255, 255, .95);
   --ink: #1d222c;
   --ink-2: #2a2f3a;
   --ink-3: #3b414d;
   --muted: #5b6270;
   --muted-2: #8a919e;
+  --placeholder: #9aa1ad;
   --blue: #2f6bf5;
   --blue-ink: #1d3f9a;
+  --link: #2152c9;
   --danger: #b42318;
   --grad-blue: linear-gradient(180deg, #5b8dff, #2a62f0);
-  --shadow-panel: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 30px rgba(16, 24, 40, .05);
-  --shadow-btn: 0 2px 8px rgba(16, 24, 40, .06);
-  --shadow-row: 0 1px 2px rgba(16, 24, 40, .05);
+  --grad-green: linear-gradient(180deg, #3ad07f, #16a34a);
+  --on-accent: #ffffff;
+  --overlay: rgba(40, 46, 60, .3);
+  --kerangka-a: #dde1e7;
+  --kerangka-b: #eceef2;
+  --tab-on: linear-gradient(180deg, #e9eefa, #dde5f6);
+  --shadow-rgb: 16, 24, 40;
+  --shadow-panel: 0 1px 2px rgba(var(--shadow-rgb), .04), 0 10px 30px rgba(var(--shadow-rgb), .05);
+  --shadow-btn: 0 2px 8px rgba(var(--shadow-rgb), .06);
+  --shadow-row: 0 1px 2px rgba(var(--shadow-rgb), .05);
+  --shadow-pop: 0 18px 40px rgba(20, 30, 60, .2);
+  /* Warna status: -bg untuk latar chip/kotak, -fg untuk teks/ikon di atasnya, -line untuk garis tepinya. */
+  --t-blue-bg: #e3ecff; --t-blue-fg: #2152c9; --t-blue-line: #b9cdf9;
+  --t-green-bg: #dcf5e6; --t-green-fg: #15803d; --t-green-line: #a9dcb9;
+  --t-amber-bg: #fdf0d3; --t-amber-fg: #8a5300; --t-amber-line: #f2d27a;
+  --t-red-bg: #fde8e8; --t-red-fg: #b42318; --t-red-line: #f3b4b4;
+  --t-violet-bg: #ece7fe; --t-violet-fg: #5b3fc4; --t-violet-line: #cfc2fb;
+  --t-teal-bg: #daf1f5; --t-teal-fg: #0e6a80; --t-teal-line: #a6dbe5;
+  --t-gray-bg: #e9ebef; --t-gray-fg: #475060; --t-gray-line: #d3d7de;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
   color-scheme: light;
+}
+/* Tema gelap. Dipilih lewat tombol tema (disimpan di localStorage) atau mengikuti pengaturan sistem. */
+:root[data-theme='dark'] {
+  --bg: #0b1020;
+  --panel: #121a2e;
+  --surface: #182238;
+  --surface-2: #1b2640;
+  --card: #1f2a45;
+  --line: #222d47;
+  --line-2: #2a3654;
+  --line-3: #34415f;
+  --edge: rgba(255, 255, 255, .06);
+  --ink: #e8edf7;
+  --ink-2: #d6ddeb;
+  --ink-3: #bcc5d8;
+  --muted: #929db6;
+  --muted-2: #6f7a94;
+  --placeholder: #6f7a94;
+  --blue: #5b8dff;
+  --blue-ink: #a8c4ff;
+  --link: #8fb3ff;
+  --danger: #f87171;
+  --overlay: rgba(0, 0, 0, .55);
+  --kerangka-a: #1b2640;
+  --kerangka-b: #26324f;
+  --tab-on: linear-gradient(180deg, #24345c, #1e2c4f);
+  --shadow-rgb: 0, 0, 0;
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .25);
+  --shadow-btn: 0 2px 8px rgba(0, 0, 0, .3);
+  --shadow-row: 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow-pop: 0 18px 40px rgba(0, 0, 0, .5);
+  --t-blue-bg: rgba(91, 141, 255, .16); --t-blue-fg: #a8c4ff; --t-blue-line: rgba(91, 141, 255, .35);
+  --t-green-bg: rgba(34, 197, 94, .14); --t-green-fg: #6ee7a0; --t-green-line: rgba(34, 197, 94, .35);
+  --t-amber-bg: rgba(250, 190, 40, .14); --t-amber-fg: #fcd36b; --t-amber-line: rgba(250, 190, 40, .35);
+  --t-red-bg: rgba(248, 113, 113, .14); --t-red-fg: #fca5a5; --t-red-line: rgba(248, 113, 113, .35);
+  --t-violet-bg: rgba(167, 139, 250, .16); --t-violet-fg: #c4b5fd; --t-violet-line: rgba(167, 139, 250, .35);
+  --t-teal-bg: rgba(45, 212, 235, .13); --t-teal-fg: #7ddcec; --t-teal-line: rgba(45, 212, 235, .32);
+  --t-gray-bg: rgba(255, 255, 255, .08); --t-gray-fg: #c3cad8; --t-gray-line: rgba(255, 255, 255, .14);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -31,10 +91,15 @@ html, body { height: 100%; overflow: hidden; }
   html[data-responsive] .stage { position: static; overflow: visible; }
   html[data-responsive] .frame { position: static; width: auto; height: auto; transform: none; }
 }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: Outfit, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-a { color: #2152c9; text-decoration: none; }
+/* Halaman landing: dokumen biasa yang bisa di-scroll; kanvas 1920×1080 hanya dipakai di layar pertamanya. */
+html[data-landing], html[data-landing] body { height: auto; overflow-x: clip; overflow-y: visible; }
+html[data-landing] .stage { position: static; overflow: visible; }
+html[data-landing] .frame { position: static; width: auto; height: auto; transform: none; }
+@media (prefers-reduced-motion: no-preference) { html[data-landing] { scroll-behavior: smooth; } }
+body { margin: 0; background: var(--bg); transition: background-color .3s, color .3s; color: var(--ink); font-family: Outfit, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); text-decoration: none; }
 input, textarea, select, button { font-family: inherit; color: inherit; }
-input::placeholder, textarea::placeholder { color: #9aa1ad; }
+input::placeholder, textarea::placeholder { color: var(--placeholder); }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
@@ -45,20 +110,20 @@ html.panel-open, html.panel-open body { overflow: hidden !important; }
 @keyframes sgToast { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
 
-.panel { background: var(--panel); border: 1px solid rgba(255, 255, 255, .95); border-radius: 32px; box-shadow: var(--shadow-panel); }
+.panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 32px; box-shadow: var(--shadow-panel); }
 .tile { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-row); }
-.pill { height: 50px; padding: 0 18px; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); display: inline-flex; align-items: center; gap: 9px; font-size: 15px; color: var(--ink-2); white-space: nowrap; }
+.pill { height: 50px; padding: 0 18px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--edge); box-shadow: var(--shadow-btn); display: inline-flex; align-items: center; gap: 9px; font-size: 15px; color: var(--ink-2); white-space: nowrap; }
 .pill-flat { background: var(--surface); border: 1px solid var(--line); box-shadow: none; color: var(--ink); }
-.btn-primary { border: 0; border-radius: 999px; background: var(--grad-blue); color: #fff; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 16px rgba(47, 107, 245, .3); }
-.tab { height: 44px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid #fff; box-shadow: var(--shadow-btn); font-size: 15px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 8px; }
-.tab[aria-pressed='true'] { background: linear-gradient(180deg, #e9eefa, #dde5f6); box-shadow: inset 0 2px 5px rgba(47, 80, 160, .14); font-weight: 500; color: var(--blue-ink); }
+.btn-primary { border: 0; border-radius: 999px; background: var(--grad-blue); color: var(--on-accent); font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 16px rgba(47, 107, 245, .3); }
+.tab { height: 44px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--edge); box-shadow: var(--shadow-btn); font-size: 15px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 8px; }
+.tab[aria-pressed='true'] { background: var(--tab-on); box-shadow: inset 0 2px 5px rgba(47, 80, 160, .14); font-weight: 500; color: var(--blue-ink); }
 .chip { padding: 5px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
 .mono { font-family: var(--mono); }
 .dot-live { width: 9px; height: 9px; flex: none; border-radius: 9px; background: #22c55e; animation: sgPulse 1.6s ease-out infinite; }
 .orb { border-radius: 50%; flex: none; background: radial-gradient(circle at 34% 28%, #ffffff 0%, #d7e5ff 14%, #8db7ff 42%, #4581f8 72%, #2b5fe0 100%); animation: sgFloat 5s ease-in-out infinite; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 
-.toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 24px 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid #fff; box-shadow: 0 18px 40px rgba(20, 30, 60, .22); font-size: 17px; font-weight: 500; animation: sgToast .25s ease-out; white-space: nowrap; }
+.toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 24px 0 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--edge); box-shadow: var(--shadow-pop); font-size: 17px; font-weight: 500; animation: sgToast .25s ease-out; white-space: nowrap; }
 .toast-icon { width: 34px; height: 34px; border-radius: 99px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; }
 
 /* Visibility of system status (src/lib/statusSistem.ts): tombol sibuk, bilah muat, dan kerangka halaman dashboard. */
@@ -72,7 +137,7 @@ button.sibuk { opacity: .85; }
 .bilah-muat::before { content: ''; position: absolute; inset: 0; background: var(--blue); transform-origin: left; animation: sgBilah 1.2s ease-in-out infinite; }
 body.memuat .bilah-muat { opacity: 1; }
 body.memuat { cursor: progress; }
-.kerangka { border-radius: 16px; background: linear-gradient(90deg, #dde1e7 0%, #eceef2 50%, #dde1e7 100%); background-size: 200% 100%; animation: sgKilau 1.4s ease-in-out infinite; }
+.kerangka { border-radius: 16px; background: linear-gradient(90deg, var(--kerangka-a) 0%, var(--kerangka-b) 50%, var(--kerangka-a) 100%); background-size: 200% 100%; animation: sgKilau 1.4s ease-in-out infinite; }
 .kerangka-halaman { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 20px; }
 body.memuat:not(.tanpa-kerangka) .kerangka-halaman { display: flex; }
 body.memuat:not(.tanpa-kerangka) .main > :not(.top):not(.kerangka-halaman) { display: none; }
