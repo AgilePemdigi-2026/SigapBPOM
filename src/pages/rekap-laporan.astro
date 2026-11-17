@@ -134,6 +134,7 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
 
 <script>
   import { PESAN_LAPORAN } from '../lib/LaporanController';
+  import { tandaiSibuk } from '../lib/statusSistem';
 
   const toast = (msg: string, kind?: 'ok' | 'err') => (window as any).sigapToast?.(msg, kind);
   const tombol = document.getElementById('unduh-btn')!;
@@ -149,9 +150,11 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
       e.preventDefault();
       const { awal = '', akhir = '' } = form.dataset;
       const format = String(new FormData(form).get('format'));
-      konfirmasi.disabled = true;
+      // Menyusun PDF bisa memakan beberapa detik: tombol menampilkan proses dan klik ulang diabaikan.
+      const selesai = tandaiSibuk(konfirmasi, 'Menyusun laporan…');
       try {
-        const res = await fetch(`/api/laporan?${new URLSearchParams({ awal, akhir, format })}`);
+        const res = await fetch(`/api/laporan?${new URLSearchParams({ awal, akhir, format })}`).catch(() => null);
+        if (!res) return toast('Terjadi kesalahan pada sistem.', 'err');
         if (!res.ok) {
           // Endpoint menolak tanpa hak ekspor dengan 403; pesan lain ditampilkan bila endpoint mengirimnya.
           const body = (await res.json().catch(() => null)) as { message?: unknown } | null;
@@ -166,7 +169,7 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
         dialog.close();
         toast(PESAN_LAPORAN.unduhSukses);
       } finally {
-        konfirmasi.disabled = false;
+        selesai();
       }
     });
   }

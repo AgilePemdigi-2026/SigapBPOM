@@ -82,12 +82,26 @@ const belum = tiket.filter((t) => t.labelStatus === LABEL_STATUS_TIKET.belum_dit
       </header>
 
       <slot />
+
+      <!-- Kerangka saat pindah halaman: tampil bila halaman berikutnya belum datang setelah TUNDA_MS (statusSistem.ts). -->
+      <div class="kerangka-halaman" aria-hidden="true">
+        <div class="k-kartu">{[0, 1, 2].map(() => (
+          <div class="panel k-kartu-isi"><div class="kerangka k-ikon"></div><div class="k-teks"><div class="kerangka k-garis pendek"></div><div class="kerangka k-garis"></div></div></div>
+        ))}</div>
+        <div class="panel k-panel">
+          <div class="kerangka k-judul"></div>
+          {[0, 1, 2, 3, 4, 5].map(() => <div class="kerangka k-baris"></div>)}
+        </div>
+      </div>
     </div>
   </div>
+  <div class="bilah-muat" aria-hidden="true"></div>
+  <span class="sr-only" role="status" aria-live="polite" id="status-muat"></span>
 </BaseLayout>
 
 <script>
   import { PESAN_PEMANTAUAN } from '../lib/PemantauanLayananController';
+  import { TUNDA_MS, tandaiSibuk } from '../lib/statusSistem';
 
   // NFR-12: timeout idle ditegakkan middleware dari aktivitas terakhir di server. Browser hanya melapor aktivitas
   // (klik, ketik, gerak) lewat /api/sesi, lalu memuat ulang halaman setelah idle agar middleware mengarahkan ke /login.
@@ -95,7 +109,43 @@ const belum = tiket.filter((t) => t.labelStatus === LABEL_STATUS_TIKET.belum_dit
   const IDLE_MS = Number(document.querySelector<HTMLElement>('.app')!.dataset.idleMs);
   const JEDA_LAPOR_MS = Math.min(60_000, IDLE_MS / 4);
 
-  function keluar() {
+  // Visibility of system status: pindah halaman (tautan atau form GET) menampilkan bilah muat dan kerangka, form POST
+  // menandai tombol pengirimnya sibuk. Ditunda TUNDA_MS agar halaman yang cepat tidak berkedip.
+  const statusMuat = document.getElementById('status-muat')!;
+  let jedaMuat: ReturnType<typeof setTimeout> | undefined;
+  function mulaiMuat(kerangka: boolean) {
+    clearTimeout(jedaMuat);
+    jedaMuat = setTimeout(() => {
+      document.body.classList.add('memuat');
+      document.body.classList.toggle('tanpa-kerangka', !kerangka);
+      statusMuat.textContent = 'Memuat halaman…';
+    }, TUNDA_MS);
+  }
+  // Kembali lewat tombol Back (bfcache) memulihkan halaman apa adanya.
+  addEventListener('pageshow', () => {
+    clearTimeout(jedaMuat);
+    document.body.classList.remove('memuat', 'tanpa-kerangka');
+    statusMuat.textContent = '';
+  });
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = (e.target as Element).closest<HTMLAnchorElement>('a[href]');
+    if (!a || a.target || a.hasAttribute('download')) return;
+    const tujuan = new URL(a.href, location.href);
+    if (tujuan.origin !== location.origin || (tujuan.pathname === location.pathname && tujuan.search === location.search)) return;
+    mulaiMuat(true);
+  });
+  document.addEventListener('submit', (e) => {
+    const form = e.target as HTMLFormElement;
+    if (e.defaultPrevented || form.method === 'dialog') return;
+    if (form.method === 'get') return mulaiMuat(true);
+    if (e.submitter instanceof HTMLButtonElement) tandaiSibuk(e.submitter, 'Menyimpan…');
+    mulaiMuat(false);
+  });
+
+  function keluar(e: Event) {
+    tandaiSibuk(e.currentTarget as HTMLButtonElement, '');
+    mulaiMuat(false);
     fetch('/api/keluar', { method: 'POST' }).finally(() => location.replace('/login'));
   }
 
@@ -214,4 +264,13 @@ const belum = tiket.filter((t) => t.labelStatus === LABEL_STATUS_TIKET.belum_dit
   .notif > i { font-size: 18px; margin-top: 2px; }
   .notif > span { display: flex; flex-direction: column; gap: 2px; }
   .notif-sub { font-size: 13px; color: #6b7280; }
+  .k-kartu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; flex: none; }
+  .k-kartu-isi { height: 132px; padding: 0 28px; display: flex; align-items: center; gap: 18px; }
+  .k-ikon { width: 56px; height: 56px; border-radius: 18px; flex: none; }
+  .k-teks { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .k-garis { height: 22px; width: 60%; }
+  .k-garis.pendek { height: 14px; width: 40%; }
+  .k-panel { flex: 1; min-height: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+  .k-judul { width: 240px; height: 30px; flex: none; }
+  .k-baris { height: 58px; flex: none; }
 </style>

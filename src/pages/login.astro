@@ -38,6 +38,7 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
           <span class="input-wrap pw" id="pw-wrap"><i class="icon-lock"></i><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" /><button type="button" id="toggle-pw" class="eye" aria-label="Tampilkan password"><i class="icon-eye"></i></button></span>
         </label>
         <button type="submit" id="login-btn" class="btn-primary submit">Login<i class="icon-arrow-right"></i></button>
+        <span class="sr-only" role="status" aria-live="polite" id="login-status"></span>
         <div id="login-err" class="err" role="alert" hidden>
           <i class="icon-circle-alert"></i>
           <span><span id="err-msg"></span><span id="err-hint" class="err-hint" hidden>Akses akun dikunci sementara setelah tiga kali gagal login berturut-turut.</span></span>
@@ -50,6 +51,8 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
 </BaseLayout>
 
 <script>
+  import { tandaiSibuk, ubahTeksSibuk } from '../lib/statusSistem';
+
   // Kredensial dan penguncian dihitung dan diputuskan hanya di server (/api/login, Edge Function login T-F3.2-02), yang
   // juga mengirim pesan "Akses dikunci" pada kegagalan ketiga. Keterangan penguncian adalah baris tetap SRS 3.1.3.
   const MSG = {
@@ -68,6 +71,7 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
   const errHint = document.getElementById('err-hint')!;
   const btn = document.getElementById('login-btn') as HTMLButtonElement;
   const toggle = document.getElementById('toggle-pw') as HTMLButtonElement;
+  const statusEl = document.getElementById('login-status')!;
 
   function showErr(msg: string) {
     errMsg.textContent = msg;
@@ -86,17 +90,30 @@ const demo = !import.meta.env.PROD && process.env.SIGAP_SESI === 'tiruan';
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (btn.disabled) return;
     if (!email.value.trim() || !pw.value) return showErr(MSG.kosong);
+    // Visibility of system status: tombol menampilkan proses selama login dan saat dashboard dimuat, klik ulang diabaikan.
+    errBox.hidden = true;
+    const selesai = tandaiSibuk(btn, 'Memeriksa akun…');
+    statusEl.textContent = 'Memeriksa akun…';
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ email: email.value, password: pw.value }),
     }).catch(() => null);
     const hasil: { message?: string } | null = await res?.json().catch(() => null);
-    if (!res?.ok) return showErr(hasil?.message ?? MSG.galat);
+    if (!res?.ok) {
+      selesai();
+      statusEl.textContent = '';
+      return showErr(hasil?.message ?? MSG.galat);
+    }
     sessionStorage.setItem('sigap-toast', hasil?.message ?? '');
+    ubahTeksSibuk(btn, 'Membuka dashboard…');
+    statusEl.textContent = 'Login berhasil. Membuka dashboard…';
     location.href = '/ringkasan';
   });
+  // Kembali ke halaman login lewat tombol Back (bfcache) tidak boleh menyisakan tombol yang terkunci.
+  addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 </script>
 
 <style>
