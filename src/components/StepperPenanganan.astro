@@ -501,7 +501,7 @@ const ikonTahap: Record<TahapStepper, string> = {
     gap: 12px;
     padding: 10px 14px;
     border-radius: 14px;
-    background: #fff;
+    background: var(--card);
     border: 1px solid var(--line-2);
     box-shadow: var(--shadow-row);
     transition: all 0.2s ease;
@@ -546,47 +546,47 @@ const ikonTahap: Record<TahapStepper, string> = {
 
   /* Step States */
   .step-item.aktif {
-    border-color: #93b4f8;
-    background: #eef4ff;
+    border-color: var(--t-blue-line);
+    background: var(--t-blue-bg);
   }
 
   .step-item.aktif .step-num {
     background: var(--grad-blue);
-    color: #fff;
+    color: var(--on-accent);
     border-color: transparent;
   }
 
   .step-item.aktif .step-label {
-    color: #1a3a8f;
+    color: var(--blue-ink);
   }
 
   .step-item.aktif .step-status {
-    color: #2152c9;
+    color: var(--t-blue-fg);
     font-weight: 500;
   }
 
   .step-item.selesai {
-    border-color: #a9dcb9;
-    background: #f0fdf4;
+    border-color: var(--t-green-line);
+    background: var(--t-green-bg);
   }
 
   .step-item.selesai .step-num {
     background: #16a34a;
-    color: #fff;
+    color: var(--on-accent);
     border-color: transparent;
   }
 
   .step-item.selesai .step-label {
-    color: #14532d;
+    color: var(--t-green-fg);
   }
 
   .step-item.selesai .step-status {
-    color: #16a34a;
+    color: var(--t-green-fg);
   }
 
   .step-item.dilewati {
     opacity: 0.6;
-    background: #f4f5f7;
+    background: var(--panel);
   }
 
   /* Pesan Feedback Alert */
@@ -601,15 +601,15 @@ const ikonTahap: Record<TahapStepper, string> = {
   }
 
   .pesan-alert.success {
-    background: #eefaf2;
-    border: 1px solid #a9dcb9;
-    color: #14532d;
+    background: var(--t-green-bg);
+    border: 1px solid var(--t-green-line);
+    color: var(--t-green-fg);
   }
 
   .pesan-alert.error {
-    background: #fdecec;
-    border: 1px solid #f8b4b4;
-    color: #991b1b;
+    background: var(--t-red-bg);
+    border: 1px solid var(--t-red-line);
+    color: var(--t-red-fg);
   }
 
   .pesan-alert[hidden] {
@@ -664,12 +664,12 @@ const ikonTahap: Record<TahapStepper, string> = {
     height: 48px;
     padding: 0 16px;
     border-radius: 14px;
-    background: #fff;
+    background: var(--card);
     border: 1px solid var(--line-2);
     outline: none;
     font-size: 15px;
     color: var(--ink);
-    box-shadow: inset 0 1px 2px rgba(16, 24, 40, .03);
+    box-shadow: inset 0 1px 2px rgba(var(--shadow-rgb), .03);
     transition: border-color 0.15s ease;
   }
 
@@ -701,12 +701,12 @@ const ikonTahap: Record<TahapStepper, string> = {
     padding: 0 22px;
     font-size: 15px;
     color: var(--danger);
-    border-color: #fca5a5;
-    background: #fff;
+    border-color: var(--t-red-line);
+    background: var(--card);
   }
 
   .btn-tutup:hover {
-    background: #fef2f2;
-    border-color: #f87171;
+    background: var(--t-red-bg);
+    border-color: var(--danger);
   }
 </style>

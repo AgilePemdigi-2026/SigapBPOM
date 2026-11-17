@@ -7,7 +7,7 @@ import {
   samarkanDeretTelepon,
 } from './eskalasi.mjs';
 import { kueriProduk } from './cekbpom.mjs';
-import { PROMPT_SISTEM, RiwayatPanggilan, teksUntukSuara } from './percakapan.mjs';
+import { PESAN_TAWARAN_PENUTUP, PROMPT_SISTEM, RiwayatPanggilan, inginMenutup, teksUntukSuara } from './percakapan.mjs';
 
 const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
@@ -16,6 +16,14 @@ test('t_f1_4_03 pesan eskalasi sama persis dengan kamus PRD Lampiran A', () => {
   assert.ok(PESAN_BUTUH_PETUGAS.endsWith(PESAN_MINTA_ULANG_TELEPON));
   assert.equal(pesanTiketEskalasi('ESK-20261019-0001'), 'Nomor tiket Anda ESK-20261019-0001. Jawaban petugas akan dikirim melalui SMS.');
   assert.ok(PROMPT_SISTEM.includes(PESAN_BUTUH_PETUGAS));
+});
+
+test('t_f1_4_03 tawaran bantuan setelah tiket eskalasi membuat "tidak, terima kasih" menutup panggilan', () => {
+  // Gateway mencatat pesan tiket ditambah PESAN_TAWARAN_PENUTUP di riwayat; tanpa tawaran itu ucapan penutup tidak dikenali.
+  const pesan = pesanTiketEskalasi('ESK-20261117-0007');
+  assert.equal(inginMenutup('tidak, terima kasih', `${pesan} ${PESAN_TAWARAN_PENUTUP}`), true);
+  assert.equal(inginMenutup('tidak, terima kasih', pesan), false);
+  assert.equal(inginMenutup('ya, saya mau tanya obat batuk', `${pesan} ${PESAN_TAWARAN_PENUTUP}`), false);
 });
 
 test('nfr_6 pertanyaan medis dan keamanan konsumsi diteruskan ke petugas', () => {

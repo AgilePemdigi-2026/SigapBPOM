@@ -417,6 +417,7 @@ async function giliran(req, res, url) {
         console.info(JSON.stringify({ ev: 'pengaduan', tahap: hasil.tahap, kurang: hasil.kurang, stt_ms: tStt }));
         pantau.tahap(id, TAHAP.MENJAWAB);
         ucapkan(hasil.jawaban, suara);
+        if (hasil.tawaran) ucapkan(hasil.tawaran, '/voice/statis/tawaran-penutup');
         tulis({ jenis: 'selesai', sumber: [], pengaduan: hasil.tiket });
         return;
       }
@@ -480,10 +481,13 @@ async function giliran(req, res, url) {
             suara = `/voice/statis/${ulang.suara}`;
           }
         }
-        riwayat.tambah(id, 'assistant', jawaban);
+        // Setelah nomor tiket dibacakan, agen menawarkan bantuan lagi (sama seperti tiket pengaduan). Tawaran ikut tercatat
+        // di riwayat agar "tidak, terima kasih" menutup panggilan lewat inginMenutup; pesan tiketnya tetap sama dengan kamus.
+        riwayat.tambah(id, 'assistant', tiket ? `${jawaban} ${PESAN_TAWARAN_PENUTUP}` : jawaban);
         console.info(JSON.stringify({ ev: 'eskalasi', tahap: tiket ? 'tiket' : pertanyaanEskalasi === null ? 'minta_telepon' : 'ulang_telepon', stt_ms: tStt }));
         pantau.tahap(id, TAHAP.MENJAWAB);
         ucapkan(jawaban, suara);
+        if (tiket) ucapkan(PESAN_TAWARAN_PENUTUP, '/voice/statis/tawaran-penutup');
         tulis({ jenis: 'selesai', tiket });
         return;
       }

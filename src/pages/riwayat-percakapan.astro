@@ -18,10 +18,10 @@ if (gagal) Astro.response.status = 503;
 const fmt = (n: number) => n.toLocaleString('id-ID');
 const persen = (n: number | undefined) => (d && n !== undefined ? `${d.ringkasan.totalPercakapan ? Math.round((n / d.ringkasan.totalPercakapan) * 100) : 0}% dari total` : '');
 const KARTU = [
-  { label: 'Total Percakapan', value: d?.ringkasan.totalPercakapan, sub: d?.periode.labelPendek ?? '', icon: 'icon-message-square', bg: '#e6edfe', fg: '#2557e0' },
-  { label: 'Informasi Produk', value: d?.ringkasan.informasiProduk, sub: persen(d?.ringkasan.informasiProduk), icon: 'icon-search-check', bg: '#ddf5e6', fg: '#15803d' },
-  { label: 'Pengaduan Produk', value: d?.ringkasan.pengaduanProduk, sub: persen(d?.ringkasan.pengaduanProduk), icon: 'icon-clipboard-list', bg: '#eee8fe', fg: '#6d3fd9' },
-  { label: 'Dieskalasi ke Petugas', value: d?.ringkasan.dieskalasi, sub: persen(d?.ringkasan.dieskalasi), icon: 'icon-user-check', bg: '#fdf1cc', fg: '#a16207' },
+  { label: 'Total Percakapan', value: d?.ringkasan.totalPercakapan, sub: d?.periode.labelPendek ?? '', icon: 'icon-message-square', bg: 'var(--t-blue-bg)', fg: 'var(--t-blue-fg)' },
+  { label: 'Informasi Produk', value: d?.ringkasan.informasiProduk, sub: persen(d?.ringkasan.informasiProduk), icon: 'icon-search-check', bg: 'var(--t-green-bg)', fg: 'var(--t-green-fg)' },
+  { label: 'Pengaduan Produk', value: d?.ringkasan.pengaduanProduk, sub: persen(d?.ringkasan.pengaduanProduk), icon: 'icon-clipboard-list', bg: 'var(--t-violet-bg)', fg: 'var(--t-violet-fg)' },
+  { label: 'Dieskalasi ke Petugas', value: d?.ringkasan.dieskalasi, sub: persen(d?.ringkasan.dieskalasi), icon: 'icon-user-check', bg: 'var(--t-amber-bg)', fg: 'var(--t-amber-fg)' },
 ];
 const JENIS: [string, string][] = [['', 'Semua'], ['informasi_produk', LABEL_JENIS_INTERAKSI.informasi_produk], ['pengaduan', LABEL_JENIS_INTERAKSI.pengaduan]];
 
@@ -114,7 +114,7 @@ const tautan = (ubah: { jenis?: string; halaman?: number }) => {
 
 <style>
   /* Ukuran, warna, dan bayangan dari mockup Figma 09 · Riwayat Percakapan. */
-  .riwayat { --bayang: 0 4px 14px rgba(31, 38, 71, .05); --biru: #2557e0; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 26px 25px; border-radius: 28px; }
+  .riwayat { --bayang: 0 4px 14px rgba(var(--shadow-rgb), .05); --biru: var(--t-blue-fg); flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 26px 25px; border-radius: 28px; }
   .grow { flex: 1; }
 
   .kepala { display: flex; align-items: center; gap: 10px; }
@@ -123,7 +123,7 @@ const tautan = (ubah: { jenis?: string; halaman?: number }) => {
   .judul span { font-size: 15px; color: var(--muted); }
   .jenis { display: flex; gap: 10px; }
   .tab { height: 46px; padding: 0 18px; border: 0; box-shadow: var(--bayang); color: var(--ink-3); text-decoration: none; }
-  .tab[aria-current='page'] { background: #e6edfe; box-shadow: none; color: var(--biru); font-weight: 600; }
+  .tab[aria-current='page'] { background: var(--t-blue-bg); box-shadow: none; color: var(--biru); font-weight: 600; }
   .periode { height: 46px; padding: 0 18px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--bayang); display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
   .periode i { font-size: 16px; }
   .periode .icon-chevron-down { margin-left: -24px; pointer-events: none; }
@@ -146,7 +146,7 @@ const tautan = (ubah: { jenis?: string; halaman?: number }) => {
   .baris .chip { font-size: 13px; }
   .lihat { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--biru); text-decoration: none; }
   .lihat i { font-size: 16px; }
-  .kosong { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed #dde0e5; min-height: 220px; }
+  .kosong { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 17px; color: var(--ink-3); border-radius: 22px; background: var(--surface); border: 1px dashed var(--line-3); min-height: 220px; }
   .kosong i { font-size: 28px; color: var(--muted-2); }
 
   .kaki { flex: none; display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 15px; color: var(--muted); }

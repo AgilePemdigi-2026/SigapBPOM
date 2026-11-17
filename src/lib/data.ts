@@ -3,27 +3,30 @@
 
 export type Chip = { bg: string; fg: string };
 
+// Warna chip memakai token tema (global.css) agar terbaca di tema terang dan gelap.
+const t = (warna: string): [string, string] => [`var(--t-${warna}-bg)`, `var(--t-${warna}-fg)`];
+
 const STATUS: Record<string, [string, string]> = {
-  'Belum Ditelaah': ['#fdf0d3', '#8a5300'],
-  'Sedang Ditelaah': ['#e3ecff', '#2152c9'],
-  'Menunggu Pemeriksaan': ['#ece7fe', '#5b3fc4'],
-  'Tanggapan Disusun': ['#daf1f5', '#0e6a80'],
-  Selesai: ['#dcf5e6', '#15803d'],
-  'Diteruskan ke Instansi Lain': ['#e9ebef', '#475060'],
+  'Belum Ditelaah': t('amber'),
+  'Sedang Ditelaah': t('blue'),
+  'Menunggu Pemeriksaan': t('violet'),
+  'Tanggapan Disusun': t('teal'),
+  Selesai: t('green'),
+  'Diteruskan ke Instansi Lain': t('gray'),
   // Riwayat Percakapan (UC-05): warna Badge mockup Figma 09 · Riwayat Percakapan.
-  'Informasi Produk': ['#e6edfe', '#2557e0'],
-  Pengaduan: ['#eee8fe', '#6d3fd9'],
-  'selesai oleh AI': ['#ddf5e6', '#15803d'],
-  dieskalasi: ['#fdf1cc', '#a16207'],
-  'tiket terbit': ['#eee8fe', '#6d3fd9'],
-  'pengaduan tidak lengkap': ['#e8e9ed', '#3a3f4d'],
-  terputus: ['#fde8e8', '#b42318'],
-  Aktif: ['#dcf5e6', '#15803d'],
-  'Tidak Aktif': ['#e9ebef', '#475060'],
+  'Informasi Produk': t('blue'),
+  Pengaduan: t('violet'),
+  'selesai oleh AI': t('green'),
+  dieskalasi: t('amber'),
+  'tiket terbit': t('violet'),
+  'pengaduan tidak lengkap': t('gray'),
+  terputus: t('red'),
+  Aktif: t('green'),
+  'Tidak Aktif': t('gray'),
 };
 
 export function chip(status: string): Chip {
-  const [bg, fg] = STATUS[status] ?? ['#e9ebef', '#475060'];
+  const [bg, fg] = STATUS[status] ?? t('gray');
   return { bg, fg };
 }
 

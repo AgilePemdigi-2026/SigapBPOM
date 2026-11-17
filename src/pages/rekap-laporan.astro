@@ -11,9 +11,9 @@ import { laporanLayanan } from '../lib/laporan';
 const PESAN_GAGAL = 'Data panggilan gagal dimuat.';
 
 const KARTU: { kunci: keyof JumlahRekap; label: string; bg: string; fg: string; icon: string }[] = [
-  { kunci: 'panggilan', label: 'Total Panggilan', bg: '#e6edfe', fg: '#2557e0', icon: 'icon-phone-incoming' },
-  { kunci: 'tereskalasi', label: 'Kasus Tereskalasi', bg: '#fdf1cc', fg: '#a16207', icon: 'icon-user-check' },
-  { kunci: 'pengaduanSelesai', label: 'Pengaduan Selesai', bg: '#ddf5e6', fg: '#15803d', icon: 'icon-circle-check' },
+  { kunci: 'panggilan', label: 'Total Panggilan', bg: 'var(--t-blue-bg)', fg: 'var(--t-blue-fg)', icon: 'icon-phone-incoming' },
+  { kunci: 'tereskalasi', label: 'Kasus Tereskalasi', bg: 'var(--t-amber-bg)', fg: 'var(--t-amber-fg)', icon: 'icon-user-check' },
+  { kunci: 'pengaduanSelesai', label: 'Pengaduan Selesai', bg: 'var(--t-green-bg)', fg: 'var(--t-green-fg)', icon: 'icon-circle-check' },
 ];
 
 const PERIODE = daftarPeriode();
@@ -177,10 +177,10 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
 
 <style>
   /* Ukuran, warna, dan bayangan dari mockup Figma 15 · Rekap & Laporan. */
-  .page { --bayang: 0 4px 14px rgba(31, 38, 71, .05); --biru: #2557e0; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px; }
+  .page { --bayang: 0 4px 14px rgba(var(--shadow-rgb), .05); --biru: var(--t-blue-fg); flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px; }
   .grow { flex: 1; }
   h1, h2 { margin: 0; font-weight: 400; color: var(--ink); }
-  .blok { background: var(--panel); border: 1px solid rgba(255, 255, 255, .95); border-radius: 28px; box-shadow: var(--shadow-panel); }
+  .blok { background: var(--panel); border: 1px solid var(--edge); border-radius: 28px; box-shadow: var(--shadow-panel); }
 
   .kepala { flex: none; height: 114px; box-sizing: border-box; padding: 0 24px; display: flex; align-items: center; gap: 14px; }
   .judul { display: flex; flex-direction: column; gap: 4px; }
@@ -215,7 +215,7 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
   .dot.ai { background: #3b6ef6; }
   .dot.esk { background: #f5c033; }
   /* Garis bantu tiap 1/7 tinggi plot, seperti delapan garis di mockup. */
-  .plot { flex: 1; min-height: 0; margin-top: 28px; display: flex; align-items: flex-end; border-bottom: 1px solid #e3e5ea; background: repeating-linear-gradient(to top, #e3e5ea 0 1px, transparent 1px calc(100% / 7)); }
+  .plot { flex: 1; min-height: 0; margin-top: 28px; display: flex; align-items: flex-end; border-bottom: 1px solid var(--line-2); background: repeating-linear-gradient(to top, var(--line-2) 0 1px, transparent 1px calc(100% / 7)); }
   .kolom-batang { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 12px; }
   .nilai { font-size: 15px; font-weight: 500; color: var(--ink); }
   .batang { width: min(110px, 60%); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(180deg, #5b8bff, #2f5fe8); }
@@ -233,20 +233,20 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
   th, td { padding: 0 0 0 20px; text-align: left; font-weight: 400; }
   thead th { font-size: 13px; font-weight: 600; letter-spacing: 1.04px; text-transform: uppercase; color: var(--muted); }
   tbody tr, tfoot tr { height: 56px; }
-  tbody th, tbody td { background: var(--surface-2); box-shadow: 0 4px 14px -6px rgba(31, 38, 71, .08); }
+  tbody th, tbody td { background: var(--surface-2); box-shadow: 0 4px 14px -6px rgba(var(--shadow-rgb), .08); }
   tbody th span { display: block; }
   tbody th span:first-child { font-size: 15px; font-weight: 500; color: var(--ink); }
   tbody th span:last-child { font-size: 12px; color: var(--muted); }
   td { font-size: 16px; color: var(--ink); }
   tr > :first-child { border-radius: 16px 0 0 16px; }
   tr > :last-child { border-radius: 0 16px 16px 0; }
-  tfoot th, tfoot td { background: #e6edfe; color: var(--biru); font-size: 16px; }
+  tfoot th, tfoot td { background: var(--t-blue-bg); color: var(--biru); font-size: 16px; }
   tfoot th { font-weight: 600; }
   tfoot td { font-weight: 500; }
 
   .aksi { height: 50px; padding: 0 22px; font-size: 15px; }
-  .modal { width: 640px; transform: scale(var(--s, 1)); padding: 32px; border-radius: 36px; background: #f4f5f7; border: 1px solid #fff; box-shadow: 0 40px 90px rgba(20, 30, 60, .3); color: var(--ink); }
-  .modal::backdrop { background: rgba(40, 46, 60, .3); backdrop-filter: blur(3px); }
+  .modal { width: 640px; transform: scale(var(--s, 1)); padding: 32px; border-radius: 36px; background: var(--panel); border: 1px solid var(--edge); box-shadow: 0 40px 90px rgba(var(--shadow-rgb), .3); color: var(--ink); }
+  .modal::backdrop { background: var(--overlay); backdrop-filter: blur(3px); }
   .modal form { display: flex; flex-direction: column; gap: 20px; }
   .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
   .modal-head div { display: flex; flex-direction: column; gap: 6px; }
@@ -255,7 +255,7 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
   .x { width: 44px; height: 44px; flex: none; border-radius: 999px; border: 0; background: transparent; font-size: 20px; color: var(--ink-3); }
   .f { display: flex; flex-direction: column; gap: 8px; }
   .f > span { font-size: 15px; font-weight: 500; color: var(--ink-3); }
-  .f select { height: 58px; padding: 0 14px; border-radius: 18px; background: #fff; border: 1px solid var(--line-2); font: inherit; font-size: 16px; }
+  .f select { height: 58px; padding: 0 14px; border-radius: 18px; background: var(--card); border: 1px solid var(--line-2); font: inherit; font-size: 16px; }
   .f select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
   .modal-actions .pill { height: 50px; padding: 0 22px; font-size: 15px; }

@@ -2,15 +2,39 @@
 import '../styles/global.css';
 
 // responsive: di layar ponsel kanvas tidak diskalakan, halaman memakai tata letak ponselnya sendiri.
-interface Props { title: string; responsive?: boolean }
-const { title, responsive = false } = Astro.props;
+// landing: halaman bisa di-scroll dan mengatur kanvasnya sendiri (dipakai halaman publik).
+interface Props { title: string; responsive?: boolean; landing?: boolean }
+const { title, responsive = false, landing = false } = Astro.props;
 ---
 <!doctype html>
-<html lang="id" data-responsive={responsive ? '' : undefined}>
+<html lang="id" data-responsive={responsive ? '' : undefined} data-landing={landing ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} · SIGAP HaloBPOM</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/sigap-favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/sigap-touch.png" />
+    <script is:inline>
+      // Tema dipasang sebelum halaman tergambar agar tidak berkedip. Pilihan pengguna disimpan; tanpa pilihan, ikut sistem.
+      (() => {
+        const sistem = matchMedia('(prefers-color-scheme: dark)');
+        let simpan = null;
+        try { simpan = localStorage.getItem('sigap-tema'); } catch {}
+        const pasang = (t) => { document.documentElement.dataset.theme = t; };
+        pasang(simpan === 'dark' || simpan === 'light' ? simpan : sistem.matches ? 'dark' : 'light');
+        sistem.addEventListener('change', (e) => {
+          let ada = null;
+          try { ada = localStorage.getItem('sigap-tema'); } catch {}
+          if (!ada) pasang(e.matches ? 'dark' : 'light');
+        });
+        window.sigapGantiTema = () => {
+          const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          pasang(t);
+          try { localStorage.setItem('sigap-tema', t); } catch {}
+          return t;
+        };
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/lucide-static@0.469.0/font/lucide.css" />
