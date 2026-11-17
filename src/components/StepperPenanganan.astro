@@ -7,6 +7,7 @@
 // 4. Selesai (Tutup Tiket)
 import {
   DAFTAR_TAHAP,
+  LABEL_TAHAP,
   OPSI_TINDAK_LANJUT,
   hitungStatusTahap,
   tentukanTahapAktif,
@@ -61,7 +62,7 @@ const ikonTahap: Record<TahapStepper, string> = {
             )}
           </div>
           <div class="step-info">
-            <span class="step-label">{tahap}</span>
+            <span class="step-label">{LABEL_TAHAP[tahap]}</span>
             <span class="step-status">
               {st === 'selesai'
                 ? 'Selesai'
