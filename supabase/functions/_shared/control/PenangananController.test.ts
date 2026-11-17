@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buatPengirimSms, PengirimSmsTiruan, PengirimSmsZenziva, URL_ZENZIVA_BAWAAN } from '../adapter/sms.ts';
+import { buatPengirimSms, GalatSmsTidakPasti, PengirimSmsTiruan, PengirimSmsZenziva, URL_ZENZIVA_BAWAAN } from '../adapter/sms.ts';
 import type { HasilNotifikasi, NotifikasiDiklaim, StatusKirimNotifikasi } from '../entity/notifikasi.ts';
 import {
   BATAS_PERCOBAAN_KIRIM,
@@ -249,6 +249,41 @@ test('req_6_6 Zenziva menolak atau tak terjangkau menjadi galat tanpa nomor tuju
   await assert.rejects(zenzivaPalsu(500, 'bukan json').pengirim.kirim('081234567890', 'x'), /Zenziva menolak: HTTP 500/);
   const putus = new PengirimSmsZenziva('uk', 'pk', 'https://zenziva.test/', (async () => { throw new TypeError('network'); }) as unknown as typeof fetch);
   await assert.rejects(putus.kirim('081234567890', 'x'), (e: Error) => !/0812|uk|pk/.test(e.message) && /tidak dapat dihubungi/.test(e.message));
+});
+
+test('req_6_6 Zenziva tidak menjawab dalam batas waktu atau balasan 2xx tak terbaca: hasil tidak pasti', async () => {
+  const lambat = new PengirimSmsZenziva('uk', 'pk', 'https://zenziva.test/', (async () => {
+    throw new DOMException('signal timed out', 'TimeoutError');
+  }) as unknown as typeof fetch);
+  await assert.rejects(lambat.kirim('081234567890', 'x'), GalatSmsTidakPasti);
+  await assert.rejects(zenzivaPalsu(200, '<html>ok</html>').pengirim.kirim('081234567890', 'x'), GalatSmsTidakPasti);
+  await assert.rejects(zenzivaPalsu(502, 'bukan json').pengirim.kirim('081234567890', 'x'),
+    (e: Error) => !(e instanceof GalatSmsTidakPasti) && /HTTP 502/.test(e.message));
+});
+
+test('req_6_6 ZENZIVA_URL selain https ditolak agar kunci tidak terkirim tanpa enkripsi', () => {
+  const env: Record<string, string> = { ZENZIVA_USERKEY: 'uk', ZENZIVA_PASSKEY: 'pk', ZENZIVA_URL: 'http://console.zenziva.net/masking/api/sendsms/' };
+  assert.throws(() => buatPengirimSms('zenziva', (n) => env[n]), /harus diawali https/);
+});
+
+test('req_6_6 hasil kirim tidak pasti dicatat terkirim dan tidak dikirim ulang', async (t) => {
+  t.mock.method(console, 'info', () => {});
+  const peringatan = t.mock.method(console, 'warn', () => {});
+  const antrean = antreanTiruan({ [TIKET_A]: NOMOR_A });
+  let panggilan = 0;
+  const controller = new PenangananController(antrean.p, {
+    async kirim() {
+      panggilan++;
+      throw new GalatSmsTidakPasti('Zenziva tidak menjawab dalam batas waktu.');
+    },
+  });
+  antrean.tutupTiket(TIKET_A);
+
+  assert.deepEqual(await controller.kirimNotifikasi(), { diproses: 1, terkirim: 1, gagal: 0 });
+  assert.deepEqual(await controller.kirimNotifikasi(), { diproses: 0, terkirim: 0, gagal: 0 });
+  assert.equal(panggilan, 1);
+  assert.equal(antrean.baris[0].status, 'terkirim');
+  assert.ok(peringatan.mock.calls.every((c) => !c.arguments.join(' ').includes(NOMOR_A)), 'log tanpa nomor tujuan');
 });
 
 test('req_2_4 req_1_7 SMS nomor tiket sama persis dengan pesan yang diucapkan gateway', () => {

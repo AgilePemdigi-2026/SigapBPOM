@@ -1,8 +1,8 @@
 // Adapter SMS Gateway (PROJECT_RULES 4.3): satu interface, implementasi tiruan untuk lokal dan Zenziva untuk cloud
 // (T-F7.3-01, REQ-6.6).
-import type { PengirimSms } from '../control/PenangananController.ts';
+import { GalatSmsTidakPasti, type PengirimSms } from '../control/PenangananController.ts';
 
-export type { PengirimSms };
+export { GalatSmsTidakPasti, type PengirimSms };
 
 /**
  * Pengirim SMS tiruan: tidak mengirim apa pun, hanya mencatat pesan di memori. Bisa diminta gagal untuk menguji
@@ -36,7 +36,8 @@ const BATAS_WAKTU_ZENZIVA_MS = 5000;
 
 /**
  * Pengirim SMS lewat HTTP API Zenziva. Respons sukses `{ status: "1", text: "Success" }`; status lain dianggap gagal
- * dan `text` dari Zenziva menjadi galat_terakhir (tanpa nomor tujuan dan tanpa kunci API).
+ * dan `text` dari Zenziva menjadi galat_terakhir (tanpa nomor tujuan dan tanpa kunci API). Batas waktu habis atau
+ * balasan 2xx yang tidak terbaca menjadi GalatSmsTidakPasti, sehingga SMS tidak dikirim ulang.
  */
 export class PengirimSmsZenziva implements PengirimSms {
   userkey: string;
@@ -60,10 +61,18 @@ export class PengirimSmsZenziva implements PengirimSms {
         body: JSON.stringify({ userkey: this.userkey, passkey: this.passkey, to: nomorTelepon, message: teks }),
         signal: AbortSignal.timeout(BATAS_WAKTU_ZENZIVA_MS),
       });
-    } catch {
+    } catch (e) {
+      // Batas waktu habis setelah permintaan terkirim: Zenziva mungkin sudah meneruskan SMS-nya.
+      if (e instanceof DOMException && e.name === 'TimeoutError') throw new GalatSmsTidakPasti('Zenziva tidak menjawab dalam batas waktu.');
       throw new Error('Zenziva tidak dapat dihubungi.');
     }
-    const hasil = (await res.json().catch(() => null)) as { status?: unknown; text?: unknown } | null;
+    let hasil: { status?: unknown; text?: unknown } | null = null;
+    try {
+      hasil = await res.json();
+    } catch {
+      // Zenziva menerima permintaan (2xx) tetapi balasannya tidak terbaca: hasil kirim tidak diketahui.
+      if (res.ok) throw new GalatSmsTidakPasti('Balasan Zenziva tidak terbaca.');
+    }
     if (res.ok && String(hasil?.status) === '1') return;
     const alasan = typeof hasil?.text === 'string' && hasil.text.trim() ? hasil.text.trim().slice(0, 120) : `HTTP ${res.status}`;
     throw new Error(`Zenziva menolak: ${alasan}`);
@@ -84,7 +93,10 @@ export function buatPengirimSms(mode: string | undefined, env: (nama: string) =>
     const userkey = env('ZENZIVA_USERKEY')?.trim();
     const passkey = env('ZENZIVA_PASSKEY')?.trim();
     if (!userkey || !passkey) throw new Error('ZENZIVA_USERKEY dan ZENZIVA_PASSKEY wajib diisi.');
-    return new PengirimSmsZenziva(userkey, passkey, env('ZENZIVA_URL')?.trim() || URL_ZENZIVA_BAWAAN);
+    const url = env('ZENZIVA_URL')?.trim() || URL_ZENZIVA_BAWAAN;
+    // userkey dan passkey ada di isi permintaan, jadi tidak boleh lewat http biasa.
+    if (!url.startsWith('https://')) throw new Error('ZENZIVA_URL harus diawali https://.');
+    return new PengirimSmsZenziva(userkey, passkey, url);
   }
   throw new Error(`Adapter SMS "${pilihan}" belum tersedia.`);
 }
