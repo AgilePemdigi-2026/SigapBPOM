@@ -29,7 +29,8 @@ const fmt = (n: number) => n.toLocaleString('id-ID');
 const tgl = (s: string) => new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short' }).format(new Date(`${s}T00:00:00Z`));
 const rentang = (a: string, z: string) => (a === z ? tgl(a) : a.slice(0, 7) === z.slice(0, 7) ? `${Number(a.slice(8))}–${tgl(z)}` : `${tgl(a)}–${tgl(z)}`);
 
-// Grafik: tinggi batang = panggilan, bagian atasnya kasus tereskalasi dan sisanya dijawab AI. Batang tertinggi mengisi 90%
+// Grafik: tinggi batang = panggilan, bagian atasnya kasus tereskalasi dan sisanya dijawab AI; batang hijau di sebelahnya
+// pengaduan selesai, agar ketiga angka REQ-8.1 tampil di GrafikRekapitulasi (SRS 4.8). Batang tertinggi mengisi 90%
 // tinggi plot seperti di mockup. Hanya skala tampilan; angkanya tetap hasil RPC.
 // ponytail: "Dijawab AI" = panggilan dikurangi tereskalasi, seperti SRS Gambar 3.17, sehingga panggilan berstatus
 // terputus ikut terhitung. Pakai jumlah selesai_ai bila rekap_layanan (T-F8.1-01) kelak mengembalikannya.
@@ -75,14 +76,17 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
         <section class="blok grafik" data-name="GrafikRekapitulasi">
           <div class="grafik-head">
             <h2>Grafik Rekapitulasi</h2>
-            <div class="legend"><span class="leg"><span class="dot ai"></span>Dijawab AI</span><span class="leg"><span class="dot esk"></span>Tereskalasi</span></div>
+            <div class="legend"><span class="leg"><span class="dot ai"></span>Dijawab AI</span><span class="leg"><span class="dot esk"></span>Tereskalasi</span><span class="leg"><span class="dot selesai"></span>Pengaduan Selesai</span></div>
           </div>
-          <div class="plot" role="img" aria-label={`Grafik panggilan per minggu, periode ${periode.label}: dijawab AI dan tereskalasi. Angkanya ada di Tabel Rekapitulasi.`}>
+          <div class="plot" role="img" aria-label={`Grafik per minggu, periode ${periode.label}: panggilan dijawab AI, tereskalasi, dan pengaduan selesai. Angkanya ada di Tabel Rekapitulasi.`}>
             {rekap.perMinggu.map((m) => (
               <div class="kolom-batang">
                 <span class="nilai mono">{fmt(m.panggilan)}</span>
-                <div class="batang" style={`height:${persen(m.panggilan, maks)}`}>
-                  <div class="esk" style={`height:${m.panggilan ? persen(m.tereskalasi, m.panggilan) : '0%'}`}></div>
+                <div class="bars">
+                  <div class="batang" style={`height:${persen(m.panggilan, maks)}`}>
+                    <div class="esk" style={`height:${m.panggilan ? persen(m.tereskalasi, m.panggilan) : '0%'}`}></div>
+                  </div>
+                  <div class="batang selesai" style={`height:${persen(m.pengaduanSelesai, maks)}`} title={`Pengaduan selesai: ${fmt(m.pengaduanSelesai)}`}></div>
                 </div>
               </div>
             ))}
@@ -213,6 +217,9 @@ const persen = (n: number, dari: number) => `${Math.min(100, (n / dari) * 100)}%
   .nilai { font-size: 15px; font-weight: 500; color: var(--ink); }
   .batang { width: min(110px, 60%); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(180deg, #5b8bff, #2f5fe8); }
   .batang .esk { flex: none; background: linear-gradient(180deg, #fcd34d, #f5c033); }
+  .bars { flex: 1; min-height: 0; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 6px; }
+  .batang.selesai { width: min(28px, 16%); border-radius: 10px; background: linear-gradient(180deg, #4ade80, #16a34a); }
+  .dot.selesai { background: #16a34a; }
   .sumbu-x { flex: none; display: flex; padding-top: 14px; }
   .sumbu-x div { flex: 1; display: flex; flex-direction: column; align-items: center; }
   .sumbu-x span:first-child { font-size: 14px; font-weight: 500; color: var(--ink); }

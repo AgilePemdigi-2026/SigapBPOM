@@ -6,7 +6,8 @@ import StepperPenanganan from '../../components/StepperPenanganan.astro';
 import { chip } from '../../lib/data';
 import { pemantauanLayanan } from '../../lib/pemantauan';
 import { daftarPengaduan } from '../../lib/daftarPengaduan';
-import { PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
+import { LABEL_JENIS_TIKET, PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
+import { penangananPetugas } from '../../lib/penanganan';
 
 const pemantauan = pemantauanLayanan(Astro.locals.tokenAkses);
 let noTiket = Astro.url.searchParams.get('tiket');
@@ -28,6 +29,18 @@ const gagal = 'gagal' in hasil ? hasil.gagal : '';
 const d = 'gagal' in hasil ? null : hasil;
 // Tiket tidak ada: 404; penyimpanan gagal: 503 (PROJECT_RULES 4.4).
 if (!d) Astro.response.status = gagal === PESAN_PEMANTAUAN.detailGagalDimuat ? 503 : 404;
+
+// Isian penanganan yang sudah tersimpan, agar stepper tetap utuh setelah halaman dimuat ulang (SRS 4.6 Alternative
+// Path 2: formulir jadwal tetap tampil setelah telaah "Perlu Pemeriksaan Lapangan"). Gagal dibaca: stepper kosong.
+const terbaru = <T extends { waktu: string }>(baris: T[]) => [...baris].sort((a, b) => b.waktu.localeCompare(a.waktu))[0];
+const penanganan = penangananPetugas(Astro.locals.tokenAkses);
+const [telaah, jadwal, tanggapan] = d && d.jenis === LABEL_JENIS_TIKET.pengaduan
+  ? await Promise.all([
+      penanganan.ambilRiwayatTelaah(d.noTiket).then(terbaru).catch(() => undefined),
+      penanganan.ambilJadwal(d.noTiket).then(terbaru).catch(() => undefined),
+      penanganan.ambilTanggapan(d.noTiket).then(terbaru).catch(() => undefined),
+    ])
+  : [];
 const warna = d ? chip(d.labelStatus) : null;
 ---
 <DashboardLayout title={d ? `Detail Pengaduan ${d.noTiket}` : 'Detail Pengaduan'}>
@@ -43,7 +56,17 @@ const warna = d ? chip(d.labelStatus) : null;
           <span class="chip big" data-name="StatusPengaduan" style={`background:${warna!.bg};color:${warna!.fg}`}>{d.labelStatus}</span>
         </section>
 
-        <StepperPenanganan noTiket={d.noTiket} status={d.status} labelStatus={d.labelStatus} />
+        {/* UC-06 khusus tiket pengaduan; RPC penanganan menolak tiket eskalasi. */}
+        {d.jenis === LABEL_JENIS_TIKET.pengaduan && <StepperPenanganan
+          noTiket={d.noTiket}
+          status={d.status}
+          labelStatus={d.labelStatus}
+          tindakLanjut={telaah?.tindakLanjut ?? null}
+          catatan={telaah?.catatan ?? ''}
+          tanggalPemeriksaan={jadwal?.tanggal ?? ''}
+          unitPelaksana={jadwal?.unitPelaksana ?? ''}
+          tanggapan={tanggapan?.isi ?? ''}
+        />}
 
         <div class="grid">
           <section class="panel card">
