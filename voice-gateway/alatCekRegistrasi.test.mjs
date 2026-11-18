@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BATAS_ULANG_NAMA, DEFINISI_TOOL, NAMA_TOOL, PESAN_BATAS_ULANG_NAMA, PESAN_NAMA_TIDAK_JELAS, PESAN_TIDAK_DITEMUKAN, cekRegistrasiBpom,
-  nomorPilihan, pesanHasilGanda, pesanProdukDitemukan,
+  nomorPilihan, pesanHasilGanda, pesanProdukDitemukan, pesanSaranNama, saranDipilih,
 } from './alatCekRegistrasi.mjs';
+import { saranNama } from './namaMirip.mjs';
 import { PESAN_LAYANAN_1, PESAN_TAWARAN_PENUTUP } from './percakapan.mjs';
 
 // Data contoh sama dengan PRODUK_TIRUAN di src/lib/mock/transkripTiruan.ts.
@@ -182,4 +183,49 @@ test('t_f1_2_03 ucapan yang bukan pertanyaan registrasi tidak ditangani tool', a
   assert.equal(await cekRegistrasiBpom(cek, 'Bagaimana cara membaca label gizi?'), null);
   assert.equal(await cekRegistrasiBpom(cek, 'Apa itu BPOM?', SETELAH_MENU_1), null);
   assert.equal(cek.kueri.length, 0);
+});
+
+/** Adapter tiruan yang juga punya `cariMirip`, seperti CekBpom: nama yang terdengar dicocokkan dengan daftar merek. */
+class CekBpomDenganMerek extends CekBpomTiruan {
+  constructor(data, merek) { super(data); this.merek = merek; this.dicariMirip = []; }
+  async cariMirip(nama) { this.dicariMirip.push(nama); return saranNama(nama, this.merek); }
+}
+const PANTENE = [
+  { nama: 'Pantene Shampoo Anti Ketombe', merek: 'Pantene', nomorIzinEdar: 'NA18230100123', status: 'Berlaku', pendaftar: 'PT P&G Indonesia', berlakuSampai: '', sumber: 'cekbpom.pom.go.id' },
+];
+
+test('req_1_4 nama salah dengar tidak ditemukan: agen menyarankan merek yang mirip tanpa menyebut status (NFR-7)', async () => {
+  const cek = new CekBpomDenganMerek(PANTENE, ['PANTENE', 'HELLO PANDA']);
+  const hasil = await cekRegistrasiBpom(cek, 'Apakah panteen terdaftar di BPOM?');
+  assert.equal(hasil.jalur, 'saran');
+  assert.deepEqual(cek.dicariMirip, ['panteen']);
+  assert.equal(hasil.jawaban, pesanSaranNama([{ label: 'Pantene' }]));
+  assert.match(hasil.jawaban, /^Produk tidak ditemukan pada data registrasi BPOM\. Mungkin maksudnya Pantene\? .*tekan 2/);
+  assert.doesNotMatch(hasil.jawaban, /Berlaku|NA\d/);
+  assert.equal(hasil.keadaan.saran[0].kueri, 'pantene');
+});
+
+test('req_1_4 penelepon memilih saran dengan "iya", menyebut namanya, atau nomornya, lalu produk dicari ulang', async () => {
+  const cek = new CekBpomDenganMerek(PANTENE, ['PANTENE']);
+  const awal = await cekRegistrasiBpom(cek, 'Apakah panteen terdaftar di BPOM?');
+  for (const jawab of ['iya', 'Pantene', 'panteen', 'nomor satu']) {
+    const hasil = await cekRegistrasiBpom(cek, jawab, { ...awal.keadaan, jawabanTerakhir: awal.jawaban });
+    assert.equal(hasil.jalur, 'tunggal', jawab);
+    assert.equal(hasil.jawaban, `${pesanProdukDitemukan(PANTENE[0])} ${PESAN_TAWARAN_PENUTUP}`);
+  }
+});
+
+test('req_1_4 saran dipilih: ucapan lain bukan pilihan, "iya" memilih saran pertama', () => {
+  const saran = [{ label: 'Pantene', kueri: 'pantene' }, { label: 'Pantheon', kueri: 'pantheon' }];
+  assert.equal(saranDipilih('iya', saran).label, 'Pantene');
+  assert.equal(saranDipilih('yang kedua', saran).label, 'Pantheon');
+  assert.equal(saranDipilih('apakah sunsilk terdaftar', saran), null);
+});
+
+test('req_1_4 tanpa merek mirip, atau adapter tanpa cariMirip, tetap pesan kamus tidak ditemukan', async () => {
+  const tanpaMirip = await cekRegistrasiBpom(new CekBpomDenganMerek(PRODUK, ['HELLO PANDA']), 'Apakah krim glowing ajaib terdaftar di BPOM?');
+  assert.equal(tanpaMirip.jalur, 'tidak_ditemukan');
+  assert.equal(tanpaMirip.jawaban, PESAN_TIDAK_DITEMUKAN);
+  const lama = await cekRegistrasiBpom(new CekBpomTiruan(), 'Apakah panteen terdaftar di BPOM?');
+  assert.equal(lama.jawaban, PESAN_TIDAK_DITEMUKAN);
 });

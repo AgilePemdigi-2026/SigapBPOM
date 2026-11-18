@@ -226,3 +226,20 @@ test('req_1_3 komposisi panjang dipotong agar payload cek kecil', () => {
   assert.ok(d.komposisi.length <= 300 && d.komposisi.endsWith('…'));
   assert.equal(d.alamatPendaftar, 'Kab. A, Prov B');
 });
+
+test('req_1_4 cariMirip mencari potongan nama di kolom merek dan mengurutkan merek yang mirip', async () => {
+  const dikirim = [];
+  const merek = { pant: ['PANTENE', 'PANTHER'], ante: ['PANTENE', 'ANTERO'] };
+  const fetch = async (url, opsi = {}) => {
+    if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="tok">');
+    const f = new URLSearchParams(opsi.body);
+    dikirim.push(f.get('product_brand'));
+    const baris = (merek[f.get('product_brand')] ?? []).map((m, i) => ({ PRODUCT_NAME: `Produk ${i}`, PRODUCT_BRANDS: m, PRODUCT_REGISTER: `NA${i}`, STATUS: 'Berlaku' }));
+    return Response.json({ recordsFiltered: baris.length, data: baris });
+  };
+  const saran = await new CekBpom({ baseUrl: 'https://cek.test', fetch }).cariMirip('panteen');
+  assert.deepEqual(dikirim.sort(), ['ante', 'pant']);
+  assert.equal(saran[0].label, 'Pantene');
+  assert.equal(saran[0].kueri, 'pantene');
+  assert.ok(!saran.some((s) => s.label === 'Antero'));
+});

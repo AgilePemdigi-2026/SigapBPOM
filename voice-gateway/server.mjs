@@ -522,8 +522,8 @@ async function giliran(req, res, url) {
       const cek = cekBpom && riwayat.layanan(id) !== 2
         ? await cekRegistrasiBpom(cekBpom, transkrip, { ...keadaanCek, jawabanTerakhir: riwayat.jawabanTerakhir(id), saatMencari: (k) => tulis({ jenis: 'cari', kueri: labelKueri(k) }) })
         : null;
-      // Kandidat hasil ganda hanya berlaku untuk giliran tepat sesudahnya.
-      riwayat.aturCekRegistrasi(id, cek?.keadaan ?? { ...keadaanCek, kandidat: null });
+      // Kandidat hasil ganda dan saran nama mirip hanya berlaku untuk giliran tepat sesudahnya.
+      riwayat.aturCekRegistrasi(id, cek?.keadaan ?? { ...keadaanCek, kandidat: null, saran: null });
       let konteks, kutipan = [];
       if (cek) {
         if (cek.kueri) tulis({ jenis: 'cek', ...tabelCek(cek.kueri, cek.data) });
