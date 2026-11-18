@@ -39,6 +39,16 @@ export function akar(kata) {
   return k;
 }
 
+// Padanan kata di pertanyaan: penelepon lazim berkata "mendaftarkan produk", sedangkan materi BPOM memakai "registrasi".
+// Hanya diterapkan pada pertanyaan, sehingga indeks korpus tidak berubah. Kunci dan nilainya berupa akar kata.
+const PADANAN = new Map([
+  ['daftar', ['registras']],
+  ['registras', ['daftar']],
+]);
+
+/** Token pertanyaan ditambah padanannya (lihat PADANAN). */
+export const tokenPertanyaan = (teks) => [...new Set(token(teks).flatMap((t) => [t, ...(PADANAN.get(t) ?? [])]))];
+
 export function token(teks) {
   return String(teks).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, ' ').split(' ')
     .filter((t) => t.length > 1 && !STOPWORD.has(t)).map(akar).filter((t) => !STOPWORD.has(t));
@@ -214,7 +224,7 @@ export class Korpus {
     const N = this.potongan.length + (lain?.potongan.length ?? 0);
     const rataPanjang = lain ? (this.rataPanjang * this.potongan.length + lain.rataPanjang * lain.potongan.length) / N : this.rataPanjang;
     const skor = new Map();
-    for (const t of new Set(token(pertanyaan))) {
+    for (const t of tokenPertanyaan(pertanyaan)) {
       const daftar = this.indeks.get(t);
       if (!daftar) continue;
       const df = (daftar.length + (lain?.indeks.get(t)?.length ?? 0)) / 2;

@@ -1,5 +1,6 @@
 // Control + Boundary UC-01 (REQ-1.3, T-F1.2-02): cek data registrasi produk di cekbpom.pom.go.id untuk CS AI.
 // Port Node dari supabase/functions/_shared/adapter/cekbpom.ts agar gateway tidak bergantung pada Edge Function.
+import { potonganCari, saranNama } from './namaMirip.mjs';
 
 /** BR-7: kandidat yang disebutkan paling banyak tiga. */
 export const KANDIDAT_MAKS = 3;
@@ -11,6 +12,8 @@ const BATAS_WAKTU_MS = 5000;
 const KATA_MEREK_MAKS = 3;
 // Baris per kueri merek sebelum disaring sisa kata; 10 baris terlalu sedikit untuk merek besar (Greenfields 209 produk).
 const BARIS_MEREK_MAKS = 50;
+// Baris per potongan saat mencari merek yang mirip; potongan empat huruf bisa cocok dengan ratusan merek.
+const BARIS_MIRIP_MAKS = 100;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
 // Kode nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
@@ -169,6 +172,18 @@ export class CekBpom {
     // Sebagian kueri gagal tetap dipakai bila ada hasil; tanpa hasil jangan disimpulkan "tidak ditemukan" (NFR-7).
     if (ok.length <= kataMerek.length && !unik.size) throw new Error('cekbpom cari gagal');
     return { total: Math.max(...ok.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
+  }
+
+  /**
+   * REQ-1.4: merek yang mirip dengan nama yang terdengar, untuk nama yang tidak ditemukan (namaMirip.mjs). Potongan nama dicari
+   * di kolom merek, lalu merek yang kembali diurutkan menurut kemiripannya. Potongan yang gagal dilewati; semua gagal berarti tanpa saran.
+   */
+  async cariMirip(nama) {
+    const potongan = potonganCari(nama);
+    if (!potongan.length) return [];
+    const hasil = await Promise.allSettled(potongan.map((p) => this.kirimKolom({ product_brand: p, length: String(BARIS_MIRIP_MAKS) })));
+    const merek = new Set(hasil.flatMap((r) => (r.status === 'fulfilled' ? r.value.produk.map((p) => p.merek) : [])).filter(Boolean));
+    return saranNama(nama, [...merek]);
   }
 
   async kirimKolom(cari, ulangi = true) {
