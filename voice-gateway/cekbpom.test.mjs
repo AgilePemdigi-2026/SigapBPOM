@@ -243,3 +243,71 @@ test('req_1_4 cariMirip mencari potongan nama di kolom merek dan mengurutkan mer
   assert.equal(saran[0].kueri, 'pantene');
   assert.ok(!saran.some((s) => s.label === 'Antero'));
 });
+
+/** fetch tiruan cekbpom: baris dicocokkan dengan potongan teks kolom nama atau merek, seperti cekbpom asli. */
+function fetchCekbpom(data, dikirim = []) {
+  return async (url, opsi = {}) => {
+    if (url.endsWith('/all-produk')) return new Response('<meta name="csrf-token" content="tok">');
+    const f = new URLSearchParams(opsi.body);
+    dikirim.push(Object.fromEntries([...f].filter(([k, v]) => v && k.startsWith('product_'))));
+    const cocok = (isi, cari) => !cari || isi.toLowerCase().includes(cari.toLowerCase());
+    const baris = data.filter((d) => cocok(d.nama, f.get('product_name')) && cocok(d.merek, f.get('product_brand')));
+    return Response.json({
+      recordsFiltered: baris.length,
+      data: baris.map((d) => ({ PRODUCT_NAME: d.nama, PRODUCT_BRANDS: d.merek, PRODUCT_REGISTER: d.nomor, STATUS: 'Berlaku' })),
+    });
+  };
+}
+const BARBER = [
+  { nama: 'Barber Daily Dandruff & Oil Control Shampoo', merek: 'MAKARIZO', nomor: 'NA18261002787' },
+  { nama: 'Barber Daily Acne Care Body Wash', merek: 'MAKARIZO', nomor: 'NA18260701812' },
+  { nama: 'Susu UHT Rasa Cokelat', merek: 'ULTRA MILK', nomor: 'MD 1234' },
+];
+
+test('req_1_3 nama dengan urutan kata berbeda dari cekbpom tetap ditemukan lewat pencarian per kata', async () => {
+  const cek = new CekBpom({ baseUrl: 'https://cek.test', fetch: fetchCekbpom(BARBER) });
+  const hasil = await cek.cari({ nama: 'shampo barber daily' });
+  assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['NA18261002787']);
+});
+
+test('req_1_3 jenis produk berbahasa Indonesia cocok dengan padanannya di nama cekbpom ("sabun" untuk Body Wash)', async () => {
+  const cek = new CekBpom({ baseUrl: 'https://cek.test', fetch: fetchCekbpom(BARBER) });
+  const hasil = await cek.cari({ nama: 'sabun barber daily' });
+  assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['NA18260701812']);
+});
+
+test('req_1_3 kategori umum boleh tidak ada di nama ("obat tolak angin"), jenis produk konkret tetap wajib ("susu")', async () => {
+  const data = [
+    { nama: 'TOLAK ANGIN BEBAS GULA', merek: 'TOLAK ANGIN', nomor: 'TR1' },
+    { nama: 'Cokelat Compound Butir', merek: 'LAGIE BENDERA', nomor: 'MD2' },
+    { nama: 'Susu Kental Manis Cokelat', merek: 'Frisian Flag', nomor: 'MD3' },
+  ];
+  const cek = new CekBpom({ baseUrl: 'https://cek.test', fetch: fetchCekbpom(data) });
+  assert.deepEqual((await cek.cari({ nama: 'obat tolak angin' })).produk.map((p) => p.nomorIzinEdar), ['TR1']);
+  // Cokelat butir bermerek LAGIE BENDERA bukan susu, jadi tidak boleh menjadi hasil "susu bendera coklat".
+  assert.deepEqual((await cek.cari({ nama: 'susu bendera coklat' })).produk, []);
+});
+
+test('req_1_3 merek dengan tanda baca atau spasi lain tetap ditemukan ("krim ponds" untuk POND\'S, "ultramilk")', async () => {
+  const data = [
+    { nama: 'Age Miracle Day Cream', merek: "POND'S", nomor: 'NA4' },
+    { nama: 'Susu UHT Rasa Cokelat', merek: 'ULTRA MILK', nomor: 'MD5' },
+  ];
+  const cek = new CekBpom({ baseUrl: 'https://cek.test', fetch: fetchCekbpom(data) });
+  assert.deepEqual((await cek.cari({ nama: 'krim ponds' })).produk.map((p) => p.nomorIzinEdar), ['NA4']);
+  assert.deepEqual((await cek.cari({ nama: 'susu coklat ultramilk' })).produk.map((p) => p.nomorIzinEdar), ['MD5']);
+});
+
+test('req_1_3 ejaan sedikit berbeda tetap cocok pada pencarian merek ("coklat" untuk Cokelat)', async () => {
+  const cek = new CekBpom({ baseUrl: 'https://cek.test', fetch: fetchCekbpom(BARBER) });
+  const hasil = await cek.cari({ nama: 'susu ultra milk coklat' });
+  assert.deepEqual(hasil.produk.map((p) => p.nomorIzinEdar), ['MD 1234']);
+});
+
+test('req_1_3 nama yang memang tidak ada tetap kosong setelah pencarian per kata', async () => {
+  const dikirim = [];
+  const cek = new CekBpom({ baseUrl: 'https://cek.test', fetch: fetchCekbpom(BARBER, dikirim) });
+  const hasil = await cek.cari({ nama: 'krim ajaib zxqw' });
+  assert.equal(hasil.produk.length, 0);
+  assert.ok(dikirim.some((d) => d.product_name === 'krim ajaib'), 'pasangan kata dicari');
+});

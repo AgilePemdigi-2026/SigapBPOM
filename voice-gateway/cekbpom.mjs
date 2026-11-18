@@ -1,6 +1,6 @@
 // Control + Boundary UC-01 (REQ-1.3, T-F1.2-02): cek data registrasi produk di cekbpom.pom.go.id untuk CS AI.
 // Port Node dari supabase/functions/_shared/adapter/cekbpom.ts agar gateway tidak bergantung pada Edge Function.
-import { potonganCari, saranNama } from './namaMirip.mjs';
+import { bolehDiabaikan, jenisProduk, kataUmum, memuatKata, padanan, potonganCari, saranNama } from './namaMirip.mjs';
 
 /** BR-7: kandidat yang disebutkan paling banyak tiga. */
 export const KANDIDAT_MAKS = 3;
@@ -14,6 +14,10 @@ const KATA_MEREK_MAKS = 3;
 const BARIS_MEREK_MAKS = 50;
 // Baris per potongan saat mencari merek yang mirip; potongan empat huruf bisa cocok dengan ratusan merek.
 const BARIS_MIRIP_MAKS = 100;
+// Pencarian cadangan per kata: paling banyak delapan kueri serentak (merek + nama, kata khas, dan pasangan kata).
+const KUERI_PER_KATA_MAKS = 8;
+// Batas waktu pencarian cadangan. Lewat dari ini hasilnya dianggap kosong, bukan gangguan, agar giliran tetap di bawah BATAS_WAKTU_MS.
+const BATAS_WAKTU_CADANGAN_MS = 2500;
 const AGEN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SigapBPOM/1.0';
 
 // Kode nomor izin edar: pangan (MD/ML/PIRT), obat (DBL/DKL/GKL/...), kosmetik (NA/NB/NC/...), jamu dan suplemen (TR/TI/SD/SI).
@@ -162,7 +166,10 @@ export class CekBpom {
   // Merek bisa di kata mana saja ("susu Greenfield" bermerek Greenfields), jadi tiap kata dicoba sebagai merek.
   async kirim(kueri) {
     if (kueri.nomor) return this.kirimKolom({ product_register: kueri.nomor });
-    const kataMerek = [...new Set(kueri.nama.split(' ').filter((k) => k.length >= 3))].slice(0, KATA_MEREK_MAKS);
+    // Kata umum ("susu", "coklat") sebagai merek hanya memperlambat dan cocok dengan ratusan merek; yang dicari kata khasnya.
+    const kataNama = [...new Set(kueri.nama.split(' ').filter((k) => k.length >= 3))];
+    const kataKhas = kataNama.filter((k) => !kataUmum(k));
+    const kataMerek = (kataKhas.length ? kataKhas : kataNama).slice(0, KATA_MEREK_MAKS);
     const [nama, ...merek] = (await Promise.allSettled([
       this.kirimKolom({ product_name: kueri.nama }),
       ...kataMerek.map((k) => this.kirimKolom({ product_brand: k, length: String(BARIS_MEREK_MAKS) }).then((h) => saring(h, kueri.nama, k))),
@@ -171,7 +178,45 @@ export class CekBpom {
     const unik = new Map(ok.flatMap((h) => h.produk).map((p) => [p.nomorIzinEdar, p]));
     // Sebagian kueri gagal tetap dipakai bila ada hasil; tanpa hasil jangan disimpulkan "tidak ditemukan" (NFR-7).
     if (ok.length <= kataMerek.length && !unik.size) throw new Error('cekbpom cari gagal');
+    if (!unik.size) {
+      const cadangan = await this.cariPerKata(kueri.nama).catch(() => null);
+      if (cadangan?.produk.length) return cadangan;
+    }
     return { total: Math.max(...ok.map((h) => h.total), unik.size), produk: [...unik.values()].slice(0, 10) };
+  }
+
+  /**
+   * Cadangan saat nama lengkap dan mereknya tidak ditemukan. cekbpom hanya mencari potongan teks yang berurutan, jadi
+   * "shampo barber daily" tidak menemukan "Barber Daily Dandruff & Oil Control Shampoo" (merek MAKARIZO), dan "susu coklat
+   * ultra" tidak menemukan "Susu UHT Rasa Cokelat" (merek ULTRA MILK). Yang dicari: pasangan kata berurutan, dan kata khas
+   * (bukan jenis produk atau rasa, lihat namaMirip.mjs) di kolom nama dan merek. Hasilnya disaring dengan pencocokan longgar
+   * (padanan, ejaan mirip, spasi diabaikan). Null bila nama hanya satu kata, karena itu sudah dicari pencarian utama.
+   */
+  async cariPerKata(nama) {
+    const kata = nama.split(' ').filter((k) => k.length >= 3);
+    if (kata.length < 2) return null;
+    const khas = [...kata.filter((k) => !kataUmum(k))].sort((a, b) => b.length - a.length).slice(0, 2);
+    const ejaan = (k) => [k, ...padanan(k).filter((v) => v.length >= 3)].slice(0, 2);
+    // Merek dan nama sekaligus paling tepat: merek "bendera" dengan nama "cokelat" menemukan Susu Bendera rasa cokelat, yang
+    // tidak masuk baris teratas bila hanya merek yang dicari.
+    const lain = (k) => kata.filter((x) => x !== k && !jenisProduk(x)).flatMap(ejaan).slice(0, 3);
+    const gabungan = khas.slice(0, 1).flatMap((k) => lain(k).map((x) => ({ product_brand: k, product_name: x })));
+    // Merek dicari dengan awalan empat huruf agar penulisan lain tetap terjangkau ("ponds" untuk POND'S, "ultramilk" untuk ULTRA MILK).
+    const perKhas = khas.flatMap((k) => [{ product_name: k, length: String(BARIS_MIRIP_MAKS) }, { product_brand: k.slice(0, 4), length: String(BARIS_MIRIP_MAKS) }]);
+    const pasangan = kata.slice(0, -1).map((k, i) => ({ product_name: `${k} ${kata[i + 1]}` })).slice(0, 2);
+    const kueri = [...gabungan, ...perKhas, ...pasangan].slice(0, KUERI_PER_KATA_MAKS);
+    // Kueri yang belum selesai saat batas waktu dilewati; yang sudah selesai tetap dipakai.
+    const tenggat = new Promise((siap) => { setTimeout(siap, BATAS_WAKTU_CADANGAN_MS, null).unref?.(); });
+    const hasil = await Promise.all(kueri.map((k) => Promise.race([this.kirimKolom({ length: String(BARIS_MEREK_MAKS), ...k }).catch(() => null), tenggat])));
+    const semua = [...new Map(hasil.flatMap((h) => h?.produk ?? []).map((p) => [p.nomorIzinEdar, p])).values()];
+    let produk = semua.filter((p) => memuatSemuaKata(p, kata));
+    // Kategori umum boleh tidak ada ("obat tolak angin" untuk "TOLAK ANGIN ..."), selama kata lain semuanya cocok dan minimal
+    // dua kata cocok. Jenis produk lain sudah ditangani padanannya ("sabun" cocok dengan Body Wash).
+    const wajib = kata.filter((k) => !bolehDiabaikan(k));
+    if (!produk.length && wajib.length && wajib.length < kata.length) {
+      produk = semua.filter((p) => memuatSemuaKata(p, wajib) && kata.filter((k) => memuatKata(teksProduk(p), k)).length >= 2);
+    }
+    return { total: produk.length, produk: produk.slice(0, 10) };
   }
 
   /**
@@ -212,6 +257,11 @@ export class CekBpom {
   }
 }
 
+const teksProduk = (p) => `${p.nama} ${p.merek}`;
+
+/** Nama atau merek produk memuat setiap kata secara longgar: persis, padanan, ejaan mirip, atau spasi diabaikan (namaMirip.mjs). */
+const memuatSemuaKata = (p, kata) => kata.every((k) => memuatKata(teksProduk(p), k));
+
 /**
  * Hasil cari per merek hanya dipakai bila nama dan mereknya memuat sisa kata yang diucapkan ("goreng" untuk "indomie goreng",
  * "susu" untuk merek Greenfields). Kata yang dicari sebagai merek sudah dicocokkan cekbpom, jadi tidak dicek lagi.
@@ -219,10 +269,8 @@ export class CekBpom {
 function saring(hasil, nama, kataMerek) {
   const kata = nama.split(' ').filter((k) => k !== kataMerek);
   if (!kata.length) return hasil;
-  const produk = hasil.produk.filter((p) => {
-    const teks = `${p.nama} ${p.merek}`.toLowerCase();
-    return kata.every((k) => teks.includes(k));
-  });
+  // Ejaan boleh sedikit berbeda ("coklat" untuk Cokelat), seperti pencarian cadangan per kata.
+  const produk = hasil.produk.filter((p) => memuatSemuaKata(p, kata));
   return { total: produk.length, produk };
 }
 
