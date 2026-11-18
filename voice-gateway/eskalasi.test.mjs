@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan, pesanTiketEskalasi,
+  PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketTiruan, butuhPetugas, nomorTeleponDariUcapan, pertanyaanBaruSaatEskalasi, pesanTiketEskalasi,
   samarkanDeretTelepon,
 } from './eskalasi.mjs';
 import { kueriProduk } from './cekbpom.mjs';
@@ -153,5 +153,14 @@ test('req_1_7 req_2_3 gateway produksi tanpa SUPABASE_URL atau SIGAP_KUNCI_INTER
     const hasil = spawnSync(process.execPath, [server], { env: { NODE_ENV: 'production', PORT: '0', ...sebagian }, encoding: 'utf8', timeout: 5000 });
     assert.equal(hasil.status, 1, JSON.stringify(sebagian));
     assert.match(hasil.stderr, /env_supabase_kurang/);
+  }
+});
+
+test('req_1_7 pertanyaan baru saat diminta nomor telepon membatalkan permintaan nomor; jawaban berisi angka tidak', () => {
+  for (const u of ['Gimana cara mendaftarkan produk saya untuk didaftarkan di BPOM?', 'apakah susu sehat terdaftar']) {
+    assert.equal(pertanyaanBaruSaatEskalasi(u), true, u);
+  }
+  for (const u of ['081234567890', 'kosong delapan satu dua tiga empat', 'nomor saya 0812 345', 'tidak usah', 'nanti saja']) {
+    assert.equal(pertanyaanBaruSaatEskalasi(u), false, u);
   }
 });

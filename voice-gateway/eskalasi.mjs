@@ -85,6 +85,21 @@ export const PESAN_NOMOR_SALAH = Object.freeze({
   awalan: { pesan: 'Nomor telepon harus diawali nol delapan. Mohon sebutkan ulang nomor telepon Anda satu per satu angka.', suara: 'telepon-awalan' },
 });
 
+// Kata tanya atau permintaan yang menandai pertanyaan baru, bukan jawaban atas permintaan nomor telepon.
+const POLA_PERTANYAAN_BARU = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|berapa|siapa|dimana|kemana|bolehkah|bisakah|tolong|cara|cek)\b|\?/;
+const KATA_PERTANYAAN_MIN = 4;
+
+/**
+ * Saat agen menunggu nomor telepon untuk tiket eskalasi, penelepon kadang malah bertanya hal lain ("gimana cara mendaftarkan
+ * produk?"). Ucapan tanpa angka yang berbentuk pertanyaan, atau cukup panjang, membatalkan permintaan nomor agar
+ * pertanyaannya diproses biasa, tidak terus dibalas "Mohon sebutkan nomor telepon Anda".
+ */
+export function pertanyaanBaruSaatEskalasi(ucapan) {
+  if (digitDariUcapan(ucapan)) return false;
+  const s = sederhanakan(ucapan);
+  return POLA_PERTANYAAN_BARU.test(s) || s.split(' ').filter(Boolean).length >= KATA_PERTANYAAN_MIN;
+}
+
 /** Pesan dan suara saat nomor telepon belum diterima: penjelasannya bila ada angka yang terdengar, selain itu pesan baku. */
 export function mintaUlangTelepon(ucapan) {
   const masalah = masalahNomorTelepon(ucapan);
