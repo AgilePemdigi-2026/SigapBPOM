@@ -212,3 +212,9 @@ test('req_1_6 "mendaftarkan produk" menemukan materi tentang registrasi lewat pa
   const hasil = k.selesai().cari('kemana saya cara mendaftarkan produk saya ke BPOM', 2, 0);
   assert.equal(hasil[0]?.judul, 'Registrasi Pangan Olahan');
 });
+
+test('req_1_6 pertanyaan "bagaimana ..." ikut mencari "cara", dan kata pengisi lisan diabaikan', () => {
+  assert.ok(tokenPertanyaan('Eh, bagaimana saya mendaftarkan produk saya ke BPOM?').includes('cara'));
+  assert.ok(!tokenPertanyaan('Eh, bagaimana saya mendaftarkan produk').includes('eh'));
+  assert.ok(!tokenPertanyaan('apa itu BPOM').includes('cara'));
+});

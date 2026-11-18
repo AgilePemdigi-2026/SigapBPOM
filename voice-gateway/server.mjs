@@ -21,6 +21,7 @@ import {
 import { GerbangPengaduanSupabase, GerbangPengaduanTiruan } from './layananPengaduan.mjs';
 import {
   PESAN_BUTUH_PETUGAS, PESAN_MINTA_ULANG_TELEPON, PembatasTiket, PenerbitTiketSupabase, PenerbitTiketTiruan, butuhPetugas, mintaUlangTelepon,
+  pertanyaanBaruSaatEskalasi,
   nomorTeleponDariUcapan, pesanTiketEskalasi,
 } from './eskalasi.mjs';
 import { PelaporPanggilanSupabase, PelaporPanggilanTiruan, PemantauPanggilan, TAHAP } from './panggilanAktif.mjs';
@@ -436,7 +437,13 @@ async function giliran(req, res, url) {
 
       // T-F1.4-03 (REQ-1.7, NFR-6): pertanyaan medis tidak dijawab AI. Agen meminta nomor telepon, memintanya ulang
       // bila tidak valid, lalu menerbitkan tiket ESK. Semua giliran ini tanpa AI.
-      const pertanyaanEskalasi = riwayat.eskalasi(id);
+      let pertanyaanEskalasi = riwayat.eskalasi(id);
+      // Penelepon yang malah mengajukan pertanyaan baru tidak terjebak diminta nomor telepon terus; pertanyaannya diproses biasa.
+      if (pertanyaanEskalasi !== null && pertanyaanBaruSaatEskalasi(transkrip)) {
+        riwayat.selesaiEskalasi(id);
+        pertanyaanEskalasi = null;
+        console.info(JSON.stringify({ ev: 'eskalasi', tahap: 'dibatalkan_pertanyaan_baru', stt_ms: tStt }));
+      }
       if (pertanyaanEskalasi !== null || (riwayat.layanan(id) !== 2 && butuhPetugas(transkrip))) {
         tulis({ jenis: 'transkrip', transkrip });
         let jawaban, suara, tiket = null;

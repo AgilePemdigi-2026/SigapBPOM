@@ -26,6 +26,7 @@ const STOPWORD = new Set(`yang dan di ke dari untuk dengan pada dalam atau ini i
   saya kami kita anda kamu ya tolong mohon bisa boleh mau ingin ada sudah belum masih jika kalau agar supaya maka
   hal nya pun lah kah dong sih saja hanya para bagi atas bawah sampai hingga tentang yaitu ialah berupa sesuai
   halo hai selamat pagi siang sore malam terima kasih permisi pak bu mas mbak kak tanya nanya
+  eh ehm em hmm anu gimana gmn kayak kek nih deh dong sih min kakak bang gan sis
   ayat huruf angka pasal nomor tahun peraturan badan pengawas obat makanan bpom republik indonesia`.split(/\s+/));
 
 const AWALAN = /^(meng|meny|mem|men|me|peng|peny|pem|pen|pe|ber|ter|di|ke|se)/;
@@ -46,8 +47,15 @@ const PADANAN = new Map([
   ['registras', ['daftar']],
 ]);
 
-/** Token pertanyaan ditambah padanannya (lihat PADANAN). */
-export const tokenPertanyaan = (teks) => [...new Set(token(teks).flatMap((t) => [t, ...(PADANAN.get(t) ?? [])]))];
+// Pertanyaan "bagaimana/gimana/kemana ..." menanyakan cara, dan FAQ BPOM berjudul "Bagaimana cara ...". Kata tanya itu
+// stopword, jadi "cara" ditambahkan agar FAQ tata cara ikut terangkat meski penelepon tidak mengucapkan "cara".
+const POLA_TANYA_CARA = /\b(bagaimana|gimana|gmn|kemana|ke mana|dimana|di mana|caranya)\b/i;
+
+/** Token pertanyaan ditambah padanannya (lihat PADANAN), dan "cara" untuk pertanyaan tata cara. */
+export const tokenPertanyaan = (teks) => [...new Set([
+  ...token(teks).flatMap((t) => [t, ...(PADANAN.get(t) ?? [])]),
+  ...(POLA_TANYA_CARA.test(String(teks)) ? ['cara'] : []),
+])];
 
 export function token(teks) {
   return String(teks).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, ' ').split(' ')
