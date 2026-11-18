@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { KatalogMateriSupabase, Korpus, akar, kunciMateri, labelPeraturan, pesanKutipan, potong, tanggalIndonesia, token } from './pengetahuan.mjs';
+import { KatalogMateriSupabase, Korpus, akar, kunciMateri, labelPeraturan, pesanKutipan, potong, tanggalIndonesia, token, tokenPertanyaan } from './pengetahuan.mjs';
 import { RiwayatPanggilan } from './percakapan.mjs';
 
 const dok = (judul, nomor, tahun, badan) => `---
@@ -197,4 +197,18 @@ test('katalog dibaca per halaman lewat Edge Function dengan kunci internal', asy
 
   const gagal = async () => new Response('{"status":"error"}', { status: 401 });
   await assert.rejects(new KatalogMateriSupabase({ url: 'https://x', kunci: 'k', fetch: gagal }).ambil(), /katalog 401/);
+});
+
+test('req_1_6 "mendaftarkan produk" menemukan materi tentang registrasi lewat padanan kata', () => {
+  assert.deepEqual(tokenPertanyaan('mendaftarkan produk').sort(), ['daftar', 'produk', 'registras']);
+  const k = new Korpus();
+  k.tambah('reg.md', dok('Registrasi Pangan Olahan', '27', '2017',
+    'Pasal 1 Registrasi pangan olahan dilakukan secara elektronik melalui laman registrasi BPOM. Pasal 2 Registrasi diajukan oleh pelaku usaha.'));
+  k.tambah('gizi.md', dok('Label Gizi Pangan Olahan', '26', '2021',
+    'Pasal 1 Informasi nilai gizi wajib dicantumkan pada label pangan olahan. Pasal 2 Tabel gizi memuat energi total.'));
+  k.tambah('obat.md', dok('Pengawasan Obat yang Sering Disalahgunakan', '12', '2025',
+    'Pasal 1 Obat yang sering disalahgunakan meliputi tramadol. Pasal 2 Apotek wajib mencatat penyerahan obat tersebut.'));
+  // Korpus uji kecil membuat skor BM25 rendah, jadi ambang skor dinolkan; yang diuji adalah urutannya.
+  const hasil = k.selesai().cari('kemana saya cara mendaftarkan produk saya ke BPOM', 2, 0);
+  assert.equal(hasil[0]?.judul, 'Registrasi Pangan Olahan');
 });
