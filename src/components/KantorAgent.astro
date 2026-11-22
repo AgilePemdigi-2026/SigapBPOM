@@ -646,6 +646,8 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
     const jangkar = (s: Stasiun) => ({ x: s.x + (s.jenis === 'sigi' ? 7 : 6), y: s.y + 5 });
     function gambarPaket(t: number) {
       if (!hop && antrean.length && t - hopSelesai > JEDA_HOP) hop = { ...antrean.shift()!, mulai: t };
+      // Selama rangkaian paket berjalan, gelembung bicara diredupkan agar label paket tidak menumpuk dengannya.
+      lapis!.classList.toggle('ada-paket', !!hop || antrean.length > 0);
       if (!hop) return;
       const umur = t - hop.mulai, a = jangkar(hop.dari), b = jangkar(hop.ke);
       const titik = (p: number) => {
@@ -813,6 +815,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
   .lapis :global(.paket) { position: absolute; transform: translate(-50%, -100%); padding: 2px 7px 3px; border-radius: 6px; background: #1d222c; color: #ffffff; font-size: 12.5px; line-height: 1.2; white-space: nowrap; opacity: 0; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); transition: opacity .15s; }
   :global(:root[data-theme='dark']) .lapis :global(.paket) { background: #e8edf7; color: #0e1426; }
   .lapis :global(.paket.tampil) { opacity: 1; }
+  .lapis.ada-paket :global(.bub.tampil) { opacity: .15; }
   .lapis :global(.paket.gagal) { background: #b42318; color: #ffffff; }
   .lapis :global(.tag-dot) { width: 8px; height: 8px; border-radius: 2px; background: #22c55e; box-shadow: 0 0 0 2px rgba(34, 197, 94, .25); }
   .lapis :global(a.tag) { text-decoration: none; cursor: pointer; }
