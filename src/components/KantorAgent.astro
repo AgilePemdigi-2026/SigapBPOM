@@ -2,7 +2,9 @@
 // Boundary UC-04 (F5.4): tampilan "Kantor SIGAP" untuk halaman Pantau AI Agent. Setiap komponen voice agent digambar
 // sebagai petugas di mejanya: Voice Gateway resepsionis, STT/TTS operator suara, Hermes adalah Sigi, cekbpom petugas
 // arsip, basis pengetahuan pustakawan, dan penerbitan tiket meja tiket. Data sama dengan tampilan tabel (kesehatan
-// komponen, log tool, panggilan aktif) dan diperbarui otomatis lewat /api/pantau-agent. Seluruh grafis pixel-art
+// komponen, log tool, panggilan aktif) dan diperbarui otomatis lewat /api/pantau-agent. Perubahan tahap panggilan dan
+// log tool baru diputar sebagai paket task yang berpindah antar-meja; agen tanpa task mengisi waktu dengan aktivitas
+// acak (ngopi, menyiram tanaman, ngobrol, dsb.) yang langsung berhenti begitu task masuk. Seluruh grafis pixel-art
 // digambar di kanvas 320×180 tanpa aset luar selain logo; teks (label, gelembung) berupa DOM agar tetap tajam.
 import type { PantauAgent } from '../lib/PemantauanLayananController';
 
@@ -70,6 +72,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         doorDark: '#8f6a42', plantA: '#4caf6a', plantB: '#2f8a4a', pot: '#d0744c', potDark: '#a85a38', rug: '#d3def5',
         rugBorder: '#a9bce6', sofa: '#4f7fc4', sofaDark: '#3e6aa8', cooler: '#bfe3ff', coolerBody: '#e8edf5', cabinet: '#9aa8c4',
         cabinetLine: '#7f8eab', paper: '#ffffff', glow: 'rgba(91,141,255,.0)', shadow: 'rgba(30,40,70,.14)', lamp: 'rgba(255,214,140,0)',
+        cork: '#c8975e', machine: '#3a3f4e',
       },
       dark: {
         wall: '#18213d', wallTrim: '#243155', base: '#0e1428', floorA: '#1b2441', floorB: '#18203b', grout: '#141b31',
@@ -78,6 +81,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         doorDark: '#1f2a4a', plantA: '#2f8a55', plantB: '#216a40', pot: '#9b5236', potDark: '#73391f', rug: '#202c52',
         rugBorder: '#2c3b6c', sofa: '#2d5a9a', sofaDark: '#22477c', cooler: '#5f9fd6', coolerBody: '#36456b', cabinet: '#3a4870',
         cabinetLine: '#29355a', paper: '#e8eefc', glow: 'rgba(91,141,255,.22)', shadow: 'rgba(0,0,0,.35)', lamp: 'rgba(255,200,120,.10)',
+        cork: '#6e5237', machine: '#151a28',
       },
     };
     type Palet = typeof PALET.light;
@@ -150,10 +154,15 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
     }
 
     // ---------- Stasiun kerja ----------
+    type Titik = { x: number; y: number };
+    type JenisAksi = 'ngopi' | 'siram' | 'ngobrol' | 'diajak' | 'regang' | 'baca' | 'senandung';
+    // Aktivitas saat menganggur. Yang berjalan menyusuri rute lalu pulang lewat jalur yang sama dibalik.
+    type Aksi = { jenis: JenisAksi; fase: 'pergi' | 'di_sana' | 'pulang'; rute: Titik[]; balik: Titik[]; sampai: number; tempat?: string; teman?: Stasiun };
     type Stasiun = {
       kunci: string; nama: string; peran: string; komponen?: string; x: number; y: number; jenis: 'duduk' | 'berdiri' | 'sigi';
       rupa?: Rupa; headset?: boolean; meja?: { x: number; y: number; w: number }; layar?: { x: number; y: number }[];
       kerjaSampai: number; teks?: string; gangguan: boolean; latensi: string;
+      pos: Titik; aksi?: Aksi; jedaSampai: number;
     };
     const ST: Stasiun[] = [
       { kunci: 'gateway', nama: 'Voice Gateway', peran: 'Resepsionis', komponen: 'Voice Gateway', x: 44, y: 58, jenis: 'duduk',
@@ -172,8 +181,95 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       { kunci: 'tiket', nama: 'Tiket', peran: 'Meja tiket', x: 256, y: 112, jenis: 'duduk',
         rupa: { kulit: '#c98f62', rambut: '#7a4a2a', baju: '#e9a23b', celana: '#3b3226', gaya: 'pendek' },
         meja: { x: 242, y: 126, w: 44 }, layar: [] },
-    ].map((s) => ({ ...s, kerjaSampai: 0, gangguan: false, latensi: '—' } as Stasiun));
+    ].map((s) => ({ ...s, kerjaSampai: 0, gangguan: false, latensi: '—', pos: { x: s.x, y: s.y }, jedaSampai: performance.now() + 2000 + Math.random() * 6000 } as Stasiun));
     const stasiun = (k: string) => ST.find((s) => s.kunci === k)!;
+
+    // ---------- Rute jalan kaki: semua lewat lorong y=100 di depan deretan meja agar tidak menembus perabot ----------
+    const LORONG = 100;
+    const KELUAR: Record<string, Titik[]> = {
+      gateway: [{ x: 86, y: 58 }, { x: 86, y: LORONG }],
+      suara: [{ x: 86, y: 46 }, { x: 86, y: LORONG }],
+      pustaka: [{ x: 214, y: LORONG }],
+      arsip: [{ x: 242, y: 54 }, { x: 242, y: LORONG }],
+      tiket: [{ x: 256, y: LORONG }],
+    };
+    // Titik berdiri tamu di samping meja rekan yang diajak ngobrol.
+    const TAMU: Record<string, Titik[]> = {
+      gateway: [{ x: 48, y: LORONG }, { x: 48, y: 94 }],
+      suara: [{ x: 86, y: LORONG }, { x: 86, y: 48 }],
+      pustaka: [{ x: 228, y: LORONG }, { x: 228, y: 40 }],
+      arsip: [{ x: 242, y: LORONG }, { x: 242, y: 56 }],
+      tiket: [{ x: 230, y: LORONG }, { x: 230, y: 112 }],
+      hermes: [{ x: 132, y: LORONG }, { x: 132, y: 84 }],
+    };
+    const TEMPAT: Record<string, { aksi: 'ngopi' | 'siram'; rute: Titik[] }> = {
+      pantry1: { aksi: 'ngopi', rute: [{ x: 122, y: LORONG }, { x: 122, y: 150 }, { x: 70, y: 150 }] },
+      pantry2: { aksi: 'ngopi', rute: [{ x: 122, y: LORONG }, { x: 122, y: 150 }, { x: 86, y: 150 }] },
+      tanaman1: { aksi: 'siram', rute: [{ x: 286, y: LORONG }] },
+      tanaman2: { aksi: 'siram', rute: [{ x: 288, y: LORONG }, { x: 288, y: 150 }] },
+    };
+    const BERJALAN = new Set<JenisAksi>(['ngopi', 'siram', 'ngobrol']);
+    const LABEL_AKSI: Record<JenisAksi, string> = {
+      ngopi: 'Ngopi di pantry', siram: 'Menyiram tanaman', ngobrol: 'Ngobrol', diajak: 'Ngobrol', regang: 'Meregangkan badan', baca: 'Membaca', senandung: 'Bersenandung',
+    };
+    const acak = (a: number, b: number) => a + Math.random() * (b - a);
+    const diMeja = (s: Stasiun) => s.pos.x === s.x && s.pos.y === s.y;
+    // Agen yang sedang mengerjakan task, gangguan, atau (resepsionis) sedang ada penelepon tidak boleh meninggalkan meja.
+    const bertugas = (s: Stasiun, t: number) => s.gangguan || t < s.kerjaSampai || (s.kunci === 'gateway' && penelepon.length > 0);
+    type Kepulan = { x: number; y: number; mulai: number };
+    let kepulan: Kepulan[] = [];
+
+    function mulaiAksi(s: Stasiun, t: number) {
+      const diam = (jenis: JenisAksi) => () => { s.aksi = { jenis, fase: 'di_sana', rute: [], balik: [], sampai: t + acak(4000, 7000) }; };
+      if (s.jenis === 'sigi') return diam('senandung')();
+      const pilihan = [diam('regang'), diam('baca')];
+      // Paling banyak dua agen meninggalkan meja sekaligus; tanpa animasi (reduced motion) agen tetap di meja.
+      if (!hemat && ST.filter((x) => x.aksi && BERJALAN.has(x.aksi.jenis)).length < 2) {
+        const pergi = (tujuan: Titik[], jenis: JenisAksi, lain: Partial<Aksi>) => {
+          const jalur = [{ x: s.x, y: s.y }, ...KELUAR[s.kunci], ...tujuan];
+          s.aksi = { jenis, fase: 'pergi', rute: jalur.slice(1), balik: jalur.slice(0, -1).reverse(), sampai: 0, ...lain };
+        };
+        Object.entries(TEMPAT).forEach(([nama, tp]) => {
+          if (!ST.some((x) => x.aksi?.tempat === nama)) pilihan.push(() => pergi(tp.rute, tp.aksi, { tempat: nama }));
+        });
+        ST.forEach((x) => {
+          if (x !== s && !x.aksi && !bertugas(x, t) && TAMU[x.kunci]) pilihan.push(() => {
+            pergi(TAMU[x.kunci], 'ngobrol', { teman: x });
+            x.aksi = { jenis: 'diajak', fase: 'di_sana', rute: [], balik: [], sampai: Infinity, teman: s };
+          });
+        });
+      }
+      pilihan[Math.floor(Math.random() * pilihan.length)]();
+    }
+
+    function selesaiAksi(s: Stasiun, t: number) {
+      s.aksi = undefined; s.pos = { x: s.x, y: s.y }; s.jedaSampai = t + acak(3000, 9000);
+    }
+
+    // Task masuk: aktivitas langsung berhenti dan agen kembali ke mejanya (dengan kepulan kecil bila sedang di luar meja).
+    function kembali(s: Stasiun) {
+      const a = s.aksi;
+      if (!a) return;
+      if (!hemat && !diMeja(s)) kepulan.push({ x: s.pos.x + 6, y: s.pos.y + 9, mulai: performance.now() });
+      selesaiAksi(s, performance.now());
+      if (a.teman?.aksi?.teman === s) kembali(a.teman);
+    }
+
+    function jalankanAksi(s: Stasiun, t: number) {
+      const a = s.aksi;
+      if (!a) { if (t > s.jedaSampai && !bertugas(s, t)) mulaiAksi(s, t); return; }
+      if (a.jenis === 'diajak') { if (a.teman?.aksi?.teman !== s || a.teman.aksi.fase === 'pulang') selesaiAksi(s, t); return; }
+      if (a.fase === 'di_sana') {
+        if (t > a.sampai) { if (a.balik.length) { a.fase = 'pulang'; a.rute = a.balik; } else selesaiAksi(s, t); }
+        return;
+      }
+      const tuju = a.rute[0];
+      if (!tuju) { if (a.fase === 'pergi') { a.fase = 'di_sana'; a.sampai = t + acak(6000, 9000); } else selesaiAksi(s, t); return; }
+      const kec = 2.2, dx = tuju.x - s.pos.x, dy = tuju.y - s.pos.y;
+      if (Math.abs(dx) > 0.5) s.pos.x += Math.sign(dx) * Math.min(kec, Math.abs(dx));
+      else if (Math.abs(dy) > 0.5) s.pos.y += Math.sign(dy) * Math.min(kec, Math.abs(dy));
+      else { s.pos = { ...tuju }; a.rute = a.rute.slice(1); }
+    }
 
     // Tool di log_tool dipetakan ke stasiun yang mengerjakannya.
     function stasiunTool(nama: string) {
@@ -226,7 +322,24 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         // Papan nama SIGAP dan jam dinding.
         r(66, 7, 30, 13, P.frame); r(67, 8, 28, 11, geser(P.wall, 10));
         r(70, 10, 6, 3, '#134fe6'); r(70, 14, 6, 3, '#04877d'); r(78, 11, 15, 2, P.base); r(78, 14, 11, 2, P.base);
-        r(99, 9, 9, 9, P.frame); r(100, 10, 7, 7, '#f6f7fb'); r(103, 11, 1, 3, '#1d222c'); r(103, 13, 3, 1, '#1d222c');
+        // Jarum jam digambar tiap frame mengikuti waktu sebenarnya.
+        r(99, 9, 9, 9, P.frame); r(100, 10, 7, 7, '#f6f7fb'); r(103, 10, 1, 1, '#9aa3b2'); r(103, 16, 1, 1, '#9aa3b2');
+        // Papan pengumuman gabus dengan catatan berpaku.
+        const redup = (c: string) => (P === PALET.dark ? geser(c, -70) : c);
+        r(33, 5, 30, 18, P.frame); r(34, 6, 28, 16, P.cork);
+        ([[36, 8, 7, 6, '#fff6b0'], [45, 7, 8, 7, '#ffffff'], [55, 9, 5, 8, '#c6f0d0'], [37, 15, 9, 5, '#ffd0dc'], [48, 16, 6, 5, '#cfe3ff']] as [number, number, number, number, string][])
+          .forEach(([x, y, w, h, c]) => { r(x, y, w, h, redup(c)); r(x + 1, y + 2, w - 2, 1, 'rgba(0,0,0,.18)'); r(x + Math.floor(w / 2), y, 1, 1, '#e23b3b'); });
+        // Kalender dinding.
+        r(164, 6, 24, 17, P.frame); r(165, 7, 22, 15, redup('#f6f7fb')); r(165, 7, 22, 4, '#e23b3b');
+        r(169, 5, 1, 3, '#59607a'); r(182, 5, 1, 3, '#59607a');
+        for (let row = 0; row < 3; row++) for (let col = 0; col < 6; col++) r(167 + col * 3 + (col > 2 ? 1 : 0), 13 + row * 3, 2, 2, row === 1 && col === 3 ? '#5b8dff' : redup('#c9cfdb'));
+        // Rak berkas dinding: map-map warna di antara rak buku dan lemari arsip.
+        r(243, 4, 14, 21, geser(P.wood, -18)); r(244, 5, 12, 19, P.woodDark);
+        const map = ['#e9c46a', '#5b8dff', '#e76f51', '#2a9d8f'];
+        [5, 15].forEach((yy, a) => {
+          r(244, yy + 8, 12, 1, geser(P.wood, -18));
+          for (let i = 0; i < 4; i++) { r(244 + i * 3, yy + (i % 2), 2, 8 - (i % 2), map[(i + a) % 4]); r(244 + i * 3, yy + 4, 2, 1, 'rgba(255,255,255,.45)'); }
+        });
         // Rak buku (stasiun pustaka).
         r(194, 3, 48, 34, geser(P.wood, -18)); r(196, 5, 44, 30, P.woodDark);
         const buku = ['#e76f51', '#2a9d8f', '#e9c46a', '#5b8dff', '#8e6cc9', '#f4a261', '#4caf6a', '#d9576b'];
@@ -251,11 +364,19 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         r(184, 119, 9, 6, P.monitor); r(185, 120, 7, 4, P.screen); r(182, 125, 13, 1, P.monitor);
         r(170, 121, 4, 5, '#f6f7fb'); r(174, 122, 1, 2, '#f6f7fb');
         [152, 166, 180].forEach((x) => { r(x, 140, 8, 7, P.sofaDark); r(x + 1, 141, 6, 3, P.sofa); });
-        // Sudut santai: sofa, dispenser, tanaman.
+        // Sudut santai: sofa.
         r(12, 146, 52, 6, P.sofaDark); r(12, 152, 52, 14, P.sofa); r(10, 148, 6, 20, P.sofaDark); r(60, 148, 6, 20, P.sofaDark);
         r(18, 156, 18, 6, geser(P.sofa, 16)); r(40, 156, 18, 6, geser(P.sofa, 16)); r(14, 168, 50, 2, P.shadow);
-        r(96, 104, 10, 9, P.cooler); r(95, 113, 12, 22, P.coolerBody); r(98, 117, 6, 2, P.screenOff); r(97, 135, 10, 2, P.shadow);
-        gambarTanaman(3, 34); gambarTanaman(88, 34); gambarTanaman(244, 30); gambarTanaman(302, 148, true); gambarTanaman(108, 154); gambarTanaman(300, 92);
+        // Pantry: meja dapur dengan mesin kopi, mug, microwave, dan dispenser air.
+        r(66, 158, 40, 2, P.shadow);
+        r(64, 138, 42, 6, P.coolerBody); r(64, 143, 42, 1, P.cabinetLine);
+        r(64, 144, 42, 14, P.cabinet); r(84, 146, 1, 11, P.cabinetLine); r(81, 150, 2, 1, P.cabinetLine); r(87, 150, 2, 1, P.cabinetLine);
+        r(68, 124, 11, 14, P.machine); r(68, 124, 11, 2, geser(P.machine, 30)); r(70, 130, 7, 6, '#1d2030'); r(72, 130, 3, 1, '#9aa3b2');
+        r(72, 133, 3, 3, '#f6f7fb'); r(72, 133, 3, 1, '#6b4f2a');
+        r(80, 135, 3, 3, '#ef476f'); r(83, 136, 1, 1, '#ef476f');
+        r(88, 129, 14, 9, '#d6dbe6'); r(89, 130, 9, 7, '#59607a'); r(90, 131, 3, 2, '#7b84a0'); r(99, 131, 2, 1, '#9aa3b2'); r(99, 134, 2, 1, '#9aa3b2');
+        r(109, 118, 10, 9, P.cooler); r(108, 127, 12, 31, P.coolerBody); r(111, 131, 6, 2, P.screenOff); r(110, 158, 10, 2, P.shadow);
+        gambarTanaman(3, 34); gambarTanaman(88, 34); gambarTanaman(244, 30); gambarTanaman(302, 148, true); gambarTanaman(300, 92);
         // Jalur karpet dari pintu ke resepsionis.
         for (let y = 34; y < 92; y += 6) r(15, y, 6, 3, geser(P.floorA, -10));
       });
@@ -292,7 +413,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       el.className = 'tag';
       el.href = TUJUAN[s.kunci] ?? '#tabel';
       if (!TUJUAN[s.kunci]) el.addEventListener('click', keTabel);
-      el.innerHTML = `<span class="tag-nama"><span class="tag-dot"></span>${s.nama}</span><span class="tag-peran">${s.peran}</span>`;
+      el.innerHTML = `<span class="tag-nama"><span class="tag-dot"></span>${s.nama}</span><span class="tag-peran">${s.peran}</span><span class="tag-aksi"></span>`;
       const ax = s.jenis === 'sigi' ? s.x + 7 : s.x + 6;
       const ay = s.jenis === 'berdiri' ? s.y + 17 : s.meja!.y + 4;
       el.style.left = pct(ax, W); el.style.top = pct(ay, H);
@@ -306,12 +427,56 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
     const dom = new Map(ST.map((s) => [s.kunci, buatTag(s)]));
 
     function bicara(s: Stasiun, teks: string, ms = 4200, gagal = false) {
+      kembali(s);
       const d = dom.get(s.kunci)!;
       d.bub.textContent = teks;
       d.bub.classList.toggle('gagal', gagal);
       d.bub.classList.add('tampil');
       s.kerjaSampai = performance.now() + ms;
       s.teks = teks;
+    }
+
+    // ---------- Serah terima task: paket berpindah antar-meja, satu per satu sesuai urutan ----------
+    type JenisPaket = 'audio' | 'teks' | 'data' | 'tiket';
+    type Hop = { dari: Stasiun; ke: Stasiun; label: string; jenis: JenisPaket; gagal: boolean };
+    const DURASI_HOP = 1100, JEDA_HOP = 250;
+    const antrean: Hop[] = [];
+    let hop: (Hop & { mulai: number }) | null = null;
+    let hopSelesai = 0;
+    const labelPaket = document.createElement('div');
+    labelPaket.className = 'paket';
+    lapis!.append(labelPaket);
+    function kirim(dari: Stasiun, ke: Stasiun, label: string, jenis: JenisPaket, gagal = false) {
+      antrean.push({ dari, ke, label, jenis, gagal });
+      if (antrean.length > 12) antrean.shift();
+      // Pengirim dan penerima langsung berhenti beraktivitas dan tetap di meja sampai paketnya lewat.
+      const tunggu = (antrean.length + 1) * (DURASI_HOP + JEDA_HOP) + 1500;
+      [dari, ke].forEach((s) => { kembali(s); s.kerjaSampai = Math.max(s.kerjaSampai, performance.now() + tunggu); });
+    }
+
+    // Urutan mengikuti voice-gateway/server.mjs: gateway meneruskan audio ke STT (tahap Mendengar), transkrip kembali ke
+    // gateway (Memproses), gateway memanggil tool cekbpom atau basis pengetahuan lalu Hermes, kalimat jawaban dibacakan
+    // TTS dan audionya dikirim gateway ke penelepon (Menjawab). Alur pengaduan ditangani gateway tanpa Hermes.
+    const tahapLama = new Map<string, string>();
+    function serahTerima(daftar: Panggilan[], logBaru: Log[]) {
+      const gw = stasiun('gateway'), suara = stasiun('suara'), sigi = stasiun('hermes');
+      const berubah = daftar.filter((p) => tahapLama.get(p.id) !== p.tahap);
+      berubah.forEach((p) => {
+        if (p.tahap === 'Mendengar') kirim(gw, suara, 'audio → STT', 'audio');
+        if (p.tahap === 'Memproses') kirim(suara, gw, 'transkrip', 'teks');
+      });
+      logBaru.forEach((l) => {
+        const s = stasiunTool(l.namaTool), gagal = l.hasil === 'Gagal';
+        if (s.kunci === 'arsip') { kirim(gw, s, 'kueri cekbpom', 'data'); kirim(s, gw, gagal ? 'cekbpom gagal' : 'hasil cekbpom', 'data', gagal); }
+        else if (s.kunci === 'pustaka') { kirim(gw, s, 'kueri RAG', 'data'); kirim(s, gw, gagal ? 'pencarian gagal' : 'kutipan materi', 'data', gagal); }
+        else if (s.kunci === 'tiket') kirim(gw, s, gagal ? 'tiket gagal' : 'tiket ke petugas', 'tiket', gagal);
+      });
+      berubah.forEach((p) => {
+        if (p.tahap !== 'Menjawab') return;
+        if (p.jenis === 'Pengaduan') kirim(gw, suara, 'teks jawaban', 'teks');
+        else { kirim(gw, sigi, 'prompt + konteks', 'teks'); kirim(sigi, suara, 'kalimat jawaban', 'teks'); }
+        kirim(suara, gw, 'audio → penelepon', 'audio');
+      });
     }
 
     // ---------- Pembaruan data ----------
@@ -325,6 +490,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       ST.forEach((s) => {
         const k = s.komponen ? komp.get(s.komponen) : undefined;
         s.gangguan = k?.status === 'Gangguan';
+        if (s.gangguan) kembali(s);
         s.latensi = k ? fmtMs(k.latensiMs) : '';
         const t = dom.get(s.kunci)!;
         t.el.classList.toggle('gangguan', s.gangguan);
@@ -362,6 +528,11 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         p.tag.innerHTML = `<span class="tag-nama"><i class="icon-phone"></i>${p.tahap}</span>`;
         p.tag.title = `${p.jenis} · ${p.tahap}`;
       });
+      // Saat halaman dibuka hanya tahap sekarang yang dicatat; serah terima diputar untuk perubahan sesudahnya.
+      if (penelepon.length) kembali(stasiun('gateway'));
+      if (!pertama) serahTerima(daftar, baru.slice(0, 4).reverse());
+      tahapLama.clear();
+      daftar.forEach((p) => tahapLama.set(p.id, p.tahap));
       const tahap = new Set(daftar.map((p) => p.tahap));
       const suara = stasiun('suara'), sigi = stasiun('hermes');
       if (!suara.gangguan && tahap.has('Mendengar')) bicara(suara, 'Mendengarkan penelepon…', 6000);
@@ -398,36 +569,122 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
     }
 
     // ---------- Lingkar gambar ~12 fps ----------
-    let kirim = 0;
+    let terakhir = 0;
+    const gerak = (t: number, ms: number, n = 2) => (hemat ? 0 : Math.floor(t / ms) % n);
     function gambarOrang(s: Stasiun, t: number, sibuk: boolean) {
       const w = warnaOrang(s.rupa!);
+      const a = s.aksi, jalan = !!a && a.fase !== 'di_sana' && a.jenis !== 'diajak';
       const ganti: Record<number, string> = {};
       if (s.rupa!.gaya === 'panjang') Object.assign(ganti, PANJANG);
       if (s.rupa!.gaya === 'hijab') Object.assign(ganti, HIJAB);
       if (sibuk && Math.floor(t / 160) % 2) Object.assign(ganti, TANGAN_B);
-      const bob = s.gangguan ? 1 : sibuk ? (Math.floor(t / 320) % 2) : (Math.floor(t / 900) % 2);
-      sprite(ORANG, w, s.x, s.y + (hemat ? 0 : bob), ganti, s.gangguan);
+      if (jalan && Math.floor(t / 140) % 2) Object.assign(ganti, KAKI_B);
+      const regang = a?.jenis === 'regang' && (hemat || Math.floor(t / 700) % 2 === 1);
+      const bob = s.gangguan ? 1 : jalan ? 0 : regang ? -1 : sibuk ? (Math.floor(t / 320) % 2) : (Math.floor(t / 900) % 2);
+      const x = s.pos.x, y = s.pos.y + (hemat ? 0 : bob);
+      if (!diMeja(s)) r(x + 2, s.pos.y + 16, 9, 2, P.shadow);
+      sprite(ORANG, w, x, y, ganti, s.gangguan);
       if (s.headset) {
-        const y = s.y + (hemat ? 0 : bob);
-        r(s.x + 2, y + 1, 8, 1, '#2b2f3a'); r(s.x + 1, y + 3, 2, 3, '#2b2f3a'); r(s.x + 9, y + 3, 2, 3, '#2b2f3a');
-        r(s.x + 2, y + 6, 1, 1, '#2b2f3a'); r(s.x + 3, y + 7, 2, 1, sibuk ? '#ff5a5a' : '#2b2f3a');
+        r(x + 2, y + 1, 8, 1, '#2b2f3a'); r(x + 1, y + 3, 2, 3, '#2b2f3a'); r(x + 9, y + 3, 2, 3, '#2b2f3a');
+        r(x + 2, y + 6, 1, 1, '#2b2f3a'); r(x + 3, y + 7, 2, 1, sibuk ? '#ff5a5a' : '#2b2f3a');
       }
+      if (regang) { r(x, y + 2, 2, 7, w.c); r(x + 10, y + 2, 2, 7, w.c); r(x, y + 1, 2, 1, w.s); r(x + 10, y + 1, 2, 1, w.s); }
+      if (!a || a.fase !== 'di_sana') return;
+      if (a.jenis === 'ngopi') {
+        // Sesekali mug diangkat ke mulut; uap mengepul dari mug.
+        const minum = gerak(t, 1600, 3) === 2, mx = minum ? x + 6 : x + 9, my = minum ? y + 7 : y + 10;
+        r(mx, my, 3, 3, '#f6f7fb'); r(mx, my, 3, 1, '#6b4f2a'); r(mx + 3, my + 1, 1, 1, '#f6f7fb');
+        if (!minum) for (let i = 0; i < 2; i++) r(mx + i, my - 2 - (hemat ? i : (Math.floor(t / 260) + i) % 3), 1, 1, 'rgba(255,255,255,.75)');
+      } else if (a.jenis === 'siram') {
+        r(x + 10, y + 9, 4, 3, '#4f9fd8'); r(x + 10, y + 8, 1, 1, '#4f9fd8'); r(x + 14, y + 8, 2, 1, '#4f9fd8');
+        for (let i = 0; i < 2; i++) r(x + 16, y + 9 + (hemat ? i * 3 : (Math.floor(t / 120) + i * 3) % 6), 1, 1, '#8fd0ff');
+      } else if (a.jenis === 'baca') {
+        r(x + 2, y + 9, 8, 5, '#8e3b46'); r(x + 3, y + 10, 3, 3, '#f6f7fb'); r(x + 7, y + 10, 2, 3, '#f6f7fb');
+        r(x + 3 + gerak(t, 1800, 3), y + 11, 1, 1, '#9aa3b2');
+      }
+    }
+    // Gelembung "…" pixel di atas kepala, bergantian antara dua agen yang mengobrol.
+    function gelembungObrol(s: Stasiun, t: number) {
+      const teman = s.aksi?.teman;
+      if (!teman || s.aksi?.fase !== 'di_sana') return;
+      const pembicara = gerak(t, 1400) ? teman : s;
+      const bx = pembicara.pos.x + (pembicara.jenis === 'sigi' ? 3 : 2), by = pembicara.pos.y - 9;
+      r(bx - 1, by - 1, 11, 8, '#1d222c'); r(bx, by, 9, 6, '#ffffff'); r(bx + 2, by + 6, 2, 2, '#1d222c'); r(bx + 2, by + 6, 1, 1, '#ffffff');
+      for (let i = 0; i <= (hemat ? 2 : Math.floor(t / 300) % 3); i++) r(bx + 2 + i * 2, by + 3, 1, 1, '#1d222c');
+    }
+    // Jendela dengan awan berarak (siang) atau bintang berkelip (malam), dan jarum jam dinding sesuai waktu nyata.
+    function gambarDinding(t: number) {
+      [[112, 5], [138, 5]].forEach(([x, y], k) => {
+        g.save(); g.beginPath(); g.rect(x, y, 22, 17); g.clip();
+        r(x, y, 22, 17, P.sky);
+        if (P === PALET.dark) {
+          [[3, 3], [12, 6], [7, 10], [18, 11], [15, 2], [5, 14]].forEach(([dx, dy], i) => r(x + dx, y + dy, 1, 1, (gerak(t, 650, 4) + i + k) % 4 ? P.star : geser(P.sky, 40)));
+          if (k === 1) { r(x + 15, y + 4, 4, 4, '#f4efc7'); r(x + 17, y + 4, 2, 2, P.sky); }
+        } else {
+          const geserAwan = hemat ? 0 : t / 700;
+          [[0, 4], [30, 9], [52, 13]].forEach(([awal, ay]) => {
+            const ax = 106 + ((awal + geserAwan) % 64);
+            r(ax, y + ay, 8, 2, P.star); r(ax + 2, y + ay - 1, 4, 1, P.star);
+          });
+        }
+        g.restore();
+        r(x + 10, y, 2, 17, P.frame); r(x, y + 8, 22, 1, P.frame);
+      });
+      const kini = new Date(), cx = 103, cy = 13;
+      const jarum = (sudut: number, panjang: number, c: string) => {
+        for (let i = 1; i <= panjang; i++) r(cx + Math.round(Math.sin(sudut) * i), cy - Math.round(Math.cos(sudut) * i), 1, 1, c);
+      };
+      jarum(((kini.getHours() % 12) + kini.getMinutes() / 60) * Math.PI / 6, 2, '#1d222c');
+      jarum(kini.getMinutes() * Math.PI / 30, 3, '#59607a');
+      r(cx, cy, 1, 1, '#e23b3b');
+      // Lampu mesin kopi dan uap saat ada yang ngopi.
+      r(76, 127, 1, 1, gerak(t, 900) ? '#22c55e' : '#14532d');
+      if (ST.some((s) => s.aksi?.jenis === 'ngopi' && s.aksi.fase === 'di_sana')) for (let i = 0; i < 2; i++) r(73 + i, 121 - (hemat ? i * 2 : (Math.floor(t / 220) + i * 2) % 4), 1, 1, 'rgba(255,255,255,.6)');
+    }
+    // Paket task: amplop (teks), kaset (audio), map (data), atau karcis (tiket), dengan label jenis task di atasnya.
+    const WARNA_PAKET: Record<JenisPaket, string> = { audio: '#8fb8ff', teks: '#ffffff', data: '#ffd166', tiket: '#ffa24c' };
+    const jangkar = (s: Stasiun) => ({ x: s.x + (s.jenis === 'sigi' ? 7 : 6), y: s.y + 5 });
+    function gambarPaket(t: number) {
+      if (!hop && antrean.length && t - hopSelesai > JEDA_HOP) hop = { ...antrean.shift()!, mulai: t };
+      // Selama rangkaian paket berjalan, gelembung bicara diredupkan agar label paket tidak menumpuk dengannya.
+      lapis!.classList.toggle('ada-paket', !!hop || antrean.length > 0);
+      if (!hop) return;
+      const umur = t - hop.mulai, a = jangkar(hop.dari), b = jangkar(hop.ke);
+      const titik = (p: number) => {
+        const e = hemat ? 1 : p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+        return { x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e - Math.sin(Math.PI * e) * 18 };
+      };
+      const p = Math.min(1, umur / DURASI_HOP), { x, y } = titik(p);
+      if (!hemat && p < 1) [0.06, 0.12].forEach((d, i) => { const j = titik(Math.max(0, p - d)); r(j.x, j.y, 1, 1, i ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.7)'); });
+      const c = hop.gagal ? '#ff8a8a' : WARNA_PAKET[hop.jenis], tinta = '#1d222c';
+      r(x - 4, y - 3, 9, 7, tinta); r(x - 3, y - 2, 7, 5, c);
+      if (hop.jenis === 'audio') { r(x - 2, y, 1, 1, tinta); r(x, y - 1, 1, 3, tinta); r(x + 2, y, 1, 1, tinta); }
+      else if (hop.jenis === 'teks') { r(x - 3, y - 2, 1, 1, tinta); r(x - 2, y - 1, 1, 1, tinta); r(x - 1, y, 1, 1, tinta); r(x, y - 1, 1, 1, tinta); r(x + 1, y - 2, 2, 1, tinta); }
+      else if (hop.jenis === 'data') { r(x - 4, y - 4, 4, 1, tinta); r(x - 3, y - 3, 3, 1, c); r(x - 2, y, 5, 1, '#c99a2e'); }
+      else { r(x, y - 2, 1, 1, tinta); r(x, y, 1, 1, tinta); r(x, y + 2, 1, 1, tinta); }
+      labelPaket.textContent = hop.label;
+      labelPaket.style.left = pct(x, W); labelPaket.style.top = pct(y - 5, H);
+      labelPaket.classList.toggle('gagal', hop.gagal);
+      labelPaket.classList.add('tampil');
+      if (umur > DURASI_HOP + (hemat ? 700 : 150)) { hop = null; hopSelesai = t; labelPaket.classList.remove('tampil'); }
     }
     function frame(t: number) {
       requestAnimationFrame(frame);
       // Tidak menggambar selama tampilan Tabel dipilih atau tab tidak terlihat.
-      if (t - kirim < 80 || document.hidden || akar!.closest('[hidden]')) return;
-      kirim = t;
+      if (t - terakhir < 80 || document.hidden || akar!.closest('[hidden]')) return;
+      terakhir = t;
       const ctx = g;
       ctx.clearRect(0, 0, W, H);
       ctx.drawImage(latar, 0, 0);
       gRef.ctx = ctx;
+      gambarDinding(t);
 
       // Cahaya lampu malam di bawah tiap meja.
       if (P === PALET.dark) ST.forEach((s) => { const gx = s.x + 6, gy = s.y + 18; const gr = ctx.createRadialGradient(gx, gy, 2, gx, gy, 34); gr.addColorStop(0, P.lamp); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.fillRect(gx - 34, gy - 34, 68, 68); });
 
-      // Karakter di belakang meja.
+      // Karakter di belakang meja; agen yang sedang berjalan juga digambar di sini karena rutenya tidak melintasi meja.
       ST.forEach((s) => {
+        jalankanAksi(s, t);
         const sibuk = !s.gangguan && t < s.kerjaSampai;
         ctx.globalAlpha = s.gangguan ? 0.72 : 1;
         if (s.jenis === 'sigi') {
@@ -435,10 +692,19 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
           sprite(SIGI, WARNA_SIGI, s.x, s.y + bob + (s.gangguan ? 1 : 0), sibuk && Math.floor(t / 200) % 2 ? SIGI_KEPAK : {}, s.gangguan);
           const y = s.y + bob;
           r(s.x + 3, y, 8, 1, '#2b2f3a'); r(s.x + 2, y + 2, 2, 3, '#2b2f3a'); r(s.x + 3, y + 6, 1, 1, '#2b2f3a'); r(s.x + 4, y + 7, 2, 1, sibuk ? '#ff5a5a' : '#2b2f3a');
+          // Bersenandung: not balok kecil melayang naik.
+          if (s.aksi?.jenis === 'senandung') for (let i = 0; i < 2; i++) {
+            const u = hemat ? i * 0.6 : ((t / 1000) + i * 0.75) % 1.5, nx = s.x + 12 + i * 4 + (hemat ? 0 : Math.round(Math.sin(u * 4))), ny = s.y + 1 - Math.round(u * 6);
+            r(nx + 2, ny, 1, 3, '#ffd166'); r(nx, ny + 2, 2, 2, '#ffd166'); r(nx + 3, ny, 1, 1, '#ffd166');
+          }
         } else gambarOrang(s, t, sibuk);
         ctx.globalAlpha = 1;
-        dom.get(s.kunci)!.el.classList.toggle('sibuk', sibuk);
-        if (!sibuk && !s.gangguan) dom.get(s.kunci)!.bub.classList.remove('tampil', 'gagal');
+        const d = dom.get(s.kunci)!;
+        d.el.classList.toggle('sibuk', sibuk);
+        if (!sibuk && !s.gangguan) d.bub.classList.remove('tampil', 'gagal');
+        const aksi = s.aksi ? (s.aksi.fase === 'pulang' ? 'Kembali ke meja' : LABEL_AKSI[s.aksi.jenis]) : '';
+        const tagAksi = d.el.querySelector<HTMLElement>('.tag-aksi')!;
+        if (tagAksi.textContent !== aksi) tagAksi.textContent = aksi;
       });
 
       ctx.drawImage(depan, 0, 0);
@@ -448,8 +714,16 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         const sibuk = !s.gangguan && t < s.kerjaSampai;
         (s.layar ?? []).forEach((l) => {
           r(l.x, l.y, 13, 10, P.monitor); r(l.x + 5, l.y + 10, 3, 2, P.monitor); r(l.x + 3, l.y + 11, 7, 1, P.monitor);
-          r(l.x + 1, l.y + 1, 11, 8, s.gangguan ? P.screenOff : sibuk ? P.screenWork : P.screen);
-          if (!s.gangguan) for (let i = 0; i < 3; i++) r(l.x + 2, l.y + 2 + i * 2, sibuk ? 3 + ((Math.floor(t / 120) + i * 3) % 7) : 4 + i, 1, sibuk ? '#ffffff' : geser(P.screen, 40));
+          const pergi = !diMeja(s);
+          r(l.x + 1, l.y + 1, 11, 8, s.gangguan || pergi ? P.screenOff : sibuk ? P.screenWork : P.screen);
+          if (pergi) {
+            // Ditinggal pemiliknya: screensaver titik memantul.
+            const k = gerak(t, 220, 16), px = k < 8 ? k : 15 - k;
+            r(l.x + 2 + px, l.y + 2 + (Math.floor(k / 2) % 5), 2, 2, geser(P.screen, 20));
+          } else if (!s.gangguan) {
+            for (let i = 0; i < 3; i++) r(l.x + 2, l.y + 2 + i * 2, sibuk ? 3 + ((Math.floor(t / 120) + i * 3) % 7) : 4 + i, 1, sibuk ? '#ffffff' : geser(P.screen, 40));
+            if (!sibuk && (hemat || gerak(t, 500))) r(l.x + 7, l.y + 6, 1, 2, '#ffffff');
+          }
           if (P === PALET.dark && !s.gangguan) { const gr = ctx.createRadialGradient(l.x + 6, l.y + 5, 1, l.x + 6, l.y + 5, 16); gr.addColorStop(0, P.glow); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.fillRect(l.x - 12, l.y - 12, 37, 34); }
         });
         // Lampu status di sudut meja.
@@ -481,6 +755,15 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         r(p.x + 2, p.y + 16, 9, 2, P.shadow);
         sprite(ORANG, warnaOrang(p.rupa), p.x, p.y + (jalan ? 0 : Math.floor(t / 900) % 2), ganti);
         if (p.tag) { p.tag.style.left = pct(p.x + 6, W); p.tag.style.top = pct(p.y + 19 + (penelepon.indexOf(p) % 2) * 7, H); p.tag.classList.toggle('jalan', jalan); }
+      });
+
+      // Lapisan teratas: gelembung obrolan, paket task yang sedang berpindah, dan kepulan saat agen kembali ke meja.
+      ST.forEach((s) => { if (s.aksi?.jenis === 'ngobrol') gelembungObrol(s, t); });
+      gambarPaket(t);
+      kepulan = kepulan.filter((k) => t - k.mulai < 420);
+      kepulan.forEach((k) => {
+        const rad = 3 + Math.floor((t - k.mulai) / 140) * 2;
+        [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]].forEach(([dx, dy]) => r(k.x + dx * rad, k.y + dy * rad, 2, 2, 'rgba(255,255,255,.8)'));
       });
     }
 
@@ -526,6 +809,14 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
   :global(:root[data-theme='dark']) .lapis :global(.tag) { background: rgba(14, 20, 38, .92); color: #e8edf7; box-shadow: 0 3px 0 rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .08); }
   .lapis :global(.tag-nama) { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
   .lapis :global(.tag-peran) { font-size: 12px; opacity: .7; }
+  .lapis :global(.tag-aksi) { font-size: 11.5px; color: #b26a00; }
+  :global(:root[data-theme='dark']) .lapis :global(.tag-aksi) { color: #ffd166; }
+  .lapis :global(.tag-aksi:empty) { display: none; }
+  .lapis :global(.paket) { position: absolute; transform: translate(-50%, -100%); padding: 2px 7px 3px; border-radius: 6px; background: #1d222c; color: #ffffff; font-size: 12.5px; line-height: 1.2; white-space: nowrap; opacity: 0; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); transition: opacity .15s; }
+  :global(:root[data-theme='dark']) .lapis :global(.paket) { background: #e8edf7; color: #0e1426; }
+  .lapis :global(.paket.tampil) { opacity: 1; }
+  .lapis.ada-paket :global(.bub.tampil) { opacity: .15; }
+  .lapis :global(.paket.gagal) { background: #b42318; color: #ffffff; }
   .lapis :global(.tag-dot) { width: 8px; height: 8px; border-radius: 2px; background: #22c55e; box-shadow: 0 0 0 2px rgba(34, 197, 94, .25); }
   .lapis :global(a.tag) { text-decoration: none; cursor: pointer; }
   .lapis :global(a.tag:hover) { transform: translate(-50%, -2px); box-shadow: 0 5px 0 rgba(0, 0, 0, .2); }
@@ -573,5 +864,5 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
   .umpan-list :global(.u-waktu) { font-size: 12.5px; color: var(--muted-2); }
   @keyframes kedip { 50% { opacity: .3; } }
   @keyframes masuk { from { opacity: 0; transform: translateY(6px); } }
-  @media (prefers-reduced-motion: reduce) { .lapis :global(.bub), .lapis :global(.tag) { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .lapis :global(.bub), .lapis :global(.tag), .lapis :global(.paket) { transition: none; } }
 </style>
