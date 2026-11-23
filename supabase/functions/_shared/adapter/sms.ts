@@ -1,5 +1,5 @@
-// Adapter SMS Gateway (PROJECT_RULES 4.3): satu interface, implementasi tiruan untuk lokal dan Zenziva untuk cloud
-// (T-F7.3-01, REQ-6.6).
+// Adapter SMS Gateway (PROJECT_RULES 4.3): satu interface, implementasi tiruan untuk lokal, Zenziva untuk produksi,
+// dan HP Android (SMS Gateway for Android, sms-gate.app) untuk demo tanpa deposit (T-F7.3-01, REQ-6.6).
 import { GalatSmsTidakPasti, type PengirimSms } from '../control/PenangananController.ts';
 
 export { GalatSmsTidakPasti, type PengirimSms };
@@ -79,9 +79,66 @@ export class PengirimSmsZenziva implements PengirimSms {
   }
 }
 
+/** Alamat kirim SMS Gateway for Android mode Cloud (docs.sms-gate.app/integration/api). */
+export const URL_SMSGATE_BAWAAN = 'https://api.sms-gate.app/3rdparty/v1/messages';
+const BATAS_WAKTU_SMSGATE_MS = 5000;
+
+/** Nomor tersimpan berawalan 0 (entity/penelepon.ts); sms-gate.app meminta format E.164. */
+export const keE164 = (nomor: string) => nomor.replace(/^0/, '+62');
+
+/**
+ * Pengirim SMS lewat HP Android yang menjalankan aplikasi SMS Gateway for Android (sms-gate.app), memakai SIM dan
+ * paket SMS HP itu sendiri. Server sms-gate.app hanya mengantrekan pesan lalu meneruskannya ke HP, jadi respons 2xx
+ * berarti "masuk antrean HP", bukan "sampai ke penelepon".
+ * ponytail: jalur P2P dari SIM pribadi, cukup untuk demo. Produksi wajib penyedia A2P resmi (Zenziva) dengan nama
+ * pengirim terdaftar.
+ */
+export class PengirimSmsAndroid implements PengirimSms {
+  otorisasi: string;
+  url: string;
+  ambil: typeof fetch;
+
+  constructor(username: string, password: string, url = URL_SMSGATE_BAWAAN, ambil: typeof fetch = fetch) {
+    this.otorisasi = `Basic ${btoa(`${username}:${password}`)}`;
+    this.url = url;
+    this.ambil = ambil;
+  }
+
+  async kirim(nomorTelepon: string, teks: string) {
+    let res: Response;
+    try {
+      res = await this.ambil(this.url, {
+        method: 'POST',
+        headers: { authorization: this.otorisasi, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ textMessage: { text: teks }, phoneNumbers: [keE164(nomorTelepon)] }),
+        signal: AbortSignal.timeout(BATAS_WAKTU_SMSGATE_MS),
+      });
+    } catch (e) {
+      // Batas waktu habis setelah permintaan terkirim: pesan mungkin sudah masuk antrean HP.
+      if (e instanceof DOMException && e.name === 'TimeoutError') throw new GalatSmsTidakPasti('SMS Gateway Android tidak menjawab dalam batas waktu.');
+      throw new Error('SMS Gateway Android tidak dapat dihubungi.');
+    }
+    if (res.ok) return;
+    let alasan = `HTTP ${res.status}`;
+    try {
+      const hasil = await res.json();
+      if (typeof hasil?.message === 'string' && hasil.message.trim()) alasan = `${alasan} ${hasil.message.trim().slice(0, 120)}`;
+    } catch { /* badan galat bukan JSON: cukup kode HTTP */ }
+    throw new Error(`SMS Gateway Android menolak: ${alasan}`);
+  }
+}
+
+/** userkey/passkey dan Basic auth ikut di setiap permintaan, jadi alamatnya tidak boleh http biasa. */
+function wajibHttps(url: string, nama: string) {
+  if (!url.startsWith('https://')) throw new Error(`${nama} harus diawali https://.`);
+  return url;
+}
+
 /**
  * Memilih adapter dari env `SMS_ADAPTER`:
  * - `zenziva`: kirim sungguhan; butuh `ZENZIVA_USERKEY` dan `ZENZIVA_PASSKEY`, `ZENZIVA_URL` opsional.
+ * - `android`: kirim lewat HP Android (sms-gate.app); butuh `SMSGATE_USERNAME` dan `SMSGATE_PASSWORD` dari aplikasi,
+ *   `SMSGATE_URL` opsional (server sendiri).
  * - `tiruan`: tidak mengirim apa pun, untuk lokal saja.
  * Env kosong ditolak: tiruan menandai SMS "terkirim", jadi di cloud ia harus dipilih secara sadar, bukan bawaan.
  */
@@ -93,10 +150,15 @@ export function buatPengirimSms(mode: string | undefined, env: (nama: string) =>
     const userkey = env('ZENZIVA_USERKEY')?.trim();
     const passkey = env('ZENZIVA_PASSKEY')?.trim();
     if (!userkey || !passkey) throw new Error('ZENZIVA_USERKEY dan ZENZIVA_PASSKEY wajib diisi.');
-    const url = env('ZENZIVA_URL')?.trim() || URL_ZENZIVA_BAWAAN;
-    // userkey dan passkey ada di isi permintaan, jadi tidak boleh lewat http biasa.
-    if (!url.startsWith('https://')) throw new Error('ZENZIVA_URL harus diawali https://.');
+    const url = wajibHttps(env('ZENZIVA_URL')?.trim() || URL_ZENZIVA_BAWAAN, 'ZENZIVA_URL');
     return new PengirimSmsZenziva(userkey, passkey, url);
+  }
+  if (pilihan === 'android') {
+    const username = env('SMSGATE_USERNAME')?.trim();
+    const password = env('SMSGATE_PASSWORD')?.trim();
+    if (!username || !password) throw new Error('SMSGATE_USERNAME dan SMSGATE_PASSWORD wajib diisi.');
+    const url = wajibHttps(env('SMSGATE_URL')?.trim() || URL_SMSGATE_BAWAAN, 'SMSGATE_URL');
+    return new PengirimSmsAndroid(username, password, url);
   }
   throw new Error(`Adapter SMS "${pilihan}" belum tersedia.`);
 }

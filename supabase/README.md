@@ -38,7 +38,7 @@ fungsi yang dipanggil browser, jadi tidak ada header CORS. Salin `functions/.env
 | `laporkan-panggilan-aktif` | `{ aksi: 'laporkan', percakapanId, jenisLayanan?, topik?, tahap? }` atau `{ aksi: 'akhiri', percakapanId }` | `{ tersimpan }` atau `{ ditutup }`. Tahap: `mendengar`, `memproses`, `menjawab`. Heartbeat tiap 15 detik; panggilan tanpa heartbeat 60 detik tidak tampil di view `panggilan_berjalan` dan ditutup otomatis. |
 | `login` | `{ email, password }` | `{ sesi, petugas }` — 401 membawa pesan kamus UC-03 (isian kosong, kredensial salah, akun terkunci); 503 bila Supabase Auth bermasalah (rate limit, 5xx, jaringan), tanpa menambah penghitung gagal. Email dinormalkan ke huruf kecil. |
 | `catat-percakapan` | `{ aksi: 'ucapan', percakapanId, pembicara, teks }`, `{ aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil }`, atau `{ aksi: 'ringkasan', percakapanId, ringkasan }` | `{ urutan }` atau `{ tersimpan }`. Pembicara: `sistem`, `penelepon`; urutan dan detik ke- dihitung basis data; nomor telepon di teks disamarkan. Tool: `cek_registrasi_bpom`, `cari_basis_pengetahuan`, tanpa argumen. 404 bila percakapan belum ada, 409 bila sudah berakhir lebih dari 2 menit. Ringkasan (T-F6.3-01): buatan AI setelah panggilan berakhir, paling banyak 500 karakter, tidak menimpa ringkasan yang sudah ada. |
-| `kirim-notifikasi` | `{}` | `{ diproses, terkirim, gagal }`. Satu putaran antrean SMS: nomor tiket (diantrekan trigger saat tiket ADU/ESK terbit) dan tindak lanjut (diantrekan `tutup_tiket`). Dipicu pg_cron tiap menit lewat `picu_kirim_notifikasi()`, hanya bila ada antrean dan rahasia Vault sudah diisi. Aman diulang: yang terkirim tidak dikirim lagi, yang gagal dicoba lagi sampai 5 kali. Hasil yang tidak pasti (Zenziva tidak menjawab dalam batas waktu atau balasannya tidak terbaca) dicatat terkirim tanpa diulang, agar penelepon tidak menerima SMS ganda; log Edge Function menandainya `notifikasi_tidak_pasti`. Nomor tujuan dibaca di server dan tidak pernah ada di respons atau log. `SMS_ADAPTER` wajib diisi: `zenziva` di cloud, `tiruan` hanya untuk lokal. |
+| `kirim-notifikasi` | `{}` | `{ diproses, terkirim, gagal }`. Satu putaran antrean SMS: nomor tiket (diantrekan trigger saat tiket ADU/ESK terbit) dan tindak lanjut (diantrekan `tutup_tiket`). Dipicu pg_cron tiap menit lewat `picu_kirim_notifikasi()`, hanya bila ada antrean dan rahasia Vault sudah diisi. Aman diulang: yang terkirim tidak dikirim lagi, yang gagal dicoba lagi sampai 5 kali. Hasil yang tidak pasti (Zenziva tidak menjawab dalam batas waktu atau balasannya tidak terbaca) dicatat terkirim tanpa diulang, agar penelepon tidak menerima SMS ganda; log Edge Function menandainya `notifikasi_tidak_pasti`. Nomor tujuan dibaca di server dan tidak pernah ada di respons atau log. `SMS_ADAPTER` wajib diisi: `zenziva` untuk produksi, `android` untuk demo lewat HP Android, `tiruan` hanya untuk lokal. |
 
 ### Mengaktifkan SMS Gateway di cloud
 
@@ -49,6 +49,13 @@ Penyedia SMS: Zenziva (`PengirimSmsZenziva` di `functions/_shared/adapter/sms.ts
    kirim dari console Zenziva.
 2. Isi secret Edge Function `SMS_ADAPTER=zenziva`, `ZENZIVA_USERKEY`, `ZENZIVA_PASSKEY` (dan `ZENZIVA_URL` bila perlu),
    lalu deploy `kirim-notifikasi`. Coba sekali dengan memanggil fungsinya langsung saat antrean berisi satu tiket uji.
+
+   **Demo tanpa deposit (`SMS_ADAPTER=android`).** SMS dikirim dari SIM sebuah HP Android lewat aplikasi open source
+   SMS Gateway for Android ([sms-gate.app](https://docs.sms-gate.app/), mode Cloud gratis). Pasang aplikasinya di HP
+   (Android 5+, SIM dengan paket SMS, selalu menyala dan tersambung internet), aktifkan Cloud Server, tekan Start, lalu
+   isi secret `SMSGATE_USERNAME` dan `SMSGATE_PASSWORD` dari aplikasi. Atur jeda acak dan batas per jam di aplikasi
+   (Settings > Messages). Respons sukses berarti pesan masuk antrean HP, belum tentu sampai; status kirim dilihat di
+   aplikasi. Ini jalur P2P dari SIM pribadi: kirim hanya ke nomor tim atau penguji yang setuju, bukan untuk produksi.
 3. Isi rahasia Vault agar pg_cron mulai memicu (SQL Editor, sekali saja; kunci sama dengan secret `SIGAP_KUNCI_INTERNAL`):
    ```sql
    select vault.create_secret('https://<ref>.supabase.co', 'sigap_url_proyek');

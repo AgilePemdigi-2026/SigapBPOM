@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buatPengirimSms, GalatSmsTidakPasti, PengirimSmsTiruan, PengirimSmsZenziva, URL_ZENZIVA_BAWAAN } from '../adapter/sms.ts';
+import { buatPengirimSms, GalatSmsTidakPasti, PengirimSmsAndroid, PengirimSmsTiruan, PengirimSmsZenziva, URL_SMSGATE_BAWAAN, URL_ZENZIVA_BAWAAN } from '../adapter/sms.ts';
 import type { HasilNotifikasi, NotifikasiDiklaim, StatusKirimNotifikasi } from '../entity/notifikasi.ts';
 import {
   BATAS_PERCOBAAN_KIRIM,
@@ -264,6 +264,50 @@ test('req_6_6 Zenziva tidak menjawab dalam batas waktu atau balasan 2xx tak terb
 test('req_6_6 ZENZIVA_URL selain https ditolak agar kunci tidak terkirim tanpa enkripsi', () => {
   const env: Record<string, string> = { ZENZIVA_USERKEY: 'uk', ZENZIVA_PASSKEY: 'pk', ZENZIVA_URL: 'http://console.zenziva.net/masking/api/sendsms/' };
   assert.throws(() => buatPengirimSms('zenziva', (n) => env[n]), /harus diawali https/);
+});
+
+const androidPalsu = (status: number, isi: unknown) => {
+  const panggilan: { url: string; init: RequestInit }[] = [];
+  const ambil = (async (url: string, init: RequestInit) => {
+    panggilan.push({ url, init });
+    return new Response(typeof isi === 'string' ? isi : JSON.stringify(isi), { status });
+  }) as unknown as typeof fetch;
+  return { panggilan, pengirim: new PengirimSmsAndroid('usr', 'rahasia', 'https://smsgate.test/3rdparty/v1/messages', ambil) };
+};
+
+test('req_6_6 SMS Gateway Android menerima POST JSON dengan Basic auth dan nomor E.164; 2xx berarti masuk antrean HP', async () => {
+  const { panggilan, pengirim } = androidPalsu(202, { id: 'abc', state: 'Pending' });
+  await pengirim.kirim('081234567890', 'Nomor tiket Anda ESK-20261115-0001.');
+  assert.equal(panggilan.length, 1);
+  assert.equal(panggilan[0].url, 'https://smsgate.test/3rdparty/v1/messages');
+  assert.equal(panggilan[0].init.method, 'POST');
+  assert.equal((panggilan[0].init.headers as Record<string, string>).authorization, `Basic ${btoa('usr:rahasia')}`);
+  assert.deepEqual(JSON.parse(String(panggilan[0].init.body)), {
+    textMessage: { text: 'Nomor tiket Anda ESK-20261115-0001.' },
+    phoneNumbers: ['+6281234567890'],
+  });
+});
+
+test('req_6_6 SMS Gateway Android menolak, tak terjangkau, atau lambat: galat tanpa nomor dan tanpa kredensial', async () => {
+  await assert.rejects(androidPalsu(503, { error: 'QueueLimitExceeded', message: 'queue limits exceeded: too many pending messages: 100 / 100' }).pengirim.kirim('081234567890', 'x'),
+    (e: Error) => e.message === 'SMS Gateway Android menolak: HTTP 503 queue limits exceeded: too many pending messages: 100 / 100');
+  await assert.rejects(androidPalsu(401, 'Unauthorized').pengirim.kirim('081234567890', 'x'), (e: Error) => e.message === 'SMS Gateway Android menolak: HTTP 401');
+  const putus = new PengirimSmsAndroid('usr', 'rahasia', 'https://smsgate.test/', (async () => { throw new TypeError('network'); }) as unknown as typeof fetch);
+  await assert.rejects(putus.kirim('081234567890', 'x'), (e: Error) => !/0812|usr|rahasia/.test(e.message) && /tidak dapat dihubungi/.test(e.message));
+  const lambat = new PengirimSmsAndroid('usr', 'rahasia', 'https://smsgate.test/', (async () => {
+    throw new DOMException('signal timed out', 'TimeoutError');
+  }) as unknown as typeof fetch);
+  await assert.rejects(lambat.kirim('081234567890', 'x'), GalatSmsTidakPasti);
+});
+
+test('req_6_6 SMS_ADAPTER android butuh kredensial sms-gate.app dan alamat https', () => {
+  assert.throws(() => buatPengirimSms('android', () => undefined), /SMSGATE_USERNAME dan SMSGATE_PASSWORD wajib diisi/);
+  const env: Record<string, string> = { SMSGATE_USERNAME: 'usr', SMSGATE_PASSWORD: 'rahasia' };
+  const android = buatPengirimSms('android', (n) => env[n]);
+  assert.ok(android instanceof PengirimSmsAndroid);
+  assert.equal(android.url, URL_SMSGATE_BAWAAN);
+  env.SMSGATE_URL = 'http://192.168.1.5:8080/message';
+  assert.throws(() => buatPengirimSms('android', (n) => env[n]), /SMSGATE_URL harus diawali https/);
 });
 
 test('req_6_6 hasil kirim tidak pasti dicatat terkirim dan tidak dikirim ulang', async (t) => {
