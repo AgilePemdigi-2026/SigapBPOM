@@ -3,7 +3,7 @@
 // Pengaduan yang diminta; kolom data pribadi pelapor dan kronologi tidak pernah diminta (PROJECT_RULES 5.5).
 import type { PengaduanTersimpan, PengaduanTidakLengkap, PenyimpananDaftarPengaduan } from './daftarPengaduan.ts';
 
-type BarisTiket = { no_tiket: string; nama_produk_diadukan: string | null; tgl_pengaduan: string | null; tgl_terbit: string; status_tiket: string; percakapan_id: string | null };
+type BarisTiket = { no_tiket: string; nama_produk_diadukan: string | null; tgl_pengaduan: string | null; tgl_terbit: string; status_tiket: string; percakapan_id: string | null; sudah_dihubungi?: boolean };
 
 export class PenyimpananDaftarPengaduanSupabase implements PenyimpananDaftarPengaduan {
   url: string;
@@ -34,7 +34,7 @@ export class PenyimpananDaftarPengaduanSupabase implements PenyimpananDaftarPeng
 
   async daftar(): Promise<PengaduanTersimpan[]> {
     const p = new URLSearchParams({
-      select: 'no_tiket,nama_produk_diadukan,tgl_pengaduan,tgl_terbit,status_tiket,percakapan_id',
+      select: 'no_tiket,nama_produk_diadukan,tgl_pengaduan,tgl_terbit,status_tiket,percakapan_id,sudah_dihubungi',
       jenis_tiket: 'eq.pengaduan',
       order: 'tgl_terbit.desc',
     });
@@ -48,6 +48,7 @@ export class PenyimpananDaftarPengaduanSupabase implements PenyimpananDaftarPeng
       kategori: (b.percakapan_id && topik.get(b.percakapan_id)) || null,
       tglPengaduan: b.tgl_pengaduan ?? b.tgl_terbit,
       status: b.status_tiket,
+      sudahDihubungi: b.sudah_dihubungi === true,
     }));
   }
 

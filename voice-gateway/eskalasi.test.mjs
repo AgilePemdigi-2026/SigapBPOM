@@ -14,7 +14,7 @@ const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 test('t_f1_4_03 pesan eskalasi sama persis dengan kamus PRD Lampiran A', () => {
   assert.equal(PESAN_BUTUH_PETUGAS, 'Pertanyaan Anda akan diteruskan kepada petugas. Mohon sebutkan nomor telepon Anda.');
   assert.ok(PESAN_BUTUH_PETUGAS.endsWith(PESAN_MINTA_ULANG_TELEPON));
-  assert.equal(pesanTiketEskalasi('ESK-20261019-0001'), 'Nomor tiket Anda ESK-20261019-0001. Jawaban petugas akan dikirim melalui SMS.');
+  assert.equal(pesanTiketEskalasi('ESK-20261019-0001'), 'Nomor tiket Anda ESK-20261019-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.');
   assert.ok(PROMPT_SISTEM.includes(PESAN_BUTUH_PETUGAS));
 });
 
@@ -121,7 +121,7 @@ test('t_f1_4_03 status eskalasi per panggilan dan layanan yang dipilih', () => {
 
 test('nomor tiket dieja per digit untuk TTS', () => {
   assert.equal(teksUntukSuara(pesanTiketEskalasi('ESK-20261019-0001')),
-    'Nomor tiket Anda E S K, dua nol dua enam satu nol satu sembilan, nol nol nol satu. Jawaban petugas akan dikirim melalui SMS.');
+    'Nomor tiket Anda E S K, dua nol dua enam satu nol satu sembilan, nol nol nol satu. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.');
 });
 
 

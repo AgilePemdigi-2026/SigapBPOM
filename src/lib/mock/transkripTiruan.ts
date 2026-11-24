@@ -29,7 +29,7 @@ export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
   }],
   eskalasi: [
     { ucapan: 'Apakah obat batuk ini aman untuk ibu hamil?', jawaban: 'Pertanyaan Anda akan diteruskan kepada petugas. Mohon sebutkan nomor telepon Anda.' },
-    { ucapan: 'Nol delapan satu dua tiga empat lima enam tujuh delapan sembilan nol.', jawaban: 'Nomor tiket Anda ESK-20261019-0001. Jawaban petugas akan dikirim melalui SMS.', tiket: 'ESK-20261019-0001' },
+    { ucapan: 'Nol delapan satu dua tiga empat lima enam tujuh delapan sembilan nol.', jawaban: 'Nomor tiket Anda ESK-20261019-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.', tiket: 'ESK-20261019-0001' },
   ],
   // T-F4.1-03: Alur pengaduan produk dan tanya ulang data pengaduan (REQ-2.1, REQ-2.2, REQ-2.4).
   pengaduan: [
@@ -39,7 +39,7 @@ export const TRANSKRIP_TIRUAN: Record<string, GiliranTiruan[]> = {
     },
     {
       ucapan: 'Nol delapan satu dua tiga empat lima enam tujuh delapan sembilan nol.',
-      jawaban: 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.',
+      jawaban: 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.',
       pengaduan: 'ADU-20261102-0001',
       tiket: 'ADU-20261102-0001',
     },

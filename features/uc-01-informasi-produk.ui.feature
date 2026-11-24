@@ -56,7 +56,7 @@ Feature: Voice Information Service
     Then I should see "Apakah obat batuk ini aman untuk ibu hamil?" in the "TranskripPercakapan" element
     And I should hear "Pertanyaan Anda akan diteruskan kepada petugas. Mohon sebutkan nomor telepon Anda."
     When I say "081234567890"
-    Then I should hear "Nomor tiket Anda ESK-0123. Jawaban petugas akan dikirim melalui SMS."
+    Then I should hear "Nomor tiket Anda ESK-0123. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya."
 
   Scenario: Product is not found in the registration data (Alternative Path 3)
     Given I am on the "/homepage" page

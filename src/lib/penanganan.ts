@@ -7,6 +7,7 @@ import { LABEL_STATUS_TIKET, type StatusTiket } from './PemantauanLayananControl
 import { penyimpananPenangananSupabase } from './penyimpananPenangananSupabase.ts';
 import { bacaKonfigurasiSupabase } from './konfigurasiSupabase.ts';
 import { PESAN_SISTEM } from './sesiSupabase.ts';
+import type { KontakPelapor } from './kontakPelapor.ts';
 
 // Kamus UC-06 belum punya pesan untuk isian tidak sah, akses, dan transisi yang ditolak; dipakai pesan yang sama dengan
 // endpoint simpan-materi dan middleware. "Tiket tidak ditemukan." dari kamus UC-04.
@@ -93,10 +94,22 @@ export async function simpanTanggapan(penanganan: PenangananController, noTiket:
   return jalankan(noTiket, () => penanganan.simpanTanggapan(noTiket, tanggapan));
 }
 
-/** REQ-6.5, REQ-6.6, BR-2: tiket tanpa tanggapan ditolak; SMS dikirim dari notifikasi yang diantrekan RPC (T-F7.3-01). */
+/** REQ-6.5, REQ-6.6, BR-2: tiket tanpa tanggapan ditolak; RPC mencatat tindak lanjut yang perlu dihubungi (ADR 0006). */
 export async function tutupTiket(penanganan: PenangananController, noTiket: unknown): Promise<HasilPenanganan> {
   if (!noTiketSah(noTiket)) return DITOLAK;
   return jalankan(noTiket, () => penanganan.tutupTiket(noTiket));
+}
+
+/** ADR 0006: pelapor sudah dihubungi lewat WhatsApp atau telepon. Pengaduan yang belum ditutup ditolak RPC (55000). */
+export async function tandaiSudahDihubungi(penanganan: PenangananController, noTiket: unknown): Promise<HasilPenanganan> {
+  if (!noTiketSah(noTiket)) return DITOLAK;
+  return jalankan(noTiket, () => penanganan.tandaiSudahDihubungi(noTiket));
+}
+
+/** Kontak pelapor untuk halaman detail tiket; null bila nomor tiket tidak sah atau gagal dibaca (panel memakai nomor tersamar). */
+export async function ambilKontakPelapor(penanganan: PenangananController, noTiket: unknown): Promise<KontakPelapor | null> {
+  if (!noTiketSah(noTiket)) return null;
+  return penanganan.ambilKontakPelapor(noTiket).catch(() => null);
 }
 
 /** Respons JSON endpoint dashboard `{ status, message, data }`. */

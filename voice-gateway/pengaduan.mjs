@@ -367,8 +367,8 @@ export class EkstraktorAturan {
   }
 }
 
-/** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). Juga isi SMS nomor tiket (REQ-2.4) di Edge Function kirim-notifikasi. */
-export const pesanTiketPengaduan = (nomorTiket) => `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Tindak lanjut akan dikirim melalui SMS.`;
+/** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). Tindak lanjut lewat WhatsApp atau telepon dari dashboard (ADR 0006). */
+export const pesanTiketPengaduan = (nomorTiket) => `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.`;
 
 /** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
 export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
@@ -396,8 +396,7 @@ export class BatasTiketTercapai extends Error {
 /**
  * Control UC-02 di Voice Gateway. Gerbang (Edge Function) dipasang lewat interface:
  * `gerbang.terbitkanTiket(data) -> nomorTiket`, `gerbang.simpanTidakLengkap(data) -> void`.
- * SMS nomor tiket (REQ-2.4) tidak dikirim dari sini: basis data mengantrekannya saat tiket terbit dan Edge Function
- * kirim-notifikasi mengirimnya, sehingga semua SMS lewat satu adapter dan dicoba ulang bila gagal.
+ * Nomor tiket hanya dibacakan; petugas menghubungi pelapor lewat WhatsApp atau telepon dari dashboard (ADR 0006).
  * Seluruh alur tanpa AI: data pelapor tidak pernah masuk riwayat atau prompt model.
  */
 export class PengaduanController {
@@ -541,7 +540,7 @@ export async function prosesGiliranPengaduan({ pengaduan, riwayat, id, ucapan, i
   riwayat.tambah(id, 'user', '(menyampaikan data pengaduan)');
   if (hasil.lengkap && hasil.tiket) {
     // Setelah nomor tiket dibacakan, agen menawarkan bantuan lagi. Tawaran ikut tercatat di riwayat agar jawaban
-    // "tidak, terima kasih" menutup panggilan lewat inginMenutup. Pesan tiket sendiri tetap sama dengan kamus (juga isi SMS).
+    // "tidak, terima kasih" menutup panggilan lewat inginMenutup. Pesan tiket sendiri tetap sama dengan kamus.
     riwayat.tambah(id, 'assistant', `${hasil.jawaban} ${PESAN_TAWARAN_PENUTUP}`);
     return { jawaban: hasil.jawaban, tiket: hasil.tiket, suara: null, tahap: 'tiket', tawaran: PESAN_TAWARAN_PENUTUP };
   }

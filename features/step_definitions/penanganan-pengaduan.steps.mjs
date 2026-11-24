@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { Given, When, Then } from '@cucumber/cucumber';
 import { OPSI_TINDAK_LANJUT, PenangananController, PenyimpananPenangananMock } from '../../src/lib/PenangananController.ts';
 import { LABEL_STATUS_TIKET, PemantauanLayananController } from '../../src/lib/PemantauanLayananController.ts';
-import { simpanJadwal, simpanTanggapan, simpanTelaah, tutupTiket } from '../../src/lib/penanganan.ts';
+import { simpanJadwal, simpanTanggapan, simpanTelaah, tandaiSudahDihubungi, tutupTiket } from '../../src/lib/penanganan.ts';
+import { tautanWhatsApp, teksWhatsApp } from '../../src/lib/kontakPelapor.ts';
 import { DAFTAR_TAHAP, LABEL_TAHAP, hitungStatusTahap, tentukanTahapAktif } from '../../src/lib/stepperPenanganan.ts';
 import { PenyimpananPemantauanTiruan } from '../../src/lib/mock/pemantauanTiruan.ts';
 import { kunciLabel, nilaiTanggal, tombol } from '../support/dashboard.mjs';
@@ -168,9 +169,20 @@ Then('tahap {string} aktif', function (tahap) {
   assert.equal(LABEL_TAHAP[tentukanTahapAktif(tahapStepper(this))], tahap);
 });
 
-// @belum-tersedia: SMS tindak lanjut menunggu keputusan SMS gateway (T-F7.3-01).
-Then('SMS tindak lanjut tiket {string} terkirim kepada pelapor', function (_noTiket) {
-  return 'pending';
+// Basic Path langkah 16 (ADR 0006): tautan WhatsApp disusun seperti panel KontakPelapor di halaman Detail Pengaduan.
+Then('pesan WhatsApp untuk pelapor memuat nomor tiket {string} dan tanggapan resmi', async function (noTiket) {
+  const { penanganan } = uc06(this);
+  const kontak = await penanganan.ambilKontakPelapor(noTiket);
+  const [tanggapan] = await penanganan.ambilTanggapan(noTiket);
+  const selesai = tiketDi(this, noTiket).status === 'selesai';
+  const tautan = tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: 'pengaduan', noTiket, selesai, tanggapan: tanggapan?.isi }));
+  assert.ok(tautan, 'nomor pelapor tidak sah');
+  const teks = decodeURIComponent(new URL(tautan).searchParams.get('text') ?? '');
+  assert.ok(teks.includes(`${noTiket} telah selesai ditindaklanjuti`), teks);
+  assert.ok(teks.includes(tanggapan.isi), teks);
+});
+Then('pelapor tiket {string} tercatat sudah dihubungi', async function (noTiket) {
+  assert.equal((await uc06(this).penanganan.ambilKontakPelapor(noTiket)).sudahDihubungi, true);
 });
 
 // Langkah 7 sampai 9 Basic Path dan Alternative Path 1 serta 2 (REQ-6.2, BR-3).
@@ -191,4 +203,7 @@ tombol('Simpan Tanggapan', function () {
 // Langkah 14 sampai 17 Basic Path dan Exception Path 1 (REQ-6.5, REQ-6.6, BR-2).
 tombol('Tutup Tiket', function () {
   return jalankan(this, (c, no) => tutupTiket(c, no));
+});
+tombol('Tandai sudah dihubungi', function () {
+  return jalankan(this, (c, no) => tandaiSudahDihubungi(c, no));
 });

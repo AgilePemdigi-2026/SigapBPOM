@@ -112,8 +112,7 @@ const BATAS_WAKTU_TTS_MS = 30_000;
 const DIREKTORI_KORPUS = env('KORPUS_DIR', fileURLToPath(new URL('../knowledge/regulasi-bpom', import.meta.url)));
 
 const riwayat = new RiwayatPanggilan();
-// Tiket pengaduan lewat Edge Function bila Supabase dikonfigurasi, selain itu tiruan di memori. SMS nomor tiket (REQ-2.4)
-// diantrekan basis data saat tiket terbit dan dikirim Edge Function kirim-notifikasi.
+// Tiket pengaduan lewat Edge Function bila Supabase dikonfigurasi, selain itu tiruan di memori.
 const pengaduan = new PengaduanController({
   gerbang: SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new GerbangPengaduanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new GerbangPengaduanTiruan(),
   pembatas: pembatasTiket,

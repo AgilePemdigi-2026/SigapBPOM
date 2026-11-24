@@ -5,6 +5,7 @@ import { POST as telaah } from './telaah.ts';
 import { POST as jadwal } from './jadwal.ts';
 import { POST as tanggapan } from './tanggapan.ts';
 import { POST as tutup } from './tutup.ts';
+import { POST as dihubungi } from './dihubungi.ts';
 import { pilihPenyimpananPenanganan, simpanTelaah, tutupTiket } from '../../../../lib/penanganan.ts';
 import { PenangananController, PenyimpananPenangananMock, PenyimpananPenangananSupabase } from '../../../../lib/PenangananController.ts';
 
@@ -96,6 +97,24 @@ test('req_6_6 tutup tiket memanggil rpc tutup_tiket dengan token petugas', async
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { status: 'success', message: 'Tiket ditutup.', data: { noTiket: TIKET, status: 'selesai', labelStatus: 'Selesai' } });
   periksaRpc(panggilan, 'tutup_tiket', { p_no_tiket: TIKET });
+});
+
+test('adr_0006 tandai sudah dihubungi memanggil rpc tandai_sudah_dihubungi dengan token petugas', async () => {
+  const { hasil, panggilan } = kirim(dihubungi, { jawaban: Response.json({ no_telp: '081234567890', sudah_dihubungi: true, dihubungi_pada: '2026-11-24T03:00:00Z' }) });
+  const res = await hasil;
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { status: 'success', message: 'Pelapor ditandai sudah dihubungi.', data: { noTiket: TIKET, status: 'selesai', labelStatus: 'Selesai' } });
+  periksaRpc(panggilan, 'tandai_sudah_dihubungi', { p_no_tiket: TIKET });
+});
+
+test('adr_0006 pengaduan yang belum ditutup ditolak 422 tanpa membocorkan galat basis data', async () => {
+  const jawaban = Response.json({ code: '55000', message: 'Tiket belum ditutup', details: null, hint: null }, { status: 400 });
+  const res = await kirim(dihubungi, { jawaban }).hasil;
+  assert.equal(res.status, 422);
+  assert.deepEqual(await res.json(), { status: 'error', message: 'Permintaan tidak valid.', data: null });
+  const tidakSah = await kirim(dihubungi, { tiket: 'BUKAN-TIKET' });
+  assert.equal((await tidakSah.hasil).status, 400);
+  assert.equal(tidakSah.panggilan.length, 0);
 });
 
 test('req_6_5 br_2 galat tutup tiket tanpa tanggapan menjadi pesan kamus', async () => {

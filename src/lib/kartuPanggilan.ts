@@ -58,7 +58,7 @@ export function htmlKartuProduk(h: HasilProduk): string {
 }
 
 /** Kamus pesan Lampiran A (UC-01 "Tiket eskalasi terbit"). */
-export const pesanTiketEskalasi = (nomorTiket: string) => `Nomor tiket Anda ${nomorTiket}. Jawaban petugas akan dikirim melalui SMS.`;
+export const pesanTiketEskalasi = (nomorTiket: string) => `Nomor tiket Anda ${nomorTiket}. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.`;
 
 /** Kartu eskalasi (T-F1.4-01). Selain warna kuning, teks menyatakan jawaban datang dari petugas, bukan AI. */
 export function htmlKartuEskalasi(nomorTiket: string): string {
@@ -66,13 +66,13 @@ export function htmlKartuEskalasi(nomorTiket: string): string {
     <div class="k-eskalasi-judul"><i class="icon-user-round-check" aria-hidden="true"></i>Diteruskan ke petugas BPOM</div>
     <p>Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.</p>
     <dl><dt>Nomor tiket</dt><dd>${esc(nomorTiket)}</dd></dl>
-    <p class="k-sumber">Jawaban petugas akan dikirim melalui SMS.</p>
+    <p class="k-sumber">Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.</p>
   </section>`;
 }
 
 /** Kamus pesan Lampiran A (UC-02 "Tiket pengaduan terbit"). */
 export const pesanTiketPengaduan = (nomorTiket: string) =>
-  `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Tindak lanjut akan dikirim melalui SMS.`;
+  `Pengaduan Anda telah dicatat dengan nomor tiket ${nomorTiket}. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.`;
 
 /** Kamus pesan Lampiran A (UC-02 "Panggilan putus, data kurang"). */
 export const PESAN_PENGADUAN_TIDAK_LENGKAP = 'Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan.';
@@ -82,7 +82,7 @@ export function htmlKartuPengaduan(nomorTiket: string): string {
   return `<section class="k-pengaduan" aria-label="Tiket pengaduan">
     <div class="k-pengaduan-judul"><i class="icon-clipboard-check" aria-hidden="true"></i>Pengaduan Anda telah dicatat</div>
     <dl><dt>Nomor tiket</dt><dd>${esc(nomorTiket)}</dd></dl>
-    <p class="k-sumber">Tindak lanjut akan dikirim melalui SMS.</p>
+    <p class="k-sumber">Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.</p>
   </section>`;
 }
 

@@ -63,6 +63,7 @@ test('t_f7_1_02 tabel memuat nomor tiket, produk diadukan, kategori, tanggal pen
     kategori: 'Kosmetik',
     tanggal: '20 Okt 2026 · 09:20',
     labelStatus: 'Belum Ditelaah',
+    belumDihubungi: false,
     tautanTelaah: '/pengaduan/detail?tiket=ADU-20261020-0456',
     tautanKasus: '/pengaduan/detail?tiket=ADU-20261020-0456',
   });
@@ -112,7 +113,7 @@ test('t_f7_1_02 adapter membaca tiket pengaduan tanpa kolom data pribadi, dengan
   }) as typeof globalThis.fetch;
   const adapter = new PenyimpananDaftarPengaduanSupabase({ url: 'https://x.supabase.co/', kunciPublik: 'anon', tokenAkses: 'tok', fetch });
 
-  assert.deepEqual(await adapter.daftar(), [{ noTiket: 'ADU-1', namaProduk: 'Krim', kategori: 'Kosmetik', tglPengaduan: '2026-10-20T02:20:00Z', status: 'belum_ditelaah' }]);
+  assert.deepEqual(await adapter.daftar(), [{ noTiket: 'ADU-1', namaProduk: 'Krim', kategori: 'Kosmetik', tglPengaduan: '2026-10-20T02:20:00Z', status: 'belum_ditelaah', sudahDihubungi: false }]);
   assert.deepEqual(await adapter.tidakLengkap(), [{ percakapanId: 'p-9', kategori: null, waktu: '2026-10-21T05:00:00Z' }]);
 
   const [tiket, percakapan, tidakLengkap] = dicatat;
@@ -122,4 +123,18 @@ test('t_f7_1_02 adapter membaca tiket pengaduan tanpa kolom data pribadi, dengan
   assert.equal(percakapan.url.searchParams.get('id'), 'in.(p-1)');
   assert.equal(tidakLengkap.url.searchParams.get('status_penyelesaian'), 'eq.pengaduan_tidak_lengkap');
   assert.doesNotMatch(tidakLengkap.url.searchParams.get('select') ?? '', /penelepon/);
+});
+
+test('adr_0006 pengaduan selesai yang pelapornya belum dihubungi diberi tanda', async () => {
+  const hasil = await ambilDaftarPengaduan(new PenyimpananDaftarPengaduanTiruan([
+    { noTiket: 'ADU-20261124-0001', namaProduk: 'A', kategori: null, tglPengaduan: '2026-11-24T01:00:00Z', status: 'selesai', sudahDihubungi: false },
+    { noTiket: 'ADU-20261124-0002', namaProduk: 'B', kategori: null, tglPengaduan: '2026-11-24T02:00:00Z', status: 'selesai', sudahDihubungi: true },
+    { noTiket: 'ADU-20261124-0003', namaProduk: 'C', kategori: null, tglPengaduan: '2026-11-24T03:00:00Z', status: 'tanggapan_disusun' },
+  ], []), {});
+  assert.ok(!('gagal' in hasil));
+  assert.deepEqual(hasil.pengaduan.map((p) => [p.noTiket, p.belumDihubungi]), [
+    ['ADU-20261124-0003', false],
+    ['ADU-20261124-0002', false],
+    ['ADU-20261124-0001', true],
+  ]);
 });

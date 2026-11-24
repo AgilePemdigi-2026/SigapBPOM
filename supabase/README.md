@@ -15,13 +15,12 @@ supabase/
     ├── simpan-pengaduan-tidak-lengkap/  Boundary: simpan pengaduan tanpa tiket (UC-02)
     ├── laporkan-panggilan-aktif/    Boundary: laporan panggilan aktif dari Voice Gateway (UC-04)
     ├── catat-percakapan/            Boundary: transkrip, log tool, dan ringkasan dari Voice Gateway (UC-01, UC-05)
-    ├── kirim-notifikasi/            Boundary: antrean semua SMS (nomor tiket UC-01/UC-02, tindak lanjut UC-06)
     ├── login/                       Boundary: login dashboard dan penguncian akun (UC-03)
     └── _shared/
         ├── boundary/http.ts         kunci server (x-sigap-kunci), format { status, message, data }
         ├── control/                 InformasiProdukController (UC-01), PengaduanController (UC-02), PenangananController (UC-06) + tes
-        ├── entity/                  Produk, nomor telepon, notifikasi
-        └── adapter/                 cekbpom (tiruan/resmi), SMS (tiruan), penyimpanan Supabase
+        ├── entity/                  Produk, nomor telepon
+        └── adapter/                 cekbpom (tiruan/resmi), penyimpanan Supabase
 ```
 
 Fungsi tiket dipanggil server ke server oleh Voice Gateway / Hermes Agent dengan header
@@ -38,27 +37,17 @@ fungsi yang dipanggil browser, jadi tidak ada header CORS. Salin `functions/.env
 | `laporkan-panggilan-aktif` | `{ aksi: 'laporkan', percakapanId, jenisLayanan?, topik?, tahap? }` atau `{ aksi: 'akhiri', percakapanId }` | `{ tersimpan }` atau `{ ditutup }`. Tahap: `mendengar`, `memproses`, `menjawab`. Heartbeat tiap 15 detik; panggilan tanpa heartbeat 60 detik tidak tampil di view `panggilan_berjalan` dan ditutup otomatis. |
 | `login` | `{ email, password }` | `{ sesi, petugas }` — 401 membawa pesan kamus UC-03 (isian kosong, kredensial salah, akun terkunci); 503 bila Supabase Auth bermasalah (rate limit, 5xx, jaringan), tanpa menambah penghitung gagal. Email dinormalkan ke huruf kecil. |
 | `catat-percakapan` | `{ aksi: 'ucapan', percakapanId, pembicara, teks }`, `{ aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil }`, atau `{ aksi: 'ringkasan', percakapanId, ringkasan }` | `{ urutan }` atau `{ tersimpan }`. Pembicara: `sistem`, `penelepon`; urutan dan detik ke- dihitung basis data; nomor telepon di teks disamarkan. Tool: `cek_registrasi_bpom`, `cari_basis_pengetahuan`, tanpa argumen. 404 bila percakapan belum ada, 409 bila sudah berakhir lebih dari 2 menit. Ringkasan (T-F6.3-01): buatan AI setelah panggilan berakhir, paling banyak 500 karakter, tidak menimpa ringkasan yang sudah ada. |
-| `kirim-notifikasi` | `{}` | `{ diproses, terkirim, gagal }`. Satu putaran antrean SMS: nomor tiket (diantrekan trigger saat tiket ADU/ESK terbit) dan tindak lanjut (diantrekan `tutup_tiket`). Dipicu pg_cron tiap menit lewat `picu_kirim_notifikasi()`, hanya bila ada antrean dan rahasia Vault sudah diisi. Aman diulang: yang terkirim tidak dikirim lagi, yang gagal dicoba lagi sampai 5 kali. Hasil yang tidak pasti (Zenziva tidak menjawab dalam batas waktu atau balasannya tidak terbaca) dicatat terkirim tanpa diulang, agar penelepon tidak menerima SMS ganda; log Edge Function menandainya `notifikasi_tidak_pasti`. Nomor tujuan dibaca di server dan tidak pernah ada di respons atau log. `SMS_ADAPTER` wajib diisi: `zenziva` di cloud, `tiruan` hanya untuk lokal. |
-
-### Mengaktifkan SMS Gateway di cloud
-
-Penyedia SMS: Zenziva (`PengirimSmsZenziva` di `functions/_shared/adapter/sms.ts`). Langkah mengaktifkan:
-
-1. Ambil userkey dan passkey dari console Zenziva (menu API) dan pastikan saldo terisi. Untuk paket SMS dengan nama
-   pengirim (masking), nama pengirim harus sudah disetujui operator; paket lain mengisi `ZENZIVA_URL` dengan alamat
-   kirim dari console Zenziva.
-2. Isi secret Edge Function `SMS_ADAPTER=zenziva`, `ZENZIVA_USERKEY`, `ZENZIVA_PASSKEY` (dan `ZENZIVA_URL` bila perlu),
-   lalu deploy `kirim-notifikasi`. Coba sekali dengan memanggil fungsinya langsung saat antrean berisi satu tiket uji.
-3. Isi rahasia Vault agar pg_cron mulai memicu (SQL Editor, sekali saja; kunci sama dengan secret `SIGAP_KUNCI_INTERNAL`):
-   ```sql
-   select vault.create_secret('https://<ref>.supabase.co', 'sigap_url_proyek');
-   select vault.create_secret('<SIGAP_KUNCI_INTERNAL>', 'sigap_kunci_internal');
-   ```
-4. Periksa antrean lama sebelum langkah 3: baris `tertunda` yang sudah menumpuk ikut terkirim. Bila tidak diinginkan, tandai dulu
-   (`update public.notifikasi set status_kirim = 'gagal', percobaan = 5 where status_kirim = 'tertunda' and dibuat < now() - interval '1 day';`).
 | `cari-pengetahuan` | `{ pertanyaan, percakapanId?, ambang?, batas? }` | `{ potongan: [{ teks, judul, rujukanSumber, skor }] }` — 422 bila pertanyaan kosong. Gateway memanggilnya dengan `x-sigap-kunci`, hanya bila `PENGETAHUAN_VEKTOR=1`. |
 | `katalog-materi` | `{ offset?, batas? }`, batas paling banyak 1000 | `{ materi: [{ judul, rujukan_sumber, status, isi? }] }` — `isi` hanya untuk materi aktif. Gateway menyinkronkannya berkala dengan `x-sigap-kunci` untuk kutipan CS AI. |
 | `simpan-materi` | `{ judul, kategori?, isi?, rujukan }` dengan `Authorization: Bearer <token sesi petugas>`, bukan `x-sigap-kunci` | `MateriPengetahuan` (`id`, `judul`, `kategori`, `rujukan_sumber`, `isi`, `status`, `terindeks`, `diperbarui_oleh`, `diperbarui_pada`) — dipanggil server Astro lewat `/api/simpan-materi`. 400 isian tidak valid, 401 tanpa sesi sah, 403 bukan petugas, 405 selain POST, 422 rujukan sumber kosong, 500 galat sistem. |
+
+### Tindak lanjut WhatsApp (ADR 0006)
+
+SIGAP tidak lagi mengirim SMS. Migrasi `20261124100000_tindak_lanjut_whatsapp.sql` menghapus jadwal pg_cron
+`kirim-notifikasi-sms`, trigger SMS nomor tiket, dan RPC antrean SMS, lalu menambah `ambil_kontak_pelapor` (nomor lengkap
+untuk halaman detail tiket, khusus petugas) dan `tandai_sudah_dihubungi`. Setelah migrasi diterapkan di cloud, hapus sisa
+jalur SMS yang tidak lagi ada di repo: Edge Function `kirim-notifikasi` (`supabase functions delete kirim-notifikasi`),
+secret `SMS_ADAPTER` dan `ZENZIVA_*`, serta rahasia Vault `sigap_url_proyek` dan `sigap_kunci_internal` bila pernah diisi.
 
 Tes control tanpa basis data: `npm test`. Uji lokal penuh (butuh Docker, tanpa akun):
 `supabase start`, `supabase db reset`, `supabase functions serve`.

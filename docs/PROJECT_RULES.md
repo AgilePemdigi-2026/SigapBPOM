@@ -137,7 +137,7 @@ Nama kelas control mengikuti class diagram SRS agar mudah ditelusuri: `Informasi
 
 ### 4.3 Adapter layanan eksternal
 
-Semua layanan eksternal (cekbpom, LLM, STT, TTS, SMS Gateway, vector store) diakses lewat interface tunggal di lapisan control dengan minimal dua implementasi: produksi dan mock. Mock dipakai untuk pengembangan lokal, test, dan demo. Penggantian penyedia tidak boleh menyentuh kode use case.
+Semua layanan eksternal (cekbpom, LLM, STT, TTS, vector store) diakses lewat interface tunggal di lapisan control dengan minimal dua implementasi: produksi dan mock. Mock dipakai untuk pengembangan lokal, test, dan demo. Penggantian penyedia tidak boleh menyentuh kode use case.
 
 ### 4.4 API
 
@@ -167,7 +167,7 @@ Mengoperasionalkan NFR-10 sampai NFR-15, OR-2, dan OWASP Top 10.
 2. Kunci akun setelah tiga kali gagal berturut-turut. Hitung per akun, reset setelah login sukses. Login juga diberi rate limit per IP.
 3. Sesi berakhir setelah 30 menit idle. Cookie sesi `HttpOnly`, `Secure`, `SameSite=Lax` atau lebih ketat.
 4. Otorisasi di server: setiap endpoint dashboard memeriksa sesi, endpoint ekspor memeriksa hak ekspor. Jangan pernah mengandalkan penyembunyian tombol di UI.
-5. Masking data pribadi (nama, nomor telepon, NIK) dilakukan di server sebelum data dikirim ke dashboard. Frontend tidak pernah menerima nilai mentah.
+5. Masking data pribadi (nama, nomor telepon, NIK) dilakukan di server sebelum data dikirim ke dashboard. Frontend tidak pernah menerima nilai mentah. Satu-satunya pengecualian: nomor telepon pelapor di halaman detail tiket, lewat RPC `ambil_kontak_pelapor` khusus petugas, untuk tindak lanjut WhatsApp atau telepon (ADR 0006).
 6. Validasi semua input di server: tipe, panjang, format, nilai enumerasi. Pakai parameterized query atau ORM. Escape semua output HTML.
 7. Perlindungan CSRF pada semua form dan request pengubah data.
 8. TLS 1.2 atau lebih baru di semua jalur, termasuk WSS dan panggilan ke layanan eksternal.

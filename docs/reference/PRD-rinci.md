@@ -62,11 +62,11 @@ Prioritas pemenuhan kebutuhan: petugas paling penting karena bertanggung jawab a
 
 **Penelepon, informasi produk.** Buka halaman publik, tekan "Telepon CS AI", izinkan mikrofon, dengar menu, tekan 1, sebutkan nama produk atau pertanyaan, lihat transkrip langsung, dengar jawaban. Jika produk tidak ditemukan, sistem menawarkan pengaduan. Jika pertanyaan butuh petugas, sistem minta nomor telepon dan menerbitkan tiket ESK.
 
-**Penelepon, pengaduan.** Tekan 2, sebutkan nama produk, kronologi, nama, dan nomor telepon. Sistem menanyakan ulang data yang kurang sampai lengkap, lalu menerbitkan tiket ADU dan memberi tahu tindak lanjut lewat SMS. Jika panggilan diakhiri sebelum lengkap, percakapan disimpan tanpa tiket.
+**Penelepon, pengaduan.** Tekan 2, sebutkan nama produk, kronologi, nama, dan nomor telepon. Sistem menanyakan ulang data yang kurang sampai lengkap, lalu menerbitkan tiket ADU dan memberi tahu bahwa petugas akan menghubungi lewat WhatsApp atau telepon (ADR 0006). Jika panggilan diakhiri sebelum lengkap, percakapan disimpan tanpa tiket.
 
 **Petugas, pemantauan.** Login, lihat ringkasan statistik dan kasus perlu tindak lanjut, buka panggilan berjalan (live), buka antrean tiket eskalasi, klik "Buka Kasus".
 
-**Petugas, penanganan pengaduan.** Buka daftar pengaduan, klik "Telaah", pilih tindak lanjut (Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM), isi catatan, simpan. Jika perlu pemeriksaan, isi jadwal dan unit pelaksana. Susun tanggapan, simpan, tutup tiket. Sistem kirim SMS ke pelapor.
+**Petugas, penanganan pengaduan.** Buka daftar pengaduan, klik "Telaah", pilih tindak lanjut (Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM), isi catatan, simpan. Jika perlu pemeriksaan, isi jadwal dan unit pelaksana. Susun tanggapan, simpan, tutup tiket. Hubungi pelapor lewat WhatsApp atau telepon dari panel kontak, lalu tandai sudah dihubungi (ADR 0006).
 
 **Petugas, basis pengetahuan dan laporan.** Tambah materi dengan rujukan sumber wajib, nonaktifkan materi usang, telusuri graf pengetahuan. Pilih periode, tampilkan rekap, unduh PDF atau CSV jika punya hak ekspor.
 
@@ -113,7 +113,7 @@ Kebutuhan:
 - REQ-2.1 Setelah tekan 2, sistem menanyakan nama produk, kronologi kejadian, nama, dan nomor telepon.
 - REQ-2.2 Data yang belum disebutkan ditanyakan kembali sampai lengkap.
 - REQ-2.3 Pengaduan dicatat di register, tiket diterbitkan, berkas masuk antrean tindak lanjut petugas.
-- REQ-2.4 Nomor tiket disampaikan beserta info tindak lanjut lewat SMS.
+- REQ-2.4 Nomor tiket disampaikan beserta info bahwa petugas akan menghubungi lewat WhatsApp atau telepon (ADR 0006, diusulkan; sebelumnya SMS).
 - REQ-2.5 Panggilan diakhiri sebelum lengkap: simpan sebagai "pengaduan tidak lengkap" tanpa tiket. Baris pengaduan tidak lengkap baru dibuat setelah penelepon menyebut minimal satu data pengaduan; panggilan yang berakhir sebelum ada data apa pun cukup tercatat sebagai percakapan.
 
 Kriteria penerimaan ringkas:
@@ -176,7 +176,7 @@ Kebutuhan:
 - REQ-6.3 Jadwal pemeriksaan dengan tanggal dan unit pelaksana tersimpan dengan status "Menunggu Pemeriksaan".
 - REQ-6.4 Tanggapan resmi tersimpan dengan status "Tanggapan Disusun".
 - REQ-6.5 Tiket tanpa tanggapan tersimpan tidak bisa ditutup (BR-2).
-- REQ-6.6 Tutup tiket: status "Selesai" dan SMS tindak lanjut terkirim ke pelapor.
+- REQ-6.6 Tutup tiket: status "Selesai", lalu petugas menghubungi pelapor lewat WhatsApp (pesan memuat tanggapan resmi) atau telepon dan menandai "sudah dihubungi" (ADR 0006, diusulkan; sebelumnya SMS).
 
 Mesin status pengaduan:
 
@@ -188,7 +188,7 @@ Belum Ditelaah
 Sedang Ditelaah | Menunggu Pemeriksaan
   -> Tanggapan Disusun          (tanggapan tersimpan)
 Tanggapan Disusun
-  -> Selesai                    (Tutup Tiket, kirim SMS)
+  -> Selesai                    (Tutup Tiket, lalu petugas menghubungi pelapor)
 ```
 
 Halaman detail memakai stepper: Telaah, Jadwal Pemeriksaan (opsional), Susun Tanggapan, Tutup Tiket.
@@ -255,7 +255,7 @@ Sebelas entitas sesuai PDM SRS Appendix B:
 | Hasil_Telaah | Tgl_telaah, keputusan_tindak_lanjut, catatan_telaah | menjadwalkan Jadwal_Pemeriksaan, dibuat Petugas |
 | Jadwal_Pemeriksaan | Tgl_Pemeriksaan, unit_pelaksana, status_pemeriksaan | ditetapkan Petugas |
 | Tanggapan | isi_tanggapan, Tgl_tanggapan, status_tanggapan | disusun Petugas |
-| Notifikasi | isi_notifikasi, Tgl_pengiriman, status_pengiriman | ke Penelepon |
+| Notifikasi | status kontak (belum/sudah dihubungi), Tgl_dihubungi, petugas | ke Penelepon, lewat WhatsApp atau telepon (ADR 0006) |
 | Catatan_Pemeriksaan | isi_catatan, waktu_pencatatan | ditulis Petugas |
 | Materi_Pengetahuan | judul_materi, isi_materi, rujukan_sumber, Tgl_pemutakhiran, status_materi | diperbarui Petugas |
 | Petugas | Nama_Petugas, email, kata_sandi (hash), status | ditambah flag hak ekspor |
@@ -284,7 +284,7 @@ Enumerasi:
 | Penyedia LLM | Pengenalan maksud dan penyusunan jawaban RAG | REST/HTTPS | Hermes Agent dengan model GPT (langganan), ADR 0001 |
 | Speech-to-Text | Ucapan Indonesia ke teks | Streaming | ElevenLabs API premium, ADR 0001 |
 | Text-to-Speech | Teks jawaban ke suara Indonesia | Streaming | ElevenLabs API premium, ADR 0001 |
-| SMS Gateway | Kirim nomor tiket, jawaban petugas, notifikasi tindak lanjut | REST/HTTPS | Menunggu pengadaan |
+| WhatsApp (manual) | Petugas menghubungi pelapor untuk jawaban ESK dan tindak lanjut ADU | Tautan wa.me dan tel: dari dashboard | ADR 0006 (menggantikan SMS Gateway) |
 | Portal KataBPOM | Sumber materi edukasi untuk basis pengetahuan | Impor manual oleh petugas | Tersedia publik |
 
 Arsitektur: layered. Browser (halaman publik plus panel suara, dashboard) → Voice Gateway (WebRTC/WSS, codec Opus) → AI Voice Agent (STT, LLM+RAG, TTS) → Backend SIGAP (REST API + controller) → Basis Data SIGAP dan Indeks Basis Pengetahuan. Dashboard berbicara ke backend yang sama lewat HTTPS/JSON.
@@ -355,7 +355,7 @@ Total effort 24 poin, tiga sprint, mulai Minggu 10. Burndown ideal turun 8 poin 
 |---|---|---|---|
 | 1 | F-01 Informasi Produk, F-03 Login, F-07 Basis Pengetahuan | 10 | Pipeline suara end-to-end, tool calling cekbpom, RAG dan indeks, autentikasi, kerangka dashboard |
 | 2 | F-02 Pengaduan, F-04 Memantau Layanan | 7 | Dialog pengumpulan data bertahap, register pengaduan dan tiket, dashboard live |
-| 3 | F-05 Transkrip, F-06 Menangani Pengaduan, F-08 Laporan | 7 | Masking PII, mesin status pengaduan, SMS Gateway, ekspor PDF/CSV |
+| 3 | F-05 Transkrip, F-06 Menangani Pengaduan, F-08 Laporan | 7 | Masking PII, mesin status pengaduan, tindak lanjut WhatsApp, ekspor PDF/CSV |
 
 Sprint 1 membawa risiko terbesar karena F-01 adalah fitur XXL yang bergantung pada tiga layanan eksternal yang belum dipilih. Lihat Bagian 14.
 
@@ -368,7 +368,7 @@ Sprint 1 membawa risiko terbesar karena F-01 adalah fitur XXL yang bergantung pa
 | LLM mengarang nomor izin edar | Melanggar batasan desain dan NFR-7 | Legalitas hanya lewat tool calling. Prompt sistem melarang jawaban legalitas tanpa hasil tool. Uji regresi otomatis. |
 | LLM memberi nasihat medis | Melanggar NFR-6 | Klasifikasi maksud sebelum menjawab. Daftar kata kunci medis sebagai pemicu eskalasi. Uji dengan skenario Gherkin. |
 | Kebocoran data pribadi pelapor | Pelanggaran UU PDP | Masking di server, bukan di klien. Log tidak menyimpan PII mentah. Enkripsi transport. |
-| SMS Gateway belum ada | F-02 dan F-06 tidak bisa kirim notifikasi | Antarmuka notifikasi dengan implementasi "log only" sampai pengadaan selesai. |
+| Tindak lanjut manual | Petugas lupa menghubungi pelapor | Tanda "Belum dihubungi" di Daftar Pengaduan dan tombol "Tandai sudah dihubungi" (ADR 0006). |
 | Kuota atau syarat layanan model GPT langganan membatasi pemakaian publik | Agen berhenti menjawab saat beban tinggi | Pastikan syarat layanan di Sprint 1. Adapter LLM memungkinkan pindah ke OpenAI API tanpa mengubah use case. |
 
 ## 15. Keputusan yang Belum Ditetapkan
@@ -376,7 +376,7 @@ Sprint 1 membawa risiko terbesar karena F-01 adalah fitur XXL yang bergantung pa
 | No | Hal | Status | Pemilik usulan |
 |---|---|---|---|
 | 1 | Penyedia LLM, STT, TTS | Ditetapkan di ADR 0001: GPT via Hermes Agent, ElevenLabs. Uji akurasi bahasa Indonesia tetap di Sprint 1 | Tim |
-| 2 | Penyedia SMS Gateway | Menunggu pengadaan | Tim / BPOM |
+| 2 | Penyedia SMS Gateway | Diganti WhatsApp manual (ADR 0006), menunggu persetujuan PO | Tim / BPOM |
 | 3 | Format nomor tiket | "ADU-0456" dan "ESK-0123" hanya ilustrasi | Tim |
 | 4 | Masa retensi transkrip dan pengaduan | Mengikuti kebijakan arsip BPOM | BPOM |
 | 5 | Format unduhan di riwayat percakapan | CSV dan PDF masih dievaluasi | Tim |
@@ -395,7 +395,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 01 | Tekan 1 | Silakan sebutkan nama produk atau pertanyaan Anda. |
 | 01 | Produk ditemukan | [Nama produk] terdaftar dengan nomor izin edar [NIE], status izin [Status]. |
 | 01 | Butuh petugas | Pertanyaan Anda akan diteruskan kepada petugas. Mohon sebutkan nomor telepon Anda. |
-| 01 | Tiket eskalasi terbit | Nomor tiket Anda [nomor tiket]. Jawaban petugas akan dikirim melalui SMS. |
+| 01 | Tiket eskalasi terbit | Nomor tiket Anda [nomor tiket]. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya. |
 | 01 | Produk tidak ditemukan | Produk tidak ditemukan pada data registrasi BPOM. Tekan 2 untuk menyampaikan pengaduan. |
 | 01 | Di luar topik | Pertanyaan tersebut berada di luar cakupan layanan HaloBPOM. |
 | 01 | Nama tidak jelas | Maaf, nama produk kurang jelas. Mohon sebutkan kembali. |
@@ -420,7 +420,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 02 | Data kurang: nama produk | Mohon sebutkan nama produk yang Anda adukan. |
 | 02 | Data kurang: kronologi | Mohon ceritakan kronologi kejadiannya. |
 | 02 | Data kurang: nama pelapor | Mohon sebutkan nama Anda. |
-| 02 | Tiket pengaduan terbit | Pengaduan Anda telah dicatat dengan nomor tiket [nomor tiket]. Tindak lanjut akan dikirim melalui SMS. |
+| 02 | Tiket pengaduan terbit | Pengaduan Anda telah dicatat dengan nomor tiket [nomor tiket]. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya. |
 | 02 | Panggilan putus, data kurang | Panggilan berakhir. Pengaduan belum lengkap sehingga nomor tiket tidak diterbitkan. |
 | 03 | Login sukses | Login berhasil! |
 | 03 | Isian kosong | Login gagal. Semua field harus diisi! |
@@ -452,6 +452,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 06 | Jadwal tersimpan | Jadwal pemeriksaan tersimpan. |
 | 06 | Tanggapan tersimpan | Tanggapan tersimpan. |
 | 06 | Tutup tiket | Tiket ditutup. |
+| 06 | Pelapor sudah dihubungi (ADR 0006, usulan) | Pelapor ditandai sudah dihubungi. |
 | 06 | Tutup tanpa tanggapan | Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu. |
 | 07 | Materi tersimpan | Materi siap digunakan sistem. |
 | 07 | Materi dinonaktifkan | Materi ditandai tidak aktif. |
