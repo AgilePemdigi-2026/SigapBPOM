@@ -6,8 +6,13 @@ import { After, AfterAll, Before, setDefaultTimeout } from '@cucumber/cucumber';
 setDefaultTimeout(30_000);
 
 export const URL_DASAR = (process.env.SIGAP_UI_URL || 'http://localhost:4321').replace(/\/$/, '');
-// Akun uji SRS Tabel B.4 dari supabase/seed.sql (hanya Supabase lokal).
-export const AKUN_UJI = { email: 'petugas@halobpom.go.id', password: 'halobpom2026' };
+// SIGAP_SESI=tiruan: dashboard berjalan tanpa Supabase (sesi dan data tiruan, lihat features/README.md). Hanya skenario
+// yang tidak menyiapkan data lewat Supabase lokal yang bisa dijalankan begitu.
+export const MODE_TIRUAN = process.env.SIGAP_SESI === 'tiruan';
+// Akun uji SRS Tabel B.4 dari supabase/seed.sql (hanya Supabase lokal); dalam mode tiruan dipakai akun demo src/lib/sesiTiruan.ts.
+export const AKUN_UJI = MODE_TIRUAN
+  ? { email: 'dewi.lestari@pom.go.id', password: 'sigap2026' }
+  : { email: 'petugas@halobpom.go.id', password: 'halobpom2026' };
 
 /** Menjalankan SQL di Supabase lokal (`supabase db query --local`, satu pernyataan per panggilan) untuk data uji. */
 export function sqlLokal(...pernyataan) {
@@ -31,10 +36,15 @@ Before({ tags: '@ui' }, async function () {
   // diizinkan, sehingga panel suara memakai kolom ketik untuk langkah "I say".
   this.konteks = await browser.newContext({ locale: 'id-ID', timezoneId: 'Asia/Jakarta' });
   this.page = await this.konteks.newPage();
-  // Konfirmasi seperti "Tandai ... tidak aktif?" disetujui, sama seperti petugas menekan OK.
-  this.page.on('dialog', (d) => d.accept().catch(() => {}));
-  // Penguncian login dari skenario sebelumnya tidak boleh terbawa.
-  sqlLokal('update public.petugas set gagal_login = 0, terkunci_sampai = null');
+  // Konfirmasi seperti "Tandai ... tidak aktif?" disetujui, sama seperti petugas menekan OK. Teksnya dicatat untuk langkah
+  // yang memeriksa isi konfirmasi.
+  this.dialog = [];
+  this.page.on('dialog', (d) => {
+    this.dialog.push(d.message());
+    d.accept().catch(() => {});
+  });
+  // Penguncian login dari skenario sebelumnya tidak boleh terbawa. Sesi tiruan tidak punya penguncian di database.
+  if (!MODE_TIRUAN) sqlLokal('update public.petugas set gagal_login = 0, terkunci_sampai = null');
 });
 
 // Skenario gagal meninggalkan tangkapan layar di test-results/bdd-ui untuk ditelusuri.

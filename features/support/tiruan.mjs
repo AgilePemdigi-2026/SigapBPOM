@@ -7,7 +7,8 @@ import { AfterAll } from '@cucumber/cucumber';
 
 export const PORT_TIRUAN = 8091;
 /** Data registrasi cekbpom dan jawaban AI untuk server tiruan, diisi Background skenario @ui UC-01. */
-export const tiruan = { data: [], pencarian: [], gangguan: false, jawaban: new Map() };
+/** `aiLokal` adalah hasil probe Ollama yang dilaporkan /voice/kesehatan tiruan (skenario Provider AI UC-04). */
+export const tiruan = { data: [], pencarian: [], gangguan: false, jawaban: new Map(), aiLokal: { sehat: true, latensiMs: 90 } };
 
 // Meniru filter cekbpom: kolom yang diisi dicocokkan sebagai substring tanpa membedakan huruf besar.
 export function cekbpomTiruan(dunia) {
@@ -34,6 +35,11 @@ export function cekbpomTiruan(dunia) {
 async function layani(req, res) {
   let body = '';
   for await (const bagian of req) body += bagian;
+  // Kesehatan Voice Gateway tiruan untuk halaman Pantau AI Agent (dashboard dengan VOICE_GATEWAY_URL ke server ini).
+  if (req.url === '/voice/kesehatan') {
+    return res.writeHead(200, { 'content-type': 'application/json' })
+      .end(JSON.stringify({ status: 'success', message: 'ok', data: { siap: true, provider: null, hermesLokal: tiruan.aiLokal } }));
+  }
   if (req.url === '/v1/chat/completions') {
     const ucapan = JSON.parse(body).messages.findLast((m) => m.role === 'user')?.content;
     const jawaban = tiruan.jawaban.get(ucapan);

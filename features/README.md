@@ -13,6 +13,7 @@ Skenario control yang ada: UC-01 (cek registrasi dan tool `cek_registrasi_bpom`)
 Skenario `@belum-tersedia` menunggu bagian yang belum dibuat, sehingga tidak ikut `npm run test:bdd`. Daftarnya bisa dilihat dengan `npx cucumber-js --profile belum` (langkahnya berstatus pending). Tag dicabut begitu bagian itu masuk main. Saat ini tidak ada; skenario SMS tindak lanjut UC-06 diganti skenario WhatsApp manual (ADR 0006).
 
 Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
+Skenario Provider AI UC-04 (`features/uc-04-provider-ai.ui.feature`, REQ-4.5) membaca kesehatan AI Lokal dari `/voice/kesehatan` server tiruan di port 8091, jadi dashboard dijalankan dengan `VOICE_GATEWAY_URL=http://127.0.0.1:8091`. Karena variabel itu juga mengarahkan `/voice/*`, jalankan feature ini terpisah dari UC-01 dan UC-02.
 
 ## Menjalankan skenario `@ui`
 
@@ -56,6 +57,17 @@ Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4)
    - Skenario yang gagal meninggalkan tangkapan layar di `test-results/bdd-ui/`.
 
 Di Windows (PowerShell), environment diisi dengan `$env:NAMA="nilai"` sebelum perintahnya, dan `supabase` harus ada di PATH karena langkah data uji memanggil `supabase db query --local`.
+
+### Tanpa Supabase (mode tiruan)
+
+Skenario yang tidak menyiapkan data lewat Supabase lokal bisa dijalankan dengan sesi dan data tiruan. Isi `SIGAP_SESI=tiruan` untuk dashboard dan untuk Cucumber; login memakai akun demo `src/lib/sesiTiruan.ts`. Langkah yang hanya bisa disiapkan di Supabase (misalnya mencabut `hak_atur_ai`) berstatus skipped.
+
+```bash
+SIGAP_SESI=tiruan VOICE_GATEWAY_URL=http://127.0.0.1:8091 LOGIN_PERCOBAAN_MAKS=1000 npm run dev
+SIGAP_SESI=tiruan npm run test:bdd:ui -- --tags @REQ-4.5
+```
+
+Profil `ui` sudah memuat semua `features/**/*.feature`, jadi menyebut satu file saja tidak membatasi run; pakai `--tags`.
 
 ## Pemetaan langkah SRS ke browser
 

@@ -121,6 +121,7 @@ export const PESAN_PEMANTAUAN = {
   ringkasanGagalDimuat: 'Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
   providerAiDiubah: 'Provider AI berhasil diubah.',
   providerAiTanpaHak: 'Anda tidak memiliki hak mengubah provider AI.',
+  providerAiGagalDimuat: 'Pengaturan provider AI gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
 } as const;
 
 export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';

@@ -2,12 +2,18 @@
 // Boundary UC-04 Memantau Layanan, halaman Pantau AI Agent (F5.4, T-F5.4-01): kesehatan komponen, latensi,
 // dan log tool terbaru. Argumen tool tidak dibaca maupun ditampilkan karena bisa memuat data pribadi.
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { pemantauanLayanan } from '../lib/pemantauan';
+import { pemantauanLayanan, pengaturanProviderAi } from '../lib/pemantauan';
 import KantorAgent from '../components/KantorAgent.astro';
+import PanelProviderAi from '../components/PanelProviderAi.astro';
 
 const layanan = pemantauanLayanan(Astro.locals.tokenAkses);
 // Panggilan berjalan hanya untuk tampilan Kantor; bila gagal dibaca, kesehatan komponen tetap tampil.
-const [pantau, panggilan] = await Promise.all([layanan.pantauAgent(), layanan.panggilanBerjalan().catch(() => null)]);
+// Pengaturan provider AI (REQ-4.5) yang gagal dibaca menjadi null; panel menampilkan pesan gagal dimuat.
+const [pantau, panggilan, providerAi] = await Promise.all([
+  layanan.pantauAgent(),
+  layanan.panggilanBerjalan().catch(() => null),
+  pengaturanProviderAi(Astro.locals.tokenAkses).ambilProviderAi(),
+]);
 const { komponen, log } = pantau;
 const gangguan = komponen.filter((k) => k.status === 'Gangguan').length;
 const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString('id-ID')} ms`);
@@ -28,6 +34,8 @@ const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString
       </div>
       <button class="pill" onclick="location.reload()"><i class="icon-refresh-cw"></i>Muat ulang</button>
     </section>
+
+    <PanelProviderAi pengaturan={providerAi} aiLokal={komponen.find((k) => k.nama === 'AI Lokal')} />
 
     <div class="isi" data-tampilan="kantor">
       <KantorAgent agent={pantau} panggilan={panggilan} />
