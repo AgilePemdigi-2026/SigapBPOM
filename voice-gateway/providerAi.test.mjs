@@ -62,3 +62,21 @@ test('req_4_6_tiruan_dan_pesan', async () => {
   assert.equal(await new PemilihProviderTiruan('lokal').aktif(), 'lokal');
   assert.match(PESAN_LOKAL_MATI, /^Mohon maaf, perangkat AI lokal sedang tidak aktif\./);
 });
+
+test('req_4_6_setelah_gagal_tidak_fetch_selama_backoff', async () => {
+  const { pemilih, panggilan, atur } = siapkan([new Error('mati'), jawab('lokal')]);
+  assert.equal(await pemilih.aktif(), PROVIDER.TIDAK_DIKETAHUI);
+  atur(4999);
+  assert.equal(await pemilih.aktif(), PROVIDER.TIDAK_DIKETAHUI);
+  assert.equal(panggilan.length, 1);
+  atur(5000);
+  assert.equal(await pemilih.aktif(), 'lokal');
+  assert.equal(panggilan.length, 2);
+});
+
+test('req_4_6_panggilan_bersamaan_berbagi_satu_fetch', async () => {
+  const { pemilih, panggilan } = siapkan([jawab('lokal')]);
+  const hasil = await Promise.all([pemilih.aktif(), pemilih.aktif(), pemilih.aktif()]);
+  assert.deepEqual(hasil, ['lokal', 'lokal', 'lokal']);
+  assert.equal(panggilan.length, 1);
+});
