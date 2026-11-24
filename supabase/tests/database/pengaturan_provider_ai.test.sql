@@ -18,6 +18,13 @@ select throws_ok(
   'REQ-4.5: anon tidak boleh memanggil ubah_provider_ai'
 );
 
+select throws_ok(
+  $$ select public.boleh_atur_ai() $$,
+  '42501',
+  null,
+  'REQ-4.5: anon tidak boleh memanggil fungsi boleh_atur_ai'
+);
+
 -- 2. Siapkan pengguna uji
 reset role;
 
