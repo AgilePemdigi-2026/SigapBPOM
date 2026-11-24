@@ -141,7 +141,7 @@ Keamanan terkait: password disimpan sebagai hash (NFR-10), sesi berakhir setelah
 
 | Prioritas | Effort | Sprint | Aktor |
 |---|---|---|---|
-| Should Have | L (3) | 2 | Petugas |
+| Should Have | L (3) | 2 (F5.5: Sprint 3) | Petugas |
 
 Kebutuhan:
 
@@ -153,7 +153,7 @@ Kebutuhan:
 - REQ-4.6 Selama mode Lokal, isi percakapan yang dikirim ke model tidak pernah sampai ke penyedia LLM cloud: profil AI lokal tidak memiliki kunci cloud, dan sistem tidak pernah beralih ke cloud saat mode Lokal gagal. Ringkasan tiket pada mode Lokal juga tidak memanggil cloud. STT dan TTS tetap ElevenLabs di kedua mode, sehingga suara penelepon tetap dikirim ke ElevenLabs. Hal ini dinyatakan di panel.
 - REQ-4.7 Bila mode Lokal gagal (perangkat mati, timeout, atau jawaban kosong), agent mengucapkan pesan perangkat lokal tidak aktif dan meminta nomor telepon, lalu panggilan masuk jalur eskalasi yang sudah ada dengan tiket ESK pada giliran berikutnya. Jawaban yang sebagian sudah terucap dibuang sebelum pesan diucapkan. Bila pilihan provider belum pernah terbaca sejak gateway start, panggilan juga dieskalasi, tidak memakai cloud. Kegagalan tercatat dan terlihat di halaman Pantau AI Agent.
 
-Catatan: REQ-4.5 sampai REQ-4.7 (sub-fitur F5.5) ditarik ke Sprint 3 atas persetujuan tim pada 25 November 2026 (PROJECT_RULES 9.2.7), setelah semua task Sprint 2 selesai. Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`, keputusan: ADR 0007.
+Catatan: REQ-4.5 sampai REQ-4.7 (sub-fitur F5.5) ditambahkan ke backlog Sprint 3 yang aktif atas persetujuan tim pada 25 November 2026 (PROJECT_RULES 9.2.7). Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`, keputusan: ADR 0007.
 
 ### F-05 Membaca Transkrip Percakapan (UC-05)
 

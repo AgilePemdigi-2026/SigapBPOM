@@ -1121,7 +1121,10 @@
       "layer": "frontend",
       "page": "Pantau AI Agent",
       "phase": 2,
-      "dependsOn": [],
+      "dependsOn": [
+      "T-F5.5-04",
+      "T-F5.5-05"
+    ],
       "status": "todo",
       "failReason": null
     }
