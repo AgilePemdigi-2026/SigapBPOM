@@ -687,12 +687,11 @@ test('req_4_5_tiruan: penyimpanan tiruan menyimpan pilihan provider dan mengizin
   assert.equal(sesudah?.bolehUbah, true);
 });
 
-test('req_4_5_supabase: adapter memanggil boleh_atur_ai, ubah_provider_ai, membaca pengaturan_ai, dan memetakan 42501 ke 403', async () => {
-  const baris = { provider: 'lokal', diubah_pada: '2026-11-25T01:00:00Z', diubah_oleh: 'u-1', petugas: { nama: 'Rina' } };
+test('req_4_5_supabase: adapter memanggil ubah_provider_ai dan ambil_pengaturan_ai, dan memetakan 42501 ke 403', async () => {
+  const baris = { provider: 'lokal', diubah_pada: '2026-11-25T01:00:00Z', nama: 'Rina', boleh_ubah: true };
   const { dipanggil, penyimpanan } = supabasePalsu((url) => {
-    if (url.pathname.endsWith('/rpc/boleh_atur_ai')) return Response.json(true);
+    if (url.pathname.endsWith('/rpc/ambil_pengaturan_ai')) return Response.json(baris);
     if (url.pathname.endsWith('/rpc/ubah_provider_ai')) return Response.json({ provider: 'lokal', diubah_oleh: 'u-1', diubah_pada: '2026-11-25T01:00:00Z' });
-    if (url.pathname.endsWith('/pengaturan_ai')) return Response.json([baris]);
     return new Response('{}', { status: 404 });
   });
   const hasil = await penyimpanan.ubahProviderAi('lokal');
@@ -700,8 +699,8 @@ test('req_4_5_supabase: adapter memanggil boleh_atur_ai, ubah_provider_ai, memba
   const ubah = dipanggil.find((d) => d.url.pathname.endsWith('/rpc/ubah_provider_ai'));
   assert.deepEqual(JSON.parse(ubah?.init.body as string), { p_provider: 'lokal' });
   assert.equal((ubah?.init.headers as Record<string, string>).Authorization, 'Bearer tok');
-  const baca = dipanggil.find((d) => d.url.pathname.endsWith('/pengaturan_ai'));
-  assert.match(baca?.url.search ?? '', /petugas/);
+  assert.ok(dipanggil.some((d) => d.url.pathname.endsWith('/rpc/ambil_pengaturan_ai')));
+  assert.ok(!dipanggil.some((d) => d.url.pathname.endsWith('/pengaturan_ai') || d.url.pathname.endsWith('/rpc/boleh_atur_ai')));
 
   const ditolak = supabasePalsu(() => Response.json({ code: '42501', message: 'x' }, { status: 403 })).penyimpanan;
   await assert.rejects(ditolak.ubahProviderAi('lokal'), (e: { kode?: number }) => e.kode === 403);

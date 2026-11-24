@@ -116,6 +116,7 @@ export class PenyimpananPemantauanTiruan implements PenyimpananPemantauan {
   }
 
   async ubahProviderAi(provider: ProviderAi): Promise<PengaturanProviderAi> {
+    // 'Petugas Uji' hanya untuk tiruan; di produksi nama pengubah datang dari RPC ambil_pengaturan_ai.
     this.providerAi = { provider, diubahOleh: 'Petugas Uji', diubahPada: this.sekarang().toISOString(), bolehUbah: true };
     return { ...this.providerAi };
   }

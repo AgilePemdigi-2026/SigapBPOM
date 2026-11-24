@@ -1,10 +1,15 @@
 // Berawalan "_" agar Astro tidak menjadikannya route.
-import { test } from 'node:test';
+import { afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { POST } from './provider-ai.ts';
 
 process.env.SUPABASE_URL = 'http://supabase.uji';
 process.env.SUPABASE_ANON_KEY = 'anon-uji';
+
+const fetchAsli = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = fetchAsli;
+});
 
 type Opsi = { boleh?: boolean; ubah?: () => Response };
 
@@ -14,8 +19,7 @@ function kirim(body: string, opsi: Opsi = {}) {
   globalThis.fetch = (async (url: string, init: RequestInit) => {
     panggilan.push({ url, init });
     if (url.endsWith('/rpc/ubah_provider_ai')) return opsi.ubah?.() ?? Response.json({ provider: 'lokal', diubah_oleh: 'u-1', diubah_pada: '2026-11-25T01:00:00Z' });
-    if (url.endsWith('/rpc/boleh_atur_ai')) return Response.json(opsi.boleh ?? true);
-    if (url.includes('/pengaturan_ai')) return Response.json([{ provider: 'lokal', diubah_oleh: 'u-1', diubah_pada: '2026-11-25T01:00:00Z', petugas: { nama: 'Rina' } }]);
+    if (url.endsWith('/rpc/ambil_pengaturan_ai')) return Response.json({ provider: 'lokal', diubah_pada: '2026-11-25T01:00:00Z', nama: 'Rina', boleh_ubah: opsi.boleh ?? true });
     return new Response('{}', { status: 404 });
   }) as unknown as typeof fetch;
   const request = new Request('http://sigap.uji/api/provider-ai', { method: 'POST', body, headers: { 'Content-Type': 'application/json' } });

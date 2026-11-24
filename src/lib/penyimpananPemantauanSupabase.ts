@@ -48,7 +48,7 @@ const KODE_TIKET_TIDAK_ADA = 'P0002';
 // SQLSTATE ubah_provider_ai bila pemanggil tidak punya hak_atur_ai (REQ-4.5).
 const KODE_TANPA_HAK = '42501';
 
-type BarisPengaturanAi = { provider: ProviderAi; diubah_oleh: string | null; diubah_pada: string; petugas: { nama: string } | null };
+type HasilPengaturanAi = { provider: ProviderAi; diubah_pada: string; nama: string | null; boleh_ubah: boolean };
 
 const opsional = <T>(v: T | null) => v ?? undefined;
 
@@ -178,13 +178,11 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
     return baris.map((b) => ({ id: b.id, namaTool: b.nama_tool, durasiMs: b.durasi_ms, berhasil: b.berhasil, waktu: b.waktu }));
   }
 
-  /** Pengaturan provider AI dengan nama petugas pengubah; hak ubah dari RPC boleh_atur_ai. */
+  /** Pengaturan provider AI lewat RPC ambil_pengaturan_ai: nama pengubah dan hak ubah dihitung di server (RLS petugas menyembunyikan baris petugas lain). */
   async ambilProviderAi(): Promise<PengaturanProviderAi> {
-    const p = new URLSearchParams({ select: 'provider,diubah_oleh,diubah_pada,petugas(nama)', limit: '1' });
-    const [baris, boleh] = await Promise.all([this.json<BarisPengaturanAi[]>(`pengaturan_ai?${p}`), this.json<boolean>('rpc/boleh_atur_ai', {})]);
-    const b = baris[0];
+    const b = await this.json<HasilPengaturanAi | null>('rpc/ambil_pengaturan_ai', {});
     if (!b) throw new Error('Supabase pengaturan_ai kosong');
-    return { provider: b.provider, diubahOleh: b.petugas?.nama ?? null, diubahPada: b.diubah_pada, bolehUbah: boleh === true };
+    return { provider: b.provider, diubahOleh: b.nama ?? null, diubahPada: b.diubah_pada, bolehUbah: b.boleh_ubah === true };
   }
 
   /** RPC ubah_provider_ai menegakkan hak; 42501 dilempar sebagai galat ber-kode 403. */
@@ -196,7 +194,7 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
       if (galat?.code === KODE_TANPA_HAK) e.kode = 403;
       throw e;
     }
-    const b = (await res.json()) as Omit<BarisPengaturanAi, 'petugas'>;
+    const b = (await res.json()) as { provider: ProviderAi; diubah_pada: string };
     // Perubahan sudah tersimpan; bila pembacaan nama pengubah gagal, tetap laporkan berhasil tanpa nama.
     return await this.ambilProviderAi().catch(() => ({ provider: b.provider, diubahOleh: null, diubahPada: b.diubah_pada, bolehUbah: true }));
   }
