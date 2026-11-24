@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(13);
 
 -- 1. Pengguna anon ditolak
 set local role anon;
@@ -120,6 +120,15 @@ select is(
   (select diubah_oleh from public.pengaturan_ai),
   '00000000-0000-0000-0000-000000000093'::uuid,
   'diubah_oleh tercatat sebagai pengguna pemanggil'
+);
+
+reset role;
+
+-- Menghapus petugas tidak boleh terhalang baris pengaturan; pengubah terakhir menjadi kosong (on delete set null).
+select is(
+  (select confdeltype::text from pg_constraint where conrelid = 'public.pengaturan_ai'::regclass and contype = 'f'),
+  'n',
+  'FK diubah_oleh memakai on delete set null'
 );
 
 select * from finish();

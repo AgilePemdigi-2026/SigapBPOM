@@ -20,7 +20,7 @@ create type public.provider_ai as enum ('cloud', 'lokal');
 create table public.pengaturan_ai (
   id boolean primary key default true check (id),
   provider public.provider_ai not null default 'cloud',
-  diubah_oleh uuid references public.petugas (id),
+  diubah_oleh uuid references public.petugas (id) on delete set null,
   diubah_pada timestamptz not null default now()
 );
 
