@@ -1,9 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   GalatProviderLokal, PROVIDER, PESAN_LOKAL_MATI, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider,
-  pilihPeringkas, targetHermes,
+  pilihPeringkas, providerPalingKetat, targetHermes,
 } from './providerAi.mjs';
+import { PeringkasHermes, PeringkasPercakapan, PeringkasTiruan } from './ringkasan.mjs';
+import { PengirimTranskripTiruan } from './transkrip.mjs';
 
 const jawab = (provider, status = 200) => ({ ok: status < 400, status, json: async () => ({ status: 'success', data: { provider } }) });
 
@@ -203,4 +206,99 @@ test('req_4_6_galat_peringkas_cloud_diteruskan', async () => {
     pemilih: new PemilihProviderTiruan('cloud'), cloud: peringkasSpy('cloud', asli), lokal: peringkasSpy('lokal'), tiruan: peringkasSpy('tiruan'),
   });
   await assert.rejects(peringkas.ringkas('x'), (e) => e === asli);
+});
+
+// Fix round 1: provider paling ketat per panggilan, ringkasan kosong lokal, batas waktu lokal.
+test('req_4_6_provider_paling_ketat', () => {
+  assert.equal(providerPalingKetat(null, 'cloud'), 'cloud');
+  assert.equal(providerPalingKetat('cloud', 'cloud'), 'cloud');
+  assert.equal(providerPalingKetat('cloud', 'lokal'), 'lokal');
+  assert.equal(providerPalingKetat('lokal', 'cloud'), 'lokal');
+  assert.equal(providerPalingKetat('tidak_diketahui', 'cloud'), 'tidak_diketahui');
+  assert.equal(providerPalingKetat('lokal', 'tidak_diketahui'), 'tidak_diketahui');
+  assert.equal(providerPalingKetat('tidak_diketahui', 'lokal'), 'lokal');
+  assert.equal(providerPalingKetat(null, 'gpt'), 'tidak_diketahui');
+});
+
+test('req_4_6_target_membawa_batas_waktu_profil', () => {
+  const profil = { cloud: PROFIL.cloud, lokal: { ...PROFIL.lokal, batasWaktuMs: 20_000 } };
+  assert.equal(targetHermes('lokal', profil).batasWaktuMs, 20_000);
+  assert.equal(targetHermes('cloud', profil).batasWaktuMs, undefined);
+});
+
+const ID_PANGGILAN = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
+
+/** PeringkasPercakapan lengkap dengan PeringkasHermes nyata untuk kedua profil; fetch global diganti spy. */
+async function ringkasPanggilan({ providerGiliran, providerAkhir, jawabanLokal = 'Ringkasan dari lokal.' }) {
+  const dipanggil = [];
+  const fetchAsli = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    dipanggil.push(String(url));
+    const isi = String(url).includes(':8643') ? jawabanLokal : 'Ringkasan dari cloud.';
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: isi } }], usage: { total_tokens: 10 } }) };
+  };
+  try {
+    const pemilih = new PemilihProviderTiruan(providerGiliran[0]);
+    const pengirim = new PengirimTranskripTiruan();
+    const p = new PeringkasPercakapan({
+      peringkas: new PeringkasSesuaiProvider({
+        pemilih,
+        cloud: new PeringkasHermes({ url: PROFIL.cloud.url, kunci: 'c', model: 'm' }),
+        lokal: new PeringkasHermes({ url: PROFIL.lokal.url, kunci: 'l', model: 'm' }),
+        tiruan: new PeringkasTiruan(),
+      }),
+      pengirim,
+    });
+    p.tercatat(ID_PANGGILAN);
+    for (const nilai of providerGiliran) {
+      p.catatProvider(ID_PANGGILAN, nilai);
+      p.giliran(ID_PANGGILAN, '1.1.1.1', 'Apa syarat label pangan?', 'Jawaban.');
+    }
+    pemilih.nilai = providerAkhir;
+    const ringkasan = await p.akhiri(ID_PANGGILAN);
+    return { ringkasan, dipanggil };
+  } finally {
+    globalThis.fetch = fetchAsli;
+  }
+}
+
+test('req_4_6_ringkasan_panggilan_lokal_tidak_ke_cloud_walau_provider_berganti', async () => {
+  const { ringkasan, dipanggil } = await ringkasPanggilan({ providerGiliran: ['lokal'], providerAkhir: 'cloud' });
+  assert.ok(dipanggil.every((u) => !u.includes(':8642')), 'cloud tidak pernah dipanggil');
+  assert.deepEqual(dipanggil, ['http://host.docker.internal:8643/v1/chat/completions']);
+  assert.equal(ringkasan, 'Ringkasan dari lokal.');
+});
+
+test('req_4_6_ringkasan_panggilan_campuran_tidak_ke_cloud', async () => {
+  const { dipanggil } = await ringkasPanggilan({ providerGiliran: ['cloud', 'lokal', 'cloud'], providerAkhir: 'cloud' });
+  assert.ok(dipanggil.every((u) => !u.includes(':8642')));
+  const tanpaProvider = await ringkasPanggilan({ providerGiliran: ['cloud', 'tidak_diketahui'], providerAkhir: 'cloud' });
+  assert.deepEqual(tanpaProvider.dipanggil, [], 'provider tidak diketahui memakai tiruan tanpa AI');
+  assert.match(tanpaProvider.ringkasan, /^Penelepon menanyakan: /);
+});
+
+test('req_4_6_ringkasan_panggilan_cloud_memakai_cloud', async () => {
+  const { ringkasan, dipanggil } = await ringkasPanggilan({ providerGiliran: ['cloud', 'cloud'], providerAkhir: 'cloud' });
+  assert.deepEqual(dipanggil, ['http://host.docker.internal:8642/v1/chat/completions']);
+  assert.equal(ringkasan, 'Ringkasan dari cloud.');
+});
+
+test('req_4_7_ringkasan_lokal_no_reply_pakai_tiruan', async () => {
+  const { ringkasan, dipanggil } = await ringkasPanggilan({
+    providerGiliran: ['lokal'], providerAkhir: 'lokal', jawabanLokal: '⚠️ No reply: every provider failed',
+  });
+  assert.ok(dipanggil.every((u) => !u.includes(':8642')));
+  assert.match(ringkasan, /^Penelepon menanyakan: /);
+});
+
+test('req_4_7_peringkas_lokal_ringkasan_kosong_pakai_tiruan', async () => {
+  const cloud = peringkasSpy('cloud'), tiruan = peringkasSpy('tiruan');
+  const lokal = { dipanggil: 0, async ringkas() { lokal.dipanggil++; return { ringkasan: '', token: 5 }; } };
+  const peringkas = new PeringkasSesuaiProvider({ pemilih: new PemilihProviderTiruan('lokal'), cloud, lokal, tiruan });
+  assert.equal((await peringkas.ringkas('x')).ringkasan, 'tiruan');
+  assert.equal(cloud.dipanggil, 0);
+});
+
+test('req_4_6_modul_provider_ikut_image_docker', () => {
+  assert.match(readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8'), /voice-gateway\/providerAi\.mjs/);
 });

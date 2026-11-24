@@ -66,12 +66,25 @@ export class PemilihProviderTiruan {
   }
 }
 
-/** Profil Hermes sesuai provider: `{ url, kunci, model, provider }`, atau null bila provider tidak diketahui atau URL profilnya kosong. */
+/**
+ * Profil Hermes sesuai provider: `{ url, kunci, model, batasWaktuMs, provider }`, atau null bila provider tidak diketahui
+ * atau URL profilnya kosong. `batasWaktuMs` kosong berarti pemanggil memakai batas waktu bawaannya.
+ */
 export function targetHermes(provider, { cloud, lokal }) {
   const profil = provider === PROVIDER.CLOUD ? cloud : provider === PROVIDER.LOKAL ? lokal : null;
   // Profil yang tidak dikonfigurasi tidak pernah diganti profil lain; pemanggil mengeskalasi ke petugas.
   if (!profil?.url) return null;
-  return { url: profil.url, kunci: profil.kunci, model: profil.model, provider };
+  return { url: profil.url, kunci: profil.kunci, model: profil.model, batasWaktuMs: profil.batasWaktuMs, provider };
+}
+
+/**
+ * Provider paling ketat yang pernah dipakai suatu panggilan. Sekali ada giliran lokal atau tidak diketahui, panggilan itu
+ * tidak pernah kembali ke cloud; di antara keduanya yang terakhir terlihat yang dipakai. `lama` null berarti belum ada giliran.
+ */
+export function providerPalingKetat(lama, baru) {
+  const nilai = NILAI_SAH.has(baru) ? baru : PROVIDER.TIDAK_DIKETAHUI;
+  if (nilai === PROVIDER.CLOUD) return lama ?? PROVIDER.CLOUD;
+  return nilai;
 }
 
 /** REQ-4.7: perangkat AI lokal gagal menjawab. Galat aslinya ada di `cause`. */
@@ -104,8 +117,10 @@ export function pilihPeringkas(provider, { cloud, lokal, tiruan }) {
 }
 
 /**
- * Interface peringkas (`ringkas(transkrip) -> { ringkasan, token }`) yang membaca provider setiap kali meringkas, karena
- * pilihan petugas bisa berubah selama gateway berjalan. Peringkas lokal yang gagal diganti tiruan, tidak pernah cloud.
+ * Interface peringkas (`ringkas(transkrip, { provider }) -> { ringkasan, token }`). `provider` adalah provider paling ketat
+ * yang tercatat selama panggilan; digabung dengan provider saat meringkas lewat providerPalingKetat, jadi transkrip
+ * panggilan yang pernah berjalan lokal tidak pernah dikirim ke cloud walau petugas sudah beralih ke cloud.
+ * Peringkas lokal yang gagal atau menghasilkan ringkasan kosong ("No reply" Hermes) diganti tiruan, tidak pernah cloud.
  */
 export class PeringkasSesuaiProvider {
   constructor({ pemilih, cloud, lokal, tiruan }) {
@@ -115,14 +130,16 @@ export class PeringkasSesuaiProvider {
     this.tiruan = tiruan;
   }
 
-  async ringkas(transkrip) {
-    const provider = await this.pemilih.aktif();
+  async ringkas(transkrip, { provider: tercatat = null } = {}) {
+    const provider = providerPalingKetat(tercatat, await this.pemilih.aktif());
     const peringkas = pilihPeringkas(provider, this);
     if (provider !== PROVIDER.LOKAL || peringkas === this.tiruan) return peringkas.ringkas(transkrip);
     try {
-      return await peringkas.ringkas(transkrip);
+      const hasil = await peringkas.ringkas(transkrip);
+      if (String(hasil?.ringkasan ?? '').trim()) return hasil;
     } catch {
-      return this.tiruan.ringkas(transkrip);
+      // Perangkat lokal mati: lanjut ke tiruan di bawah.
     }
+    return this.tiruan.ringkas(transkrip);
   }
 }

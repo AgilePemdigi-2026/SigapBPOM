@@ -60,9 +60,12 @@ const HERMES_MODEL = env('HERMES_MODEL', 'sigap-hermes');
 const HERMES_LOKAL_URL = env('HERMES_LOKAL_URL', '');
 const HERMES_LOKAL_KEY = env('HERMES_LOKAL_API_KEY', '');
 const HERMES_LOKAL_MODEL = env('HERMES_LOKAL_MODEL', 'sigap-hermes');
+// Perangkat lokal yang macet tidak boleh membuat penelepon menunggu sampai batas cloud (60 detik) sebelum dieskalasi.
+const HERMES_LOKAL_BATAS_WAKTU_MS = Number(env('HERMES_LOKAL_BATAS_WAKTU_MS', '20000'));
+// Profil cloud tanpa batasWaktuMs memakai BATAS_WAKTU_HERMES_MS.
 const PROFIL_HERMES = {
   cloud: { url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL },
-  lokal: { url: HERMES_LOKAL_URL, kunci: HERMES_LOKAL_KEY, model: HERMES_LOKAL_MODEL },
+  lokal: { url: HERMES_LOKAL_URL, kunci: HERMES_LOKAL_KEY, model: HERMES_LOKAL_MODEL, batasWaktuMs: HERMES_LOKAL_BATAS_WAKTU_MS },
 };
 // Kuota karakter TTS per hari (total dan per IP) agar kuota paket ElevenLabs tidak habis oleh satu pengguna.
 const KARAKTER_TTS_HARIAN = Number(env('TTS_KARAKTER_HARIAN', '6000'));
@@ -298,7 +301,7 @@ async function* aliranHermes(id, kutipan, hasil, sinyal, target) {
     method: 'POST',
     headers: { authorization: `Bearer ${target.kunci}`, 'content-type': 'application/json' },
     body: JSON.stringify({ model: target.model, messages: pesan, stream: true }),
-    signal: AbortSignal.any([AbortSignal.timeout(BATAS_WAKTU_HERMES_MS), sinyal]),
+    signal: AbortSignal.any([AbortSignal.timeout(target.batasWaktuMs ?? BATAS_WAKTU_HERMES_MS), sinyal]),
   });
   if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
   const dekoder = new TextDecoder();
@@ -595,6 +598,7 @@ async function giliran(req, res, url) {
       // UC-04 REQ-4.6: giliran AI memakai profil Hermes sesuai provider. Provider tidak terbaca atau profil tanpa URL tidak
       // memanggil AI mana pun; penelepon diteruskan ke petugas.
       const provider = await providerDibaca;
+      peringkas.catatProvider(id, provider);
       const target = targetHermes(provider, PROFIL_HERMES);
       if (!target) {
         riwayat.mulaiEskalasi(id, transkrip);
