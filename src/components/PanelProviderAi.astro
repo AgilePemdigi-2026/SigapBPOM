@@ -8,7 +8,7 @@ import { KONFIRMASI_LOKAL_MATI, teksTerakhirDiubah } from '../lib/providerAi';
 interface Props {
   /** null bila pengaturan gagal dibaca. */
   pengaturan: PengaturanProviderAi | null;
-  /** Komponen kesehatan 'AI Lokal'; undefined bila gateway tidak melaporkannya. */
+  /** Komponen kesehatan 'AI Lokal'; undefined bila gateway tidak melaporkannya, 'Belum terpantau' bila OLLAMA_URL kosong. */
   aiLokal: StatusKomponen | undefined;
 }
 const { pengaturan, aiLokal } = Astro.props;
@@ -18,7 +18,8 @@ const PILIHAN = [
 ] as const;
 const bolehUbah = pengaturan?.bolehUbah === true;
 const lokalMati = aiLokal?.status === 'Gangguan';
-const statusLokal = !aiLokal ? 'Belum terpantau' : lokalMati ? 'Tidak aktif' : 'Aktif';
+const belumTerpantau = !aiLokal || aiLokal.status === 'Belum terpantau';
+const statusLokal = belumTerpantau ? 'Belum terpantau' : lokalMati ? 'Tidak aktif' : 'Aktif';
 const latensiLokal = aiLokal?.latensiMs != null ? `${aiLokal.latensiMs.toLocaleString('id-ID')} ms` : null;
 ---
 <section class="panel provider" data-name="PanelProviderAi" aria-labelledby="provider-judul">
@@ -40,7 +41,7 @@ const latensiLokal = aiLokal?.latensiMs != null ? `${aiLokal.latensiMs.toLocaleS
       <div>
         <dt>Perangkat lokal</dt>
         <dd>
-          <span class:list={['pv-dot', { mati: lokalMati, abu: !aiLokal }]} aria-hidden="true"></span>
+          <span class:list={['pv-dot', { mati: lokalMati, abu: belumTerpantau }]} aria-hidden="true"></span>
           <span data-status-lokal>{statusLokal}</span>
           {latensiLokal && <span class="mono pv-redup">· {latensiLokal}</span>}
         </dd>

@@ -55,10 +55,11 @@ export class PemeriksaKesehatanGateway implements PemeriksaKesehatanAgent {
     else if (cek?.aktif === true && typeof cek.sehat === 'boolean') {
       komponen.push({ nama: 'cekbpom', sehat: cek.sehat, latensiMs: Number.isFinite(cek.latensiMs) ? Number(cek.latensiMs) : null });
     }
-    // AI Lokal (UC-04): probe Ollama gateway. null berarti perangkat lokal belum dikonfigurasi atau belum terjangkau,
-    // dilaporkan Gangguan tanpa latensi; gateway lama tanpa field itu tidak melaporkan komponen ini.
+    // AI Lokal (UC-04): probe Ollama gateway. null berarti OLLAMA_URL tidak diisi (atau probe pertama belum selesai), jadi
+    // dilaporkan belum terpantau (sehat null), bukan Gangguan; probe yang gagal (sehat false) tetap Gangguan. Gateway lama
+    // tanpa field itu tidak melaporkan komponen ini.
     const lokal = body.data?.hermesLokal;
-    if (lokal === null) komponen.push({ nama: 'AI Lokal', sehat: false, latensiMs: null });
+    if (lokal === null) komponen.push({ nama: 'AI Lokal', sehat: null, latensiMs: null });
     else if (lokal && typeof lokal.sehat === 'boolean') {
       komponen.push({ nama: 'AI Lokal', sehat: lokal.sehat, latensiMs: Number.isFinite(lokal.latensiMs) ? Number(lokal.latensiMs) : null });
     }

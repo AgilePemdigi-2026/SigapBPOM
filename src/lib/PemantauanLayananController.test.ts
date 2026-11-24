@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   PESAN_PEMANTAUAN,
   PemantauanLayananController,
+  jumlahGangguan,
   ringkasPanggilan,
   sapaan,
   susunBeban,
@@ -593,14 +594,28 @@ test('t_f5_4_01 adapter gateway melempar galat bila gateway menjawab error', asy
   await assert.rejects(new PemeriksaKesehatanGateway({ url: 'http://gw:8787', fetch: gagal }).periksa());
 });
 
-test('req_4_7 adapter gateway memetakan hermesLokal ke komponen AI Lokal; null jadi gangguan tanpa latensi', async () => {
+test('req_4_7 adapter gateway memetakan hermesLokal ke komponen AI Lokal; null (OLLAMA_URL kosong) jadi belum terpantau', async () => {
   const lokal = async (hermesLokal: unknown) =>
     (await new PemeriksaKesehatanGateway({ url: 'http://gw', fetch: (async () => Response.json({ data: { siap: true, hermesLokal } })) as unknown as typeof fetch }).periksa())
       .find((k) => k.nama === 'AI Lokal');
   assert.deepEqual(await lokal({ sehat: true, latensiMs: 85, waktu: 1 }), { nama: 'AI Lokal', sehat: true, latensiMs: 85 });
   assert.deepEqual(await lokal({ sehat: false, latensiMs: null, waktu: 1 }), { nama: 'AI Lokal', sehat: false, latensiMs: null });
-  assert.deepEqual(await lokal(null), { nama: 'AI Lokal', sehat: false, latensiMs: null });
+  assert.deepEqual(await lokal(null), { nama: 'AI Lokal', sehat: null, latensiMs: null });
   assert.equal(await lokal(undefined), undefined, 'gateway lama tanpa field hermesLokal');
+});
+
+test('req_4_7 AI Lokal belum terpantau tampil "Belum terpantau" dan tidak dihitung gangguan; probe gagal tetap Gangguan', async () => {
+  const dengan = (sehat: boolean | null) => pantau(undefined, { periksa: async () => [{ nama: 'Voice Gateway', sehat: true, latensiMs: 5 }, { nama: 'AI Lokal', sehat, latensiMs: null }] });
+  const status = async (sehat: boolean | null) => (await dengan(sehat).pantauAgent()).komponen.find((k) => k.nama === 'AI Lokal')?.status;
+  assert.equal(await status(null), 'Belum terpantau');
+  assert.equal(await status(false), 'Gangguan');
+  assert.equal(await status(true), 'Normal');
+  const komponen = (await dengan(null).pantauAgent()).komponen;
+  assert.ok(!komponen.some((k) => k.nama === 'AI Lokal' && k.status === 'Gangguan'));
+  assert.equal(jumlahGangguan(komponen), komponen.filter((k) => k.nama !== 'AI Lokal' && k.status === 'Gangguan').length);
+  // Gateway tidak terjangkau: AI Lokal tidak bisa dipastikan, tetap Gangguan seperti komponen lain.
+  const mati: PemeriksaKesehatanAgent = { periksa: async () => { throw new Error('ECONNREFUSED'); } };
+  assert.equal((await pantau(undefined, mati).pantauAgent()).komponen.find((k) => k.nama === 'AI Lokal')?.status, 'Gangguan');
 });
 
 test('t_f5_4_01 kondisi cekbpom diambil dari pemanggilan cek registrasi terakhir', async () => {

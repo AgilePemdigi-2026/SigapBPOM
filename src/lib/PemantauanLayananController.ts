@@ -103,8 +103,11 @@ export interface PenyimpananPemantauan {
   ubahProviderAi?(provider: ProviderAi): Promise<PengaturanProviderAi>;
 }
 
-/** Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. */
-export type KomponenTersimpan = { nama: string; sehat: boolean; latensiMs: number | null };
+/**
+ * Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. `sehat` null berarti komponen sengaja tidak
+ * dipantau (AI Lokal tanpa OLLAMA_URL): tampil "Belum terpantau", bukan Gangguan.
+ */
+export type KomponenTersimpan = { nama: string; sehat: boolean | null; latensiMs: number | null };
 
 /** Layanan eksternal pemeriksa kesehatan AI Agent (PROJECT_RULES 4.3): endpoint health gateway, atau tiruan. */
 export interface PemeriksaKesehatanAgent {
@@ -212,7 +215,10 @@ export type BarisAntrean = {
   tautanTranskrip: string | null;
 };
 
-export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan'; latensiMs: number | null };
+export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan' | 'Belum terpantau'; latensiMs: number | null };
+
+/** Jumlah komponen berstatus Gangguan untuk ringkasan "N komponen gangguan"; komponen yang belum terpantau tidak dihitung. */
+export const jumlahGangguan = (komponen: StatusKomponen[]) => komponen.filter((k) => k.status === 'Gangguan').length;
 
 export type LogTool = { id: number; namaTool: string; durasiMs: number; hasil: 'Berhasil' | 'Gagal'; waktu: string };
 
@@ -486,7 +492,9 @@ export class PemantauanLayananController {
     const komponen = [...KOMPONEN_AGENT, ...hasil.map((k) => k.nama).filter((n) => !(KOMPONEN_AGENT as readonly string[]).includes(n))].map(
       (nama): StatusKomponen => {
         const k = perNama.get(nama);
-        return { nama, status: k?.sehat ? 'Normal' : 'Gangguan', latensiMs: k?.latensiMs ?? null };
+        // Lampiran B: "Belum terpantau" hanya untuk komponen yang gateway laporkan sengaja tidak dipantau (sehat null).
+        const status = k?.sehat === null ? 'Belum terpantau' : k?.sehat ? 'Normal' : 'Gangguan';
+        return { nama, status, latensiMs: k?.latensiMs ?? null };
       },
     );
     const urut = [...daftar].sort((a, b) => b.waktu.localeCompare(a.waktu) || b.id - a.id);
