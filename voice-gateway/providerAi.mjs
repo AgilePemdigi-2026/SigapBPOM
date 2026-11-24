@@ -8,13 +8,16 @@ export const PESAN_LOKAL_MATI = 'Mohon maaf, perangkat AI lokal sedang tidak akt
 const NILAI_SAH = new Set([PROVIDER.CLOUD, PROVIDER.LOKAL]);
 
 export class PemilihProviderSupabase {
-  constructor({ url, kunci, fetch = globalThis.fetch, now = Date.now, cacheMs = 5000, backoffMs = 5000 }) {
+  constructor({ url, kunci, fetch = globalThis.fetch, now = Date.now, cacheMs = 5000, backoffMs = 5000, maksBasiMs = 60000 }) {
     this.url = url.replace(/\/+$/, '');
     this.kunci = kunci;
     this.fetch = fetch;
     this.now = now;
     this.cacheMs = cacheMs;
     this.backoffMs = backoffMs;
+    // Nilai terakhir yang sah hanya dipakai selama maksBasiMs sejak pembacaan berhasil. Supabase yang putus lebih lama dari itu
+    // membuat giliran dieskalasi, bukan terus memakai pilihan lama yang mungkin sudah diganti petugas.
+    this.maksBasiMs = maksBasiMs;
     this.nilai = PROVIDER.TIDAK_DIKETAHUI;
     this.dibacaPada = null;
     this.cobaLagiPada = null;
@@ -22,17 +25,23 @@ export class PemilihProviderSupabase {
   }
 
   /**
-   * Tidak pernah melempar. Galat baca memakai nilai terakhir yang sah, atau 'tidak_diketahui' bila belum pernah terbaca.
-   * Setelah gagal, Supabase tidak ditanya lagi selama backoffMs agar giliran bicara tidak menunggu batas waktu berulang.
-   * Panggilan bersamaan berbagi satu fetch.
+   * Tidak pernah melempar. Galat baca memakai nilai terakhir yang sah selama belum lewat maksBasiMs, atau 'tidak_diketahui'
+   * bila belum pernah terbaca atau sudah basi. Setelah gagal, Supabase tidak ditanya lagi selama backoffMs agar giliran bicara
+   * tidak menunggu batas waktu berulang. Panggilan bersamaan berbagi satu fetch.
    */
   aktif() {
     if (this.berjalan) return this.berjalan;
     const sekarang = this.now();
     if (this.dibacaPada !== null && sekarang - this.dibacaPada < this.cacheMs) return Promise.resolve(this.nilai);
-    if (this.cobaLagiPada !== null && sekarang < this.cobaLagiPada) return Promise.resolve(this.nilai);
+    if (this.cobaLagiPada !== null && sekarang < this.cobaLagiPada) return Promise.resolve(this.terakhir());
     this.berjalan = this.#baca().finally(() => { this.berjalan = null; });
     return this.berjalan;
+  }
+
+  /** Nilai tersimpan tanpa membaca Supabase (untuk /voice/kesehatan), dengan aturan basi yang sama dengan aktif(). */
+  terakhir() {
+    if (this.dibacaPada === null || this.now() - this.dibacaPada >= this.maksBasiMs) return PROVIDER.TIDAK_DIKETAHUI;
+    return this.nilai;
   }
 
   async #baca() {
@@ -52,7 +61,7 @@ export class PemilihProviderSupabase {
     } catch {
       this.cobaLagiPada = this.now() + this.backoffMs;
     }
-    return this.nilai;
+    return this.terakhir();
   }
 }
 
@@ -62,6 +71,10 @@ export class PemilihProviderTiruan {
   }
 
   async aktif() {
+    return this.nilai;
+  }
+
+  terakhir() {
     return this.nilai;
   }
 }

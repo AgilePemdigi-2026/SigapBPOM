@@ -32,7 +32,8 @@ import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
 import { KondisiLayanan } from './kesehatan.mjs';
 import { buatCekOrigin, buatIpKlien } from './alamatKlien.mjs';
 import {
-  GalatProviderLokal, PESAN_LOKAL_MATI, PemeriksaOllama, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider, batasWaktuLokal, targetHermes,
+  GalatProviderLokal, PESAN_LOKAL_MATI, PROVIDER, PemeriksaOllama, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider, batasWaktuLokal,
+  targetHermes,
 } from './providerAi.mjs';
 
 const env = (k, d) => process.env[k] || d;
@@ -111,7 +112,8 @@ const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('
 // T-F5.4-01: hasil panggilan Hermes, STT, TTS, dan cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada panggilan.
 const kondisi = new KondisiLayanan();
 // UC-04: probe perangkat lokal (Ollama) untuk peringatan dashboard; tanpa OLLAMA_URL tidak ada probe dan kondisinya null.
-const pemeriksaOllama = new PemeriksaOllama({ url: env('OLLAMA_URL', '') });
+// OLLAMA_PERIKSA_MS hanya dipersingkat untuk uji @ui di CI agar perubahan perangkat tiruan cepat terlihat.
+const pemeriksaOllama = new PemeriksaOllama({ url: env('OLLAMA_URL', ''), intervalMs: batasWaktuLokal(env('OLLAMA_PERIKSA_MS', '30000'), 30000) });
 // Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
 // (embedding produksi belum ada); selain itu dipakai korpus lokal.
 const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
@@ -375,6 +377,7 @@ async function giliran(req, res, url) {
     if (urai.jenis === 'pilih') {
       const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih, pantau);
       if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+      peringkas.catatProvider(id, await pemilih.aktif());
       // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
       catatGiliran(id, '', null, PESAN_MENU);
       catatGiliran(id, '', null, menu.jawaban);
@@ -398,6 +401,9 @@ async function giliran(req, res, url) {
   // Penelepon memutus panggilan sebelum jawaban selesai: hentikan stream Hermes dan jangan render TTS lagi.
   const batal = new AbortController();
   res.on('close', () => { if (!res.writableFinished) batal.abort(); });
+  // UC-04 REQ-4.6: provider dibaca sekali per giliran, bersamaan dengan STT, cek registrasi, dan pencarian kutipan agar tidak
+  // menambah latensi. Dicatat untuk ringkasan di setiap jalur (juga tanpa AI) dan dipakai giliran AI. aktif() tidak pernah melempar.
+  const providerDibaca = pemilih.aktif();
   try {
     let audio = null;
     if (ketik === null) {
@@ -552,8 +558,6 @@ async function giliran(req, res, url) {
       tulis({ jenis: 'transkrip', transkrip, jeda: true });
       // Pertanyaan status registrasi suatu produk dijawab tool cek_registrasi_bpom, selain itu tool cari_basis_pengetahuan.
       // Selama alur pengaduan (layanan 2) nama produk adalah data pengaduan, jadi tidak dicek di cekbpom.
-      // Provider dibaca bersamaan dengan cek registrasi dan pencarian kutipan agar tidak menambah latensi. aktif() tidak pernah melempar.
-      const providerDibaca = pemilih.aktif();
       const tCek = Date.now();
       const keadaanCek = riwayat.cekRegistrasi(id);
       // Panel Cari Produk di halaman publik mulai mengetik kueri saat pencarian dimulai, lalu menampilkan tabel sebelum AI menjawab.
@@ -598,16 +602,19 @@ async function giliran(req, res, url) {
         return;
       }
       // UC-04 REQ-4.6: giliran AI memakai profil Hermes sesuai provider. Provider tidak terbaca atau profil tanpa URL tidak
-      // memanggil AI mana pun; penelepon diteruskan ke petugas.
+      // memanggil AI mana pun; penelepon diteruskan ke petugas. Mode lokal tanpa profil lokal sama dengan perangkat lokal mati
+      // (REQ-4.7): pesan lokal mati dan kondisi hermes gagal, agar terlihat di Pantau AI Agent.
       const provider = await providerDibaca;
-      peringkas.catatProvider(id, provider);
       const target = targetHermes(provider, PROFIL_HERMES);
       if (!target) {
+        const lokal = provider === PROVIDER.LOKAL;
+        const pesan = lokal ? PESAN_LOKAL_MATI : PESAN_BUTUH_PETUGAS;
+        if (lokal) kondisi.catat('hermes', false, 0);
         riwayat.mulaiEskalasi(id, transkrip);
-        riwayat.tambah(id, 'assistant', PESAN_BUTUH_PETUGAS);
+        riwayat.tambah(id, 'assistant', pesan);
         console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: Date.now() - mulai, provider, tanpa_target: true, token: 0 }));
         pantau.tahap(id, TAHAP.MENJAWAB);
-        ucapkan(PESAN_BUTUH_PETUGAS, '/voice/statis/butuh-petugas');
+        ucapkan(pesan, lokal ? '/voice/statis/lokal-mati' : '/voice/statis/butuh-petugas');
         tulis({ jenis: 'selesai', sumber: [] });
         return;
       }
@@ -621,6 +628,10 @@ async function giliran(req, res, url) {
       try {
         const aliran = aliranDenganProvider({ target, alir: (t) => aliranHermes(id, konteks, hasil, batal.signal, t) });
         await alirkanJawaban(aliran, susunan, ucapkanKalimat, batal.signal);
+        // REQ-4.7: jawaban lokal tanpa satu kalimat pun (bukan jawaban baku) dihitung kegagalan perangkat lokal.
+        if (target.provider === PROVIDER.LOKAL && !batal.signal.aborted && !susunan.isi.length && !susunan.khusus) {
+          throw new GalatProviderLokal(new Error('hermes jawaban kosong'));
+        }
         if (!batal.signal.aborted) kondisi.catat('hermes', hasil.karKeluaran > 0, (tKalimat1 ? mulai + tKalimat1 : Date.now()) - tHermes);
       } catch (e) {
         kondisi.catat('hermes', false, Date.now() - tHermes);
@@ -703,6 +714,7 @@ async function giliran(req, res, url) {
       // NFR-1 untuk semua jalur: waktu kalimat pertama dikirim, sebelum render TTS-nya selesai (batas bawah, lihat ADR 0005).
       // null berarti tidak ada yang terucap (galat atau batal).
       if (transkrip) console.info(JSON.stringify({ ev: 'respons', stt_ms: tStt, kalimat1_ms: tKalimat1 }));
+      peringkas.catatProvider(id, await providerDibaca);
       res.end();
     }
   } finally {
@@ -753,6 +765,9 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   try {
     if (req.method === 'GET' && path === '/voice/kesehatan') {
+      // Nilai provider tersimpan dikirim tanpa menunggu Supabase (batas tunggu dashboard 3 detik); pembacaan baru dipicu di
+      // belakang agar nilainya tetap segar walau belum ada panggilan.
+      pemilih.aktif();
       return kirim(res, 200, 'success', 'OK', {
         siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0,
         katalog: {
@@ -761,7 +776,7 @@ const server = createServer(async (req, res) => {
         },
         hermes: kondisi.terakhir.hermes, stt: kondisi.terakhir.stt, tts: kondisi.terakhir.tts,
         cekbpom: { aktif: Boolean(cekBpom), ...(kondisi.terakhir.cekbpom ?? {}) },
-        provider: await pemilih.aktif(), hermesLokal: pemeriksaOllama.kondisi(),
+        provider: pemilih.terakhir(), hermesLokal: pemeriksaOllama.kondisi(),
       });
     }
     if (req.method === 'POST' && !originDiizinkan(req.headers.origin)) throw new ErrorGateway(403, 'Akses ditolak.');

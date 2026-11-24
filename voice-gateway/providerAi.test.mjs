@@ -367,3 +367,63 @@ test('req_4_7_batas_waktu_lokal_tidak_sah_pakai_bawaan', () => {
   assert.equal(batasWaktuLokal('Infinity'), 20000);
   assert.equal(batasWaktuLokal('15000'), 15000);
 });
+
+// Final review I6: nilai terakhir tidak dipakai tanpa batas. Lewat maksBasiMs sejak pembacaan sah terakhir, giliran dieskalasi.
+test('req_4_6_nilai_terakhir_kedaluwarsa_setelah_maks_basi', async () => {
+  const respons = [jawab('lokal'), new Error('putus'), new Error('putus'), jawab('cloud')];
+  let waktu = 0;
+  const panggilan = [];
+  const fetch = async () => { panggilan.push(waktu); const r = respons.shift(); if (r instanceof Error) throw r; return r; };
+  const pemilih = new PemilihProviderSupabase({ url: 'http://sb.test', kunci: 'k', fetch, now: () => waktu });
+  assert.equal(pemilih.maksBasiMs, 60000, 'bawaan 60 detik');
+  assert.equal(await pemilih.aktif(), 'lokal');
+  waktu = 59_999;
+  assert.equal(await pemilih.aktif(), 'lokal', 'galat baca dalam batas basi memakai nilai terakhir');
+  waktu = 62_000;
+  assert.equal(pemilih.terakhir(), PROVIDER.TIDAK_DIKETAHUI, 'masa backoff pun tidak memakai nilai basi');
+  waktu = 65_000;
+  assert.equal(await pemilih.aktif(), PROVIDER.TIDAK_DIKETAHUI, 'galat baca setelah batas basi');
+  waktu = 70_000;
+  assert.equal(await pemilih.aktif(), 'cloud', 'pulih setelah pembacaan berhasil');
+  assert.equal(panggilan.length, 4);
+});
+
+test('req_4_6_maks_basi_bisa_diatur', async () => {
+  const respons = [jawab('cloud'), new Error('putus')];
+  let waktu = 0;
+  const fetch = async () => { const r = respons.shift(); if (r instanceof Error) throw r; return r; };
+  const pemilih = new PemilihProviderSupabase({ url: 'http://sb.test', kunci: 'k', fetch, now: () => waktu, maksBasiMs: 10_000 });
+  assert.equal(await pemilih.aktif(), 'cloud');
+  waktu = 10_000;
+  assert.equal(await pemilih.aktif(), PROVIDER.TIDAK_DIKETAHUI);
+});
+
+// Final review M3: /voice/kesehatan tidak menunggu Supabase; nilai tersimpan dibaca tanpa fetch.
+test('req_4_6_terakhir_sinkron_tanpa_fetch', async () => {
+  const { pemilih, panggilan } = siapkan([jawab('lokal')]);
+  assert.equal(pemilih.terakhir(), PROVIDER.TIDAK_DIKETAHUI, 'belum pernah terbaca');
+  assert.equal(panggilan.length, 0);
+  await pemilih.aktif();
+  assert.equal(pemilih.terakhir(), 'lokal');
+  assert.equal(panggilan.length, 1);
+  assert.equal(new PemilihProviderTiruan('lokal').terakhir(), 'lokal');
+});
+
+test('req_4_6_kesehatan_gateway_tidak_menunggu_pemilih', () => {
+  const server = readFileSync(new URL('./server.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(server, /provider: await pemilih\.aktif\(\)/);
+  assert.match(server, /provider: pemilih\.terakhir\(\)/);
+});
+
+// Final review I4: provider dicatat di setiap giliran (menu, cekbpom, eskalasi, pengaduan), bukan hanya giliran AI, agar
+// ringkasan panggilan tanpa giliran AI tidak memakai provider yang kebetulan aktif saat panggilan berakhir.
+test('req_4_6_provider_dicatat_di_setiap_giliran', () => {
+  const server = readFileSync(new URL('./server.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const giliran = server.slice(server.indexOf('async function giliran('), server.indexOf('async function sesiSttRealtime('));
+  // Pilihan menu (tanpa NDJSON) mencatat provider sebelum menjawab.
+  assert.match(giliran, /peringkas\.catatProvider\(id, await pemilih\.aktif\(\)\);\n {6}\/\/ Panel mengucapkan menu/);
+  // Giliran lain: dibaca sekali di awal, dicatat di finally yang dilewati semua jalur.
+  assert.match(giliran, /const providerDibaca = pemilih\.aktif\(\);\n {2}try \{\n {4}let audio = null;/);
+  assert.match(giliran, /\} finally \{\n {6}catatGiliran\([^\n]*\n(?:[^\n]*\n){0,4} {6}peringkas\.catatProvider\(id, await providerDibaca\);\n {6}res\.end\(\);/);
+  assert.equal(giliran.match(/peringkas\.catatProvider\(/g)?.length, 2);
+});
