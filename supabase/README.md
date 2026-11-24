@@ -53,7 +53,9 @@ Penyedia SMS: Zenziva (`PengirimSmsZenziva` di `functions/_shared/adapter/sms.ts
    **Demo tanpa deposit (`SMS_ADAPTER=android`).** SMS dikirim dari SIM sebuah HP Android lewat aplikasi open source
    SMS Gateway for Android ([sms-gate.app](https://docs.sms-gate.app/), mode Cloud gratis). Pasang aplikasinya di HP
    (Android 5+, SIM dengan paket SMS, selalu menyala dan tersambung internet), aktifkan Cloud Server, tekan Start, lalu
-   isi secret `SMSGATE_USERNAME` dan `SMSGATE_PASSWORD` dari aplikasi. Atur jeda acak dan batas per jam di aplikasi
+   isi secret `SMSGATE_USERNAME` dan `SMSGATE_PASSWORD` dari aplikasi. Sebelum mengisi secret, uji sekali dari laptop
+   dengan kredensial yang sama di `functions/.env`:
+   `node --env-file=supabase/functions/.env scripts/uji-sms-android.ts 08xxxxxxxxxx`. Atur jeda acak dan batas per jam di aplikasi
    (Settings > Messages). Respons sukses berarti pesan masuk antrean HP, belum tentu sampai; status kirim dilihat di
    aplikasi. Ini jalur P2P dari SIM pribadi: kirim hanya ke nomor tim atau penguji yang setuju, bukan untuk produksi.
 3. Isi rahasia Vault agar pg_cron mulai memicu (SQL Editor, sekali saja; kunci sama dengan secret `SIGAP_KUNCI_INTERNAL`):
