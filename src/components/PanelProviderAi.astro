@@ -72,6 +72,7 @@ const latensiLokal = aiLokal?.latensiMs != null ? `${aiLokal.latensiMs.toLocaleS
     const simpan = form.querySelector<HTMLButtonElement>('[data-simpan]')!;
     const pesan = form.querySelector<HTMLElement>('[data-pesan]')!;
     const terakhir = form.querySelector<HTMLElement>('[data-terakhir]');
+    const pilihan = form.querySelector<HTMLFieldSetElement>('fieldset')!;
     let awal = form.dataset.awal ?? '';
     const terpilih = () => form.querySelector<HTMLInputElement>('input[name="provider"]:checked')?.value ?? '';
     const tampilkan = (teks: string, jenis: 'ok' | 'galat') => {
@@ -100,6 +101,12 @@ const latensiLokal = aiLokal?.latensiMs != null ? `${aiLokal.latensiMs.toLocaleS
         }).catch(() => null);
         const body = (await res?.json().catch(() => null)) as { message?: unknown; data?: { provider?: string; diubahOleh?: string | null; diubahPada?: string } | null } | null;
         const teks = typeof body?.message === 'string' ? body.message : 'Terjadi kesalahan pada sistem.';
+        if (res?.status === 403) {
+          // Hak dicabut sejak halaman dimuat: pilihan kembali ke provider yang berlaku dan panel dikunci.
+          const kembali = form.querySelector<HTMLInputElement>(`input[name="provider"][value="${awal}"]`);
+          if (kembali) kembali.checked = true;
+          pilihan.disabled = true;
+        }
         if (!res?.ok) return tampilkan(teks, 'galat');
         awal = body?.data?.provider ?? provider;
         if (terakhir && body?.data?.diubahPada) terakhir.textContent = teksTerakhirDiubah(body.data.diubahOleh ?? null, body.data.diubahPada);
@@ -135,7 +142,8 @@ const latensiLokal = aiLokal?.latensiMs != null ? `${aiLokal.latensiMs.toLocaleS
   .pv-dot.mati { background: #ef4444; }
   .pv-dot.abu { background: var(--muted-2); }
   .pv-pesan { grid-column: 1 / -1; margin: 0; font-size: 14.5px; }
-  .pv-pesan:empty { display: none; }
+  /* Region status tetap dirender (tanpa display:none) agar pesan yang disisipkan diumumkan; jarak baris grid dibatalkan. */
+  .pv-pesan:empty { margin-top: -14px; }
   .pv-pesan[data-jenis='ok'] { color: var(--t-green-fg); }
   .pv-pesan[data-jenis='galat'] { color: var(--danger); }
 </style>

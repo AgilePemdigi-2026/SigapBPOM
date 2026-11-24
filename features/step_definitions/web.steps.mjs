@@ -301,9 +301,20 @@ Given('I do not have the right to change the AI provider', function () {
   sqlLokal(`update public.petugas set hak_atur_ai = false where id = '${ID_AKUN_UJI}'`);
 });
 
-After({ tags: '@REQ-4.5' }, function () {
+// Provider dikembalikan ke cloud agar run @ui berikutnya (UC-01, UC-02) tidak dijawab profil lokal lalu dieskalasi.
+// Hook ini berjalan sebelum After di support/ui.mjs yang menutup konteks browser, jadi sesi skenario masih bisa dipakai.
+After({ tags: '@REQ-4.5' }, async function () {
   tiruan.aiLokal = { sehat: true, latensiMs: 90 };
-  if (!MODE_TIRUAN) sqlLokal(`update public.petugas set hak_atur_ai = true where id = '${ID_AKUN_UJI}'`);
+  if (!MODE_TIRUAN) {
+    sqlLokal(
+      `update public.petugas set hak_atur_ai = true where id = '${ID_AKUN_UJI}'`,
+      `update public.pengaturan_ai set provider = 'cloud', diubah_oleh = null, diubah_pada = now()`,
+    );
+    return;
+  }
+  // Penyimpanan tiruan ada di memori server dashboard, jadi hanya bisa dikembalikan lewat endpoint dengan sesi skenario.
+  const res = await this.page?.request.post(`${URL_DASAR}/api/provider-ai`, { data: { provider: 'cloud' }, headers: { Origin: URL_DASAR } });
+  if (res && !res.ok() && res.status() !== 401) throw new Error(`Mengembalikan provider ke cloud dijawab ${res.status()}`);
 });
 
 When('I choose {string} in the {string} element', async function (label, nama) {
