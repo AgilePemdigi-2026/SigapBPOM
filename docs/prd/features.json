@@ -79,7 +79,8 @@
         { "id": "F5.1", "name": "Ringkasan Layanan", "summary": "Petugas melihat statistik hari ini dan kasus perlu tindak lanjut.", "icon": "dashboard", "priority": "medium" },
         { "id": "F5.2", "name": "Pantau Panggilan Berjalan", "summary": "Petugas melihat panggilan aktif beserta durasi dan tahap pemrosesan AI secara live.", "icon": "chart", "priority": "medium" },
         { "id": "F5.3", "name": "Antrean Tiket Eskalasi", "summary": "Petugas melihat antrean tiket dengan tautan transkrip dan membuka kasus.", "icon": "bell", "priority": "medium" },
-        { "id": "F5.4", "name": "Pantau AI Agent", "summary": "Petugas melihat kesehatan komponen, latensi, dan log tool AI Agent.", "icon": "settings", "priority": "medium" }
+        { "id": "F5.4", "name": "Pantau AI Agent", "summary": "Petugas melihat kesehatan komponen, latensi, dan log tool AI Agent.", "icon": "settings", "priority": "medium" },
+        { "id": "F5.5", "name": "Pilih Provider AI", "summary": "Petugas berhak memilih provider AI agent, Cloud atau Lokal, tanpa restart, dan mode Lokal tidak pernah jatuh ke cloud.", "icon": "settings", "priority": "medium" }
       ]
     },
     {

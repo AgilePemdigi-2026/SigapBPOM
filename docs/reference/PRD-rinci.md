@@ -149,6 +149,11 @@ Kebutuhan:
 - REQ-4.2 Halaman panggilan berjalan: daftar panggilan aktif dengan nomor tersamarkan, jenis layanan, topik, waktu mulai, durasi, tahap pemrosesan AI. Diperbarui otomatis (LIVE). Jika kosong, tampilkan "Tidak ada panggilan berjalan saat ini."
 - REQ-4.3 Halaman tiket eskalasi: antrean dengan nomor tiket, ringkasan masalah, jenis kasus, waktu masuk, tautan transkrip, status.
 - REQ-4.4 Tombol "Buka Kasus" membuka halaman detail pengaduan.
+- REQ-4.5 Panel "Provider AI" di halaman AI Agent menampilkan provider aktif (Cloud atau Lokal), status perangkat lokal (aktif atau mati beserta latensi), dan petugas yang terakhir mengganti beserta waktunya. Hanya petugas dengan hak mengatur provider AI (`hak_atur_ai`) yang bisa memilih dan menyimpan provider. Hak diperiksa di server, bukan hanya dengan menonaktifkan pilihan di UI: permintaan tanpa hak ditolak 403 dengan pesan "Anda tidak memiliki hak mengubah provider AI." dan pilihan tersimpan tidak berubah. Pilihan berlaku untuk giliran jawaban berikutnya tanpa restart dan tanpa memutus panggilan yang sedang berjalan. Memilih Lokal saat perangkat lokal mati diizinkan setelah konfirmasi.
+- REQ-4.6 Selama mode Lokal, isi percakapan yang dikirim ke model tidak pernah sampai ke penyedia LLM cloud: profil AI lokal tidak memiliki kunci cloud, dan sistem tidak pernah beralih ke cloud saat mode Lokal gagal. Ringkasan tiket pada mode Lokal juga tidak memanggil cloud. STT dan TTS tetap ElevenLabs di kedua mode, sehingga suara penelepon tetap dikirim ke ElevenLabs. Hal ini dinyatakan di panel.
+- REQ-4.7 Bila mode Lokal gagal (perangkat mati, timeout, atau jawaban kosong), agent mengucapkan pesan perangkat lokal tidak aktif dan meminta nomor telepon, lalu panggilan masuk jalur eskalasi yang sudah ada dengan tiket ESK pada giliran berikutnya. Jawaban yang sebagian sudah terucap dibuang sebelum pesan diucapkan. Bila pilihan provider belum pernah terbaca sejak gateway start, panggilan juga dieskalasi, tidak memakai cloud. Kegagalan tercatat dan terlihat di halaman Pantau AI Agent.
+
+Catatan: REQ-4.5 sampai REQ-4.7 (sub-fitur F5.5) ditarik ke Sprint 3 atas persetujuan tim pada 25 November 2026 (PROJECT_RULES 9.2.7), setelah semua task Sprint 2 selesai. Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`, keputusan: ADR 0007.
 
 ### F-05 Membaca Transkrip Percakapan (UC-05)
 
@@ -281,7 +286,8 @@ Enumerasi:
 | Layanan | Fungsi | Protokol | Status |
 |---|---|---|---|
 | cekbpom.pom.go.id | Sumber nomor izin edar dan status izin, dipanggil lewat tool calling | REST/HTTPS | Akses resmi belum dipastikan |
-| Penyedia LLM | Pengenalan maksud dan penyusunan jawaban RAG | REST/HTTPS | Hermes Agent dengan model GPT (langganan), ADR 0001 |
+| Penyedia LLM | Pengenalan maksud dan penyusunan jawaban RAG | REST/HTTPS | Hermes Agent dengan model GPT (langganan), ADR 0001. Provider Cloud, dipilih admin (REQ-4.5) |
+| Ollama (AI lokal) | Model lokal di PC milik tim untuk provider Lokal, dipanggil lewat profil Hermes `sigap-lokal`. Gateway juga memeriksa kesehatannya (`GET /api/tags`) | REST/HTTP lewat Tailscale | ADR 0007. Port 11434 tidak dibuka ke internet |
 | Speech-to-Text | Ucapan Indonesia ke teks | Streaming | ElevenLabs API premium, ADR 0001 |
 | Text-to-Speech | Teks jawaban ke suara Indonesia | Streaming | ElevenLabs API premium, ADR 0001 |
 | WhatsApp (manual) | Petugas menghubungi pelapor untuk jawaban ESK dan tindak lanjut ADU | Tautan wa.me dan tel: dari dashboard | ADR 0006 (menggantikan SMS Gateway) |
@@ -289,7 +295,7 @@ Enumerasi:
 
 Arsitektur: layered. Browser (halaman publik plus panel suara, dashboard) → Voice Gateway (WebRTC/WSS, codec Opus) → AI Voice Agent (STT, LLM+RAG, TTS) → Backend SIGAP (REST API + controller) → Basis Data SIGAP dan Indeks Basis Pengetahuan. Dashboard berbicara ke backend yang sama lewat HTTPS/JSON.
 
-Stack (ADR 0001, `docs/decisions/0001-stack.md`): frontend Astro, backend Supabase (Postgres, Auth, Realtime, Storage, Edge Functions, pgvector), AI Agent Hermes Agent dengan model GPT langganan, STT dan TTS ElevenLabs API premium.
+Stack (ADR 0001, `docs/decisions/0001-stack.md`): frontend Astro, backend Supabase (Postgres, Auth, Realtime, Storage, Edge Functions, pgvector), AI Agent Hermes Agent dengan model GPT langganan, STT dan TTS ElevenLabs API premium. Provider AI bisa dipilih admin: Cloud (GPT) atau Lokal (Hermes + Ollama), ADR 0007.
 
 Format respons API standar:
 
@@ -445,6 +451,10 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 04 | Tingkat Penyelesaian kosong, keterangan | Persentase pertanyaan yang dijawab AI tampil setelah ada panggilan. |
 | 04 | Pencarian di topbar dashboard tanpa hasil | Tidak ada hasil untuk pencarian ini. |
 | 04 | Notifikasi kosong | Belum ada notifikasi. |
+| 01, 02, 04 | Mode Lokal gagal (REQ-4.7, usulan) | Mohon maaf, perangkat AI lokal sedang tidak aktif. Pertanyaan Anda akan kami teruskan ke petugas. Mohon sebutkan nomor telepon Anda. |
+| 04 | Konfirmasi memilih Lokal saat perangkat lokal mati (usulan) | Perangkat AI lokal sedang tidak aktif. Selama mode Lokal dipakai, panggilan akan diteruskan ke petugas. Lanjutkan? |
+| 04 | Provider AI berhasil diubah (usulan) | Provider AI berhasil diubah. |
+| 04 | Ganti provider tanpa hak (usulan) | Anda tidak memiliki hak mengubah provider AI. |
 | 05 | Catatan tersimpan | Catatan pemeriksaan tersimpan. |
 | 05 | Catatan kosong | Catatan pemeriksaan wajib diisi. |
 | 06 | Telaah tersimpan | Hasil telaah tersimpan. |

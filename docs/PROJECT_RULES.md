@@ -214,7 +214,7 @@ Sebuah fitur selesai jika semua poin berikut terpenuhi:
 
 Bagian ini diisi lewat ADR pertama Sprint 1.
 
-Sudah ditetapkan (ADR 0001): frontend Astro, backend Supabase, bahasa TypeScript, AI Agent Hermes Agent dengan model GPT langganan, STT dan TTS ElevenLabs. Sisanya:
+Sudah ditetapkan (ADR 0001): frontend Astro, backend Supabase, bahasa TypeScript, AI Agent Hermes Agent dengan model GPT langganan, STT dan TTS ElevenLabs. Provider AI bisa dipilih admin antara Cloud dan Lokal (Hermes + Ollama), lihat ADR 0007. Sisanya:
 
 - Struktur folder yang memetakan BCE ke konvensi framework.
 - Linter, formatter, dan konfigurasinya.
@@ -237,6 +237,8 @@ Pengerjaan mengikuti jadwal sprint di `docs/source/Sprint-Planning-Sprint-1.docx
 | 3 | UC-05 Membaca Transkrip Percakapan (M), UC-06 Menangani Pengaduan (L), UC-08 Merekap dan Mengunduh Laporan Layanan (M) | F6, F7, F8 | 7 |
 
 Nomor fitur di `docs/prd/` (F1 sampai F8) tidak sama dengan nomor UC. Selalu pakai kode UC untuk menentukan sprint.
+
+**Penarikan ke Sprint 3 (disetujui tim, 25 November 2026):** sub-fitur F5.5 Pilih Provider AI (UC-04, REQ-4.5 sampai REQ-4.7, ADR 0007) ditambahkan ke backlog Sprint 3 dan dikerjakan di samping UC-05, UC-06, dan UC-08 (sub-fitur ini belum ada di PRD saat Sprint 2). Task-nya `T-F5.5-01` sampai `T-F5.5-06` di `docs/prd/tasks.json`, kode memakai scope `uc-04`.
 
 ### 9.2 Aturan
 
