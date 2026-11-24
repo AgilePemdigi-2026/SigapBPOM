@@ -5,10 +5,10 @@
 // - nomor tiket contoh di SRS (ADU-0456, ESK-0123) dicocokkan dengan nomor tiket yang benar-benar terbit (ADU-YYYYMMDD-NNNN,
 //   ESK-YYYYMMDD-NNNN).
 import { randomUUID } from 'node:crypto';
-import { Given, Then, When } from '@cucumber/cucumber';
+import { After, Given, Then, When } from '@cucumber/cucumber';
 import { buatVektorTiruan } from '../../supabase/functions/_shared/adapter/embedding.ts';
 import { mulaiTiruan, tiruan } from '../support/tiruan.mjs';
-import { AKUN_UJI, URL_DASAR, sqlLokal } from '../support/ui.mjs';
+import { AKUN_UJI, MODE_TIRUAN, URL_DASAR, sqlLokal } from '../support/ui.mjs';
 
 const TUNGGU_MS = 15_000;
 const regexTeks = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -269,4 +269,101 @@ Given('the material {string} exists', function (judul) {
   sqlLokal(`insert into public.materi_pengetahuan (judul, kategori, rujukan_sumber, isi)
     select '${j}', 'Pangan Olahan', 'Peraturan BPOM Nomor 31 Tahun 2018', 'Materi uji skenario penerimaan UC-07.'
     where not exists (select 1 from public.materi_pengetahuan where judul = '${j}')`);
+});
+
+// Provider AI UC-04 (REQ-4.5). Pilihan diatur lewat endpoint yang sama dengan tombol Simpan, agar setiap skenario mulai
+// dari provider yang diketahui. Kondisi perangkat AI lokal diatur di server tiruan (port 8091) dan sampai ke dashboard lewat
+// salah satu jalur (features/README.md): Voice Gateway asli memeriksa Ollama tiruan (/api/tags, OLLAMA_URL) seperti di CI,
+// atau dashboard membaca /voice/kesehatan tiruan langsung (VOICE_GATEWAY_URL=http://127.0.0.1:8091, mode tiruan).
+const NILAI_PROVIDER = { 'Cloud (GPT)': 'cloud', 'Lokal (Ollama)': 'lokal' };
+// Akun uji Supabase lokal (petugas@halobpom.go.id) di supabase/seed.sql.
+const ID_AKUN_UJI = '22222222-2222-2222-2222-222222222222';
+
+Given('the AI provider is {string}', async function (label) {
+  const provider = NILAI_PROVIDER[label];
+  if (!provider) throw new Error(`Provider "${label}" tidak dikenal`);
+  const res = await this.page.request.post(`${URL_DASAR}/api/provider-ai`, { data: { provider }, headers: { Origin: URL_DASAR } });
+  if (!res.ok()) throw new Error(`Menyiapkan provider ${provider} dijawab ${res.status()}`);
+});
+
+/**
+ * Menunggu sampai dashboard (GET /api/pantau-agent, sesi skenario) melaporkan komponen AI Lokal berstatus `status`, karena
+ * gateway asli baru melihat perubahan Ollama tiruan pada probe berikutnya.
+ */
+async function tungguAiLokal(page, status) {
+  let terakhir = null;
+  for (const batas = Date.now() + TUNGGU_MS; Date.now() < batas; await page.waitForTimeout(250)) {
+    const res = await page.request.get(`${URL_DASAR}/api/pantau-agent`).catch(() => null);
+    const body = res?.ok() ? await res.json().catch(() => null) : null;
+    terakhir = body?.data?.agent?.komponen?.find((k) => k.nama === 'AI Lokal')?.status ?? null;
+    if (terakhir === status) return;
+  }
+  throw new Error(`Dashboard tidak melaporkan AI Lokal "${status}" dalam ${TUNGGU_MS / 1000} detik (terakhir: ${terakhir}). `
+    + 'Jalankan gateway dengan OLLAMA_URL=http://127.0.0.1:8091 dan dashboard dengan VOICE_GATEWAY_URL ke gateway itu (features/README.md).');
+}
+
+Given('the local AI device is running', async function () {
+  tiruan.aiLokal = { sehat: true, latensiMs: 90 };
+  await mulaiTiruan();
+  await tungguAiLokal(this.page, 'Normal');
+});
+
+Given('the local AI device is down', async function () {
+  tiruan.aiLokal = { sehat: false, latensiMs: null };
+  await mulaiTiruan();
+  await tungguAiLokal(this.page, 'Gangguan');
+});
+
+Given('I do not have the right to change the AI provider', function () {
+  // Sesi tiruan hanya punya satu akun demo yang selalu berhak; hak_atur_ai hanya bisa dicabut di Supabase lokal.
+  if (MODE_TIRUAN) return 'skipped';
+  sqlLokal(`update public.petugas set hak_atur_ai = false where id = '${ID_AKUN_UJI}'`);
+});
+
+// Provider dikembalikan ke cloud agar run @ui berikutnya (UC-01, UC-02) tidak dijawab profil lokal lalu dieskalasi. Provider
+// lebih dulu, lalu hak_atur_ai; masing-masing dicoba sendiri agar kegagalan satu langkah tidak melewatkan yang lain.
+// Hook ini berjalan sebelum After di support/ui.mjs yang menutup konteks browser, jadi sesi skenario masih bisa dipakai.
+After({ tags: '@REQ-4.5' }, async function () {
+  tiruan.aiLokal = { sehat: true, latensiMs: 90 };
+  const galat = [];
+  const coba = async (langkah) => { try { await langkah(); } catch (e) { galat.push(e); } };
+  if (!MODE_TIRUAN) {
+    await coba(() => sqlLokal(`update public.pengaturan_ai set provider = 'cloud', diubah_oleh = null, diubah_pada = now()`));
+    await coba(() => sqlLokal(`update public.petugas set hak_atur_ai = true where id = '${ID_AKUN_UJI}'`));
+  } else {
+    // Penyimpanan tiruan ada di memori server dashboard, jadi hanya bisa dikembalikan lewat endpoint dengan sesi skenario.
+    await coba(async () => {
+      const res = await this.page?.request.post(`${URL_DASAR}/api/provider-ai`, { data: { provider: 'cloud' }, headers: { Origin: URL_DASAR } });
+      if (res && !res.ok() && res.status() !== 401) throw new Error(`Mengembalikan provider ke cloud dijawab ${res.status()}`);
+    });
+  }
+  if (galat.length) throw galat[0];
+});
+
+When('I choose {string} in the {string} element', async function (label, nama) {
+  const pilihan = elemen(this.page, nama).locator('label').filter({ hasText: label }).first();
+  await tunggu(pilihan, `pilihan "${label}" di elemen ${nama}`);
+  await pilihan.click();
+});
+
+Then('{string} should be the selected AI provider', async function (label) {
+  const radio = elemen(this.page, 'PanelProviderAi').getByRole('radio', { name: label, exact: true });
+  await radio.waitFor({ state: 'attached', timeout: TUNGGU_MS });
+  if (!(await radio.isChecked())) throw new Error(`Provider "${label}" tidak terpilih`);
+});
+
+Then('the AI provider options should be disabled', async function () {
+  const panel = elemen(this.page, 'PanelProviderAi');
+  await tunggu(panel, 'elemen PanelProviderAi');
+  for (const kontrol of [...(await panel.getByRole('radio').all()), panel.getByRole('button', { name: 'Simpan' })]) {
+    if (await kontrol.isEnabled()) throw new Error('Pilihan provider AI masih bisa diubah');
+  }
+});
+
+Then('I should be asked {string}', async function (teks) {
+  const batas = Date.now() + TUNGGU_MS;
+  while (!this.dialog?.includes(teks)) {
+    if (Date.now() > batas) throw new Error(`Konfirmasi "${teks}" tidak muncul; yang muncul: ${JSON.stringify(this.dialog ?? [])}`);
+    await this.page.waitForTimeout(200);
+  }
 });

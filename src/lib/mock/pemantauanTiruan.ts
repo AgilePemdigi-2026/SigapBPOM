@@ -11,7 +11,9 @@ import type {
   LogToolTersimpan,
   PanggilanAktif,
   PemeriksaKesehatanAgent,
+  PengaturanProviderAi,
   PenyimpananPemantauan,
+  ProviderAi,
   StatistikLayanan,
   StatusTiket,
   TiketAntrean,
@@ -100,10 +102,23 @@ export function contohPemantauan(sekarang = new Date()): DataPemantauan {
 export class PenyimpananPemantauanTiruan implements PenyimpananPemantauan {
   data: DataPemantauan;
   sekarang: () => Date;
+  /** Provider AI tiruan; pengembangan lokal tidak punya peran petugas, jadi pengubahan selalu diizinkan. */
+  providerAi: PengaturanProviderAi;
 
   constructor(data: DataPemantauan = contohPemantauan(), sekarang = () => new Date()) {
     this.data = data;
     this.sekarang = sekarang;
+    this.providerAi = { provider: 'cloud', diubahOleh: null, diubahPada: sekarang().toISOString(), bolehUbah: true };
+  }
+
+  async ambilProviderAi(): Promise<PengaturanProviderAi> {
+    return { ...this.providerAi };
+  }
+
+  async ubahProviderAi(provider: ProviderAi): Promise<PengaturanProviderAi> {
+    // 'Petugas Uji' hanya untuk tiruan; di produksi nama pengubah datang dari RPC ambil_pengaturan_ai.
+    this.providerAi = { provider, diubahOleh: 'Petugas Uji', diubahPada: this.sekarang().toISOString(), bolehUbah: true };
+    return { ...this.providerAi };
   }
 
   async ambilRingkasan(): Promise<DataRingkasanLayanan> {
@@ -205,6 +220,7 @@ export class PemeriksaKesehatanTiruan implements PemeriksaKesehatanAgent {
       { nama: 'Hermes', sehat: true, latensiMs: 1450 },
       { nama: 'STT/TTS', sehat: true, latensiMs: 380 },
       { nama: 'cekbpom', sehat: false, latensiMs: null },
+      { nama: 'AI Lokal', sehat: true, latensiMs: 90 },
     ],
   ) {
     this.komponen = komponen;

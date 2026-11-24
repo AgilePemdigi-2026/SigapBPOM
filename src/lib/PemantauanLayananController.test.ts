@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   PESAN_PEMANTAUAN,
   PemantauanLayananController,
+  jumlahGangguan,
   ringkasPanggilan,
   sapaan,
   susunBeban,
@@ -506,13 +507,14 @@ test('t_f5_4_01 komponen down tampil sebagai gangguan', async () => {
     ['Hermes', 'Normal'],
     ['STT/TTS', 'Normal'],
     ['cekbpom', 'Gangguan'],
+    ['AI Lokal', 'Normal'],
   ]);
 });
 
 test('t_f5_4_01 gateway tidak terjangkau membuat semua komponen gangguan', async () => {
   const mati: PemeriksaKesehatanAgent = { periksa: async () => { throw new Error('ECONNREFUSED'); } };
   const r = await pantau(undefined, mati).pantauAgent();
-  assert.ok(r.komponen.length === 4 && r.komponen.every((k) => k.status === 'Gangguan'));
+  assert.ok(r.komponen.length === 5 && r.komponen.every((k) => k.status === 'Gangguan'));
 });
 
 test('t_f5_4_01 log tool terbaru tampil berurutan tanpa argumen tool', async () => {
@@ -540,7 +542,7 @@ test('t_f5_4_01 log tool gagal dibaca dibedakan dari log kosong', async () => {
   const r = await new PemantauanLayananController(rusak.penyimpanan, new PemeriksaKesehatanTiruan()).pantauAgent();
   assert.equal(r.log, null);
   assert.equal(r.rataLatensiToolMs, null);
-  assert.equal(r.komponen.length, 4);
+  assert.equal(r.komponen.length, 5);
   assert.deepEqual((await new PemantauanLayananController(new PenyimpananPemantauanMock()).pantauAgent()).log, []);
 });
 
@@ -592,6 +594,30 @@ test('t_f5_4_01 adapter gateway melempar galat bila gateway menjawab error', asy
   await assert.rejects(new PemeriksaKesehatanGateway({ url: 'http://gw:8787', fetch: gagal }).periksa());
 });
 
+test('req_4_7 adapter gateway memetakan hermesLokal ke komponen AI Lokal; null (OLLAMA_URL kosong) jadi belum terpantau', async () => {
+  const lokal = async (hermesLokal: unknown) =>
+    (await new PemeriksaKesehatanGateway({ url: 'http://gw', fetch: (async () => Response.json({ data: { siap: true, hermesLokal } })) as unknown as typeof fetch }).periksa())
+      .find((k) => k.nama === 'AI Lokal');
+  assert.deepEqual(await lokal({ sehat: true, latensiMs: 85, waktu: 1 }), { nama: 'AI Lokal', sehat: true, latensiMs: 85 });
+  assert.deepEqual(await lokal({ sehat: false, latensiMs: null, waktu: 1 }), { nama: 'AI Lokal', sehat: false, latensiMs: null });
+  assert.deepEqual(await lokal(null), { nama: 'AI Lokal', sehat: null, latensiMs: null });
+  assert.equal(await lokal(undefined), undefined, 'gateway lama tanpa field hermesLokal');
+});
+
+test('req_4_7 AI Lokal belum terpantau tampil "Belum terpantau" dan tidak dihitung gangguan; probe gagal tetap Gangguan', async () => {
+  const dengan = (sehat: boolean | null) => pantau(undefined, { periksa: async () => [{ nama: 'Voice Gateway', sehat: true, latensiMs: 5 }, { nama: 'AI Lokal', sehat, latensiMs: null }] });
+  const status = async (sehat: boolean | null) => (await dengan(sehat).pantauAgent()).komponen.find((k) => k.nama === 'AI Lokal')?.status;
+  assert.equal(await status(null), 'Belum terpantau');
+  assert.equal(await status(false), 'Gangguan');
+  assert.equal(await status(true), 'Normal');
+  const komponen = (await dengan(null).pantauAgent()).komponen;
+  assert.ok(!komponen.some((k) => k.nama === 'AI Lokal' && k.status === 'Gangguan'));
+  assert.equal(jumlahGangguan(komponen), komponen.filter((k) => k.nama !== 'AI Lokal' && k.status === 'Gangguan').length);
+  // Gateway tidak terjangkau: AI Lokal tidak bisa dipastikan, tetap Gangguan seperti komponen lain.
+  const mati: PemeriksaKesehatanAgent = { periksa: async () => { throw new Error('ECONNREFUSED'); } };
+  assert.equal((await pantau(undefined, mati).pantauAgent()).komponen.find((k) => k.nama === 'AI Lokal')?.status, 'Gangguan');
+});
+
 test('t_f5_4_01 kondisi cekbpom diambil dari pemanggilan cek registrasi terakhir', async () => {
   const gateway: PemeriksaKesehatanAgent = { periksa: async () => [{ nama: 'Voice Gateway', sehat: true, latensiMs: 9 }] };
   const data = contohPemantauan(SEKARANG);
@@ -601,4 +627,98 @@ test('t_f5_4_01 kondisi cekbpom diambil dari pemanggilan cek registrasi terakhir
   assert.deepEqual(cek, { nama: 'cekbpom', status: terbaru.berhasil ? 'Normal' : 'Gangguan', latensiMs: terbaru.durasiMs });
   const tanpaLog = await pantau({ ...data, logTool: [] }, gateway).pantauAgent();
   assert.equal(tanpaLog.komponen.find((k) => k.nama === 'cekbpom')?.status, 'Gangguan');
+});
+
+// --- Provider AI (T-F5.5-05, REQ-4.5) ---
+
+const PENGATURAN_CLOUD = { provider: 'cloud', diubahOleh: null, diubahPada: '2026-11-25T00:00:00Z', bolehUbah: true } as const;
+
+/** Penyimpanan yang mencatat pemanggilan ubahProviderAi. */
+const penyimpananProvider = (ubah: (p: string) => Promise<unknown>) => {
+  const dipanggil: string[] = [];
+  const penyimpanan = {
+    ambilRingkasan: async () => new PenyimpananPemantauanMock().ambilRingkasan(),
+    ubahProviderAi: async (p: string) => {
+      dipanggil.push(p);
+      return ubah(p);
+    },
+  } as unknown as ConstructorParameters<typeof PemantauanLayananController>[0];
+  return { dipanggil, controller: new PemantauanLayananController(penyimpanan) };
+};
+
+test('req_4_5_ubah_provider_valid: lokal menghasilkan 200 dan pesan berhasil', async () => {
+  const { controller, dipanggil } = penyimpananProvider(async (p) => ({ ...PENGATURAN_CLOUD, provider: p }));
+  const r = await controller.ubahProviderAi('lokal');
+  assert.equal(r.kode, 200);
+  assert.equal(r.pesan, 'Provider AI berhasil diubah.');
+  assert.equal(r.data?.provider, 'lokal');
+  assert.deepEqual(dipanggil, ['lokal']);
+});
+
+test('req_4_5_nilai_tidak_valid_400: nilai di luar cloud dan lokal ditolak tanpa memanggil penyimpanan', async () => {
+  const { controller, dipanggil } = penyimpananProvider(async () => PENGATURAN_CLOUD);
+  for (const nilai of ['gpt', undefined, null, 1, '', 'LOKAL', { provider: 'lokal' }]) {
+    const r = await controller.ubahProviderAi(nilai);
+    assert.deepEqual(r, { kode: 400, pesan: 'Permintaan tidak valid.', data: null });
+  }
+  assert.deepEqual(dipanggil, []);
+});
+
+test('req_4_5_tanpa_hak_403: galat 403 dari penyimpanan menjadi 403 dengan pesan tanpa hak', async () => {
+  const { controller } = penyimpananProvider(async () => {
+    throw Object.assign(new Error('42501'), { kode: 403 });
+  });
+  const r = await controller.ubahProviderAi('lokal');
+  assert.deepEqual(r, { kode: 403, pesan: 'Anda tidak memiliki hak mengubah provider AI.', data: null });
+});
+
+test('req_4_5_galat_lain_500: galat lain menjadi galat sistem tanpa membocorkan detail', async () => {
+  const { controller } = penyimpananProvider(async () => {
+    throw new Error('Supabase 502 pada rpc/ubah_provider_ai');
+  });
+  assert.deepEqual(await controller.ubahProviderAi('cloud'), { kode: 500, pesan: 'Terjadi kesalahan pada sistem.', data: null });
+});
+
+test('req_4_5_ambil_provider: null bila penyimpanan gagal atau tidak mendukung', async () => {
+  const tanpa = new PemantauanLayananController(new PenyimpananPemantauanMock());
+  assert.equal(await tanpa.ambilProviderAi(), null);
+  const gagal = new PemantauanLayananController({
+    ambilRingkasan: async () => {
+      throw new Error('x');
+    },
+    ambilProviderAi: async () => {
+      throw new Error('x');
+    },
+  });
+  assert.equal(await gagal.ambilProviderAi(), null);
+});
+
+test('req_4_5_tiruan: penyimpanan tiruan menyimpan pilihan provider dan mengizinkan pengubahan', async () => {
+  const c = new PemantauanLayananController(new PenyimpananPemantauanTiruan());
+  assert.equal((await c.ambilProviderAi())?.provider, 'cloud');
+  assert.equal((await c.ubahProviderAi('lokal')).kode, 200);
+  const sesudah = await c.ambilProviderAi();
+  assert.equal(sesudah?.provider, 'lokal');
+  assert.equal(sesudah?.bolehUbah, true);
+});
+
+test('req_4_5_supabase: adapter memanggil ubah_provider_ai dan ambil_pengaturan_ai, dan memetakan 42501 ke 403', async () => {
+  const baris = { provider: 'lokal', diubah_pada: '2026-11-25T01:00:00Z', nama: 'Rina', boleh_ubah: true };
+  const { dipanggil, penyimpanan } = supabasePalsu((url) => {
+    if (url.pathname.endsWith('/rpc/ambil_pengaturan_ai')) return Response.json(baris);
+    if (url.pathname.endsWith('/rpc/ubah_provider_ai')) return Response.json({ provider: 'lokal', diubah_oleh: 'u-1', diubah_pada: '2026-11-25T01:00:00Z' });
+    return new Response('{}', { status: 404 });
+  });
+  const hasil = await penyimpanan.ubahProviderAi('lokal');
+  assert.deepEqual(hasil, { provider: 'lokal', diubahOleh: 'Rina', diubahPada: '2026-11-25T01:00:00Z', bolehUbah: true });
+  const ubah = dipanggil.find((d) => d.url.pathname.endsWith('/rpc/ubah_provider_ai'));
+  assert.deepEqual(JSON.parse(ubah?.init.body as string), { p_provider: 'lokal' });
+  assert.equal((ubah?.init.headers as Record<string, string>).Authorization, 'Bearer tok');
+  assert.ok(dipanggil.some((d) => d.url.pathname.endsWith('/rpc/ambil_pengaturan_ai')));
+  assert.ok(!dipanggil.some((d) => d.url.pathname.endsWith('/pengaturan_ai') || d.url.pathname.endsWith('/rpc/boleh_atur_ai')));
+
+  const ditolak = supabasePalsu(() => Response.json({ code: '42501', message: 'x' }, { status: 403 })).penyimpanan;
+  await assert.rejects(ditolak.ubahProviderAi('lokal'), (e: { kode?: number }) => e.kode === 403);
+  const rusak = supabasePalsu(() => new Response('bad', { status: 502 })).penyimpanan;
+  await assert.rejects(rusak.ubahProviderAi('lokal'), (e: { kode?: number }) => e.kode === undefined);
 });

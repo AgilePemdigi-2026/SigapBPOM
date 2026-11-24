@@ -2,6 +2,7 @@
 // transkrip, lalu menyimpannya ke percakapan.ringkasan lewat Edge Function catat-percakapan (aksi `ringkasan`).
 // Nomor telepon dan nama pelapor disamarkan sebelum transkrip dikirim ke model dan sekali lagi pada hasilnya.
 // Peringkasan berjalan setelah panggilan ditutup dan galatnya hanya diteruskan ke `onGalat`, jadi tidak pernah menahan penutupan.
+import { providerPalingKetat } from './providerAi.mjs';
 
 /** Batas ringkasan, sama dengan PANJANG_MAKS_RINGKASAN di supabase/functions/_shared/control/TranskripController.ts. */
 export const PANJANG_MAKS_RINGKASAN = 500;
@@ -129,13 +130,19 @@ export class PeringkasPercakapan {
       const semua = [...this.sesi];
       this.sesi.delete((semua.find(([, v]) => !v.tercatat) ?? semua[0])[0]);
     }
-    s = { tercatat: false, ip: '', giliran: [], nama: new Set() };
+    s = { tercatat: false, ip: '', giliran: [], nama: new Set(), provider: null };
     this.sesi.set(id, s);
     return s;
   }
 
   tercatat(id) {
     this.ambil(id).tercatat = true;
+  }
+
+  /** UC-04: provider giliran AI; yang paling ketat diteruskan ke peringkas agar ringkasan panggilan lokal tidak ke cloud. */
+  catatProvider(id, provider) {
+    const s = this.ambil(id);
+    s.provider = providerPalingKetat(s.provider, provider);
   }
 
   giliran(id, ip, ucapan, jawaban) {
@@ -156,7 +163,7 @@ export class PeringkasPercakapan {
     const opsi = { nama: [...s.nama] };
     const transkrip = samarkanDataPribadi(s.giliran.join('\n'), opsi).slice(-PANJANG_MAKS_TRANSKRIP);
     try {
-      const { ringkasan, token } = await this.peringkas.ringkas(transkrip);
+      const { ringkasan, token } = await this.peringkas.ringkas(transkrip, { provider: s.provider });
       if (token) this.anggaran?.catat(s.ip, id, token);
       const teks = samarkanDataPribadi(String(ringkasan ?? '').replace(/\s+/g, ' ').trim(), opsi).slice(0, PANJANG_MAKS_RINGKASAN).trim();
       if (!teks) return null;

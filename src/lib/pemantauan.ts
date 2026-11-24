@@ -25,3 +25,6 @@ export function pilihPenyimpanan(tokenAkses: string | undefined, env: Record<str
 }
 
 export const pemantauanLayanan = (tokenAkses: string | undefined) => new PemantauanLayananController(pilihPenyimpanan(tokenAkses), pilihKesehatan());
+
+// Pengaturan provider AI tidak memerlukan pemeriksa kesehatan; tanpanya endpoint tidak membaca import.meta.env saat token ada.
+export const pengaturanProviderAi = (tokenAkses: string | undefined) => new PemantauanLayananController(pilihPenyimpanan(tokenAkses));

@@ -13,6 +13,7 @@ Skenario control yang ada: UC-01 (cek registrasi dan tool `cek_registrasi_bpom`)
 Skenario `@belum-tersedia` menunggu bagian yang belum dibuat, sehingga tidak ikut `npm run test:bdd`. Daftarnya bisa dilihat dengan `npx cucumber-js --profile belum` (langkahnya berstatus pending). Tag dicabut begitu bagian itu masuk main. Saat ini tidak ada; skenario SMS tindak lanjut UC-06 diganti skenario WhatsApp manual (ADR 0006).
 
 Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
+Skenario Provider AI UC-04 (`features/uc-04-provider-ai.ui.feature`, REQ-4.5) mengatur kondisi perangkat AI lokal di server tiruan port 8091. Pada stack lengkap (langkah di bawah, sama dengan CI) server itu juga menjadi Ollama tiruan: Voice Gateway memeriksa `/api/tags`-nya lewat `OLLAMA_URL` setiap `OLLAMA_PERIKSA_MS`, dan dashboard membaca kesehatan dari gateway lewat `VOICE_GATEWAY_URL=http://127.0.0.1:8090`, jadi feature ini berjalan bersama UC-01 dan UC-02. Langkah kondisi perangkat menunggu sampai `/api/pantau-agent` dashboard melaporkan status AI Lokal yang diminta.
 
 ## Menjalankan skenario `@ui`
 
@@ -32,15 +33,15 @@ Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4)
 3. Voice Gateway, dibutuhkan UC-01 dan UC-02. cekbpom dan Hermes dilayani server tiruan (`features/support/tiruan.mjs`) yang dinyalakan skenario UC-01 di port 8091, jadi kunci ElevenLabs dan Hermes tidak perlu. Ucapan yang tidak ada di tabel `the AI agent answers` sengaja dijawab galat. Pengetahuan dicari lewat Edge Function `cari-pengetahuan` (`PENGETAHUAN_VEKTOR=1`), tempat Background UC-01 mengindeks materi rujukannya; jangan jalankan `scripts/indeks-materi.ts` pada database uji, karena materi lain yang terindeks bisa ikut dikutip. Batas tiket harian dilonggarkan karena skenario mengirim nomor telepon yang sama berulang kali:
 
    ```bash
-   PORT=8090 SUPABASE_URL=http://127.0.0.1:54321 SIGAP_KUNCI_INTERNAL=kunci-uji-lokal KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 PENGETAHUAN_VEKTOR=1 CEKBPOM_AKTIF=1 CEKBPOM_BASE_URL=http://127.0.0.1:8091 HERMES_URL=http://127.0.0.1:8091 node voice-gateway/server.mjs
+   PORT=8090 SUPABASE_URL=http://127.0.0.1:54321 SIGAP_KUNCI_INTERNAL=kunci-uji-lokal KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 PENGETAHUAN_VEKTOR=1 CEKBPOM_AKTIF=1 CEKBPOM_BASE_URL=http://127.0.0.1:8091 HERMES_URL=http://127.0.0.1:8091 OLLAMA_URL=http://127.0.0.1:8091 OLLAMA_PERIKSA_MS=500 node voice-gateway/server.mjs
    ```
 
    Gateway membatasi 30 giliran per 5 menit per IP, dan satu run memakai 24 giliran (UC-01 17, UC-02 7). Sebelum menjalankan ulang dalam 5 menit, mulai ulang gateway.
 
-4. Dashboard. `SUPABASE_URL` dan `SUPABASE_ANON_KEY` harus ada di environment proses (lihat `supabase status -o env`), bukan hanya di `.env`. Batas login per IP dilonggarkan karena satu run login belasan kali. Dev server meneruskan `/voice/*` ke gateway di port 8090.
+4. Dashboard. `SUPABASE_URL` dan `SUPABASE_ANON_KEY` harus ada di environment proses (lihat `supabase status -o env`), bukan hanya di `.env`. Batas login per IP dilonggarkan karena satu run login belasan kali. Dev server meneruskan `/voice/*` ke gateway di port 8090, dan `VOICE_GATEWAY_URL` membuat halaman Pantau AI Agent membaca kesehatan dari gateway itu (skenario Provider AI UC-04).
 
    ```bash
-   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=<anon key lokal> SIGAP_KUNCI_LOGIN=kunci-login-lokal LOGIN_PERCOBAAN_MAKS=1000 npm run dev
+   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=<anon key lokal> SIGAP_KUNCI_LOGIN=kunci-login-lokal LOGIN_PERCOBAAN_MAKS=1000 VOICE_GATEWAY_URL=http://127.0.0.1:8090 npm run dev
    ```
 
 5. Jalankan skenario:
@@ -56,6 +57,17 @@ Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4)
    - Skenario yang gagal meninggalkan tangkapan layar di `test-results/bdd-ui/`.
 
 Di Windows (PowerShell), environment diisi dengan `$env:NAMA="nilai"` sebelum perintahnya, dan `supabase` harus ada di PATH karena langkah data uji memanggil `supabase db query --local`.
+
+### Tanpa Supabase (mode tiruan)
+
+Skenario yang tidak menyiapkan data lewat Supabase lokal bisa dijalankan dengan sesi dan data tiruan. Isi `SIGAP_SESI=tiruan` untuk dashboard dan untuk Cucumber; login memakai akun demo `src/lib/sesiTiruan.ts`. Langkah yang hanya bisa disiapkan di Supabase (misalnya mencabut `hak_atur_ai`) berstatus skipped. Tanpa Voice Gateway, dashboard bisa membaca `/voice/kesehatan` server tiruan langsung; karena `VOICE_GATEWAY_URL` juga mengarahkan `/voice/*`, cara ini hanya untuk feature Provider AI, bukan UC-01 dan UC-02.
+
+```bash
+SIGAP_SESI=tiruan VOICE_GATEWAY_URL=http://127.0.0.1:8091 LOGIN_PERCOBAAN_MAKS=1000 npm run dev
+SIGAP_SESI=tiruan npm run test:bdd:ui -- --tags @REQ-4.5
+```
+
+Profil `ui` sudah memuat semua `features/**/*.feature`, jadi menyebut satu file saja tidak membatasi run; pakai `--tags`.
 
 ## Pemetaan langkah SRS ke browser
 

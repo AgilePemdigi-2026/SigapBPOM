@@ -31,6 +31,10 @@ import { kirimAudio } from './audio.mjs';
 import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
 import { KondisiLayanan } from './kesehatan.mjs';
 import { buatCekOrigin, buatIpKlien } from './alamatKlien.mjs';
+import {
+  GalatProviderLokal, PESAN_LOKAL_MATI, PROVIDER, PemeriksaOllama, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider, batasWaktuLokal,
+  targetHermes,
+} from './providerAi.mjs';
 
 const env = (k, d) => process.env[k] || d;
 const PORT = Number(env('PORT', '8090'));
@@ -52,6 +56,18 @@ const ELEVENLABS_MODEL_STT = env('ELEVENLABS_STT_MODEL', 'scribe_v2');
 const HERMES_URL = env('HERMES_URL', 'http://host.docker.internal:8642');
 const HERMES_KEY = env('HERMES_API_KEY', '');
 const HERMES_MODEL = env('HERMES_MODEL', 'sigap-hermes');
+// UC-04 (ADR 0007): profil Hermes lokal (Ollama, tanpa kunci cloud) di :8643. Kosong berarti mode lokal langsung dieskalasi
+// ke petugas; giliran tidak pernah dialihkan ke profil cloud.
+const HERMES_LOKAL_URL = env('HERMES_LOKAL_URL', '');
+const HERMES_LOKAL_KEY = env('HERMES_LOKAL_API_KEY', '');
+const HERMES_LOKAL_MODEL = env('HERMES_LOKAL_MODEL', 'sigap-hermes');
+// Perangkat lokal yang macet tidak boleh membuat penelepon menunggu sampai batas cloud (60 detik) sebelum dieskalasi.
+const HERMES_LOKAL_BATAS_WAKTU_MS = batasWaktuLokal(env('HERMES_LOKAL_BATAS_WAKTU_MS', '20000'));
+// Profil cloud tanpa batasWaktuMs memakai BATAS_WAKTU_HERMES_MS.
+const PROFIL_HERMES = {
+  cloud: { url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL },
+  lokal: { url: HERMES_LOKAL_URL, kunci: HERMES_LOKAL_KEY, model: HERMES_LOKAL_MODEL, batasWaktuMs: HERMES_LOKAL_BATAS_WAKTU_MS },
+};
 // Kuota karakter TTS per hari (total dan per IP) agar kuota paket ElevenLabs tidak habis oleh satu pengguna.
 const KARAKTER_TTS_HARIAN = Number(env('TTS_KARAKTER_HARIAN', '6000'));
 const KARAKTER_TTS_HARIAN_PER_IP = Number(env('TTS_KARAKTER_HARIAN_PER_IP', '1500'));
@@ -68,7 +84,7 @@ const SUARA_STATIS = {
   menu: PESAN_MENU, 'layanan-1': PESAN_LAYANAN_1, 'layanan-2': PESAN_LAYANAN_2, 'di-luar-topik': PESAN_DI_LUAR_TOPIK, penutup: PESAN_PENUTUP,
   'butuh-petugas': PESAN_BUTUH_PETUGAS, 'ulang-telepon': PESAN_MINTA_ULANG_TELEPON, 'tawaran-penutup': PESAN_TAWARAN_PENUTUP, jeda: PESAN_JEDA,
   'minta-nama-produk': PESAN_MINTA_NAMA_PRODUK, 'minta-kronologi': PESAN_MINTA_KRONOLOGI, 'minta-nama': PESAN_MINTA_NAMA_PELAPOR,
-  'tidak-ditemukan': PESAN_TIDAK_DITEMUKAN, 'nama-tidak-jelas': PESAN_NAMA_TIDAK_JELAS,
+  'tidak-ditemukan': PESAN_TIDAK_DITEMUKAN, 'nama-tidak-jelas': PESAN_NAMA_TIDAK_JELAS, 'lokal-mati': PESAN_LOKAL_MATI,
   // Prompt gabungan data pengaduan yang kurang dan penjelasan nomor telepon yang ditolak.
   ...SUARA_PENGADUAN,
 };
@@ -86,10 +102,18 @@ if (env('NODE_ENV', '') === 'production' && !(SUPABASE_URL && SIGAP_KUNCI_INTERN
   process.exit(1);
 }
 const penerbitTiket = SUPABASE_URL && SIGAP_KUNCI_INTERNAL ? new PenerbitTiketSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : new PenerbitTiketTiruan();
+// UC-04 REQ-4.6: provider AI pilihan petugas dibaca setiap giliran lewat Edge Function provider-ai. Tiruan dari AI_PROVIDER_BAWAAN
+// hanya untuk pengembangan lokal dan uji.
+const pemilih = SUPABASE_URL && SIGAP_KUNCI_INTERNAL
+  ? new PemilihProviderSupabase({ url: SUPABASE_URL, kunci: SIGAP_KUNCI_INTERNAL })
+  : new PemilihProviderTiruan(env('AI_PROVIDER_BAWAAN', 'cloud'));
 // REQ-1.3: data registrasi produk langsung dari antarmuka publik cekbpom; aktif hanya bila CEKBPOM_AKTIF=1 (PROJECT_RULES 4.3).
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
 // T-F5.4-01: hasil panggilan Hermes, STT, TTS, dan cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada panggilan.
 const kondisi = new KondisiLayanan();
+// UC-04: probe perangkat lokal (Ollama) untuk peringatan dashboard; tanpa OLLAMA_URL tidak ada probe dan kondisinya null.
+// OLLAMA_PERIKSA_MS hanya dipersingkat untuk uji @ui di CI agar perubahan perangkat tiruan cepat terlihat.
+const pemeriksaOllama = new PemeriksaOllama({ url: env('OLLAMA_URL', ''), intervalMs: batasWaktuLokal(env('OLLAMA_PERIKSA_MS', '30000'), 30000) });
 // Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
 // (embedding produksi belum ada); selain itu dipakai korpus lokal.
 const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
@@ -177,8 +201,15 @@ const lajuSttRealtime = new PembatasLaju(30, 5 * 60 * 1000);
 const anggaranAi = new AnggaranToken({ harian: TOKEN_AI_HARIAN, harianPerIp: TOKEN_AI_HARIAN_PER_IP, perPanggilan: TOKEN_AI_PER_PANGGILAN });
 // REQ-5.2: ringkasan buatan AI disimpan saat panggilan berakhir, tokennya ikut anggaran AI. Nama dan nomor pelapor dari alur
 // pengaduan disamarkan sebelum transkrip dikirim ke model. Tanpa Hermes dipakai ringkasan tiruan tanpa AI.
+// UC-04: ringkasan mengikuti provider saat meringkas; profil lokal yang gagal diganti tiruan, tidak pernah cloud.
+const ringkasanTiruan = new PeringkasTiruan();
 const peringkas = new PeringkasPercakapan({
-  peringkas: HERMES_KEY ? new PeringkasHermes({ url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL }) : new PeringkasTiruan(),
+  peringkas: new PeringkasSesuaiProvider({
+    pemilih,
+    cloud: HERMES_KEY ? new PeringkasHermes({ url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL }) : ringkasanTiruan,
+    lokal: HERMES_LOKAL_URL ? new PeringkasHermes({ url: HERMES_LOKAL_URL, kunci: HERMES_LOKAL_KEY, model: HERMES_LOKAL_MODEL }) : ringkasanTiruan,
+    tiruan: ringkasanTiruan,
+  }),
   pengirim: pengirimTranskrip,
   anggaran: anggaranAi,
   dataPribadi: (id) => pengaduan.dataPribadi(id),
@@ -266,14 +297,15 @@ async function sttElevenLabs(audio, tipe) {
 
 // Jawaban dialirkan (stream) per potongan agar kalimat pertama bisa diubah menjadi suara sebelum jawaban selesai.
 // Hermes mengabaikan max_tokens, jadi panjang jawaban dijaga lewat prompt dan SusunanJawaban, pemakaian lewat AnggaranToken.
-async function* aliranHermes(id, kutipan, hasil, sinyal) {
+// `target` adalah profil Hermes giliran ini dari targetHermes (cloud atau lokal).
+async function* aliranHermes(id, kutipan, hasil, sinyal, target) {
   const pesan = riwayat.untukModel(id, kutipan);
   hasil.karPrompt = JSON.stringify(pesan).length;
-  const r = await fetch(`${HERMES_URL}/v1/chat/completions`, {
+  const r = await fetch(`${target.url}/v1/chat/completions`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${HERMES_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: HERMES_MODEL, messages: pesan, stream: true }),
-    signal: AbortSignal.any([AbortSignal.timeout(BATAS_WAKTU_HERMES_MS), sinyal]),
+    headers: { authorization: `Bearer ${target.kunci}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ model: target.model, messages: pesan, stream: true }),
+    signal: AbortSignal.any([AbortSignal.timeout(target.batasWaktuMs ?? BATAS_WAKTU_HERMES_MS), sinyal]),
   });
   if (!r.ok || !r.body) throw new Error(`hermes ${r.status}`);
   const dekoder = new TextDecoder();
@@ -345,6 +377,7 @@ async function giliran(req, res, url) {
     if (urai.jenis === 'pilih') {
       const menu = pilihMenu(riwayat, pengaduan, id, urai.pilih, pantau);
       if (!menu) throw new ErrorGateway(422, 'Pilihan layanan tidak dikenal.');
+      peringkas.catatProvider(id, await pemilih.aktif());
       // Panel mengucapkan menu sebelum setiap pilihan (awal panggilan dan "ganti layanan").
       catatGiliran(id, '', null, PESAN_MENU);
       catatGiliran(id, '', null, menu.jawaban);
@@ -368,6 +401,9 @@ async function giliran(req, res, url) {
   // Penelepon memutus panggilan sebelum jawaban selesai: hentikan stream Hermes dan jangan render TTS lagi.
   const batal = new AbortController();
   res.on('close', () => { if (!res.writableFinished) batal.abort(); });
+  // UC-04 REQ-4.6: provider dibaca sekali per giliran, bersamaan dengan STT, cek registrasi, dan pencarian kutipan agar tidak
+  // menambah latensi. Dicatat untuk ringkasan di setiap jalur (juga tanpa AI) dan dipakai giliran AI. aktif() tidak pernah melempar.
+  const providerDibaca = pemilih.aktif();
   try {
     let audio = null;
     if (ketik === null) {
@@ -565,18 +601,43 @@ async function giliran(req, res, url) {
         tulis({ jenis: 'selesai', sumber: [], produk: cek.produk });
         return;
       }
+      // UC-04 REQ-4.6: giliran AI memakai profil Hermes sesuai provider. Provider tidak terbaca atau profil tanpa URL tidak
+      // memanggil AI mana pun; penelepon diteruskan ke petugas. Mode lokal tanpa profil lokal sama dengan perangkat lokal mati
+      // (REQ-4.7): pesan lokal mati dan kondisi hermes gagal, agar terlihat di Pantau AI Agent.
+      const provider = await providerDibaca;
+      const target = targetHermes(provider, PROFIL_HERMES);
+      if (!target) {
+        const lokal = provider === PROVIDER.LOKAL;
+        const pesan = lokal ? PESAN_LOKAL_MATI : PESAN_BUTUH_PETUGAS;
+        if (lokal) kondisi.catat('hermes', false, 0);
+        riwayat.mulaiEskalasi(id, transkrip);
+        riwayat.tambah(id, 'assistant', pesan);
+        console.info(JSON.stringify({ ev: 'giliran', stt_ms: tStt, total_ms: Date.now() - mulai, provider, tanpa_target: true, token: 0 }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        ucapkan(pesan, lokal ? '/voice/statis/lokal-mati' : '/voice/statis/butuh-petugas');
+        tulis({ jenis: 'selesai', sumber: [] });
+        return;
+      }
       const susunan = new SusunanJawaban(PESAN_BUTUH_PETUGAS);
       const hasil = { token: 0, karPrompt: 0, karKeluaran: 0 };
       const ucapkanKalimat = (ucap) => ucapkan(ucap, terbitkanTokenSuara(ucap, ip));
       // NFR-1: latensi Hermes di Pantau AI Agent adalah waktu sampai kalimat pertama siap, bukan sampai jawaban selesai.
       // Panggilan yang dibatalkan penelepon tidak dinilai; jawaban kosong dan pemberitahuan galat Hermes dihitung gangguan.
       const tHermes = Date.now();
+      let galatLokal = null;
       try {
-        await alirkanJawaban(aliranHermes(id, konteks, hasil, batal.signal), susunan, ucapkanKalimat, batal.signal);
+        const aliran = aliranDenganProvider({ target, alir: (t) => aliranHermes(id, konteks, hasil, batal.signal, t) });
+        await alirkanJawaban(aliran, susunan, ucapkanKalimat, batal.signal);
+        // REQ-4.7: jawaban lokal tanpa satu kalimat pun (bukan jawaban baku) dihitung kegagalan perangkat lokal.
+        if (target.provider === PROVIDER.LOKAL && !batal.signal.aborted && !susunan.isi.length && !susunan.khusus) {
+          throw new GalatProviderLokal(new Error('hermes jawaban kosong'));
+        }
         if (!batal.signal.aborted) kondisi.catat('hermes', hasil.karKeluaran > 0, (tKalimat1 ? mulai + tKalimat1 : Date.now()) - tHermes);
       } catch (e) {
         kondisi.catat('hermes', false, Date.now() - tHermes);
-        throw e;
+        // REQ-4.7: galat mode lokal ditangani di bawah (pesan lokal mati lalu eskalasi), tidak pernah dicoba ulang ke cloud.
+        if (!(e instanceof GalatProviderLokal)) throw e;
+        galatLokal = e;
       } finally {
         hasil.token = tokenTerpakai(hasil, batal.signal.aborted);
         anggaranAi.catat(ip, id, hasil.token - cadangan);
@@ -588,6 +649,20 @@ async function giliran(req, res, url) {
         // user berturut-turut. Tawaran penutup belum terucap, jadi tidak ikut dicatat.
         if (susunan.isi.length) riwayat.tambah(id, 'assistant', susunan.isi.join(' '));
         console.info(JSON.stringify({ ev: 'giliran', batal: true, stt_ms: tStt, total_ms: Date.now() - mulai, kalimat: susunan.isi.length, token: hasil.token }));
+        return;
+      }
+      if (galatLokal) {
+        // Kalimat lokal yang sempat terkirim dibuang panel, lalu penelepon diminta nomor telepon untuk tiket ESK.
+        if (susunan.isi.length) {
+          tulis({ jenis: 'ganti' });
+          terucap.length = 0;
+        }
+        riwayat.mulaiEskalasi(id, transkrip);
+        riwayat.tambah(id, 'assistant', PESAN_LOKAL_MATI);
+        console.error(JSON.stringify({ ev: 'provider_lokal_gagal', jenis: galatLokal.cause instanceof Error ? galatLokal.cause.message : 'unknown', stt_ms: tStt }));
+        pantau.tahap(id, TAHAP.MENJAWAB);
+        ucapkan(PESAN_LOKAL_MATI, '/voice/statis/lokal-mati');
+        tulis({ jenis: 'selesai', sumber: [] });
         return;
       }
 
@@ -623,7 +698,7 @@ async function giliran(req, res, url) {
       console.info(JSON.stringify({
         ev: 'giliran', stt_ms: tStt, kalimat1_ms: tKalimat1, total_ms: Date.now() - mulai, ucapan_kar: transkrip.length,
         jawaban_kar: jawaban.length, kalimat: susunan.isi.length, kutipan: kutipan.length, di_luar_topik: diLuarTopik,
-        token: hasil.token, token_hari_ini: anggaranAi.total,
+        token: hasil.token, token_hari_ini: anggaranAi.total, provider: target.provider,
       }));
       // Hasil cekbpom tampil sebagai kartu produk, dan jawaban baku atau yang merujuk ke cekbpom tidak memakai kutipan,
       // jadi semuanya tanpa chip sumber.
@@ -639,6 +714,7 @@ async function giliran(req, res, url) {
       // NFR-1 untuk semua jalur: waktu kalimat pertama dikirim, sebelum render TTS-nya selesai (batas bawah, lihat ADR 0005).
       // null berarti tidak ada yang terucap (galat atau batal).
       if (transkrip) console.info(JSON.stringify({ ev: 'respons', stt_ms: tStt, kalimat1_ms: tKalimat1 }));
+      peringkas.catatProvider(id, await providerDibaca);
       res.end();
     }
   } finally {
@@ -689,6 +765,9 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   try {
     if (req.method === 'GET' && path === '/voice/kesehatan') {
+      // Nilai provider tersimpan dikirim tanpa menunggu Supabase (batas tunggu dashboard 3 detik); pembacaan baru dipicu di
+      // belakang agar nilainya tetap segar walau belum ada panggilan.
+      pemilih.aktif();
       return kirim(res, 200, 'success', 'OK', {
         siap: Boolean(ELEVENLABS_KEY && HERMES_KEY), korpus: korpus?.potongan.length ?? 0,
         katalog: {
@@ -697,6 +776,7 @@ const server = createServer(async (req, res) => {
         },
         hermes: kondisi.terakhir.hermes, stt: kondisi.terakhir.stt, tts: kondisi.terakhir.tts,
         cekbpom: { aktif: Boolean(cekBpom), ...(kondisi.terakhir.cekbpom ?? {}) },
+        provider: pemilih.terakhir(), hermesLokal: pemeriksaOllama.kondisi(),
       });
     }
     if (req.method === 'POST' && !originDiizinkan(req.headers.origin)) throw new ErrorGateway(403, 'Akses ditolak.');
@@ -729,6 +809,7 @@ const server = createServer(async (req, res) => {
 
 server.requestTimeout = 90_000;
 server.listen(PORT, () => {
+  pemeriksaOllama.mulai();
   console.info(JSON.stringify({ ev: 'siap', port: PORT, siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) }));
   // Render pesan tetap sekali saat mulai, supaya tidak ada render bersamaan dari permintaan pengguna.
   if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS).filter((n) => !SUARA_STATIS_SAAT_DIPAKAI(n))) statis({ writeHead() {}, end() {} }, nama).catch(() => {});

@@ -18,7 +18,7 @@ Batasan yang membentuk keputusan:
 - Dua profil Hermes di VPS dengan prompt, skill, dan tool yang sama:
   - `sigap-cloud` di `:8642` (GPT, tidak diubah);
   - `sigap-lokal` di `:8643` dengan `provider: custom` ke Ollama, tanpa `fallback_model`, dan tanpa kunci OpenAI, OpenRouter, atau kunci cloud lain di `.env` profil. Kunci API server profil ini berbeda dari profil cloud.
-- Voice Gateway membaca pilihan admin di setiap giliran lewat interface `PemilihProviderAi` (cache 5 detik) dan mengirim giliran ke profil yang sesuai. Kalau pilihan belum pernah terbaca sejak gateway start, giliran tidak dikirim ke profil mana pun: agent langsung eskalasi.
+- Voice Gateway membaca pilihan admin di setiap giliran lewat interface `PemilihProviderAi` (cache 5 detik) dan mengirim giliran ke profil yang sesuai. Kalau pilihan belum pernah terbaca sejak gateway start, atau pembacaan sah terakhir lebih dari 60 detik lalu, giliran tidak dikirim ke profil mana pun: agent langsung eskalasi.
 - Pilihan disimpan di tabel satu baris `pengaturan_ai`. Perubahan hanya lewat RPC `ubah_provider_ai`, yang memeriksa kolom `petugas.hak_atur_ai`. Kolom ini mengikuti pola `hak_ekspor` dan menjadi penanda admin sampai ada peran admin.
 - Mode Lokal yang gagal (koneksi ditolak, timeout, status non-200, atau pemberitahuan "No reply" Hermes) tidak pernah jatuh ke cloud. Agent mengucapkan `PESAN_LOKAL_MATI`, lalu panggilan masuk jalur eskalasi yang sudah ada.
 - PC lokal menjalankan Ollama dengan `OLLAMA_HOST=0.0.0.0` dan `OLLAMA_KEEP_ALIVE=-1`. VPS menjangkau PC lewat Tailscale, dan Windows Firewall hanya mengizinkan port 11434 dari antarmuka Tailscale.
@@ -41,7 +41,7 @@ Batasan yang membentuk keputusan:
 - Ada dua proses Hermes yang harus dirawat. Perubahan prompt, skill, atau tool harus diterapkan ke kedua profil.
 - Mode Lokal bergantung pada PC lokal dan Tailscale yang menyala. Kalau mati, panggilan dieskalasi ke petugas selama perangkat mati, dan dashboard menampilkan statusnya.
 - Kualitas jawaban model lokal bisa lebih rendah daripada GPT. Pemilihan model akhir ditentukan lewat uji.
-- Nilai baru di gateway: `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, `HERMES_LOKAL_MODEL`, `OLLAMA_URL`, `AI_PROVIDER_BAWAAN`. Semuanya lewat environment variable (PROJECT_RULES 4.5).
+- Nilai baru di gateway: `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, `HERMES_LOKAL_MODEL`, `HERMES_LOKAL_BATAS_WAKTU_MS`, `OLLAMA_URL`, `OLLAMA_PERIKSA_MS`, `AI_PROVIDER_BAWAAN`. Semuanya lewat environment variable (PROJECT_RULES 4.5).
 - Riwayat perubahan hanya baris terakhir (`diubah_oleh`, `diubah_pada`), tanpa tabel histori.
 - Hak awal `hak_atur_ai` diberikan lewat `supabase/seed.sql` untuk lokal dan lewat Supabase Studio untuk produksi.
 

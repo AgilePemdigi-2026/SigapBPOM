@@ -1,7 +1,7 @@
 # Desain: Pilihan Provider AI (Cloud atau Ollama Lokal)
 
 Tanggal: 2026-11-24
-Status: draf, menunggu persetujuan tim
+Status: disetujui tim, 25 November 2026 (ADR 0007)
 Kaitan: UC-04 Memantau Layanan (F5), ADR 0001 (stack), PROJECT_RULES 4.3, 5, 9
 
 ## 1. Maksud dan alasan
@@ -54,7 +54,7 @@ Alasan memilih A: hanya A yang perpindahannya instan sekaligus menjamin mode Lok
 
 - **Profil `sigap-cloud`:** Hermes yang sudah berjalan sekarang di `:8642`. Tidak diubah.
 - **Profil `sigap-lokal`:** salinan konfigurasi `sigap-cloud` (prompt, skill, tool) di `:8643` dengan:
-  - `provider: custom`, `base_url: http://<ip-tailscale-pc>:11434/v1`, model `gemma3:12b`;
+  - `provider: custom`, `base_url: http://<ip-tailscale-pc>:11434/v1`, model `qwen3:8b` (lihat butir Model);
   - tanpa `fallback_model`, tanpa kunci OpenAI, OpenRouter, atau kunci cloud lain di `.env` profil;
   - kunci API server sendiri, berbeda dari profil cloud.
 - **PC lokal:** Ollama dengan `OLLAMA_HOST=0.0.0.0` dan `OLLAMA_KEEP_ALIVE=-1`, supaya model tetap di VRAM dan tidak ada jeda muat ulang sekitar 10 detik. Windows Firewall hanya mengizinkan port 11434 dari antarmuka Tailscale.
@@ -72,25 +72,25 @@ Alasan memilih A: hanya A yang perpindahannya instan sekaligus menjamin mode Lok
   - `diubah_pada timestamptz not null default now()`
 - Kolom baru `petugas.hak_atur_ai boolean not null default false`, mengikuti pola `hak_ekspor`. SIGAP belum punya peran admin (PRD-rinci Bagian 15 butir 8), jadi hak ini menjadi penandanya. `supabase/seed.sql` memberi hak ini ke akun petugas seed yang juga punya `hak_ekspor`, supaya skenario Gherkin bisa berjalan. Di produksi hak diberikan manual lewat Supabase Studio.
 - RLS: `select` untuk `is_petugas()`. Tidak ada `update` langsung. Perubahan hanya lewat RPC `ubah_provider_ai(p provider_ai)` (security definer) yang memeriksa `hak_atur_ai` milik `auth.uid()`, lalu mengisi `diubah_oleh` dan `diubah_pada`.
-- Edge Function baru `provider-ai` (GET, kunci `SIGAP_KUNCI_INTERNAL`) agar gateway bisa membaca pilihan, mengikuti pola `katalog-materi`.
+- Edge Function baru `provider-ai` (POST `{}`, kunci `SIGAP_KUNCI_INTERNAL`) agar gateway bisa membaca pilihan, mengikuti pola `katalog-materi`.
 
 ### 5.3 Voice Gateway
 
 - Interface `PemilihProviderAi` dengan metode `aktif(): Promise<'cloud' | 'lokal'>`:
-  - `PemilihProviderSupabase`: membaca Edge Function `provider-ai`, cache 5 detik. Kalau pembacaan gagal, nilai terakhir dipakai. Kalau belum pernah berhasil sejak start, hasilnya `tidak_diketahui`, dan giliran AI tidak dikirim ke profil mana pun: agent langsung ke jalur `butuhPetugas`. Ini menutup celah "gateway restart saat Supabase putus lalu diam-diam memakai cloud".
+  - `PemilihProviderSupabase`: membaca Edge Function `provider-ai`, cache 5 detik. Kalau pembacaan gagal, nilai terakhir dipakai paling lama 60 detik sejak pembacaan sah terakhir (`maksBasiMs`); lewat dari itu hasilnya `tidak_diketahui` sampai pembacaan berhasil lagi. Kalau belum pernah berhasil sejak start, hasilnya juga `tidak_diketahui`, dan giliran AI tidak dikirim ke profil mana pun: agent langsung ke jalur `butuhPetugas` dengan `PESAN_BUTUH_PETUGAS`. Ini menutup celah "gateway restart saat Supabase putus lalu diam-diam memakai cloud" dan celah pilihan lama yang dipakai tanpa batas.
   - `PemilihProviderTiruan`: nilai dari `AI_PROVIDER_BAWAAN`, untuk lokal, test, dan demo. Tidak dipakai di produksi.
-- Env baru: `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, `HERMES_LOKAL_MODEL`, `OLLAMA_URL` (khusus pemeriksaan kesehatan), `AI_PROVIDER_BAWAAN` (hanya untuk tiruan, bawaan `cloud`). `HERMES_URL`, `HERMES_API_KEY`, dan `HERMES_MODEL` tetap untuk profil cloud.
+- Env baru: `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, `HERMES_LOKAL_MODEL`, `HERMES_LOKAL_BATAS_WAKTU_MS` (batas waktu giliran lokal, bawaan 20000), `OLLAMA_URL` (khusus pemeriksaan kesehatan), `OLLAMA_PERIKSA_MS` (jarak probe, bawaan 30000, hanya dipersingkat di CI), `AI_PROVIDER_BAWAAN` (hanya untuk tiruan, bawaan `cloud`). `HERMES_URL`, `HERMES_API_KEY`, dan `HERMES_MODEL` tetap untuk profil cloud.
 - Provider dibaca di setiap giliran, bukan di awal panggilan. Jadi saat admin pindah ke Lokal, giliran berikutnya dari panggilan yang sedang berjalan langsung memakai Lokal.
 - `aliranHermes` menerima target (URL, kunci, model) dari pemilih. Kode use case tidak tahu provider mana yang dipakai.
-- **Mode Lokal gagal** (koneksi ditolak, timeout, status non-200, atau pemberitahuan "No reply" Hermes):
+- **Mode Lokal gagal** (koneksi ditolak, timeout, status non-200, pemberitahuan "No reply" Hermes, jawaban tanpa satu kalimat pun, atau `HERMES_LOKAL_URL` kosong):
   - Agent mengucapkan satu pesan `PESAN_LOKAL_MATI` (teks di 5.5). Pesan ini menggantikan `PESAN_BUTUH_PETUGAS` untuk giliran itu dan sudah memuat permintaan nomor telepon.
   - Status panggilan masuk jalur `butuhPetugas` yang sudah ada. Tiket ESK terbit di giliran berikutnya setelah penelepon menyebut nomor yang sah, sama seperti eskalasi sekarang.
   - Kegagalan di tengah aliran, setelah sebagian kalimat terucap, juga dihitung gagal: kalimat yang belum terputar dibuang (event `ganti`, seperti jawaban baku), lalu `PESAN_LOKAL_MATI` diucapkan.
   - Tidak ada percobaan ke profil cloud.
   - Kegagalan dicatat di kondisi `hermes` agar terlihat di Pantau AI Agent.
-- **Pemeriksaan kesehatan perangkat lokal:** gateway memanggil `GET {OLLAMA_URL}/api/tags` setiap 30 detik, dengan batas waktu 3 detik, di kedua mode. Hasilnya (`aktif` atau `mati` dan latensinya) menjadi `hermesLokal` di `/voice/kesehatan`, sehingga status tetap segar walaupun mode Cloud sedang dipakai.
-- **Ringkasan tiket** (`PeringkasHermes`) memakai provider aktif. Kalau mode Lokal gagal, dipakai `PeringkasTiruan` (tanpa AI), bukan cloud.
-- `GET /voice/kesehatan` menambah `provider` (pilihan aktif) dan `hermesLokal` (hasil panggilan nyata terakhir ke profil lokal).
+- **Pemeriksaan kesehatan perangkat lokal:** gateway memanggil `GET {OLLAMA_URL}/api/tags` setiap 30 detik, dengan batas waktu 3 detik, di kedua mode. Hasilnya (`aktif` atau `mati` dan latensinya) menjadi `hermesLokal` di `/voice/kesehatan`, sehingga status tetap segar walaupun mode Cloud sedang dipakai. Tanpa `OLLAMA_URL` tidak ada probe dan `hermesLokal` bernilai null.
+- **Ringkasan tiket** (`PeringkasHermes`) memakai provider paling ketat yang tercatat selama panggilan. Provider dicatat di setiap giliran, termasuk giliran tanpa AI (menu, cekbpom, eskalasi, pengaduan). Kalau mode Lokal gagal, dipakai `PeringkasTiruan` (tanpa AI), bukan cloud.
+- `GET /voice/kesehatan` menambah `provider` (nilai tersimpan di gateway, dikirim tanpa menunggu Supabase) dan `hermesLokal` (hasil probe Ollama terakhir, null bila `OLLAMA_URL` kosong).
 
 ### 5.4 Dashboard (Pantau AI Agent)
 
@@ -108,7 +108,7 @@ Panel baru "Provider AI" di atas tampilan Kantor/Tabel:
 - Pilihan dinonaktifkan bagi petugas tanpa `hak_atur_ai`. Server tetap menolak lewat RPC.
 - Memilih Lokal saat perangkat lokal berstatus mati tetap diizinkan, dengan konfirmasi bahwa panggilan akan dieskalasi selama perangkat mati.
 - Endpoint `POST /api/provider-ai` (sesi, CSRF, validasi enum) memanggil RPC dan mengembalikan `{ status, message, data }`.
-- Komponen kesehatan menambah baris "AI Lokal".
+- Komponen kesehatan menambah baris "AI Lokal". Probe yang gagal berstatus Gangguan. Gateway tanpa `OLLAMA_URL` (`hermesLokal` null) membuat AI Lokal tampil "Belum terpantau" (label Lampiran B) dan tidak dihitung di "N komponen gangguan", supaya deploy yang hanya memakai Cloud tidak menampilkan alarm palsu terus-menerus.
 
 ### 5.5 Teks pesan (masuk Lampiran PRD-rinci lewat PR docs)
 

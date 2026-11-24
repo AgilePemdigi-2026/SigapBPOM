@@ -439,3 +439,6 @@ verify_jwt = false
 
 [functions.katalog-materi]
 verify_jwt = false
+
+[functions.provider-ai]
+verify_jwt = false

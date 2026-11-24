@@ -48,7 +48,7 @@ test('nfr_1 nfr_16 t_f5_4_01 server.mjs mengukur setiap panggilan Hermes, STT, d
   assert.match(server, /function ttsElevenLabs\(teks\) \{\n {2}return kondisi\.ukur\('tts', /);
   assert.match(server, /throw Object\.assign\(new Error\(`stt \$\{r\.status\}`\), \{ status: r\.status \}\)/, 'status STT ikut dilempar');
   assert.match(server, /throw Object\.assign\(new Error\(`tts \$\{r\.status\}`\), \{ status: r\.status \}\)/, 'status TTS ikut dilempar');
-  assert.equal(server.match(/kondisi\.catat\('hermes'/g)?.length, 2, 'jawaban selesai dan galat Hermes sama-sama dicatat');
+  assert.equal(server.match(/kondisi\.catat\('hermes'/g)?.length, 3, 'jawaban selesai, galat Hermes, dan mode lokal tanpa profil sama-sama dicatat');
   assert.match(server, /kondisi\.catat\('cekbpom', /);
   assert.match(server, /hermes: kondisi\.terakhir\.hermes, stt: kondisi\.terakhir\.stt, tts: kondisi\.terakhir\.tts,/);
   assert.doesNotMatch(server, /kondisiCekbpom/);

@@ -1,0 +1,150 @@
+---
+// Boundary UC-04 (REQ-4.5, T-F5.5-06): panel Provider AI di Pantau AI Agent. Petugas berhak memilih Cloud (GPT) atau
+// Lokal (Ollama). Pilihan dinonaktifkan bagi petugas tanpa hak_atur_ai, tetapi penegaknya tetap RPC ubah_provider_ai di
+// server. Memilih Lokal saat komponen AI Lokal Gangguan tetap diizinkan setelah konfirmasi (spec 5.4).
+import { PESAN_PEMANTAUAN, type PengaturanProviderAi, type StatusKomponen } from '../lib/PemantauanLayananController';
+import { KONFIRMASI_LOKAL_MATI, teksTerakhirDiubah } from '../lib/providerAi';
+
+interface Props {
+  /** null bila pengaturan gagal dibaca. */
+  pengaturan: PengaturanProviderAi | null;
+  /** Komponen kesehatan 'AI Lokal'; undefined bila gateway tidak melaporkannya, 'Belum terpantau' bila OLLAMA_URL kosong. */
+  aiLokal: StatusKomponen | undefined;
+}
+const { pengaturan, aiLokal } = Astro.props;
+const PILIHAN = [
+  { nilai: 'cloud', label: 'Cloud (GPT)', ikon: 'icon-cloud' },
+  { nilai: 'lokal', label: 'Lokal (Ollama)', ikon: 'icon-server' },
+] as const;
+const bolehUbah = pengaturan?.bolehUbah === true;
+const lokalMati = aiLokal?.status === 'Gangguan';
+const belumTerpantau = !aiLokal || aiLokal.status === 'Belum terpantau';
+const statusLokal = belumTerpantau ? 'Belum terpantau' : lokalMati ? 'Tidak aktif' : 'Aktif';
+const latensiLokal = aiLokal?.latensiMs != null ? `${aiLokal.latensiMs.toLocaleString('id-ID')} ms` : null;
+---
+<section class="panel provider" data-name="PanelProviderAi" aria-labelledby="provider-judul">
+  <form class="pv-form" data-provider-form data-awal={pengaturan?.provider ?? ''} data-lokal-mati={String(lokalMati)} data-konfirmasi={KONFIRMASI_LOKAL_MATI} novalidate>
+    <fieldset class="pv-pilihan" disabled={!bolehUbah} aria-describedby="provider-pesan">
+      <legend id="provider-judul">Provider AI</legend>
+      <div class="pv-opsi">
+        {PILIHAN.map((p) => (
+          <label class="tab pv-tab">
+            <input type="radio" name="provider" value={p.nilai} checked={pengaturan?.provider === p.nilai} class="sr-only" />
+            <i class={p.ikon} aria-hidden="true"></i>{p.label}
+          </label>
+        ))}
+      </div>
+      <button type="submit" class="btn-primary pv-simpan" data-simpan disabled>Simpan</button>
+    </fieldset>
+
+    <dl class="pv-info">
+      <div>
+        <dt>Perangkat lokal</dt>
+        <dd>
+          <span class:list={['pv-dot', { mati: lokalMati, abu: belumTerpantau }]} aria-hidden="true"></span>
+          <span data-status-lokal>{statusLokal}</span>
+          {latensiLokal && <span class="mono pv-redup">· {latensiLokal}</span>}
+        </dd>
+      </div>
+      {pengaturan && (
+        <div>
+          <dt>Terakhir diubah</dt>
+          <dd data-terakhir>{teksTerakhirDiubah(pengaturan.diubahOleh, pengaturan.diubahPada)}</dd>
+        </div>
+      )}
+      <div>
+        <dt>Catatan</dt>
+        <dd class="pv-redup">Suara tetap diproses ElevenLabs di kedua mode.</dd>
+      </div>
+    </dl>
+
+    <p class="pv-pesan" id="provider-pesan" data-pesan role="status" aria-live="polite" data-jenis={!pengaturan || !bolehUbah ? 'galat' : undefined}>
+      {!pengaturan ? PESAN_PEMANTAUAN.providerAiGagalDimuat : !bolehUbah ? PESAN_PEMANTAUAN.providerAiTanpaHak : ''}
+    </p>
+  </form>
+</section>
+
+<script>
+  import { tandaiSibuk } from '../lib/statusSistem';
+  import { teksTerakhirDiubah } from '../lib/providerAi';
+
+  const form = document.querySelector<HTMLFormElement>('[data-provider-form]');
+  if (form) {
+    const simpan = form.querySelector<HTMLButtonElement>('[data-simpan]')!;
+    const pesan = form.querySelector<HTMLElement>('[data-pesan]')!;
+    const terakhir = form.querySelector<HTMLElement>('[data-terakhir]');
+    const pilihan = form.querySelector<HTMLFieldSetElement>('fieldset')!;
+    let awal = form.dataset.awal ?? '';
+    const terpilih = () => form.querySelector<HTMLInputElement>('input[name="provider"]:checked')?.value ?? '';
+    const tampilkan = (teks: string, jenis: 'ok' | 'galat') => {
+      pesan.textContent = teks;
+      pesan.dataset.jenis = jenis;
+    };
+    // Simpan aktif hanya bila pilihan berbeda dari provider yang sedang berlaku.
+    const segarkan = () => { simpan.disabled = !terpilih() || terpilih() === awal; };
+    form.addEventListener('change', () => {
+      segarkan();
+      pesan.textContent = '';
+      delete pesan.dataset.jenis;
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const provider = terpilih();
+      if (!provider || provider === awal) return;
+      if (provider === 'lokal' && form.dataset.lokalMati === 'true' && !confirm(form.dataset.konfirmasi ?? '')) return;
+      const selesai = tandaiSibuk(simpan, 'Menyimpan…');
+      try {
+        const res = await fetch('/api/provider-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider }),
+        }).catch(() => null);
+        const body = (await res?.json().catch(() => null)) as { message?: unknown; data?: { provider?: string; diubahOleh?: string | null; diubahPada?: string } | null } | null;
+        const teks = typeof body?.message === 'string' ? body.message : 'Terjadi kesalahan pada sistem.';
+        if (res?.status === 403) {
+          // Hak dicabut sejak halaman dimuat: pilihan kembali ke provider yang berlaku dan panel dikunci.
+          const kembali = form.querySelector<HTMLInputElement>(`input[name="provider"][value="${awal}"]`);
+          if (kembali) kembali.checked = true;
+          pilihan.disabled = true;
+        }
+        if (!res?.ok) return tampilkan(teks, 'galat');
+        awal = body?.data?.provider ?? provider;
+        if (terakhir && body?.data?.diubahPada) terakhir.textContent = teksTerakhirDiubah(body.data.diubahOleh ?? null, body.data.diubahPada);
+        tampilkan(teks, 'ok');
+      } finally {
+        selesai();
+        segarkan();
+      }
+    });
+  }
+</script>
+
+<style>
+  .provider { padding: 20px 28px; }
+  .pv-form { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px 40px; }
+  .pv-pilihan { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; align-items: center; gap: 10px; }
+  .pv-pilihan legend { float: left; margin-right: 14px; padding: 0; font-size: 24px; font-weight: 400; }
+  .pv-opsi { display: flex; gap: 6px; }
+  .pv-tab { cursor: pointer; }
+  .pv-tab i { font-size: 16px; }
+  .pv-tab:has(input:checked) { background: var(--tab-on); box-shadow: inset 0 2px 5px rgba(47, 80, 160, .14); font-weight: 500; color: var(--blue-ink); }
+  .pv-tab:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .pv-pilihan:disabled .pv-tab { cursor: not-allowed; opacity: .6; }
+  .pv-simpan { height: 44px; padding: 0 22px; font-size: 15px; margin-left: 4px; }
+  .pv-simpan:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+  .pv-info { margin: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 28px; font-size: 15px; }
+  .pv-info > div { display: flex; gap: 8px; align-items: center; }
+  .pv-info dt { color: var(--muted); }
+  .pv-info dt::after { content: ':'; }
+  .pv-info dd { margin: 0; display: inline-flex; align-items: center; gap: 7px; color: var(--ink); }
+  .pv-redup { color: var(--muted); }
+  .pv-dot { width: 9px; height: 9px; border-radius: 9px; background: #22c55e; }
+  .pv-dot.mati { background: #ef4444; }
+  .pv-dot.abu { background: var(--muted-2); }
+  .pv-pesan { grid-column: 1 / -1; margin: 0; font-size: 14.5px; }
+  /* Region status tetap dirender (tanpa display:none) agar pesan yang disisipkan diumumkan; jarak baris grid dibatalkan. */
+  .pv-pesan:empty { margin-top: -14px; }
+  .pv-pesan[data-jenis='ok'] { color: var(--t-green-fg); }
+  .pv-pesan[data-jenis='galat'] { color: var(--danger); }
+</style>

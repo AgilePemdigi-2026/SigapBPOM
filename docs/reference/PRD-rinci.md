@@ -455,6 +455,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 04 | Konfirmasi memilih Lokal saat perangkat lokal mati (usulan) | Perangkat AI lokal sedang tidak aktif. Selama mode Lokal dipakai, panggilan akan diteruskan ke petugas. Lanjutkan? |
 | 04 | Provider AI berhasil diubah (usulan) | Provider AI berhasil diubah. |
 | 04 | Ganti provider tanpa hak (usulan) | Anda tidak memiliki hak mengubah provider AI. |
+| 04 | Pengaturan provider AI gagal dimuat (usulan) | Pengaturan provider AI gagal dimuat. Muat ulang halaman untuk mencoba lagi. |
 | 05 | Catatan tersimpan | Catatan pemeriksaan tersimpan. |
 | 05 | Catatan kosong | Catatan pemeriksaan wajib diisi. |
 | 06 | Telaah tersimpan | Hasil telaah tersimpan. |
@@ -488,11 +489,13 @@ Tombol: "Telepon CS AI", "Akhiri Panggilan", "Login", "Buka Kasus", "Lihat Trans
 
 Field: "Email", "Password", "Catatan Pemeriksaan", "Tindak Lanjut", "Catatan Tindak Lanjut", "Tanggal Pemeriksaan", "Unit Pelaksana", "Tanggapan", "Judul Materi", "Rujukan Sumber", "Periode", "Format Berkas".
 
+Panel "Provider AI" di Pantau AI Agent (UC-04, REQ-4.5, usulan): pilihan "Cloud (GPT)" dan "Lokal (Ollama)", tombol "Simpan", baris "Perangkat lokal" dengan status "Aktif", "Tidak aktif", atau "Belum terpantau", baris "Terakhir diubah", dan baris "Catatan" berisi "Suara tetap diproses ElevenLabs di kedua mode."
+
 Tombol menu layanan di panel suara (UC-01, UC-02): "Informasi Produk" (tekan 1), "Pengaduan Produk" (tekan 2, juga pada kartu produk tidak ditemukan).
 
 Teks kartu di transkrip panel suara (UC-01): "Diteruskan ke petugas BPOM", "Jawaban untuk pertanyaan ini akan diberikan oleh petugas, bukan oleh AI.", "Nomor tiket", "Nomor izin edar", "Status", "Pendaftar", "Sumber", dan judul kartu kandidat produk "[jumlah] hasil ditemukan, [jumlah ditampilkan] teratas. Sebutkan nomor pilihan Anda." (paling banyak 3 ditampilkan; bagian ", [jumlah ditampilkan] teratas" tidak ada bila semua hasil tampil).
 
-Elemen bernama untuk uji penerimaan: PanelPercakapanSuara, TranskripPercakapan, RingkasanPercakapan, StepperPenanganan, GrafPengetahuan, GrafikRekapitulasi, TabelRekapitulasi.
+Elemen bernama untuk uji penerimaan: PanelPercakapanSuara, TranskripPercakapan, RingkasanPercakapan, StepperPenanganan, GrafPengetahuan, GrafikRekapitulasi, TabelRekapitulasi, PanelProviderAi.
 
 ## Lampiran C. Glosarium Singkat
 

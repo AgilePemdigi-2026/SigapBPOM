@@ -78,6 +78,16 @@ export type BebanPerJam = { jam: string; total: number; dijawabAi: number; diesk
 /** Baris log_tool. Argumen tool sengaja tidak dibaca karena bisa memuat data pribadi. */
 export type LogToolTersimpan = { id: number; namaTool: string; durasiMs: number; berhasil: boolean; waktu: string };
 
+/** Provider AI yang menjawab panggilan: cloud (Hermes cloud) atau lokal (Hermes lokal). */
+export type ProviderAi = 'cloud' | 'lokal';
+export const DAFTAR_PROVIDER_AI: readonly ProviderAi[] = ['cloud', 'lokal'];
+
+/** Pengaturan provider AI; diubahOleh adalah nama petugas (null bila belum pernah diubah atau tidak terbaca), bolehUbah dari boleh_atur_ai. */
+export type PengaturanProviderAi = { provider: ProviderAi; diubahOleh: string | null; diubahPada: string; bolehUbah: boolean };
+
+/** Galat penyimpanan yang sudah dipetakan; saat ini hanya 403 (SQLSTATE 42501, tanpa hak_atur_ai). */
+export type KodeGalat = 403;
+
 /** Penyimpanan pemantauan layanan (PROJECT_RULES 4.3): Supabase via RPC/view atau implementasi tiruan (mock). */
 export interface PenyimpananPemantauan {
   ambilRingkasan(): Promise<DataRingkasanLayanan>;
@@ -88,10 +98,16 @@ export interface PenyimpananPemantauan {
   /** Log tool terbaru lebih dulu. */
   ambilLogTool?(batas: number): Promise<LogToolTersimpan[]>;
   ambilBebanPerJam?(): Promise<BebanPerJam[]>;
+  ambilProviderAi?(): Promise<PengaturanProviderAi>;
+  /** Melempar galat ber-`kode` 403 bila petugas tidak punya hak atur AI (REQ-4.5). */
+  ubahProviderAi?(provider: ProviderAi): Promise<PengaturanProviderAi>;
 }
 
-/** Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. */
-export type KomponenTersimpan = { nama: string; sehat: boolean; latensiMs: number | null };
+/**
+ * Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. `sehat` null berarti komponen sengaja tidak
+ * dipantau (AI Lokal tanpa OLLAMA_URL): tampil "Belum terpantau", bukan Gangguan.
+ */
+export type KomponenTersimpan = { nama: string; sehat: boolean | null; latensiMs: number | null };
 
 /** Layanan eksternal pemeriksa kesehatan AI Agent (PROJECT_RULES 4.3): endpoint health gateway, atau tiruan. */
 export interface PemeriksaKesehatanAgent {
@@ -106,6 +122,9 @@ export const PESAN_PEMANTAUAN = {
   panggilanGagalDimuat: 'Data panggilan gagal dimuat.',
   antreanGagalDimuat: 'Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
   ringkasanGagalDimuat: 'Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
+  providerAiDiubah: 'Provider AI berhasil diubah.',
+  providerAiTanpaHak: 'Anda tidak memiliki hak mengubah provider AI.',
+  providerAiGagalDimuat: 'Pengaturan provider AI gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
 } as const;
 
 export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
@@ -126,7 +145,7 @@ const LABEL_TAHAP_AI: Record<TahapAi, string> = { mendengar: 'Mendengar', mempro
 const label = (kamus: Record<string, string>, kunci: string | null | undefined) => (kunci && Object.hasOwn(kamus, kunci) ? kamus[kunci] : undefined);
 
 /** Komponen yang selalu tampil di halaman pantau, meski gateway tidak melaporkannya (T-F5.4-01). */
-export const KOMPONEN_AGENT = ['Voice Gateway', 'Hermes', 'STT/TTS', 'cekbpom'] as const;
+export const KOMPONEN_AGENT = ['Voice Gateway', 'Hermes', 'STT/TTS', 'cekbpom', 'AI Lokal'] as const;
 /** Nama tool cek registrasi di log_tool (InformasiProdukController, REQ-1.3). */
 export const TOOL_CEK_REGISTRASI = 'cek_registrasi_bpom';
 
@@ -147,6 +166,9 @@ export const KAPASITAS_SALURAN_BAWAAN = 50;
 const POLA_NO_TIKET = /^(ADU|ESK)-[0-9]{8}-[0-9]{4}$/;
 
 const DETIK = 1000;
+// Kamus UC-04 belum punya pesan untuk isian tidak sah; dipakai pesan yang sama dengan endpoint UC-06 dan simpan-materi.
+const PESAN_TIDAK_VALID = 'Permintaan tidak valid.';
+const PESAN_GALAT_SISTEM = 'Terjadi kesalahan pada sistem.';
 
 export type Ringkasan = {
   statistik: StatistikLayanan;
@@ -193,7 +215,10 @@ export type BarisAntrean = {
   tautanTranskrip: string | null;
 };
 
-export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan'; latensiMs: number | null };
+export type StatusKomponen = { nama: string; status: 'Normal' | 'Gangguan' | 'Belum terpantau'; latensiMs: number | null };
+
+/** Jumlah komponen berstatus Gangguan untuk ringkasan "N komponen gangguan"; komponen yang belum terpantau tidak dihitung. */
+export const jumlahGangguan = (komponen: StatusKomponen[]) => komponen.filter((k) => k.status === 'Gangguan').length;
 
 export type LogTool = { id: number; namaTool: string; durasiMs: number; hasil: 'Berhasil' | 'Gagal'; waktu: string };
 
@@ -427,6 +452,27 @@ export class PemantauanLayananController {
     };
   }
 
+  /** REQ-4.5: pengaturan provider AI untuk panel; null bila tidak terbaca (panel menyembunyikan pilihan). */
+  async ambilProviderAi(): Promise<PengaturanProviderAi | null> {
+    if (!this.penyimpanan.ambilProviderAi) return null;
+    return await this.penyimpanan.ambilProviderAi().catch(() => null);
+  }
+
+  /**
+   * REQ-4.5, T-F5.5-05: mengubah provider AI. Nilai divalidasi sebelum menyentuh penyimpanan; izin tidak pernah dipercaya dari
+   * klien, penegaknya RPC ubah_provider_ai. `kode` adalah kode HTTP (PROJECT_RULES 4.4).
+   */
+  async ubahProviderAi(nilai: unknown): Promise<{ kode: 200 | 400 | 403 | 500; pesan: string; data: PengaturanProviderAi | null }> {
+    if (typeof nilai !== 'string' || !(DAFTAR_PROVIDER_AI as readonly string[]).includes(nilai)) return { kode: 400, pesan: PESAN_TIDAK_VALID, data: null };
+    if (!this.penyimpanan.ubahProviderAi) return { kode: 500, pesan: PESAN_GALAT_SISTEM, data: null };
+    try {
+      return { kode: 200, pesan: PESAN_PEMANTAUAN.providerAiDiubah, data: await this.penyimpanan.ubahProviderAi(nilai as ProviderAi) };
+    } catch (e) {
+      if ((e as { kode?: KodeGalat }).kode === 403) return { kode: 403, pesan: PESAN_PEMANTAUAN.providerAiTanpaHak, data: null };
+      return { kode: 500, pesan: PESAN_GALAT_SISTEM, data: null };
+    }
+  }
+
   /** T-F5.4-01: kesehatan komponen, rata-rata latensi tool, dan log tool terbaru. */
   async pantauAgent(): Promise<PantauAgent> {
     const [hasil, log] = await Promise.all([
@@ -446,7 +492,9 @@ export class PemantauanLayananController {
     const komponen = [...KOMPONEN_AGENT, ...hasil.map((k) => k.nama).filter((n) => !(KOMPONEN_AGENT as readonly string[]).includes(n))].map(
       (nama): StatusKomponen => {
         const k = perNama.get(nama);
-        return { nama, status: k?.sehat ? 'Normal' : 'Gangguan', latensiMs: k?.latensiMs ?? null };
+        // Lampiran B: "Belum terpantau" hanya untuk komponen yang gateway laporkan sengaja tidak dipantau (sehat null).
+        const status = k?.sehat === null ? 'Belum terpantau' : k?.sehat ? 'Normal' : 'Gangguan';
+        return { nama, status, latensiMs: k?.latensiMs ?? null };
       },
     );
     const urut = [...daftar].sort((a, b) => b.waktu.localeCompare(a.waktu) || b.id - a.id);

@@ -16,6 +16,7 @@ supabase/
     ├── laporkan-panggilan-aktif/    Boundary: laporan panggilan aktif dari Voice Gateway (UC-04)
     ├── catat-percakapan/            Boundary: transkrip, log tool, dan ringkasan dari Voice Gateway (UC-01, UC-05)
     ├── login/                       Boundary: login dashboard dan penguncian akun (UC-03)
+    ├── provider-ai/                 Boundary: provider AI pilihan petugas untuk Voice Gateway (UC-04, ADR 0007)
     └── _shared/
         ├── boundary/http.ts         kunci server (x-sigap-kunci), format { status, message, data }
         ├── control/                 InformasiProdukController (UC-01), PengaduanController (UC-02), PenangananController (UC-06) + tes
@@ -39,6 +40,7 @@ fungsi yang dipanggil browser, jadi tidak ada header CORS. Salin `functions/.env
 | `catat-percakapan` | `{ aksi: 'ucapan', percakapanId, pembicara, teks }`, `{ aksi: 'tool', percakapanId, namaTool, durasiMs, berhasil }`, atau `{ aksi: 'ringkasan', percakapanId, ringkasan }` | `{ urutan }` atau `{ tersimpan }`. Pembicara: `sistem`, `penelepon`; urutan dan detik ke- dihitung basis data; nomor telepon di teks disamarkan. Tool: `cek_registrasi_bpom`, `cari_basis_pengetahuan`, tanpa argumen. 404 bila percakapan belum ada, 409 bila sudah berakhir lebih dari 2 menit. Ringkasan (T-F6.3-01): buatan AI setelah panggilan berakhir, paling banyak 500 karakter, tidak menimpa ringkasan yang sudah ada. |
 | `cari-pengetahuan` | `{ pertanyaan, percakapanId?, ambang?, batas? }` | `{ potongan: [{ teks, judul, rujukanSumber, skor }] }` — 422 bila pertanyaan kosong. Gateway memanggilnya dengan `x-sigap-kunci`, hanya bila `PENGETAHUAN_VEKTOR=1`. |
 | `katalog-materi` | `{ offset?, batas? }`, batas paling banyak 1000 | `{ materi: [{ judul, rujukan_sumber, status, isi? }] }` — `isi` hanya untuk materi aktif. Gateway menyinkronkannya berkala dengan `x-sigap-kunci` untuk kutipan CS AI. |
+| `provider-ai` | `{}` | `{ provider: 'cloud' \| 'lokal' }` — baris tunggal `pengaturan_ai`. Gateway membacanya dengan `x-sigap-kunci` setiap giliran (cache 5 detik); galat baca memakai nilai terakhir paling lama 60 detik, sesudahnya giliran AI dieskalasi. Pengubahan hanya lewat RPC `ubah_provider_ai` dari dashboard (`POST /api/provider-ai`). |
 | `simpan-materi` | `{ judul, kategori?, isi?, rujukan }` dengan `Authorization: Bearer <token sesi petugas>`, bukan `x-sigap-kunci` | `MateriPengetahuan` (`id`, `judul`, `kategori`, `rujukan_sumber`, `isi`, `status`, `terindeks`, `diperbarui_oleh`, `diperbarui_pada`) — dipanggil server Astro lewat `/api/simpan-materi`. 400 isian tidak valid, 401 tanpa sesi sah, 403 bukan petugas, 405 selain POST, 422 rujukan sumber kosong, 500 galat sistem. |
 
 ### Tindak lanjut WhatsApp (ADR 0006)
@@ -84,7 +86,7 @@ Urutan lengkap membawa `main` ke Supabase Cloud dan VPS. Alasan urutan materi da
 
    ```bash
    supabase functions deploy cek-registrasi cari-pengetahuan katalog-materi simpan-materi terbitkan-tiket-eskalasi \
-     terbitkan-tiket-pengaduan simpan-pengaduan-tidak-lengkap laporkan-panggilan-aktif catat-percakapan
+     terbitkan-tiket-pengaduan simpan-pengaduan-tidak-lengkap laporkan-panggilan-aktif catat-percakapan provider-ai
    ```
 5. Deploy `main` ke VPS (container web dan voice) setelah memastikan environment compose: service voice berisi
    `SUPABASE_URL` dan `SIGAP_KUNCI_INTERNAL` (gateway produksi berhenti saat start tanpa keduanya), service web berisi

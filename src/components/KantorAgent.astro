@@ -43,7 +43,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
 <script type="application/json" data-kantor-awal set:html={awal}></script>
 
 <script>
-  type Komponen = { nama: string; status: 'Normal' | 'Gangguan'; latensiMs: number | null };
+  type Komponen = { nama: string; status: 'Normal' | 'Gangguan' | 'Belum terpantau'; latensiMs: number | null };
   type Log = { id: number; namaTool: string; durasiMs: number; hasil: 'Berhasil' | 'Gagal'; waktu: string };
   type Agent = { komponen: Komponen[]; rataLatensiToolMs: number | null; log: Log[] | null };
   type Panggilan = { id: string; jenis: string; topik: string; tahap: string };
@@ -541,11 +541,13 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       if (!stasiun('gateway').gangguan && daftar.length && pertama) bicara(stasiun('gateway'), `${daftar.length} panggilan sedang dilayani`, 5000);
 
       // Bilah ringkasan dan umpan aktivitas.
-      const normal = d.agent.komponen.filter((k) => k.status === 'Normal').length;
+      // Komponen yang belum terpantau (AI Lokal tanpa OLLAMA_URL) tidak ikut dibandingkan.
+      const terpantau = d.agent.komponen.filter((k) => k.status !== 'Belum terpantau');
+      const normal = terpantau.filter((k) => k.status === 'Normal').length;
       v('panggilan').textContent = String(daftar.length);
-      v('normal').textContent = `${normal}/${d.agent.komponen.length}`;
-      v('meter').style.width = `${(normal / Math.max(1, d.agent.komponen.length)) * 100}%`;
-      v('meter').classList.toggle('buruk', normal < d.agent.komponen.length);
+      v('normal').textContent = `${normal}/${terpantau.length}`;
+      v('meter').style.width = `${(normal / Math.max(1, terpantau.length)) * 100}%`;
+      v('meter').classList.toggle('buruk', normal < terpantau.length);
       v('rata').textContent = fmtMs(d.agent.rataLatensiToolMs);
       v('waktu').textContent = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date()).replace(/\./g, ':');
 

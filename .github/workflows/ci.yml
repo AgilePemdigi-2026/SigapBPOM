@@ -76,12 +76,15 @@ jobs:
           SIGAP_UJI_KUNCI_LOGIN: kunci-login-ci
           SIGAP_UJI_EMAIL: petugas@halobpom.go.id
           SIGAP_UJI_PASSWORD: halobpom2026
+      # Ollama tiruan (/api/tags) ada di server tiruan 8091; gateway memeriksanya tiap 500 ms agar skenario Provider AI UC-04
+      # melihat perangkat lokal mati. Dashboard membaca kesehatan dari gateway ini (VOICE_GATEWAY_URL), sama seperti produksi.
       - name: Gateway dan dashboard
         run: |
           PORT=8090 SUPABASE_URL=$API_URL KORPUS_DIR=knowledge TIKET_HARIAN_PER_NOMOR=1000 TIKET_HARIAN_PER_IP=1000 PENGETAHUAN_VEKTOR=1 \
             CEKBPOM_AKTIF=1 CEKBPOM_BASE_URL=http://127.0.0.1:8091 HERMES_URL=http://127.0.0.1:8091 \
+            OLLAMA_URL=http://127.0.0.1:8091 OLLAMA_PERIKSA_MS=500 \
             nohup node voice-gateway/server.mjs > test-results/gateway.log 2>&1 &
-          SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY LOGIN_PERCOBAAN_MAKS=1000 \
+          SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY LOGIN_PERCOBAAN_MAKS=1000 VOICE_GATEWAY_URL=http://127.0.0.1:8090 \
             nohup npm run dev > test-results/dashboard.log 2>&1 &
           curl -s --retry 60 --retry-delay 2 --retry-connrefused -o /dev/null http://localhost:4321/login
           curl -s --retry 60 --retry-delay 2 --retry-connrefused -o /dev/null http://127.0.0.1:8090/voice/kesehatan
