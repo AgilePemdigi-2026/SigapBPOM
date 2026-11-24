@@ -1,6 +1,6 @@
 # Skenario penerimaan REQ-4.5 (T-F5.5-06): petugas berhak memilih provider AI di Pantau AI Agent, dijalankan lewat browser
-# (`npm run test:bdd:ui`). Kesehatan AI Lokal dibaca dari Voice Gateway tiruan, jadi dashboard dijalankan dengan
-# VOICE_GATEWAY_URL=http://127.0.0.1:8091 (features/README.md). Skenario tanpa hak butuh Supabase lokal.
+# (`npm run test:bdd:ui`). Kondisi perangkat AI lokal diatur di Ollama tiruan (port 8091) yang diperiksa Voice Gateway
+# (OLLAMA_URL), atau di /voice/kesehatan tiruan dalam mode tiruan (features/README.md). Skenario tanpa hak butuh Supabase lokal.
 @ui @uc-04 @REQ-4.5
 Feature: AI Provider Selection (REQ-4.5)
 

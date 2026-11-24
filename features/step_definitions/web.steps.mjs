@@ -272,8 +272,9 @@ Given('the material {string} exists', function (judul) {
 });
 
 // Provider AI UC-04 (REQ-4.5). Pilihan diatur lewat endpoint yang sama dengan tombol Simpan, agar setiap skenario mulai
-// dari provider yang diketahui. Kesehatan AI Lokal dilaporkan /voice/kesehatan server tiruan, jadi dashboard dijalankan
-// dengan VOICE_GATEWAY_URL=http://127.0.0.1:8091 (features/README.md).
+// dari provider yang diketahui. Kondisi perangkat AI lokal diatur di server tiruan (port 8091) dan sampai ke dashboard lewat
+// salah satu jalur (features/README.md): Voice Gateway asli memeriksa Ollama tiruan (/api/tags, OLLAMA_URL) seperti di CI,
+// atau dashboard membaca /voice/kesehatan tiruan langsung (VOICE_GATEWAY_URL=http://127.0.0.1:8091, mode tiruan).
 const NILAI_PROVIDER = { 'Cloud (GPT)': 'cloud', 'Lokal (Ollama)': 'lokal' };
 // Akun uji Supabase lokal (petugas@halobpom.go.id) di supabase/seed.sql.
 const ID_AKUN_UJI = '22222222-2222-2222-2222-222222222222';
@@ -285,14 +286,32 @@ Given('the AI provider is {string}', async function (label) {
   if (!res.ok()) throw new Error(`Menyiapkan provider ${provider} dijawab ${res.status()}`);
 });
 
+/**
+ * Menunggu sampai dashboard (GET /api/pantau-agent, sesi skenario) melaporkan komponen AI Lokal berstatus `status`, karena
+ * gateway asli baru melihat perubahan Ollama tiruan pada probe berikutnya.
+ */
+async function tungguAiLokal(page, status) {
+  let terakhir = null;
+  for (const batas = Date.now() + TUNGGU_MS; Date.now() < batas; await page.waitForTimeout(250)) {
+    const res = await page.request.get(`${URL_DASAR}/api/pantau-agent`).catch(() => null);
+    const body = res?.ok() ? await res.json().catch(() => null) : null;
+    terakhir = body?.data?.agent?.komponen?.find((k) => k.nama === 'AI Lokal')?.status ?? null;
+    if (terakhir === status) return;
+  }
+  throw new Error(`Dashboard tidak melaporkan AI Lokal "${status}" dalam ${TUNGGU_MS / 1000} detik (terakhir: ${terakhir}). `
+    + 'Jalankan gateway dengan OLLAMA_URL=http://127.0.0.1:8091 dan dashboard dengan VOICE_GATEWAY_URL ke gateway itu (features/README.md).');
+}
+
 Given('the local AI device is running', async function () {
   tiruan.aiLokal = { sehat: true, latensiMs: 90 };
   await mulaiTiruan();
+  await tungguAiLokal(this.page, 'Normal');
 });
 
 Given('the local AI device is down', async function () {
   tiruan.aiLokal = { sehat: false, latensiMs: null };
   await mulaiTiruan();
+  await tungguAiLokal(this.page, 'Gangguan');
 });
 
 Given('I do not have the right to change the AI provider', function () {
@@ -301,20 +320,24 @@ Given('I do not have the right to change the AI provider', function () {
   sqlLokal(`update public.petugas set hak_atur_ai = false where id = '${ID_AKUN_UJI}'`);
 });
 
-// Provider dikembalikan ke cloud agar run @ui berikutnya (UC-01, UC-02) tidak dijawab profil lokal lalu dieskalasi.
+// Provider dikembalikan ke cloud agar run @ui berikutnya (UC-01, UC-02) tidak dijawab profil lokal lalu dieskalasi. Provider
+// lebih dulu, lalu hak_atur_ai; masing-masing dicoba sendiri agar kegagalan satu langkah tidak melewatkan yang lain.
 // Hook ini berjalan sebelum After di support/ui.mjs yang menutup konteks browser, jadi sesi skenario masih bisa dipakai.
 After({ tags: '@REQ-4.5' }, async function () {
   tiruan.aiLokal = { sehat: true, latensiMs: 90 };
+  const galat = [];
+  const coba = async (langkah) => { try { await langkah(); } catch (e) { galat.push(e); } };
   if (!MODE_TIRUAN) {
-    sqlLokal(
-      `update public.petugas set hak_atur_ai = true where id = '${ID_AKUN_UJI}'`,
-      `update public.pengaturan_ai set provider = 'cloud', diubah_oleh = null, diubah_pada = now()`,
-    );
-    return;
+    await coba(() => sqlLokal(`update public.pengaturan_ai set provider = 'cloud', diubah_oleh = null, diubah_pada = now()`));
+    await coba(() => sqlLokal(`update public.petugas set hak_atur_ai = true where id = '${ID_AKUN_UJI}'`));
+  } else {
+    // Penyimpanan tiruan ada di memori server dashboard, jadi hanya bisa dikembalikan lewat endpoint dengan sesi skenario.
+    await coba(async () => {
+      const res = await this.page?.request.post(`${URL_DASAR}/api/provider-ai`, { data: { provider: 'cloud' }, headers: { Origin: URL_DASAR } });
+      if (res && !res.ok() && res.status() !== 401) throw new Error(`Mengembalikan provider ke cloud dijawab ${res.status()}`);
+    });
   }
-  // Penyimpanan tiruan ada di memori server dashboard, jadi hanya bisa dikembalikan lewat endpoint dengan sesi skenario.
-  const res = await this.page?.request.post(`${URL_DASAR}/api/provider-ai`, { data: { provider: 'cloud' }, headers: { Origin: URL_DASAR } });
-  if (res && !res.ok() && res.status() !== 401) throw new Error(`Mengembalikan provider ke cloud dijawab ${res.status()}`);
+  if (galat.length) throw galat[0];
 });
 
 When('I choose {string} in the {string} element', async function (label, nama) {
