@@ -65,3 +65,64 @@ export class PemilihProviderTiruan {
     return this.nilai;
   }
 }
+
+/** Profil Hermes sesuai provider: `{ url, kunci, model, provider }`, atau null bila provider tidak diketahui atau URL profilnya kosong. */
+export function targetHermes(provider, { cloud, lokal }) {
+  const profil = provider === PROVIDER.CLOUD ? cloud : provider === PROVIDER.LOKAL ? lokal : null;
+  // Profil yang tidak dikonfigurasi tidak pernah diganti profil lain; pemanggil mengeskalasi ke petugas.
+  if (!profil?.url) return null;
+  return { url: profil.url, kunci: profil.kunci, model: profil.model, provider };
+}
+
+/** REQ-4.7: perangkat AI lokal gagal menjawab. Galat aslinya ada di `cause`. */
+export class GalatProviderLokal extends Error {
+  constructor(cause) {
+    super('provider lokal gagal', { cause });
+    this.name = 'GalatProviderLokal';
+  }
+}
+
+/**
+ * Membungkus aliran jawaban `alir(target)`. Di mode lokal galat apa pun (koneksi ditolak, batas waktu, status bukan 2xx,
+ * atau pemberitahuan "hermes tanpa jawaban") menjadi GalatProviderLokal, supaya pemanggil mengucapkan PESAN_LOKAL_MATI
+ * dan mengeskalasi, bukan mencoba profil cloud. Galat mode cloud diteruskan apa adanya.
+ */
+export async function* aliranDenganProvider({ target, alir }) {
+  try {
+    yield* alir(target);
+  } catch (e) {
+    if (target.provider === PROVIDER.LOKAL) throw new GalatProviderLokal(e);
+    throw e;
+  }
+}
+
+/** Peringkas sesuai provider: cloud atau lokal, dan tiruan tanpa AI bila provider tidak diketahui. */
+export function pilihPeringkas(provider, { cloud, lokal, tiruan }) {
+  if (provider === PROVIDER.CLOUD) return cloud;
+  if (provider === PROVIDER.LOKAL) return lokal;
+  return tiruan;
+}
+
+/**
+ * Interface peringkas (`ringkas(transkrip) -> { ringkasan, token }`) yang membaca provider setiap kali meringkas, karena
+ * pilihan petugas bisa berubah selama gateway berjalan. Peringkas lokal yang gagal diganti tiruan, tidak pernah cloud.
+ */
+export class PeringkasSesuaiProvider {
+  constructor({ pemilih, cloud, lokal, tiruan }) {
+    this.pemilih = pemilih;
+    this.cloud = cloud;
+    this.lokal = lokal;
+    this.tiruan = tiruan;
+  }
+
+  async ringkas(transkrip) {
+    const provider = await this.pemilih.aktif();
+    const peringkas = pilihPeringkas(provider, this);
+    if (provider !== PROVIDER.LOKAL || peringkas === this.tiruan) return peringkas.ringkas(transkrip);
+    try {
+      return await peringkas.ringkas(transkrip);
+    } catch {
+      return this.tiruan.ringkas(transkrip);
+    }
+  }
+}
