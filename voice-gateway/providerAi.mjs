@@ -143,3 +143,54 @@ export class PeringkasSesuaiProvider {
     return this.tiruan.ringkas(transkrip);
   }
 }
+
+/**
+ * Probe kesehatan perangkat lokal (Ollama): GET {url}/api/tags. Hanya dasar peringatan di dashboard bahwa mode lokal mati;
+ * tidak memengaruhi routing giliran. Tanpa url, kondisi() selalu null dan tidak ada permintaan. Timer di-unref agar tidak
+ * menahan proses, dan hanya berjalan setelah mulai().
+ */
+export class PemeriksaOllama {
+  constructor({ url, fetch: fetchFn = globalThis.fetch, now = Date.now, intervalMs = 30000, batasMs = 3000 } = {}) {
+    this.url = String(url ?? '').replace(/\/+$/, '');
+    this.fetch = fetchFn;
+    this.now = now;
+    this.intervalMs = intervalMs;
+    this.batasMs = batasMs;
+    this.hasil = null;
+    this.timer = null;
+  }
+
+  async periksaSekali() {
+    if (!this.url) return;
+    const mulai = this.now();
+    try {
+      const res = await this.fetch(`${this.url}/api/tags`, { signal: AbortSignal.timeout(this.batasMs) });
+      const waktu = this.now();
+      this.hasil = res.ok ? { sehat: true, latensiMs: waktu - mulai, waktu } : { sehat: false, latensiMs: null, waktu };
+    } catch {
+      this.hasil = { sehat: false, latensiMs: null, waktu: this.now() };
+    }
+  }
+
+  mulai() {
+    if (!this.url || this.timer) return;
+    this.periksaSekali();
+    this.timer = setInterval(() => this.periksaSekali(), this.intervalMs);
+    this.timer.unref();
+  }
+
+  berhenti() {
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  kondisi() {
+    return this.hasil;
+  }
+}
+
+/** Batas waktu giliran lokal dari env: bukan angka, tak hingga, atau <= 0 jatuh ke bawaan (AbortSignal.timeout(NaN) melempar galat). */
+export function batasWaktuLokal(nilai, bawaan = 20000) {
+  const n = Number(nilai);
+  return Number.isFinite(n) && n > 0 ? n : bawaan;
+}

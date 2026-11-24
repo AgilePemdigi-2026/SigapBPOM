@@ -506,13 +506,14 @@ test('t_f5_4_01 komponen down tampil sebagai gangguan', async () => {
     ['Hermes', 'Normal'],
     ['STT/TTS', 'Normal'],
     ['cekbpom', 'Gangguan'],
+    ['AI Lokal', 'Normal'],
   ]);
 });
 
 test('t_f5_4_01 gateway tidak terjangkau membuat semua komponen gangguan', async () => {
   const mati: PemeriksaKesehatanAgent = { periksa: async () => { throw new Error('ECONNREFUSED'); } };
   const r = await pantau(undefined, mati).pantauAgent();
-  assert.ok(r.komponen.length === 4 && r.komponen.every((k) => k.status === 'Gangguan'));
+  assert.ok(r.komponen.length === 5 && r.komponen.every((k) => k.status === 'Gangguan'));
 });
 
 test('t_f5_4_01 log tool terbaru tampil berurutan tanpa argumen tool', async () => {
@@ -540,7 +541,7 @@ test('t_f5_4_01 log tool gagal dibaca dibedakan dari log kosong', async () => {
   const r = await new PemantauanLayananController(rusak.penyimpanan, new PemeriksaKesehatanTiruan()).pantauAgent();
   assert.equal(r.log, null);
   assert.equal(r.rataLatensiToolMs, null);
-  assert.equal(r.komponen.length, 4);
+  assert.equal(r.komponen.length, 5);
   assert.deepEqual((await new PemantauanLayananController(new PenyimpananPemantauanMock()).pantauAgent()).log, []);
 });
 
@@ -590,6 +591,16 @@ test('t_f5_4_01 adapter gateway membaca kondisi cekbpom dari pencarian terakhir 
 test('t_f5_4_01 adapter gateway melempar galat bila gateway menjawab error', async () => {
   const gagal = (async () => new Response('x', { status: 503 })) as unknown as typeof fetch;
   await assert.rejects(new PemeriksaKesehatanGateway({ url: 'http://gw:8787', fetch: gagal }).periksa());
+});
+
+test('req_4_7 adapter gateway memetakan hermesLokal ke komponen AI Lokal; null jadi gangguan tanpa latensi', async () => {
+  const lokal = async (hermesLokal: unknown) =>
+    (await new PemeriksaKesehatanGateway({ url: 'http://gw', fetch: (async () => Response.json({ data: { siap: true, hermesLokal } })) as unknown as typeof fetch }).periksa())
+      .find((k) => k.nama === 'AI Lokal');
+  assert.deepEqual(await lokal({ sehat: true, latensiMs: 85, waktu: 1 }), { nama: 'AI Lokal', sehat: true, latensiMs: 85 });
+  assert.deepEqual(await lokal({ sehat: false, latensiMs: null, waktu: 1 }), { nama: 'AI Lokal', sehat: false, latensiMs: null });
+  assert.deepEqual(await lokal(null), { nama: 'AI Lokal', sehat: false, latensiMs: null });
+  assert.equal(await lokal(undefined), undefined, 'gateway lama tanpa field hermesLokal');
 });
 
 test('t_f5_4_01 kondisi cekbpom diambil dari pemanggilan cek registrasi terakhir', async () => {

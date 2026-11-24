@@ -1,5 +1,5 @@
 // Adapter produksi PemeriksaKesehatanAgent: membaca GET /voice/kesehatan milik Voice Gateway (T-F5.4-01).
-// Respons gateway: { status, message, data: { siap, korpus, katalog, hermes, stt, tts, cekbpom } } (PROJECT_RULES 4.4). Gateway sehat
+// Respons gateway: { status, message, data: { siap, korpus, katalog, hermes, stt, tts, cekbpom, provider, hermesLokal } } (PROJECT_RULES 4.4). Gateway sehat
 // bila menjawab, dengan latensi diukur dari permintaan ini. Hermes, STT, dan TTS dinilai dari hasil dan latensi panggilan nyata
 // terakhir gateway; sebelum ada panggilan sejak gateway mulai (atau gateway lama tanpa field itu) dipakai `siap`, yaitu kunci
 // keduanya terpasang. STT/TTS sehat bila keduanya sehat, dengan latensi terbesar yang diketahui. cekbpom dari `cekbpom`, yaitu
@@ -34,6 +34,7 @@ export class PemeriksaKesehatanGateway implements PemeriksaKesehatanAgent {
         stt?: HasilTerakhir;
         tts?: HasilTerakhir;
         cekbpom?: { aktif?: unknown; sehat?: unknown; latensiMs?: unknown };
+        hermesLokal?: HasilTerakhir;
       };
     };
     const siap = body.data?.siap === true;
@@ -53,6 +54,13 @@ export class PemeriksaKesehatanGateway implements PemeriksaKesehatanAgent {
     if (cek?.aktif === false) komponen.push({ nama: 'cekbpom', sehat: false, latensiMs: null });
     else if (cek?.aktif === true && typeof cek.sehat === 'boolean') {
       komponen.push({ nama: 'cekbpom', sehat: cek.sehat, latensiMs: Number.isFinite(cek.latensiMs) ? Number(cek.latensiMs) : null });
+    }
+    // AI Lokal (UC-04): probe Ollama gateway. null berarti perangkat lokal belum dikonfigurasi atau belum terjangkau,
+    // dilaporkan Gangguan tanpa latensi; gateway lama tanpa field itu tidak melaporkan komponen ini.
+    const lokal = body.data?.hermesLokal;
+    if (lokal === null) komponen.push({ nama: 'AI Lokal', sehat: false, latensiMs: null });
+    else if (lokal && typeof lokal.sehat === 'boolean') {
+      komponen.push({ nama: 'AI Lokal', sehat: lokal.sehat, latensiMs: Number.isFinite(lokal.latensiMs) ? Number(lokal.latensiMs) : null });
     }
     return komponen;
   }

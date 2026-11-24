@@ -126,7 +126,7 @@ const LABEL_TAHAP_AI: Record<TahapAi, string> = { mendengar: 'Mendengar', mempro
 const label = (kamus: Record<string, string>, kunci: string | null | undefined) => (kunci && Object.hasOwn(kamus, kunci) ? kamus[kunci] : undefined);
 
 /** Komponen yang selalu tampil di halaman pantau, meski gateway tidak melaporkannya (T-F5.4-01). */
-export const KOMPONEN_AGENT = ['Voice Gateway', 'Hermes', 'STT/TTS', 'cekbpom'] as const;
+export const KOMPONEN_AGENT = ['Voice Gateway', 'Hermes', 'STT/TTS', 'cekbpom', 'AI Lokal'] as const;
 /** Nama tool cek registrasi di log_tool (InformasiProdukController, REQ-1.3). */
 export const TOOL_CEK_REGISTRASI = 'cek_registrasi_bpom';
 

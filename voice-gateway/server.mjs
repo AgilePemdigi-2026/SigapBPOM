@@ -32,7 +32,7 @@ import { alamatSttRealtime, buatTokenSttRealtime } from './sttRealtime.mjs';
 import { KondisiLayanan } from './kesehatan.mjs';
 import { buatCekOrigin, buatIpKlien } from './alamatKlien.mjs';
 import {
-  GalatProviderLokal, PESAN_LOKAL_MATI, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider, targetHermes,
+  GalatProviderLokal, PESAN_LOKAL_MATI, PemeriksaOllama, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider, batasWaktuLokal, targetHermes,
 } from './providerAi.mjs';
 
 const env = (k, d) => process.env[k] || d;
@@ -61,7 +61,7 @@ const HERMES_LOKAL_URL = env('HERMES_LOKAL_URL', '');
 const HERMES_LOKAL_KEY = env('HERMES_LOKAL_API_KEY', '');
 const HERMES_LOKAL_MODEL = env('HERMES_LOKAL_MODEL', 'sigap-hermes');
 // Perangkat lokal yang macet tidak boleh membuat penelepon menunggu sampai batas cloud (60 detik) sebelum dieskalasi.
-const HERMES_LOKAL_BATAS_WAKTU_MS = Number(env('HERMES_LOKAL_BATAS_WAKTU_MS', '20000'));
+const HERMES_LOKAL_BATAS_WAKTU_MS = batasWaktuLokal(env('HERMES_LOKAL_BATAS_WAKTU_MS', '20000'));
 // Profil cloud tanpa batasWaktuMs memakai BATAS_WAKTU_HERMES_MS.
 const PROFIL_HERMES = {
   cloud: { url: HERMES_URL, kunci: HERMES_KEY, model: HERMES_MODEL },
@@ -110,6 +110,8 @@ const pemilih = SUPABASE_URL && SIGAP_KUNCI_INTERNAL
 const cekBpom = env('CEKBPOM_AKTIF', '0') === '1' ? new CekBpom({ baseUrl: env('CEKBPOM_BASE_URL', 'https://cekbpom.pom.go.id') }) : null;
 // T-F5.4-01: hasil panggilan Hermes, STT, TTS, dan cekbpom terakhir untuk halaman Pantau AI Agent; null sampai ada panggilan.
 const kondisi = new KondisiLayanan();
+// UC-04: probe perangkat lokal (Ollama) untuk peringatan dashboard; tanpa OLLAMA_URL tidak ada probe dan kondisinya null.
+const pemeriksaOllama = new PemeriksaOllama({ url: env('OLLAMA_URL', '') });
 // Tool cari_basis_pengetahuan (T-F1.3-03): pencarian vektor lewat Edge Function, hanya bila PENGETAHUAN_VEKTOR=1
 // (embedding produksi belum ada); selain itu dipakai korpus lokal.
 const pencariPengetahuan = SUPABASE_URL && SIGAP_KUNCI_INTERNAL && env('PENGETAHUAN_VEKTOR', '0') === '1' ? new PencariPengetahuanSupabase(SUPABASE_URL, SIGAP_KUNCI_INTERNAL) : null;
@@ -759,6 +761,7 @@ const server = createServer(async (req, res) => {
         },
         hermes: kondisi.terakhir.hermes, stt: kondisi.terakhir.stt, tts: kondisi.terakhir.tts,
         cekbpom: { aktif: Boolean(cekBpom), ...(kondisi.terakhir.cekbpom ?? {}) },
+        provider: await pemilih.aktif(), hermesLokal: pemeriksaOllama.kondisi(),
       });
     }
     if (req.method === 'POST' && !originDiizinkan(req.headers.origin)) throw new ErrorGateway(403, 'Akses ditolak.');
@@ -791,6 +794,7 @@ const server = createServer(async (req, res) => {
 
 server.requestTimeout = 90_000;
 server.listen(PORT, () => {
+  pemeriksaOllama.mulai();
   console.info(JSON.stringify({ ev: 'siap', port: PORT, siap: Boolean(ELEVENLABS_KEY && HERMES_KEY) }));
   // Render pesan tetap sekali saat mulai, supaya tidak ada render bersamaan dari permintaan pengguna.
   if (ELEVENLABS_KEY) for (const nama of Object.keys(SUARA_STATIS).filter((n) => !SUARA_STATIS_SAAT_DIPAKAI(n))) statis({ writeHead() {}, end() {} }, nama).catch(() => {});

@@ -205,6 +205,7 @@ export class PemeriksaKesehatanTiruan implements PemeriksaKesehatanAgent {
       { nama: 'Hermes', sehat: true, latensiMs: 1450 },
       { nama: 'STT/TTS', sehat: true, latensiMs: 380 },
       { nama: 'cekbpom', sehat: false, latensiMs: null },
+      { nama: 'AI Lokal', sehat: true, latensiMs: 90 },
     ],
   ) {
     this.komponen = komponen;

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  GalatProviderLokal, PROVIDER, PESAN_LOKAL_MATI, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider,
+  GalatProviderLokal, PROVIDER, PemeriksaOllama, batasWaktuLokal, PESAN_LOKAL_MATI, PemilihProviderSupabase, PemilihProviderTiruan, PeringkasSesuaiProvider, aliranDenganProvider,
   pilihPeringkas, providerPalingKetat, targetHermes,
 } from './providerAi.mjs';
 import { PeringkasHermes, PeringkasPercakapan, PeringkasTiruan } from './ringkasan.mjs';
@@ -301,4 +301,69 @@ test('req_4_7_peringkas_lokal_ringkasan_kosong_pakai_tiruan', async () => {
 
 test('req_4_6_modul_provider_ikut_image_docker', () => {
   assert.match(readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8'), /voice-gateway\/providerAi\.mjs/);
+});
+
+test('req_4_7_probe_ollama_sehat', async () => {
+  const panggilan = [];
+  let t = 1000;
+  const fetch = async (url, opsi) => { panggilan.push({ url, opsi }); t += 42; return { ok: true, status: 200 }; };
+  const pemeriksa = new PemeriksaOllama({ url: 'http://ollama:11434/', fetch, now: () => t });
+  assert.equal(pemeriksa.kondisi(), null, 'belum pernah diperiksa');
+  await pemeriksa.periksaSekali();
+  assert.equal(panggilan[0].url, 'http://ollama:11434/api/tags');
+  assert.deepEqual(pemeriksa.kondisi(), { sehat: true, latensiMs: 42, waktu: 1042 });
+});
+
+test('req_4_7_probe_ollama_status_galat_atau_putus_mati', async () => {
+  const dengan = (balas) => new PemeriksaOllama({ url: 'http://o', fetch: async () => { if (balas instanceof Error) throw balas; return balas; }, now: () => 5 });
+  const a = dengan({ ok: false, status: 500 });
+  await a.periksaSekali();
+  assert.equal(a.kondisi().sehat, false);
+  const b = dengan(new Error('ECONNREFUSED'));
+  await b.periksaSekali();
+  assert.deepEqual(b.kondisi(), { sehat: false, latensiMs: null, waktu: 5 });
+});
+
+test('req_4_7_probe_ollama_timeout_mati', async () => {
+  let sinyal;
+  const fetch = (url, opsi) => new Promise((_, tolak) => {
+    sinyal = opsi.signal;
+    opsi.signal.addEventListener('abort', () => tolak(opsi.signal.reason));
+  });
+  const pemeriksa = new PemeriksaOllama({ url: 'http://o', fetch, batasMs: 20 });
+  await pemeriksa.periksaSekali();
+  assert.ok(sinyal.aborted);
+  assert.equal(pemeriksa.kondisi().sehat, false);
+  assert.equal(pemeriksa.kondisi().latensiMs, null);
+});
+
+test('req_4_7_tanpa_ollama_url_null', async () => {
+  let dipanggil = 0;
+  const pemeriksa = new PemeriksaOllama({ url: '', fetch: async () => { dipanggil++; return { ok: true }; } });
+  await pemeriksa.periksaSekali();
+  pemeriksa.mulai();
+  pemeriksa.berhenti();
+  assert.equal(pemeriksa.kondisi(), null);
+  assert.equal(dipanggil, 0);
+});
+
+test('req_4_7_probe_ollama_mulai_berkala_dan_berhenti', async () => {
+  let dipanggil = 0;
+  const pemeriksa = new PemeriksaOllama({ url: 'http://o', fetch: async () => { dipanggil++; return { ok: true }; }, intervalMs: 10 });
+  assert.equal(dipanggil, 0, 'tidak berjalan sebelum mulai');
+  pemeriksa.mulai();
+  await new Promise((r) => setTimeout(r, 60));
+  pemeriksa.berhenti();
+  const sesudah = dipanggil;
+  assert.ok(sesudah >= 2);
+  await new Promise((r) => setTimeout(r, 40));
+  assert.equal(dipanggil, sesudah);
+});
+
+test('req_4_7_batas_waktu_lokal_tidak_sah_pakai_bawaan', () => {
+  assert.equal(batasWaktuLokal('abc'), 20000);
+  assert.equal(batasWaktuLokal('0'), 20000);
+  assert.equal(batasWaktuLokal('-5'), 20000);
+  assert.equal(batasWaktuLokal('Infinity'), 20000);
+  assert.equal(batasWaktuLokal('15000'), 15000);
 });
