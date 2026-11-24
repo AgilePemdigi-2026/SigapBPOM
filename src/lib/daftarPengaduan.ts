@@ -8,7 +8,7 @@ import { PenyimpananDaftarPengaduanSupabase } from './penyimpananDaftarPengaduan
 import { bacaKonfigurasiSupabase } from './konfigurasiSupabase.ts';
 
 /** Pengaduan bertiket ADU dari view detail_pengaduan_tiket, kategori dari topik percakapan. */
-export type PengaduanTersimpan = { noTiket: string; namaProduk: string | null; kategori: string | null; tglPengaduan: string; status: string };
+export type PengaduanTersimpan = { noTiket: string; namaProduk: string | null; kategori: string | null; tglPengaduan: string; status: string; sudahDihubungi?: boolean };
 
 /** Percakapan berstatus pengaduan_tidak_lengkap: tidak punya tiket (REQ-2.5). */
 export type PengaduanTidakLengkap = { percakapanId: string; kategori: string | null; waktu: string };
@@ -27,6 +27,8 @@ export type BarisPengaduan = {
   kategori: string;
   tanggal: string;
   labelStatus: string;
+  /** ADR 0006: pengaduan selesai yang pelapornya belum dihubungi lewat WhatsApp atau telepon. */
+  belumDihubungi: boolean;
   /** Tombol "Telaah", hanya untuk pengaduan Belum Ditelaah (UC-06 langkah 3). */
   tautanTelaah: string | null;
   tautanKasus: string;
@@ -73,6 +75,7 @@ export async function ambilDaftarPengaduan(penyimpanan: PenyimpananDaftarPengadu
           kategori: p.kategori?.trim() || '—',
           tanggal: tanggalTampil(p.tglPengaduan),
           labelStatus: Object.hasOwn(LABEL_STATUS_TIKET, p.status) ? LABEL_STATUS_TIKET[p.status as StatusTiket] : p.status,
+          belumDihubungi: p.status === 'selesai' && !p.sudahDihubungi,
           tautanTelaah: p.status === STATUS_TELAAH ? tautanDetail(p.noTiket) : null,
           tautanKasus: tautanDetail(p.noTiket),
         })),

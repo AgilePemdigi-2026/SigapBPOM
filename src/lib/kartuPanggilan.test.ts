@@ -67,9 +67,9 @@ test('t_f1_4_01 transkrip tiruan eskalasi memakai pesan baku kamus PRD', () => {
   assert.equal(terbit.jawaban, pesanTiketEskalasi(terbit.tiket!));
 });
 
-test('req_2_3 kartu tiket pengaduan memuat nomor tiket ADU dan info SMS, nomor di-escape', () => {
+test('req_2_3 kartu tiket pengaduan memuat nomor tiket ADU dan info tindak lanjut, nomor di-escape', () => {
   const html = htmlKartuPengaduan('ADU-20261102-0001');
-  for (const isi of ['Nomor tiket', 'ADU-20261102-0001', 'Tindak lanjut akan dikirim melalui SMS.']) {
+  for (const isi of ['Nomor tiket', 'ADU-20261102-0001', 'Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.']) {
     assert.ok(html.includes(isi), isi);
   }
   assert.ok(!htmlKartuPengaduan('<b>x</b>').includes('<b>'));
@@ -78,7 +78,7 @@ test('req_2_3 kartu tiket pengaduan memuat nomor tiket ADU dan info SMS, nomor d
 test('req_2_3 pesan tiket pengaduan dan pengaduan tidak lengkap sama persis dengan kamus PRD', () => {
   assert.equal(
     pesanTiketPengaduan('ADU-20261102-0001'),
-    'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.',
+    'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.',
   );
   assert.equal(
     PESAN_PENGADUAN_TIDAK_LENGKAP,
@@ -86,15 +86,15 @@ test('req_2_3 pesan tiket pengaduan dan pengaduan tidak lengkap sama persis deng
   );
 });
 
-test('t_f4_2_03 req_2_4 event tiket pengaduan merender kartu dengan nomor ADU dan teks SMS persis kamus pesan', () => {
+test('t_f4_2_03 req_2_4 event tiket pengaduan merender kartu dengan nomor ADU dan teks tindak lanjut persis kamus pesan', () => {
   const terbit = TRANSKRIP_TIRUAN.pengaduan.at(-1)!;
   assert.equal(terbit.jawaban, pesanTiketPengaduan('ADU-20261102-0001'));
   const html = htmlKartuTiket({ tiket: terbit.tiket, pengaduan: terbit.pengaduan });
   assert.equal(html, htmlKartuPengaduan('ADU-20261102-0001'));
   assert.ok(html.includes('ADU-20261102-0001'));
-  // Teks SMS di kartu adalah kalimat penutup pesan kamus "Tiket pengaduan terbit" tanpa diubah.
-  assert.ok(pesanTiketPengaduan('ADU-20261102-0001').endsWith(' Tindak lanjut akan dikirim melalui SMS.'));
-  assert.ok(html.includes('<p class="k-sumber">Tindak lanjut akan dikirim melalui SMS.</p>'));
+  // Teks tindak lanjut di kartu adalah kalimat penutup pesan kamus "Tiket pengaduan terbit" tanpa diubah.
+  assert.ok(pesanTiketPengaduan('ADU-20261102-0001').endsWith(' Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.'));
+  assert.ok(html.includes('<p class="k-sumber">Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.</p>'));
 });
 
 test('t_f4_2_03 event pengaduan dari gateway tanpa field tiket tetap merender kartu pengaduan', () => {

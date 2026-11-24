@@ -86,14 +86,15 @@ export class SesiSupabase implements AdapterSesi {
 
     const [resPeran, resNama] = await Promise.all([
       this.panggil('/rest/v1/rpc/is_petugas', { token, body: {} }),
-      this.panggil(`/rest/v1/petugas?select=nama&id=eq.${user.id}`, { token }),
+      this.panggil(`/rest/v1/petugas?select=nama,no_wa&id=eq.${user.id}`, { token }),
     ]);
     if (!resPeran?.ok) return 'galat';
     const peran = await resPeran.json().catch(() => null);
     if (peran !== true) return peran === false ? 'bukan' : 'galat';
-    const baris = resNama?.ok ? ((await resNama.json().catch(() => null)) as { nama?: unknown }[] | null) : null;
+    const baris = resNama?.ok ? ((await resNama.json().catch(() => null)) as { nama?: unknown; no_wa?: unknown }[] | null) : null;
     const nama = typeof baris?.[0]?.nama === 'string' ? baris[0].nama : '';
-    return { nama, email: user.email };
+    const noWa = typeof baris?.[0]?.no_wa === 'string' ? baris[0].no_wa : null;
+    return noWa ? { nama, email: user.email, noWa } : { nama, email: user.email };
   }
 
   pasangCookie(cookies: AstroCookies, token: Token) {

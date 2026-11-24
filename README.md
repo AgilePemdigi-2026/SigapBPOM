@@ -91,7 +91,7 @@ Versi pertama mencakup delapan use case dari SRS v1.0, ditambah tampilan status 
 | UC-03 | Melakukan Login Dashboard | Petugas | Login, kunci akun setelah 3 kali gagal, sesi berakhir setelah 30 menit idle |
 | UC-04 | Memantau Layanan | Petugas | Ringkasan statistik, panggilan berjalan live, antrean tiket eskalasi, status AI Agent |
 | UC-05 | Membaca Transkrip Percakapan | Petugas | Riwayat per periode, transkrip dengan data pribadi tersamarkan, catatan pemeriksaan |
-| UC-06 | Menangani Pengaduan | Petugas | Telaah, jadwal pemeriksaan, tanggapan resmi, tutup tiket dengan SMS ke pelapor |
+| UC-06 | Menangani Pengaduan | Petugas | Telaah, jadwal pemeriksaan, tanggapan resmi, tutup tiket, lalu hubungi pelapor lewat WhatsApp atau telepon (ADR 0006) |
 | UC-07 | Mengelola Basis Pengetahuan | Petugas | Tambah materi bersumber, nonaktifkan tanpa hapus permanen, graf pengetahuan |
 | UC-08 | Merekap dan Mengunduh Laporan | Petugas | Rekap per periode, unduh PDF atau CSV bagi petugas berhak ekspor |
 
@@ -168,7 +168,6 @@ flowchart LR
   G -- teks --> H
   G -- scraping --> CB[cekbpom.pom.go.id]
   G -- tiket, transkrip, panggilan aktif, katalog --> EF
-  G -. adapter tiruan .-> SMS[SMS Gateway]
   D -- HTTPS --> W
   W -- login, simpan materi --> EF
   W -- PostgREST, token petugas --> DB
@@ -185,7 +184,7 @@ Kode dipisah menurut pola **Boundary, Control, Entity** (NFR-18):
 | Control | Modul use case di Edge Functions dan layanan agen, misalnya `PengaduanController` dan `BasisPengetahuanController` |
 | Entity | Tabel Postgres beserta enum status dan constraint |
 
-Semua layanan eksternal (cekbpom, LLM, STT, TTS, SMS Gateway, embedding) diakses lewat **adapter** yang punya implementasi produksi dan implementasi tiruan (mock). Dengan begitu penyedia bisa diganti tanpa menyentuh kode use case, dan tim tetap bisa mengembangkan serta mendemokan sistem walaupun akses resmi cekbpom dan SMS Gateway belum tersedia.
+Semua layanan eksternal (cekbpom, LLM, STT, TTS, embedding) diakses lewat **adapter** yang punya implementasi produksi dan implementasi tiruan (mock). Dengan begitu penyedia bisa diganti tanpa menyentuh kode use case, dan tim tetap bisa mengembangkan serta mendemokan sistem walaupun akses resmi cekbpom belum tersedia.
 
 ## Tech Stack dan Alasannya
 
@@ -260,7 +259,7 @@ Database adalah Postgres milik Supabase. Migrasi dikelola lewat Supabase CLI.
 | `hasil_telaah` | `tiket_id`, `petugas_id`, `keputusan` enum (`telaah_dokumen`, `pemeriksaan_lapangan`, `bukan_kewenangan`), `catatan`, `tgl_telaah` | |
 | `jadwal_pemeriksaan` | `tiket_id`, `tgl_pemeriksaan`, `unit_pelaksana`, `status` | |
 | `tanggapan` | `tiket_id`, `petugas_id`, `isi`, `tgl_tanggapan` | |
-| `notifikasi` | `tiket_id`, `isi`, `status_kirim` enum, `tgl_kirim` | SMS ke pelapor saat tiket ditutup. |
+| `notifikasi` | `tiket_id`, `status_kirim` enum, `tgl_kirim`, `dihubungi_oleh` | Catatan kontak tindak lanjut: belum atau sudah dihubungi lewat WhatsApp atau telepon (ADR 0006). |
 | `catatan_pemeriksaan` | `percakapan_id`, `petugas_id`, `isi` (not null), `waktu` | Catatan petugas saat membaca transkrip. |
 
 ### Basis pengetahuan (RAG)
@@ -328,7 +327,7 @@ Total 24 poin dalam tiga sprint. **Sprint aktif: Sprint 3 (mulai Minggu 13).**
 |---|---|---|
 | 1 | UC-01 Informasi Produk, UC-03 Login, UC-07 Basis Pengetahuan | Pipeline suara end-to-end, tool calling cekbpom, RAG dan indeks, autentikasi, kerangka dashboard |
 | 2 | UC-02 Pengaduan, UC-04 Memantau Layanan | Dialog pengumpulan data bertahap, register pengaduan dan tiket, dashboard live |
-| 3 | UC-05 Transkrip, UC-06 Menangani Pengaduan, UC-08 Laporan | Masking data pribadi, mesin status pengaduan, SMS Gateway, ekspor PDF/CSV |
+| 3 | UC-05 Transkrip, UC-06 Menangani Pengaduan, UC-08 Laporan | Masking data pribadi, mesin status pengaduan, tindak lanjut WhatsApp, ekspor PDF/CSV |
 
 ## Struktur Repo
 

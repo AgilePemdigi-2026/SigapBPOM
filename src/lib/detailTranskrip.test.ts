@@ -36,7 +36,7 @@ const ucapan = (urutan: number, pembicara: UcapanTranskrip['pembicara'], teks: s
 
 // Sengaja tidak berurutan: urutan tampil ditentukan kolom `urutan`, bukan urutan baris dari penyimpanan.
 const TRANSKRIP = [
-  ucapan(3, 'sistem', 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261020-0456. Tindak lanjut akan dikirim melalui SMS.', 15),
+  ucapan(3, 'sistem', 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261020-0456. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.', 15),
   ucapan(1, 'sistem', 'Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda.', 0),
   ucapan(2, 'penelepon', 'Krim Wajah Glowing membuat kulit saya iritasi. Nama saya B*** S******, nomor telepon 0812****7890.', 6),
 ];

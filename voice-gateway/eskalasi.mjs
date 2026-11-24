@@ -7,7 +7,7 @@ export const PESAN_BUTUH_PETUGAS = 'Pertanyaan Anda akan diteruskan kepada petug
 /** Bagian kedua pesan "Butuh petugas", dipakai saat nomor tidak valid. Sama dengan pesan 422 Edge Function. */
 export const PESAN_MINTA_ULANG_TELEPON = 'Mohon sebutkan nomor telepon Anda.';
 /** Kamus pesan Lampiran A (UC-01 "Tiket eskalasi terbit"). */
-export const pesanTiketEskalasi = (nomorTiket) => `Nomor tiket Anda ${nomorTiket}. Jawaban petugas akan dikirim melalui SMS.`;
+export const pesanTiketEskalasi = (nomorTiket) => `Nomor tiket Anda ${nomorTiket}. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.`;
 
 const sederhanakan = (s) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
 
@@ -143,7 +143,7 @@ export class PenerbitTiketSupabase {
 }
 
 /**
- * Batas penerbitan tiket agar gateway publik tidak dipakai membanjiri antrean petugas atau SMS ke nomor sembarang:
+ * Batas penerbitan tiket agar gateway publik tidak dipakai membanjiri antrean petugas dengan nomor sembarang:
  * per panggilan, per IP per hari, dan per nomor telepon per hari. Mengembalikan jenis batas yang terlampaui, atau null.
  */
 export class PembatasTiket {

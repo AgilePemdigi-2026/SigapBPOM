@@ -98,14 +98,14 @@
     {
       "id": "F7",
       "name": "Tangani Pengaduan",
-      "summary": "Petugas menuntaskan pengaduan dari telaah sampai tiket ditutup dan pelapor menerima SMS.",
+      "summary": "Petugas menuntaskan pengaduan dari telaah sampai tiket ditutup dan pelapor dihubungi lewat WhatsApp atau telepon.",
       "icon": "shield",
       "priority": "high",
       "phase": 3,
       "subFeatures": [
         { "id": "F7.1", "name": "Telaah dan Jadwal Pemeriksaan", "summary": "Petugas membuka daftar pengaduan, memilih tindak lanjut, dan menjadwalkan pemeriksaan lapangan.", "icon": "search", "priority": "high" },
         { "id": "F7.2", "name": "Tanggapan dan Tutup Tiket", "summary": "Petugas menyimpan tanggapan resmi lalu menutup tiket yang sudah ditanggapi.", "icon": "file", "priority": "high" },
-        { "id": "F7.3", "name": "Notifikasi Tindak Lanjut", "summary": "Pelapor menerima SMS tindak lanjut saat tiket ditutup.", "icon": "bell", "priority": "high" }
+        { "id": "F7.3", "name": "Notifikasi Tindak Lanjut", "summary": "Petugas menghubungi pelapor lewat WhatsApp atau telepon setelah tiket ditutup dan menandainya sudah dihubungi (ADR 0006).", "icon": "bell", "priority": "high" }
       ]
     },
     {

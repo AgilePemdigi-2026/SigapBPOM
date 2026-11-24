@@ -34,7 +34,7 @@ test('nfr_13 nomor telepon dalam teks ucapan disamarkan seperti 0812****7890', (
 
 test('nfr_13 penyamaran tidak mengubah nomor tiket, nomor izin edar, dan angka lain', () => {
   for (const teks of [
-    'Nomor tiket Anda ESK-20261019-0001. Jawaban petugas akan dikirim melalui SMS.',
+    'Nomor tiket Anda ESK-20261019-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk menyampaikan jawabannya.',
     'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261108-0812.',
     'Susu Formula Sehat terdaftar dengan nomor izin edar BPOM RI MD 865009001234, status izin Berlaku.',
     'Nomor izin edar DBL0812345678A1 di kemasan.',

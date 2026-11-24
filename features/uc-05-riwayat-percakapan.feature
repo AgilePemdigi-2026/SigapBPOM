@@ -17,7 +17,7 @@ Fitur: Membaca transkrip percakapan
       | detik | pembicara | teks                                                                                                           |
       | 0     | sistem    | Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda.                                |
       | 6     | penelepon | Krim Wajah Glowing membuat kulit saya iritasi. Nama saya B*** S******, nomor telepon 0812****7890.             |
-      | 15    | sistem    | Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261020-0456. Tindak lanjut akan dikirim melalui SMS.     |
+      | 15    | sistem    | Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261020-0456. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.     |
 
   Skenario: Membaca transkrip dan menyimpan catatan pemeriksaan (Basic Path)
     Ketika petugas membuka halaman riwayat percakapan

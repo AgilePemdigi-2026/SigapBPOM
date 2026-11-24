@@ -6,7 +6,7 @@
 # Skenario @belum-tersedia butuh bagian yang belum dibuat dan tidak ikut `npm run test:bdd`.
 Fitur: Menangani pengaduan
   Petugas menangani pengaduan produk mulai dari penelaahan, penyusunan tanggapan resmi, hingga penutupan tiket dan
-  pengiriman notifikasi kepada pelapor.
+  menghubungi pelapor lewat WhatsApp atau telepon (ADR 0006).
 
   Latar Belakang:
     Diketahui petugas sudah masuk ke dashboard SIGAP
@@ -83,9 +83,11 @@ Fitur: Menangani pengaduan
     Maka StepperPenanganan menampilkan tahap "Telaah", "Jadwal Pemeriksaan", "Susun Tanggapan", dan "Tutup Tiket"
     Dan tahap "Susun Tanggapan" aktif
 
-  # SMS tindak lanjut (T-F7.3-01) menunggu keputusan SMS gateway yang dipakai.
-  @belum-tersedia
-  Skenario: SMS tindak lanjut terkirim kepada pelapor (Basic Path langkah 16)
+  # Basic Path langkah 16 lewat WhatsApp manual (ADR 0006, usulan pengganti SMS T-F7.3-01).
+  Skenario: Petugas menghubungi pelapor lewat WhatsApp setelah tiket ditutup (Basic Path langkah 16)
     Diketahui petugas membuka detail pengaduan "ADU-20261020-0456" berstatus "Tanggapan Disusun"
     Ketika petugas menekan "Tutup Tiket"
-    Maka SMS tindak lanjut tiket "ADU-20261020-0456" terkirim kepada pelapor
+    Maka pesan WhatsApp untuk pelapor memuat nomor tiket "ADU-20261020-0456" dan tanggapan resmi
+    Ketika petugas menekan "Tandai sudah dihubungi"
+    Maka sistem menampilkan pesan "Pelapor ditandai sudah dihubungi."
+    Dan pelapor tiket "ADU-20261020-0456" tercatat sudah dihubungi

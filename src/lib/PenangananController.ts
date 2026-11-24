@@ -1,6 +1,7 @@
 // Control UC-06 Menangani Pengaduan (REQ-6.1 sampai REQ-6.6, BR-2, BR-3).
 // Menangani telaah berkas pengaduan, jadwal pemeriksaan sarana, penyusunan tanggapan resmi, dan penutupan tiket.
 // Mengikuti pola BCE dan nama class diagram SRS (PenangananController).
+import type { KontakPelapor } from './kontakPelapor.ts';
 
 /** Kamus pesan PRD-rinci Lampiran A (UC-06). */
 export const PESAN_TELAAH_TERSIMPAN = 'Hasil telaah tersimpan.';
@@ -9,6 +10,8 @@ export const PESAN_JADWAL_TERSIMPAN = 'Jadwal pemeriksaan tersimpan.';
 export const PESAN_TANGGAPAN_TERSIMPAN = 'Tanggapan tersimpan.';
 export const PESAN_TUTUP_TIKET = 'Tiket ditutup.';
 export const PESAN_TUTUP_TANPA_TANGGAPAN = 'Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.';
+/** ADR 0006: belum ada di kamus Lampiran A, diusulkan bersama change request tindak lanjut WhatsApp. */
+export const PESAN_SUDAH_DIHUBUNGI = 'Pelapor ditandai sudah dihubungi.';
 
 export type TindakLanjut = 'Telaah Dokumen' | 'Perlu Pemeriksaan Lapangan' | 'Bukan Kewenangan BPOM';
 
@@ -89,6 +92,12 @@ export interface ResponTutupTiket {
   pesan: string;
 }
 
+export interface ResponTandaiDihubungi {
+  noTiket: string;
+  status: string;
+  pesan: string;
+}
+
 /** Interface adapter penyimpanan penanganan pengaduan (PROJECT_RULES 4.3). */
 export interface PenyimpananPenanganan {
   simpanTelaah(noTiket: string, tindakLanjut: TindakLanjut, catatan?: string | null): Promise<ResponTelaah>;
@@ -98,6 +107,9 @@ export interface PenyimpananPenanganan {
   ambilRiwayatTelaah(noTiket: string): Promise<HasilTelaah[]>;
   ambilJadwal(noTiket: string): Promise<JadwalPemeriksaan[]>;
   ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]>;
+  /** ADR 0006: nomor lengkap pelapor dan status kontak tindak lanjut. */
+  ambilKontakPelapor(noTiket: string): Promise<KontakPelapor>;
+  tandaiSudahDihubungi(noTiket: string): Promise<ResponTandaiDihubungi>;
 }
 
 /** Implementasi tiruan (Mock) untuk pengujian dan fallback lokal tanpa basis data. */
@@ -106,7 +118,7 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
   telaahMap: Map<string, HasilTelaah[]>;
   jadwalMap: Map<string, JadwalPemeriksaan[]>;
   tanggapanMap: Map<string, TanggapanResmi[]>;
-  notifikasiList: Array<{ tiketId: string; isi: string; status: string }>;
+  notifikasiList: Array<{ tiketId: string; isi: string; status: string; dihubungiPada?: string }>;
 
   constructor(dataAwalTiket?: Record<string, { status: string; jenis: string }>) {
     this.tiketMap = new Map();
@@ -279,7 +291,7 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
       this.notifikasiList.push({
         tiketId: noTiket,
         isi: daftarTanggapan[0].isi,
-        status: 'menunggu_pengiriman',
+        status: 'tertunda',
       });
     }
 
@@ -300,6 +312,23 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
 
   async ambilTanggapan(noTiket: string): Promise<TanggapanResmi[]> {
     return this.tanggapanMap.get(noTiket) ?? [];
+  }
+
+  // Tiruan untuk pengembangan lokal: setiap tiket memakai satu nomor contoh.
+  async ambilKontakPelapor(noTiket: string): Promise<KontakPelapor> {
+    const n = this.notifikasiList.find((x) => x.tiketId === noTiket && x.status === 'terkirim');
+    return { noTelp: '081234567890', sudahDihubungi: Boolean(n), dihubungiPada: n?.dihubungiPada ?? null };
+  }
+
+  async tandaiSudahDihubungi(noTiket: string): Promise<ResponTandaiDihubungi> {
+    // Tiket contoh halaman pemantauan tidak ada di tiketMap; yang tidak dikenal dianggap boleh ditandai.
+    const t = this.tiketMap.get(noTiket);
+    if (t?.jenis === 'pengaduan' && t.status !== 'selesai') throw new Error(`Tiket ${noTiket} belum ditutup.`);
+    if (t) t.status = 'selesai';
+    const n = this.notifikasiList.find((x) => x.tiketId === noTiket);
+    if (!n) this.notifikasiList.push({ tiketId: noTiket, isi: '', status: 'terkirim', dihubungiPada: new Date().toISOString() });
+    else if (n.status !== 'terkirim') Object.assign(n, { status: 'terkirim', dihubungiPada: new Date().toISOString() });
+    return { noTiket, status: 'selesai', pesan: PESAN_SUDAH_DIHUBUNGI };
   }
 }
 
@@ -405,6 +434,20 @@ export class PenyimpananPenangananSupabase implements PenyimpananPenanganan {
       petugasNama: (r.petugas_nama as string | null) ?? null, status: String(r.status), waktu: String(r.waktu),
     }));
   }
+
+  // RPC ambil_kontak_pelapor dan tandai_sudah_dihubungi mengembalikan jsonb yang sama (migrasi 20261124100000).
+  async ambilKontakPelapor(noTiket: string): Promise<KontakPelapor> {
+    const res = await this.klien.rpc('ambil_kontak_pelapor', { p_no_tiket: noTiket });
+    if (res.error) throw res.error;
+    const d = (res.data ?? {}) as Record<string, unknown>;
+    return { noTelp: (d.no_telp as string | null) ?? null, sudahDihubungi: d.sudah_dihubungi === true, dihubungiPada: (d.dihubungi_pada as string | null) ?? null };
+  }
+
+  async tandaiSudahDihubungi(noTiket: string): Promise<ResponTandaiDihubungi> {
+    const res = await this.klien.rpc('tandai_sudah_dihubungi', { p_no_tiket: noTiket });
+    if (res.error) throw res.error;
+    return { noTiket, status: 'selesai', pesan: PESAN_SUDAH_DIHUBUNGI };
+  }
 }
 
 /** Controller UC-06 Menangani Pengaduan. */
@@ -474,5 +517,19 @@ export class PenangananController {
       throw new Error('Nomor tiket tidak valid.');
     }
     return this.penyimpanan.ambilTanggapan(noTiket.trim());
+  }
+
+  async ambilKontakPelapor(noTiket: string): Promise<KontakPelapor> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.ambilKontakPelapor(noTiket.trim());
+  }
+
+  async tandaiSudahDihubungi(noTiket: string): Promise<ResponTandaiDihubungi> {
+    if (!noTiket || typeof noTiket !== 'string' || !noTiket.trim()) {
+      throw new Error('Nomor tiket tidak valid.');
+    }
+    return this.penyimpanan.tandaiSudahDihubungi(noTiket.trim());
   }
 }

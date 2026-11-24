@@ -13,7 +13,7 @@ Feature: Voice Complaint Submission
     Then I should hear "Silakan sebutkan nama produk, kronologi kejadian, nama, dan nomor telepon Anda."
     When I say "Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian. Nama saya Budi Santoso, nomor telepon 081234567890."
     Then I should see "Krim Wajah Glowing" in the "TranskripPercakapan" element
-    And I should hear "Pengaduan Anda telah dicatat dengan nomor tiket ADU-0456. Tindak lanjut akan dikirim melalui SMS."
+    And I should hear "Pengaduan Anda telah dicatat dengan nomor tiket ADU-0456. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya."
 
   Scenario: Missing complaint data is asked again (Alternative Path 1)
     Given I am on the "/homepage" page
@@ -26,7 +26,7 @@ Feature: Voice Complaint Submission
     Then I should see "Krim Wajah Glowing" in the "TranskripPercakapan" element
     And I should hear "Mohon sebutkan nomor telepon Anda."
     When I say "081234567890"
-    Then I should hear "Pengaduan Anda telah dicatat dengan nomor tiket ADU-0456. Tindak lanjut akan dikirim melalui SMS."
+    Then I should hear "Pengaduan Anda telah dicatat dengan nomor tiket ADU-0456. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya."
 
   Scenario: Call ends before the complaint data is complete (Exception Path 1)
     Given I am on the "/homepage" page

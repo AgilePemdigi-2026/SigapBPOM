@@ -10,6 +10,7 @@ import {
   PESAN_TANGGAPAN_TERSIMPAN,
   PESAN_TUTUP_TIKET,
   PESAN_TUTUP_TANPA_TANGGAPAN,
+  PESAN_SUDAH_DIHUBUNGI,
   type TindakLanjut,
 } from './PenangananController.ts';
 
@@ -276,4 +277,21 @@ test('req_6_2 adapter Supabase memetakan isian tersimpan agar stepper utuh setel
   assert.deepEqual([jadwal.tanggal, jadwal.unitPelaksana], ['2026-11-20', 'Balai Besar POM di Surabaya']);
   const [tanggapan] = await adapter.ambilTanggapan('ADU-20261117-0001');
   assert.equal(tanggapan.isi, 'Sarana diberi peringatan.');
+});
+
+test('adr_0006 pengaduan baru bisa ditandai sudah dihubungi setelah ditutup', async () => {
+  const mockStorage = new PenyimpananPenangananMock();
+  const controller = new PenangananController(mockStorage);
+
+  await assert.rejects(() => controller.tandaiSudahDihubungi('ADU-20261104-0010'), /belum ditutup/);
+  await controller.simpanTanggapan('ADU-20261104-0010', 'Tanggapan resmi petugas BPOM.');
+  await controller.tutupTiket('ADU-20261104-0010');
+  assert.equal((await controller.ambilKontakPelapor('ADU-20261104-0010')).sudahDihubungi, false);
+
+  const hasil = await controller.tandaiSudahDihubungi('ADU-20261104-0010');
+  assert.equal(hasil.pesan, PESAN_SUDAH_DIHUBUNGI);
+  const kontak = await controller.ambilKontakPelapor('ADU-20261104-0010');
+  assert.equal(kontak.sudahDihubungi, true);
+  assert.ok(kontak.dihubungiPada);
+  assert.equal(mockStorage.notifikasiList.length, 1);
 });

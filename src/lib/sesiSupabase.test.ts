@@ -208,3 +208,9 @@ test('controller meneruskan pesan penguncian dari adapter dan mencatat aktivitas
   assert.equal((await c2.masuk({ email: 'dewi@pom.go.id', password: 'x' }, cookies)).kode, 200);
   assert.equal((await c2.sesiAktif(cookies))?.email, 'dewi@pom.go.id');
 });
+
+test('adr_0006 sesi petugas membawa nomor WhatsApp bila sudah diisi', async () => {
+  const { sesi } = buat((p) => (p.url.includes('/rest/v1/petugas?') ? { json: [{ nama: 'Adrian', no_wa: '081217424813' }] } : petugasOk(TOKEN)(p)));
+  const { cookies } = buatCookies({ [COOKIE_AKSES]: TOKEN, [COOKIE_REFRESH]: 'rt-1' });
+  assert.deepEqual(await sesi.baca(cookies), { nama: 'Adrian', email: 'dewi@pom.go.id', noWa: '081217424813' });
+});

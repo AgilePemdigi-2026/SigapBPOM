@@ -298,7 +298,7 @@ function rakitan(opsi = {}) {
 test('req_2_3 pesan tiket pengaduan sama persis dengan kamus PRD Lampiran A', () => {
   assert.equal(
     pesanTiketPengaduan('ADU-20261102-0001'),
-    'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.',
+    'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.',
   );
 });
 
@@ -306,7 +306,7 @@ test('req_2_3 pengaduan lengkap menghasilkan satu tiket ADU dan pesan tiket diuc
   const { gerbang, pengaduan, riwayat } = rakitan();
   const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: UCAPAN_LENGKAP, ip: '1.1.1.1' });
   assert.equal(h.tiket, 'ADU-20261102-0001');
-  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.');
   assert.equal(gerbang.tiketPerPercakapan.size, 1);
   // Masih di layanan 2: giliran berikutnya tetap di control ini, bukan ke AI.
   assert.ok(pengaduan.aktif(ID));
@@ -331,7 +331,7 @@ test('req_2_3 skenario Basic Path SRS: satu kalimat lengkap langsung menerbitkan
   const { gerbang, pengaduan, riwayat } = rakitan();
   const tercatat = catatTerbit(gerbang);
   const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
-  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.');
   assert.deepEqual(tercatat, [{
     percakapanId: ID, namaProduk: 'Krim Wajah Glowing', kronologi: 'Krim Wajah Glowing membuat kulit saya iritasi setelah dua hari pemakaian',
     namaPelapor: 'Budi Santoso', nomorTelepon: '081234567890',
@@ -341,8 +341,8 @@ test('req_2_3 skenario Basic Path SRS: satu kalimat lengkap langsung menerbitkan
 test('req_2_3 setelah tiket terbit agen menawarkan bantuan lagi, lalu "tidak, terima kasih" menutup panggilan', async () => {
   const { pengaduan, riwayat } = rakitan();
   const h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: SRS_BASIC, ip: '1.1.1.1' });
-  // Pesan tiket tetap sama dengan kamus (juga isi SMS); tawaran diucapkan terpisah sesudahnya.
-  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  // Pesan tiket tetap sama dengan kamus; tawaran diucapkan terpisah sesudahnya.
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.');
   assert.equal(h.tawaran, PESAN_TAWARAN_PENUTUP);
   assert.equal(riwayat.jawabanTerakhir(ID), `${h.jawaban} ${PESAN_TAWARAN_PENUTUP}`);
   assert.equal(inginMenutup('tidak, terima kasih', riwayat.jawabanTerakhir(ID)), true);
@@ -356,7 +356,7 @@ test('req_2_2 skenario Alternative Path 1 SRS: hanya nomor telepon yang ditanyak
   assert.equal(h.jawaban, 'Mohon sebutkan nomor telepon Anda.');
   assert.equal(h.kurang, 1);
   h = await prosesGiliranPengaduan({ pengaduan, riwayat, id: ID, ucapan: '081234567890', ip: '1.1.1.1' });
-  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Tindak lanjut akan dikirim melalui SMS.');
+  assert.equal(h.jawaban, 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261102-0001. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.');
   assert.equal(tercatat[0].namaProduk, 'Krim Wajah Glowing');
   assert.equal(tercatat[0].kronologi, 'Krim Wajah Glowing membuat kulit saya iritasi');
 });

@@ -42,7 +42,10 @@ if (gagal) Astro.response.status = 503;
               <span class="produk" title={p.produk}>{p.produk}</span>
               <span>{p.kategori}</span>
               <span>{p.tanggal}</span>
-              <span class="chip" style={`background:${warna.bg};color:${warna.fg}`}>{p.labelStatus}</span>
+              <span class="status">
+                <span class="chip" style={`background:${warna.bg};color:${warna.fg}`}>{p.labelStatus}</span>
+                {p.belumDihubungi && <span class="belum" data-name="BelumDihubungi">Belum dihubungi</span>}
+              </span>
               {p.tautanTelaah
                 ? <a href={p.tautanTelaah} class="btn-primary aksi">Telaah</a>
                 : <a href={p.tautanKasus} class="pill aksi">Buka Kasus</a>}
@@ -98,6 +101,8 @@ if (gagal) Astro.response.status = 503;
   .muted { color: var(--muted-2); }
   .row .chip { justify-self: start; }
   .chip.abu { background: var(--t-gray-bg); color: var(--t-gray-fg); }
+  .status { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .belum { font-size: 12px; font-weight: 600; color: var(--danger); }
   .aksi { height: 44px; padding: 0 18px; font-size: 14px; font-weight: 500; text-decoration: none; justify-self: start; }
   .pill.aksi { color: var(--ink); }
   .link { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: var(--link); white-space: nowrap; text-decoration: none; }

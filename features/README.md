@@ -10,11 +10,7 @@ Skenario penerimaan per use case ditulis dalam Gherkin dan dijalankan dengan Cuc
 
 Skenario control yang ada: UC-01 (cek registrasi dan tool `cek_registrasi_bpom`), UC-05 (Tabel B.6), UC-06 (Tabel B.7), dan UC-08 (Tabel B.9). Langkah dashboard Sprint 3 ditulis seperti SRS ("petugas mengisi", "petugas memilih", "petugas menekan"); aksi setiap tombol berlabel Lampiran B didaftarkan file langkah UC lewat `features/support/dashboard.mjs`. Bila halamannya belum dibuat, elemen Lampiran B (misalnya `TranskripPercakapan` atau `TabelRekapitulasi`) diperiksa dari data yang disiapkan control untuk elemen itu.
 
-Skenario `@belum-tersedia` menunggu bagian yang belum dibuat, sehingga tidak ikut `npm run test:bdd`. Daftarnya bisa dilihat dengan `npx cucumber-js --profile belum` (langkahnya berstatus pending). Tag dicabut begitu bagian itu masuk main:
-
-| Skenario | Menunggu |
-|---|---|
-| UC-06 SMS tindak lanjut terkirim kepada pelapor | Keputusan SMS gateway yang dipakai untuk notifikasi saat tiket ditutup (T-F7.3-01) |
+Skenario `@belum-tersedia` menunggu bagian yang belum dibuat, sehingga tidak ikut `npm run test:bdd`. Daftarnya bisa dilihat dengan `npx cucumber-js --profile belum` (langkahnya berstatus pending). Tag dicabut begitu bagian itu masuk main. Saat ini tidak ada; skenario SMS tindak lanjut UC-06 diganti skenario WhatsApp manual (ADR 0006).
 
 Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
 

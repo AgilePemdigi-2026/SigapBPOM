@@ -10,12 +10,12 @@ import ToggleTema from '../components/ToggleTema.astro';
 
 const LAYANAN = [
   { no: '1', judul: 'Informasi produk', desk: 'Cek izin edar dan edukasi obat dan makanan' },
-  { no: '2', judul: 'Pengaduan produk', desk: 'Laporkan produk bermasalah, tiket dikirim lewat SMS' },
+  { no: '2', judul: 'Pengaduan produk', desk: 'Laporkan produk bermasalah, petugas menghubungi lewat WhatsApp' },
 ];
 const LANGKAH = [
   { ic: 'icon-phone-call', t: 'Telepon CS AI', d: 'Gratis dan tanpa login' },
   { ic: 'icon-list-ordered', t: 'Pilih layanan', d: 'Tekan 1 untuk informasi, 2 untuk pengaduan' },
-  { ic: 'icon-badge-check', t: 'Dapat jawaban', d: 'Hasil cek tampil di layar, tiket lewat SMS' },
+  { ic: 'icon-badge-check', t: 'Dapat jawaban', d: 'Hasil cek tampil di layar, nomor tiket dibacakan' },
 ];
 const KLIK = [
   { h: 'K', t: 'Kemasan', d: 'Pastikan kemasan utuh, tidak penyok, bocor, atau berkarat.' },
@@ -81,7 +81,7 @@ const SUMBER = [
           <section class="show anim" style="--d:2" aria-label="Contoh percakapan dengan CS AI">
             <span class="chip-f f1" aria-hidden="true"><i class="icon-badge-check"></i>Izin edar berlaku</span>
             <span class="chip-f f2" aria-hidden="true"><i class="icon-captions"></i>Transkrip tersimpan</span>
-            <span class="chip-f f3" aria-hidden="true"><i class="icon-message-square-text"></i>Tiket dikirim lewat SMS</span>
+            <span class="chip-f f3" aria-hidden="true"><i class="icon-message-square-text"></i>Tindak lanjut lewat WhatsApp</span>
             <div class="show-head">
               <Orb size={64} />
               <span class="show-id"><span>CS AI HaloBPOM</span><span><span class="dot-live"></span>Siap menerima panggilan</span></span>
@@ -170,10 +170,10 @@ const SUMBER = [
         </article>
         <article class="cell c-sms" data-reveal>
           <h3>Lapor produk bermasalah</h3>
-          <p>Ceritakan keluhan Anda. Setelah data lengkap, nomor tiket pengaduan dikirim ke ponsel Anda.</p>
+          <p>Ceritakan keluhan Anda. Setelah data lengkap, nomor tiket dibacakan dan petugas menindaklanjuti lewat WhatsApp.</p>
           <div class="sms" aria-hidden="true">
             <span class="sms-ic"><i class="icon-message-square-text"></i></span>
-            <span class="sms-body"><span class="sms-top"><b>HaloBPOM</b><span>sekarang</span></span>Pengaduan Anda tercatat dengan nomor tiket ADU-20261117-0042. Simpan nomor ini untuk menanyakan perkembangannya.</span>
+            <span class="sms-body"><span class="sms-top"><b>HaloBPOM</b><span>WhatsApp</span></span>Pengaduan Anda dengan nomor tiket ADU-20261117-0042 telah selesai ditindaklanjuti. Berikut tanggapan resmi kami.</span>
           </div>
         </article>
         <article class="cell c-tr" data-reveal>
@@ -258,7 +258,7 @@ const SUMBER = [
   <template id="tpl-tiket">
     <div class="card-tiket">
       <span class="ct-ic"><i class="icon-ticket"></i></span>
-      <span><b>Pengaduan tercatat</b><br /><span class="mono">ADU-20261117-0042</span> dikirim lewat SMS</span>
+      <span><b>Pengaduan tercatat</b><br /><span class="mono">ADU-20261117-0042</span> petugas akan menghubungi</span>
     </div>
   </template>
 </BaseLayout>
@@ -317,7 +317,7 @@ const SUMBER = [
       ['ai', 'Maaf atas keluhannya. Apa nama produknya dan di mana Anda membelinya?'],
       ['user', 'Krim Cerah Alami, saya beli di toko daring.'],
       // Kalimat sama dengan gateway: pesanTiketPengaduan, PESAN_TAWARAN_PENUTUP, lalu PESAN_PENUTUP setelah penelepon menolak.
-      ['ai', 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261117-0042. Tindak lanjut akan dikirim melalui SMS.'],
+      ['ai', 'Pengaduan Anda telah dicatat dengan nomor tiket ADU-20261117-0042. Petugas akan menghubungi Anda melalui WhatsApp atau telepon untuk tindak lanjutnya.'],
       ['tiket'],
       ['ai', 'Apakah ada yang bisa saya bantu lagi? Jika tidak, percakapan ini akan saya tutup.'],
       ['user', 'Tidak, terima kasih.'],

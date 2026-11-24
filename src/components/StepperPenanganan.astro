@@ -438,6 +438,8 @@ const ikonTahap: Record<TahapStepper, string> = {
         // Status tiket baru berubah menjadi tertutup setelah server merespons sukses!
         perbaruiStatusPengaduan(d?.data?.status || 'selesai', d?.data?.labelStatus || 'Selesai');
         tampilkanPesan(d?.message || 'Tiket ditutup.', 'success');
+        // Panel kontak pelapor menyiapkan pesan WhatsApp tindak lanjut (ADR 0006).
+        document.dispatchEvent(new CustomEvent('sigap:tiket-ditutup', { detail: { tanggapan: textTanggapan.value } }));
       } catch {
         selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');

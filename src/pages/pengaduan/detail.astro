@@ -1,13 +1,15 @@
 ---
 // Boundary UC-04 & UC-06, halaman Detail Pengaduan yang dibuka tombol "Buka Kasus" atau "Telaah" (REQ-4.4, REQ-6.1 - REQ-6.6, T-F7.2-02, SRS 3.1.10).
-// Menampilkan ringkasan berkas pengaduan, data pelapor tersamar (NFR-13), dan StepperPenanganan pengaduan.
+// Menampilkan ringkasan berkas pengaduan, data pelapor tersamar (NFR-13), StepperPenanganan pengaduan, dan kontak pelapor
+// untuk tindak lanjut lewat WhatsApp atau telepon (ADR 0006): satu-satunya halaman yang menerima nomor lengkap.
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import StepperPenanganan from '../../components/StepperPenanganan.astro';
 import { chip } from '../../lib/data';
 import { pemantauanLayanan } from '../../lib/pemantauan';
 import { daftarPengaduan } from '../../lib/daftarPengaduan';
 import { LABEL_JENIS_TIKET, PESAN_PEMANTAUAN } from '../../lib/PemantauanLayananController';
-import { penangananPetugas } from '../../lib/penanganan';
+import { ambilKontakPelapor, penangananPetugas } from '../../lib/penanganan';
+import { tampilNomor, tautanTelepon, tautanWhatsApp, teksWhatsApp } from '../../lib/kontakPelapor';
 
 const pemantauan = pemantauanLayanan(Astro.locals.tokenAkses);
 let noTiket = Astro.url.searchParams.get('tiket');
@@ -42,6 +44,19 @@ const [telaah, jadwal, tanggapan] = d && d.jenis === LABEL_JENIS_TIKET.pengaduan
     ])
   : [];
 const warna = d ? chip(d.labelStatus) : null;
+
+// Kontak pelapor (ADR 0006). Gagal dibaca: panel memakai nomor tersamar tanpa tombol.
+const kontak = d ? await ambilKontakPelapor(penanganan, d.noTiket) : null;
+const jenisKontak = d?.jenis === LABEL_JENIS_TIKET.pengaduan ? 'pengaduan' : 'eskalasi';
+const selesai = d?.status === 'selesai';
+const petugas = Astro.locals.petugas;
+const tautanWa = d && kontak ? tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: jenisKontak, noTiket: d.noTiket, selesai, tanggapan: tanggapan?.isi, petugas: petugas?.nama })) : null;
+const tautanTel = kontak ? tautanTelepon(kontak.noTelp) : null;
+// Pengaduan ditandai setelah ditutup (tanggapan resmi sudah ada); eskalasi kapan saja karena jawabannya disampaikan saat dihubungi.
+const bolehTandai = Boolean(kontak && !kontak.sudahDihubungi && (jenisKontak === 'eskalasi' || selesai));
+const waktuDihubungi = kontak?.dihubungiPada
+  ? new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(kontak.dihubungiPada))
+  : '';
 ---
 <DashboardLayout title={d ? `Detail Pengaduan ${d.noTiket}` : 'Detail Pengaduan'}>
   <div class="page">
@@ -85,10 +100,32 @@ const warna = d ? chip(d.labelStatus) : null;
             <h2>Pelapor dan Percakapan</h2>
             <dl>
               <div><dt>Nama pelapor</dt><dd>{d.namaPelapor}</dd></div>
-              <div><dt>Nomor telepon</dt><dd class="mono">{d.noTelp}</dd></div>
               <div><dt>Waktu masuk</dt><dd>{d.tglTerbit}</dd></div>
               <div><dt>Status</dt><dd>{d.labelStatus}</dd></div>
             </dl>
+            <div class="kontak" data-name="KontakPelapor" data-tiket={d.noTiket} data-jenis={jenisKontak} data-no={kontak?.noTelp ?? ''} data-petugas={petugas?.nama ?? ''}>
+              <span class="kontak-label">Nomor telepon pelapor</span>
+              <strong class="kontak-nomor mono">{kontak ? tampilNomor(kontak.noTelp) : d.noTelp}</strong>
+              {kontak && (
+                <div class="kontak-aksi">
+                  {tautanWa && <a class="btn-primary wa" data-name="ChatWhatsApp" href={tautanWa} target="_blank" rel="noopener noreferrer"><i class="icon-message-circle"></i>Chat WhatsApp</a>}
+                  {tautanTel && <a class="pill" href={tautanTel}><i class="icon-phone"></i>Telepon</a>}
+                  <button type="button" class="pill" data-salin><i class="icon-copy"></i><span>Salin</span></button>
+                </div>
+              )}
+              {kontak && petugas?.noWa && (
+                <p class="kontak-wa" data-name="WhatsAppPetugas">Pastikan WhatsApp yang terbuka adalah nomor Anda: <span class="mono">{tampilNomor(petugas.noWa)}</span></p>
+              )}
+              {kontak && (
+                <p class="kontak-status" data-name="StatusKontak" data-sudah={kontak.sudahDihubungi ? '1' : ''}>
+                  {kontak.sudahDihubungi ? `Sudah dihubungi${waktuDihubungi ? ` · ${waktuDihubungi}` : ''}` : 'Belum dihubungi'}
+                </p>
+              )}
+              {kontak && !kontak.sudahDihubungi && (
+                <button type="button" class="pill tandai" data-name="TandaiSudahDihubungi" hidden={!bolehTandai}><i class="icon-check"></i>Tandai sudah dihubungi</button>
+              )}
+              <p class="kontak-pesan" role="status" aria-live="polite"></p>
+            </div>
             <span class="grow"></span>
             <a href={d.tautanTranskrip} class="btn-primary transkrip"><i class="icon-file-text"></i>Lihat Transkrip</a>
           </section>
@@ -99,6 +136,50 @@ const warna = d ? chip(d.labelStatus) : null;
     )}
   </div>
 </DashboardLayout>
+
+<script>
+  import { tautanWhatsApp, teksWhatsApp } from '../../lib/kontakPelapor';
+
+  const panel = document.querySelector<HTMLElement>('[data-name="KontakPelapor"]');
+  if (panel) {
+    const pesan = panel.querySelector<HTMLElement>('.kontak-pesan')!;
+    const tandai = panel.querySelector<HTMLButtonElement>('[data-name="TandaiSudahDihubungi"]');
+
+    panel.querySelector<HTMLButtonElement>('[data-salin]')?.addEventListener('click', async (e) => {
+      const label = (e.currentTarget as HTMLElement).querySelector('span')!;
+      try {
+        await navigator.clipboard.writeText(panel.dataset.no || '');
+        label.textContent = 'Tersalin';
+      } catch {
+        label.textContent = 'Gagal menyalin';
+      }
+      setTimeout(() => { label.textContent = 'Salin'; }, 2000);
+    });
+
+    // Tiket ditutup tanpa memuat ulang halaman: pesan WhatsApp beralih ke tindak lanjut dengan tanggapan resmi dan
+    // tombol tandai muncul (StepperPenanganan mengirim event ini setelah server menerima Tutup Tiket).
+    document.addEventListener('sigap:tiket-ditutup', (e) => {
+      const tanggapan = (e as CustomEvent<{ tanggapan?: string }>).detail?.tanggapan ?? '';
+      const wa = panel.querySelector<HTMLAnchorElement>('[data-name="ChatWhatsApp"]');
+      const tautan = tautanWhatsApp(panel.dataset.no, teksWhatsApp({ jenis: 'pengaduan', noTiket: panel.dataset.tiket || '', selesai: true, tanggapan, petugas: panel.dataset.petugas }));
+      if (wa && tautan) wa.href = tautan;
+      if (tandai) tandai.hidden = false;
+    });
+
+    tandai?.addEventListener('click', async () => {
+      tandai.disabled = true;
+      try {
+        const res = await fetch(`/api/pengaduan/${encodeURIComponent(panel.dataset.tiket || '')}/dihubungi`, { method: 'POST' });
+        const d = await res.json().catch(() => null);
+        if (!res.ok || d?.status === 'error') throw new Error(d?.message);
+        window.location.reload();
+      } catch (galat) {
+        tandai.disabled = false;
+        pesan.textContent = (galat as Error).message || 'Terjadi kesalahan pada sistem.';
+      }
+    });
+  }
+</script>
 
 <style>
   .page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 4px; padding-bottom: 24px; }
@@ -117,6 +198,18 @@ const warna = d ? chip(d.labelStatus) : null;
   dl div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
   dt { color: var(--muted); }
   dd { margin: 0; font-weight: 500; text-align: right; }
+  .kontak { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; background: var(--surface); border: 2px solid var(--blue); }
+  .kontak-label { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .kontak-nomor { font-size: 28px; font-weight: 600; letter-spacing: .02em; }
+  .kontak-aksi { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kontak-aksi .pill, .kontak .tandai { height: 44px; font-size: 14px; }
+  .wa { height: 44px; padding: 0 18px; font-size: 14px; }
+  .kontak-status { margin: 0; font-size: 14px; font-weight: 500; color: var(--danger); }
+  .kontak-status[data-sudah="1"] { color: var(--muted); }
+  .kontak .tandai { align-self: flex-start; }
+  .kontak-wa { margin: 0; font-size: 13px; color: var(--muted); }
+  .kontak-pesan { margin: 0; font-size: 14px; color: var(--danger); }
+  .kontak-pesan:empty { display: none; }
   .transkrip { height: 50px; padding: 0 22px; font-size: 15px; align-self: flex-start; }
   .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 18px; color: var(--ink-3); }
   .empty i { font-size: 32px; color: var(--muted-2); }
