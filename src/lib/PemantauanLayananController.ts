@@ -78,6 +78,16 @@ export type BebanPerJam = { jam: string; total: number; dijawabAi: number; diesk
 /** Baris log_tool. Argumen tool sengaja tidak dibaca karena bisa memuat data pribadi. */
 export type LogToolTersimpan = { id: number; namaTool: string; durasiMs: number; berhasil: boolean; waktu: string };
 
+/** Provider AI yang menjawab panggilan: cloud (Hermes cloud) atau lokal (Hermes lokal). */
+export type ProviderAi = 'cloud' | 'lokal';
+export const DAFTAR_PROVIDER_AI: readonly ProviderAi[] = ['cloud', 'lokal'];
+
+/** Pengaturan provider AI; diubahOleh adalah nama petugas (null bila belum pernah diubah atau tidak terbaca), bolehUbah dari boleh_atur_ai. */
+export type PengaturanProviderAi = { provider: ProviderAi; diubahOleh: string | null; diubahPada: string; bolehUbah: boolean };
+
+/** Galat penyimpanan yang sudah dipetakan; saat ini hanya 403 (SQLSTATE 42501, tanpa hak_atur_ai). */
+export type KodeGalat = 403;
+
 /** Penyimpanan pemantauan layanan (PROJECT_RULES 4.3): Supabase via RPC/view atau implementasi tiruan (mock). */
 export interface PenyimpananPemantauan {
   ambilRingkasan(): Promise<DataRingkasanLayanan>;
@@ -88,6 +98,9 @@ export interface PenyimpananPemantauan {
   /** Log tool terbaru lebih dulu. */
   ambilLogTool?(batas: number): Promise<LogToolTersimpan[]>;
   ambilBebanPerJam?(): Promise<BebanPerJam[]>;
+  ambilProviderAi?(): Promise<PengaturanProviderAi>;
+  /** Melempar galat ber-`kode` 403 bila petugas tidak punya hak atur AI (REQ-4.5). */
+  ubahProviderAi?(provider: ProviderAi): Promise<PengaturanProviderAi>;
 }
 
 /** Hasil pemeriksaan satu komponen AI Agent dari endpoint health Voice Gateway. */
@@ -106,6 +119,8 @@ export const PESAN_PEMANTAUAN = {
   panggilanGagalDimuat: 'Data panggilan gagal dimuat.',
   antreanGagalDimuat: 'Data tiket gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
   ringkasanGagalDimuat: 'Data ringkasan gagal dimuat. Muat ulang halaman untuk mencoba lagi.',
+  providerAiDiubah: 'Provider AI berhasil diubah.',
+  providerAiTanpaHak: 'Anda tidak memiliki hak mengubah provider AI.',
 } as const;
 
 export type StatusTiket = 'belum_ditelaah' | 'sedang_ditelaah' | 'menunggu_pemeriksaan' | 'tanggapan_disusun' | 'selesai' | 'diteruskan';
@@ -147,6 +162,9 @@ export const KAPASITAS_SALURAN_BAWAAN = 50;
 const POLA_NO_TIKET = /^(ADU|ESK)-[0-9]{8}-[0-9]{4}$/;
 
 const DETIK = 1000;
+// Kamus UC-04 belum punya pesan untuk isian tidak sah; dipakai pesan yang sama dengan endpoint UC-06 dan simpan-materi.
+const PESAN_TIDAK_VALID = 'Permintaan tidak valid.';
+const PESAN_GALAT_SISTEM = 'Terjadi kesalahan pada sistem.';
 
 export type Ringkasan = {
   statistik: StatistikLayanan;
@@ -425,6 +443,27 @@ export class PemantauanLayananController {
           tautanTranskrip: t.percakapanId ? tautanTranskrip(t.percakapanId) : null,
         })),
     };
+  }
+
+  /** REQ-4.5: pengaturan provider AI untuk panel; null bila tidak terbaca (panel menyembunyikan pilihan). */
+  async ambilProviderAi(): Promise<PengaturanProviderAi | null> {
+    if (!this.penyimpanan.ambilProviderAi) return null;
+    return await this.penyimpanan.ambilProviderAi().catch(() => null);
+  }
+
+  /**
+   * REQ-4.5, T-F5.5-05: mengubah provider AI. Nilai divalidasi sebelum menyentuh penyimpanan; izin tidak pernah dipercaya dari
+   * klien, penegaknya RPC ubah_provider_ai. `kode` adalah kode HTTP (PROJECT_RULES 4.4).
+   */
+  async ubahProviderAi(nilai: unknown): Promise<{ kode: 200 | 400 | 403 | 500; pesan: string; data: PengaturanProviderAi | null }> {
+    if (typeof nilai !== 'string' || !(DAFTAR_PROVIDER_AI as readonly string[]).includes(nilai)) return { kode: 400, pesan: PESAN_TIDAK_VALID, data: null };
+    if (!this.penyimpanan.ubahProviderAi) return { kode: 500, pesan: PESAN_GALAT_SISTEM, data: null };
+    try {
+      return { kode: 200, pesan: PESAN_PEMANTAUAN.providerAiDiubah, data: await this.penyimpanan.ubahProviderAi(nilai as ProviderAi) };
+    } catch (e) {
+      if ((e as { kode?: KodeGalat }).kode === 403) return { kode: 403, pesan: PESAN_PEMANTAUAN.providerAiTanpaHak, data: null };
+      return { kode: 500, pesan: PESAN_GALAT_SISTEM, data: null };
+    }
   }
 
   /** T-F5.4-01: kesehatan komponen, rata-rata latensi tool, dan log tool terbaru. */

@@ -7,9 +7,12 @@ import type {
   DataRingkasanLayanan,
   DetailKasusPengaduan,
   KasusPerluTindakLanjut,
+  KodeGalat,
   LogToolTersimpan,
   PanggilanAktif,
+  PengaturanProviderAi,
   PenyimpananPemantauan,
+  ProviderAi,
   TiketAntrean,
 } from './PemantauanLayananController.ts';
 
@@ -41,6 +44,11 @@ type HasilDetail = {
 
 // Kode galat yang dilempar ambil_detail_pengaduan_tiket bila tiket tidak ada.
 const KODE_TIKET_TIDAK_ADA = 'P0002';
+
+// SQLSTATE ubah_provider_ai bila pemanggil tidak punya hak_atur_ai (REQ-4.5).
+const KODE_TANPA_HAK = '42501';
+
+type BarisPengaturanAi = { provider: ProviderAi; diubah_oleh: string | null; diubah_pada: string; petugas: { nama: string } | null };
 
 const opsional = <T>(v: T | null) => v ?? undefined;
 
@@ -168,5 +176,28 @@ export class PenyimpananPemantauanSupabase implements PenyimpananPemantauan {
     const p = new URLSearchParams({ select: 'id,nama_tool,durasi_ms,berhasil,waktu', order: 'waktu.desc,id.desc', limit: String(batas) });
     const baris = await this.json<{ id: number; nama_tool: string; durasi_ms: number; berhasil: boolean; waktu: string }[]>(`log_tool?${p}`);
     return baris.map((b) => ({ id: b.id, namaTool: b.nama_tool, durasiMs: b.durasi_ms, berhasil: b.berhasil, waktu: b.waktu }));
+  }
+
+  /** Pengaturan provider AI dengan nama petugas pengubah; hak ubah dari RPC boleh_atur_ai. */
+  async ambilProviderAi(): Promise<PengaturanProviderAi> {
+    const p = new URLSearchParams({ select: 'provider,diubah_oleh,diubah_pada,petugas(nama)', limit: '1' });
+    const [baris, boleh] = await Promise.all([this.json<BarisPengaturanAi[]>(`pengaturan_ai?${p}`), this.json<boolean>('rpc/boleh_atur_ai', {})]);
+    const b = baris[0];
+    if (!b) throw new Error('Supabase pengaturan_ai kosong');
+    return { provider: b.provider, diubahOleh: b.petugas?.nama ?? null, diubahPada: b.diubah_pada, bolehUbah: boleh === true };
+  }
+
+  /** RPC ubah_provider_ai menegakkan hak; 42501 dilempar sebagai galat ber-kode 403. */
+  async ubahProviderAi(provider: ProviderAi): Promise<PengaturanProviderAi> {
+    const res = await this.minta('rpc/ubah_provider_ai', { p_provider: provider });
+    if (!res.ok) {
+      const galat = (await res.json().catch(() => null)) as { code?: string } | null;
+      const e: Error & { kode?: KodeGalat } = new Error(`Supabase ${res.status} pada rpc/ubah_provider_ai`);
+      if (galat?.code === KODE_TANPA_HAK) e.kode = 403;
+      throw e;
+    }
+    const b = (await res.json()) as Omit<BarisPengaturanAi, 'petugas'>;
+    // Perubahan sudah tersimpan; bila pembacaan nama pengubah gagal, tetap laporkan berhasil tanpa nama.
+    return await this.ambilProviderAi().catch(() => ({ provider: b.provider, diubahOleh: null, diubahPada: b.diubah_pada, bolehUbah: true }));
   }
 }
