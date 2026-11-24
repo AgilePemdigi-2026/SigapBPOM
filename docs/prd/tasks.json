@@ -1056,7 +1056,7 @@
       "dependsOn": [
         "T-F5.5-01"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -1065,7 +1065,7 @@
       "subFeatureId": "F5.5",
       "title": "Sediakan pemilih provider di gateway",
       "description": "Sediakan Edge Function provider-ai dan PemilihProviderAi di Voice Gateway untuk sub-fitur Pilih Provider AI.",
-      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pilih Provider AI**, layer backend, fase 2 (ditarik ke Sprint 3 atas persetujuan tim, PROJECT_RULES 9.1; ADR 0007). Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`; rencana: `docs/plans/2026-11-24-pilihan-provider-ai-lokal.md`.\n\n## Tujuan task\nGateway membaca pilihan provider dengan cache 5 detik dan tidak pernah memakai cloud diam-diam bila pilihan belum terbaca (REQ-4.5, REQ-4.7).\n\n## Yang harus dibuat\n- Edge Function `provider-ai` (GET, kunci `SIGAP_KUNCI_INTERNAL`), mengikuti pola `katalog-materi`.\n- Interface `PemilihProviderAi.aktif()` dengan `PemilihProviderSupabase` (cache 5000 ms; galat baca memakai nilai terakhir; belum pernah berhasil berarti `tidak_diketahui`; nilai di luar enum dianggap gagal baca) dan `PemilihProviderTiruan` (`AI_PROVIDER_BAWAAN`, bawaan `cloud`, hanya untuk lokal, test, dan demo).\n- Env baru di `voice-gateway/.env.example`: `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, `HERMES_LOKAL_MODEL`, `OLLAMA_URL`, `AI_PROVIDER_BAWAAN`.\n- Catatan operasional: profil Hermes `sigap-lokal` di `:8643`, Ollama, dan Tailscale disiapkan manual (rencana Task 2), dan uji panggil tool `cek-registrasi` ke profil itu harus berhasil sebelum task ini dikerjakan.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Nama test menyebut kode REQ (REQ-4.5, REQ-4.6, REQ-4.7). Eksplor kode yang ada sebelum menulis. Pesan commit Conventional Commits bahasa Inggris, scope `uc-04`, tanpa atribusi AI.\n\n## Kriteria selesai\nTes: pemilih membaca dan meng-cache; galat baca memakai nilai terakhir; belum pernah berhasil menghasilkan `tidak_diketahui`; nilai di luar enum dianggap gagal baca.\n\n## Jangan\nJangan menyentuh kode use case. Jangan menambah fitur di luar lingkup task ini.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pilih Provider AI**, layer backend, fase 2 (ditarik ke Sprint 3 atas persetujuan tim, PROJECT_RULES 9.1; ADR 0007). Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`; rencana: `docs/plans/2026-11-24-pilihan-provider-ai-lokal.md`.\n\n## Tujuan task\nGateway membaca pilihan provider dengan cache 5 detik dan tidak pernah memakai cloud diam-diam bila pilihan belum terbaca (REQ-4.5, REQ-4.7).\n\n## Yang harus dibuat\n- Edge Function `provider-ai` (POST `{}`, kunci `SIGAP_KUNCI_INTERNAL`), mengikuti pola `katalog-materi`.\n- Interface `PemilihProviderAi.aktif()` dengan `PemilihProviderSupabase` (cache 5000 ms; galat baca memakai nilai terakhir; belum pernah berhasil berarti `tidak_diketahui`; nilai di luar enum dianggap gagal baca) dan `PemilihProviderTiruan` (`AI_PROVIDER_BAWAAN`, bawaan `cloud`, hanya untuk lokal, test, dan demo).\n- Env baru di `voice-gateway/.env.example`: `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, `HERMES_LOKAL_MODEL`, `OLLAMA_URL`, `AI_PROVIDER_BAWAAN`.\n- Catatan operasional: profil Hermes `sigap-lokal` di `:8643`, Ollama, dan Tailscale disiapkan manual (rencana Task 2), dan uji panggil tool `cek-registrasi` ke profil itu harus berhasil sebelum task ini dikerjakan.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Nama test menyebut kode REQ (REQ-4.5, REQ-4.6, REQ-4.7). Eksplor kode yang ada sebelum menulis. Pesan commit Conventional Commits bahasa Inggris, scope `uc-04`, tanpa atribusi AI.\n\n## Kriteria selesai\nTes: pemilih membaca dan meng-cache; galat baca memakai nilai terakhir; belum pernah berhasil menghasilkan `tidak_diketahui`; nilai di luar enum dianggap gagal baca.\n\n## Jangan\nJangan menyentuh kode use case. Jangan menambah fitur di luar lingkup task ini.",
       "priority": "medium",
       "layer": "backend",
       "page": null,
@@ -1073,7 +1073,7 @@
       "dependsOn": [
         "T-F5.5-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -1090,7 +1090,7 @@
       "dependsOn": [
         "T-F5.5-03"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -1099,7 +1099,7 @@
       "subFeatureId": "F5.5",
       "title": "Buat endpoint ubah provider AI",
       "description": "Buat control dan endpoint POST /api/provider-ai untuk sub-fitur Pilih Provider AI.",
-      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pilih Provider AI**, layer backend, fase 2 (ditarik ke Sprint 3 atas persetujuan tim, PROJECT_RULES 9.1; ADR 0007). Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`; rencana: `docs/plans/2026-11-24-pilihan-provider-ai-lokal.md`.\n\n## Tujuan task\nPetugas yang berhak mengubah provider lewat endpoint dengan sesi, CSRF, dan validasi di server (REQ-4.5).\n\n## Yang harus dibuat\n- Control dan endpoint `POST /api/provider-ai` (sesi, CSRF, validasi enum `cloud` atau `lokal`) yang memanggil RPC `ubah_provider_ai` dan mengembalikan `{ status, message, data }`.\n- Sukses: \"Provider AI berhasil diubah.\". Tanpa hak: 403 dengan \"Anda tidak memiliki hak mengubah provider AI.\".\n- Pembacaan pilihan aktif, petugas terakhir, dan waktunya untuk panel.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Nama test menyebut kode REQ (REQ-4.5, REQ-4.6, REQ-4.7). Eksplor kode yang ada sebelum menulis. Pesan commit Conventional Commits bahasa Inggris, scope `uc-04`, tanpa atribusi AI.\n\n## Kriteria selesai\nTes: ditolak tanpa sesi, tanpa CSRF, dan dengan nilai di luar enum (422); petugas tanpa hak yang mengirim POST langsung mendapat 403 dan baris tidak berubah.\n\n## Jangan\nJangan mengandalkan penonaktifan tombol di UI sebagai satu-satunya pemeriksaan hak. Jangan menambah fitur di luar lingkup task ini.",
+      "prompt": "## Konteks\nAplikasi SIGAP (AI Voice Agent HaloBPOM yang menjawab legalitas produk dan edukasi obat dan makanan, mencatat pengaduan bertiket, dan menyediakan dashboard bagi petugas BPOM). Stack: Astro + TypeScript, Supabase Edge Functions + Hermes Agent (GPT langganan) + Voice Gateway Node dengan ElevenLabs STT/TTS, Supabase Postgres + pgvector + RLS, deploy VPS Linux Indonesia (Docker, Nginx) dan Supabase Cloud.\nTask ini bagian dari fitur **Pantau Layanan** → sub-fitur **Pilih Provider AI**, layer backend, fase 2 (ditarik ke Sprint 3 atas persetujuan tim, PROJECT_RULES 9.1; ADR 0007). Rancangan: `docs/specs/2026-11-24-pilihan-provider-ai-lokal-design.md`; rencana: `docs/plans/2026-11-24-pilihan-provider-ai-lokal.md`.\n\n## Tujuan task\nPetugas yang berhak mengubah provider lewat endpoint dengan sesi, CSRF, dan validasi di server (REQ-4.5).\n\n## Yang harus dibuat\n- Control dan endpoint `POST /api/provider-ai` (sesi, CSRF, validasi enum `cloud` atau `lokal`) yang memanggil RPC `ubah_provider_ai` dan mengembalikan `{ status, message, data }`.\n- Sukses: \"Provider AI berhasil diubah.\". Tanpa hak: 403 dengan \"Anda tidak memiliki hak mengubah provider AI.\".\n- Pembacaan pilihan aktif, petugas terakhir, dan waktunya untuk panel.\n\n## Aturan\nIkuti pola Boundary, Control, Entity; nama kelas control mengikuti class diagram SRS. Teks UI dan pesan sistem dipakai persis seperti kamus pesan di `docs/reference/PRD-rinci.md` Lampiran A dan B. Layanan eksternal selalu lewat interface dengan implementasi mock. Nama test menyebut kode REQ (REQ-4.5, REQ-4.6, REQ-4.7). Eksplor kode yang ada sebelum menulis. Pesan commit Conventional Commits bahasa Inggris, scope `uc-04`, tanpa atribusi AI.\n\n## Kriteria selesai\nTes: ditolak tanpa sesi, tanpa CSRF, dan dengan nilai di luar enum (400); petugas tanpa hak yang mengirim POST langsung mendapat 403 dan baris tidak berubah.\n\n## Jangan\nJangan mengandalkan penonaktifan tombol di UI sebagai satu-satunya pemeriksaan hak. Jangan menambah fitur di luar lingkup task ini.",
       "priority": "medium",
       "layer": "backend",
       "page": null,
@@ -1107,7 +1107,7 @@
       "dependsOn": [
         "T-F5.5-02"
       ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     },
     {
@@ -1125,7 +1125,7 @@
       "T-F5.5-04",
       "T-F5.5-05"
     ],
-      "status": "todo",
+      "status": "done",
       "failReason": null
     }
   ]

@@ -402,6 +402,28 @@ Setiap variabel beserta keterangannya tercatat di berkas contoh. Nilainya hanya 
 | [`voice-gateway/.env.example`](voice-gateway/.env.example) | Voice Gateway | Environment proses: `node --env-file=voice-gateway/.env voice-gateway/server.mjs` saat lokal, daftar `environment` docker compose di VPS |
 | [`supabase/functions/.env.example`](supabase/functions/.env.example) | Edge Functions | `supabase functions serve --env-file supabase/functions/.env` saat lokal, `supabase secrets set` di cloud |
 
+Variabel Voice Gateway untuk pilihan provider AI (UC-04, [ADR 0007](docs/decisions/0007-provider-ai-lokal.md)):
+
+| Variabel | Keterangan |
+|---|---|
+| `HERMES_LOKAL_URL` | Profil Hermes `sigap-lokal`, misalnya `http://host.docker.internal:8643`. Kosong berarti mode Lokal langsung mengucapkan pesan AI lokal tidak aktif lalu dieskalasi |
+| `HERMES_LOKAL_API_KEY` | Kunci API server profil lokal, berbeda dari `HERMES_API_KEY` |
+| `HERMES_LOKAL_MODEL` | Nama model yang dikirim ke profil lokal (bawaan `sigap-hermes`) |
+| `HERMES_LOKAL_BATAS_WAKTU_MS` | Batas waktu jawaban profil lokal (bawaan 20000) |
+| `OLLAMA_URL` | Alamat Ollama untuk pemeriksaan kesehatan `GET /api/tags` setiap 30 detik. Kosong berarti AI Lokal "Belum terpantau" |
+| `OLLAMA_PERIKSA_MS` | Jarak pemeriksaan Ollama (bawaan 30000), hanya dipersingkat untuk uji @ui di CI |
+| `AI_PROVIDER_BAWAAN` | Provider pemilih tiruan (`cloud` atau `lokal`) bila Supabase tidak dikonfigurasi. Tidak dipakai di produksi |
+
+### Menyiapkan provider AI lokal (ADR 0007)
+
+Mode Lokal memakai profil Hermes kedua yang hanya bicara ke Ollama di PC lokal, jadi isi percakapan yang dikirim ke model tidak keluar ke penyedia LLM cloud. STT dan TTS tetap memakai ElevenLabs di kedua mode.
+
+1. **PC lokal (Ollama).** Pasang Ollama, lalu `ollama pull qwen3:8b` (mode thinking dimatikan di profil). Atur environment sistem `OLLAMA_HOST=0.0.0.0` dan `OLLAMA_KEEP_ALIVE=-1` agar model tetap di VRAM, lalu restart Ollama. Windows Firewall hanya mengizinkan port 11434 dari rentang Tailscale `100.64.0.0/10`; port ini tidak boleh terbuka ke internet karena Ollama tidak punya autentikasi.
+2. **Tailscale.** Pasang Tailscale di PC lokal dan VPS dalam satu tailnet, lalu pastikan VPS menjangkau `http://<ip-tailscale-pc>:11434/api/tags`.
+3. **Profil Hermes `sigap-lokal` di VPS.** Salin konfigurasi profil `sigap-cloud` (prompt, skill, tool) ke profil baru di port 8643 dengan `provider: custom`, `base_url: http://<ip-tailscale-pc>:11434/v1`, model `qwen3:8b`, tanpa `fallback_model`, tanpa kunci OpenAI, OpenRouter, atau kunci cloud lain, dan dengan kunci API server sendiri.
+4. **Voice Gateway.** Isi `HERMES_LOKAL_URL`, `HERMES_LOKAL_API_KEY`, dan `OLLAMA_URL=http://<ip-tailscale-pc>:11434` di environment service voice, lalu deploy ulang gateway dan Edge Function `provider-ai` ([supabase/README.md](supabase/README.md)).
+5. **Hak petugas.** Beri `petugas.hak_atur_ai = true` lewat Supabase Studio kepada petugas yang boleh mengganti provider di halaman Pantau AI Agent.
+
 ## Aturan Kontribusi
 
 Baca [docs/PROJECT_RULES.md](docs/PROJECT_RULES.md) sebelum berkontribusi. Ringkasannya:
