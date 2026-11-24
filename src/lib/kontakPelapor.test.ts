@@ -31,6 +31,13 @@ test('req_6_6 pesan tindak lanjut pengaduan selesai memuat nomor tiket dan tangg
   assert.ok(teks.includes('Tanggapan resmi:\nProduk sudah ditarik dari peredaran.\n'));
 });
 
+test('adr_0006 nama petugas yang masuk dipakai sebagai salam pembuka', () => {
+  assert.ok(teksWhatsApp({ jenis: 'eskalasi', noTiket: 'ESK-20261124-0002', selesai: false, petugas: ' Adrian ' })
+    .startsWith('Halo, saya Adrian dari HaloBPOM, menindaklanjuti pertanyaan Anda'));
+  assert.ok(teksWhatsApp({ jenis: 'pengaduan', noTiket: 'ADU-20261124-0001', selesai: true, tanggapan: 'x', petugas: 'Abin' })
+    .startsWith('Halo, saya Abin dari HaloBPOM. Pengaduan Anda'));
+});
+
 test('adr_0006 pengaduan belum selesai dan eskalasi hanya membawa pembuka dengan nomor tiket', () => {
   assert.equal(teksWhatsApp({ jenis: 'pengaduan', noTiket: 'ADU-20261124-0001', selesai: false, tanggapan: 'x' }),
     'Halo, kami dari HaloBPOM, terkait pengaduan Anda dengan nomor tiket ADU-20261124-0001.\n\n');

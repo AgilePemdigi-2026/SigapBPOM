@@ -2,7 +2,8 @@
 // Penguncian akun (REQ-3.5) dihitung di Edge Function login; pesannya diteruskan apa adanya.
 import type { AstroCookies } from 'astro';
 
-export type Petugas = { nama: string; email: string };
+/** `noWa`: nomor WhatsApp petugas untuk tindak lanjut pelapor (ADR 0006), kosong bila belum diisi. */
+export type Petugas = { nama: string; email: string; noWa?: string | null };
 
 /** Penolakan dari penyedia autentikasi beserta pesan bakunya, misalnya akun terkunci atau layanan tak tersedia. */
 export type GagalMasuk = { gagal: string; kode: 401 | 429 | 503 };

@@ -49,7 +49,8 @@ const warna = d ? chip(d.labelStatus) : null;
 const kontak = d ? await ambilKontakPelapor(penanganan, d.noTiket) : null;
 const jenisKontak = d?.jenis === LABEL_JENIS_TIKET.pengaduan ? 'pengaduan' : 'eskalasi';
 const selesai = d?.status === 'selesai';
-const tautanWa = d && kontak ? tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: jenisKontak, noTiket: d.noTiket, selesai, tanggapan: tanggapan?.isi })) : null;
+const petugas = Astro.locals.petugas;
+const tautanWa = d && kontak ? tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: jenisKontak, noTiket: d.noTiket, selesai, tanggapan: tanggapan?.isi, petugas: petugas?.nama })) : null;
 const tautanTel = kontak ? tautanTelepon(kontak.noTelp) : null;
 // Pengaduan ditandai setelah ditutup (tanggapan resmi sudah ada); eskalasi kapan saja karena jawabannya disampaikan saat dihubungi.
 const bolehTandai = Boolean(kontak && !kontak.sudahDihubungi && (jenisKontak === 'eskalasi' || selesai));
@@ -102,7 +103,7 @@ const waktuDihubungi = kontak?.dihubungiPada
               <div><dt>Waktu masuk</dt><dd>{d.tglTerbit}</dd></div>
               <div><dt>Status</dt><dd>{d.labelStatus}</dd></div>
             </dl>
-            <div class="kontak" data-name="KontakPelapor" data-tiket={d.noTiket} data-jenis={jenisKontak} data-no={kontak?.noTelp ?? ''}>
+            <div class="kontak" data-name="KontakPelapor" data-tiket={d.noTiket} data-jenis={jenisKontak} data-no={kontak?.noTelp ?? ''} data-petugas={petugas?.nama ?? ''}>
               <span class="kontak-label">Nomor telepon pelapor</span>
               <strong class="kontak-nomor mono">{kontak ? tampilNomor(kontak.noTelp) : d.noTelp}</strong>
               {kontak && (
@@ -111,6 +112,9 @@ const waktuDihubungi = kontak?.dihubungiPada
                   {tautanTel && <a class="pill" href={tautanTel}><i class="icon-phone"></i>Telepon</a>}
                   <button type="button" class="pill" data-salin><i class="icon-copy"></i><span>Salin</span></button>
                 </div>
+              )}
+              {kontak && petugas?.noWa && (
+                <p class="kontak-wa" data-name="WhatsAppPetugas">Pastikan WhatsApp yang terbuka adalah nomor Anda: <span class="mono">{tampilNomor(petugas.noWa)}</span></p>
               )}
               {kontak && (
                 <p class="kontak-status" data-name="StatusKontak" data-sudah={kontak.sudahDihubungi ? '1' : ''}>
@@ -157,7 +161,7 @@ const waktuDihubungi = kontak?.dihubungiPada
     document.addEventListener('sigap:tiket-ditutup', (e) => {
       const tanggapan = (e as CustomEvent<{ tanggapan?: string }>).detail?.tanggapan ?? '';
       const wa = panel.querySelector<HTMLAnchorElement>('[data-name="ChatWhatsApp"]');
-      const tautan = tautanWhatsApp(panel.dataset.no, teksWhatsApp({ jenis: 'pengaduan', noTiket: panel.dataset.tiket || '', selesai: true, tanggapan }));
+      const tautan = tautanWhatsApp(panel.dataset.no, teksWhatsApp({ jenis: 'pengaduan', noTiket: panel.dataset.tiket || '', selesai: true, tanggapan, petugas: panel.dataset.petugas }));
       if (wa && tautan) wa.href = tautan;
       if (tandai) tandai.hidden = false;
     });
@@ -203,6 +207,7 @@ const waktuDihubungi = kontak?.dihubungiPada
   .kontak-status { margin: 0; font-size: 14px; font-weight: 500; color: var(--danger); }
   .kontak-status[data-sudah="1"] { color: var(--muted); }
   .kontak .tandai { align-self: flex-start; }
+  .kontak-wa { margin: 0; font-size: 13px; color: var(--muted); }
   .kontak-pesan { margin: 0; font-size: 14px; color: var(--danger); }
   .kontak-pesan:empty { display: none; }
   .transkrip { height: 50px; padding: 0 22px; font-size: 15px; align-self: flex-start; }
