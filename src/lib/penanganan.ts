@@ -2,7 +2,7 @@
 // menjalankan PenangananController, lalu memetakan hasil dan galat RPC ke kode HTTP dan pesan kamus (PROJECT_RULES 4.4).
 // Mesin status ditegakkan RPC. Dengan token sesi Supabase, RPC dipanggil memakai token petugas; penyimpanan tiruan hanya
 // untuk jalur tanpa token di pengembangan lokal, tidak pernah di build produksi.
-import { OPSI_TINDAK_LANJUT, PESAN_TUTUP_TANPA_TANGGAPAN, PenangananController, PenyimpananPenangananMock, type PenyimpananPenanganan, type TindakLanjut } from './PenangananController.ts';
+import { OPSI_TINDAK_LANJUT, PESAN_TUTUP_BELUM_DIHUBUNGI, PESAN_TUTUP_TANPA_TANGGAPAN, PenangananController, PenyimpananPenangananMock, type PenyimpananPenanganan, type TindakLanjut } from './PenangananController.ts';
 import { LABEL_STATUS_TIKET, type StatusTiket } from './PemantauanLayananController.ts';
 import { penyimpananPenangananSupabase } from './penyimpananPenangananSupabase.ts';
 import { bacaKonfigurasiSupabase } from './konfigurasiSupabase.ts';
@@ -30,6 +30,8 @@ const PENOLAKAN: Record<string, Penolakan> = {
   '55000': { kode: 422, pesan: PESAN_TIDAK_VALID },
   SG409: { kode: 422, pesan: PESAN_TIDAK_VALID },
   SGBR2: { kode: 422, pesan: PESAN_TUTUP_TANPA_TANGGAPAN },
+  // ADR 0006 (migrasi 20261125120000): pelapor belum dihubungi.
+  SGHUB: { kode: 422, pesan: PESAN_TUTUP_BELUM_DIHUBUNGI },
 };
 
 const DITOLAK: HasilPenanganan = { kode: 400, pesan: PESAN_TIDAK_VALID, data: null };
@@ -67,7 +69,7 @@ async function jalankan(noTiket: string, aksi: () => Promise<{ status: string; p
   } catch (e) {
     const galat = e as { code?: string; message?: string } | null;
     // Penyimpanan tiruan melempar Error berisi pesan kamus BR-2 tanpa SQLSTATE.
-    const kode = galat?.code ?? (galat?.message === PESAN_TUTUP_TANPA_TANGGAPAN ? 'SGBR2' : '');
+    const kode = galat?.code ?? (galat?.message === PESAN_TUTUP_TANPA_TANGGAPAN ? 'SGBR2' : galat?.message === PESAN_TUTUP_BELUM_DIHUBUNGI ? 'SGHUB' : '');
     return { ...(Object.hasOwn(PENOLAKAN, kode) ? PENOLAKAN[kode] : { kode: 500, pesan: PESAN_SISTEM }), data: null };
   }
 }
@@ -94,13 +96,13 @@ export async function simpanTanggapan(penanganan: PenangananController, noTiket:
   return jalankan(noTiket, () => penanganan.simpanTanggapan(noTiket, tanggapan));
 }
 
-/** REQ-6.5, REQ-6.6, BR-2: tiket tanpa tanggapan ditolak; RPC mencatat tindak lanjut yang perlu dihubungi (ADR 0006). */
+/** REQ-6.5, REQ-6.6, BR-2: tiket tanpa tanggapan ditolak, begitu juga tiket yang pelapornya belum dihubungi (ADR 0006). */
 export async function tutupTiket(penanganan: PenangananController, noTiket: unknown): Promise<HasilPenanganan> {
   if (!noTiketSah(noTiket)) return DITOLAK;
   return jalankan(noTiket, () => penanganan.tutupTiket(noTiket));
 }
 
-/** ADR 0006: pelapor sudah dihubungi lewat WhatsApp atau telepon. Pengaduan yang belum ditutup ditolak RPC (55000). */
+/** ADR 0006: pelapor sudah dihubungi lewat WhatsApp atau telepon. Pengaduan tanpa tanggapan resmi ditolak RPC (55000). */
 export async function tandaiSudahDihubungi(penanganan: PenangananController, noTiket: unknown): Promise<HasilPenanganan> {
   if (!noTiketSah(noTiket)) return DITOLAK;
   return jalankan(noTiket, () => penanganan.tandaiSudahDihubungi(noTiket));

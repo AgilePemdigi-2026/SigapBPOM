@@ -1,6 +1,6 @@
 -- Migrasi 20261117100000: urutan tahap penanganan UC-06 dan tgl_selesai untuk rekap UC-08 (REQ-8.1).
 begin;
-select plan(20);
+select plan(21);
 
 insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-000000000098', 'petugas.mesin@halobpom.go.id')
@@ -45,7 +45,8 @@ select lives_ok($$ select public.simpan_tanggapan('ADU-20260828-0211', 'Hasil pe
 select throws_ok($$ select public.simpan_jadwal_pemeriksaan('ADU-20260828-0211', '2026-09-02'::date, 'BBPOM di Surabaya') $$, '55000', null,
   'Jadwal tidak dapat memundurkan tiket Tanggapan Disusun');
 
--- Tutup tiket mencatat waktu penutupan.
+-- Tutup tiket mencatat waktu penutupan (pelapor dihubungi lebih dulu, ADR 0006).
+select lives_ok($$ select public.tandai_sudah_dihubungi('ADU-20260828-0211') $$, 'Pelapor ditandai sudah dihubungi');
 select is(public.tutup_tiket('ADU-20260828-0211'), 'selesai'::public.status_tiket, 'Tiket bertanggapan dapat ditutup');
 reset role;
 select ok((select tgl_selesai is not null from public.tiket where no_tiket = 'ADU-20260828-0211'),

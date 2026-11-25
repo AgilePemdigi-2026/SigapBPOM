@@ -125,7 +125,7 @@ test('t_f7_1_02 adapter membaca tiket pengaduan tanpa kolom data pribadi, dengan
   assert.doesNotMatch(tidakLengkap.url.searchParams.get('select') ?? '', /penelepon/);
 });
 
-test('adr_0006 pengaduan selesai yang pelapornya belum dihubungi diberi tanda', async () => {
+test('adr_0006 pengaduan bertanggapan atau selesai yang pelapornya belum dihubungi diberi tanda', async () => {
   const hasil = await ambilDaftarPengaduan(new PenyimpananDaftarPengaduanTiruan([
     { noTiket: 'ADU-20261124-0001', namaProduk: 'A', kategori: null, tglPengaduan: '2026-11-24T01:00:00Z', status: 'selesai', sudahDihubungi: false },
     { noTiket: 'ADU-20261124-0002', namaProduk: 'B', kategori: null, tglPengaduan: '2026-11-24T02:00:00Z', status: 'selesai', sudahDihubungi: true },
@@ -133,7 +133,7 @@ test('adr_0006 pengaduan selesai yang pelapornya belum dihubungi diberi tanda', 
   ], []), {});
   assert.ok(!('gagal' in hasil));
   assert.deepEqual(hasil.pengaduan.map((p) => [p.noTiket, p.belumDihubungi]), [
-    ['ADU-20261124-0003', false],
+    ['ADU-20261124-0003', true],
     ['ADU-20261124-0002', false],
     ['ADU-20261124-0001', true],
   ]);

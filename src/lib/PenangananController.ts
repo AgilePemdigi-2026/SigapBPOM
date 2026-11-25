@@ -12,6 +12,7 @@ export const PESAN_TUTUP_TIKET = 'Tiket ditutup.';
 export const PESAN_TUTUP_TANPA_TANGGAPAN = 'Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu.';
 /** ADR 0006: belum ada di kamus Lampiran A, diusulkan bersama change request tindak lanjut WhatsApp. */
 export const PESAN_SUDAH_DIHUBUNGI = 'Pelapor ditandai sudah dihubungi.';
+export const PESAN_TUTUP_BELUM_DIHUBUNGI = 'Tiket tidak dapat ditutup. Hubungi pelapor terlebih dahulu.';
 
 export type TindakLanjut = 'Telaah Dokumen' | 'Perlu Pemeriksaan Lapangan' | 'Bukan Kewenangan BPOM';
 
@@ -282,18 +283,13 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
       throw new Error(PESAN_TUTUP_TANPA_TANGGAPAN);
     }
 
+    // ADR 0006: pelapor harus sudah menerima tanggapan sebelum tiket ditutup.
+    if (!this.notifikasiList.some((n) => n.tiketId === noTiket && n.status === 'terkirim')) {
+      throw new Error(PESAN_TUTUP_BELUM_DIHUBUNGI);
+    }
+
     t.status = 'selesai';
     this.tiketMap.set(noTiket, t);
-
-    // Antrekan notifikasi hanya satu kali (idempoten)
-    const sudahAntre = this.notifikasiList.some((n) => n.tiketId === noTiket);
-    if (!sudahAntre) {
-      this.notifikasiList.push({
-        tiketId: noTiket,
-        isi: daftarTanggapan[0].isi,
-        status: 'tertunda',
-      });
-    }
 
     return {
       noTiket,
@@ -323,8 +319,8 @@ export class PenyimpananPenangananMock implements PenyimpananPenanganan {
   async tandaiSudahDihubungi(noTiket: string): Promise<ResponTandaiDihubungi> {
     // Tiket contoh halaman pemantauan tidak ada di tiketMap; yang tidak dikenal dianggap boleh ditandai.
     const t = this.tiketMap.get(noTiket);
-    if (t?.jenis === 'pengaduan' && t.status !== 'selesai') throw new Error(`Tiket ${noTiket} belum ditutup.`);
-    if (t) t.status = 'selesai';
+    if (t?.jenis === 'pengaduan' && t.status !== 'tanggapan_disusun' && t.status !== 'selesai') throw new Error(`Tiket ${noTiket} belum punya tanggapan resmi.`);
+    if (t && t.jenis !== 'pengaduan') t.status = 'selesai';
     const n = this.notifikasiList.find((x) => x.tiketId === noTiket);
     if (!n) this.notifikasiList.push({ tiketId: noTiket, isi: '', status: 'terkirim', dihubungiPada: new Date().toISOString() });
     else if (n.status !== 'terkirim') Object.assign(n, { status: 'terkirim', dihubungiPada: new Date().toISOString() });

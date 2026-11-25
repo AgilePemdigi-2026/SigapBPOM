@@ -27,7 +27,7 @@ export type BarisPengaduan = {
   kategori: string;
   tanggal: string;
   labelStatus: string;
-  /** ADR 0006: pengaduan selesai yang pelapornya belum dihubungi lewat WhatsApp atau telepon. */
+  /** ADR 0006: pengaduan bertanggapan (atau selesai sebelum aturan hubungi-dulu) yang pelapornya belum dihubungi. */
   belumDihubungi: boolean;
   /** Tombol "Telaah", hanya untuk pengaduan Belum Ditelaah (UC-06 langkah 3). */
   tautanTelaah: string | null;
@@ -75,7 +75,7 @@ export async function ambilDaftarPengaduan(penyimpanan: PenyimpananDaftarPengadu
           kategori: p.kategori?.trim() || '—',
           tanggal: tanggalTampil(p.tglPengaduan),
           labelStatus: Object.hasOwn(LABEL_STATUS_TIKET, p.status) ? LABEL_STATUS_TIKET[p.status as StatusTiket] : p.status,
-          belumDihubungi: p.status === 'selesai' && !p.sudahDihubungi,
+          belumDihubungi: (p.status === 'tanggapan_disusun' || p.status === 'selesai') && !p.sudahDihubungi,
           tautanTelaah: p.status === STATUS_TELAAH ? tautanDetail(p.noTiket) : null,
           tautanKasus: tautanDetail(p.noTiket),
         })),
