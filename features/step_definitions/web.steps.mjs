@@ -373,7 +373,8 @@ Then('I should be asked {string}', async function (teks) {
 });
 
 // UC-05 (Tabel B.6): percakapan selesai dengan transkrip yang menyebut nomor telepon, agar penyamaran view ucapan_petugas
-// (NFR-13) tampil sebagai "0812****7890". Waktunya sekarang, jadi muncul paling atas di periode bawaan Riwayat Percakapan.
+// (NFR-13) tampil sebagai "0812****7890". Dimulai sekarang, sehingga lebih baru dari percakapan skenario sebelumnya dan
+// "Lihat Transkrip" pertama di Riwayat Percakapan (urut waktu_mulai terbaru) membukanya.
 Given('there is a recorded conversation with a transcript', function () {
   if (MODE_TIRUAN) return 'skipped';
   const penelepon = randomUUID();
@@ -381,7 +382,7 @@ Given('there is a recorded conversation with a transcript', function () {
   sqlLokal(
     `insert into public.penelepon (id, no_telp, nama_pelapor) values ('${penelepon}', '081234567890', 'Budi Santoso')`,
     `insert into public.percakapan (id, penelepon_id, waktu_mulai, waktu_selesai, jenis_interaksi, status_penyelesaian, topik, ringkasan)
-      values ('${id}', '${penelepon}', now() - interval '3 minutes', now() - interval '1 minute', 'pengaduan', 'selesai_ai',
+      values ('${id}', '${penelepon}', now(), now() + interval '2 minutes', 'pengaduan', 'selesai_ai',
       'Kosmetik', 'Penelepon menanyakan krim wajah yang membuat kulit iritasi.')`,
     `insert into public.ucapan (percakapan_id, urutan, pembicara, teks, detik_ke) values
       ('${id}', 1, 'penelepon', 'Krim wajah saya bikin iritasi, nomor saya 081234567890.', 4),
