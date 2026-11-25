@@ -5,17 +5,19 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { pemantauanLayanan, pengaturanProviderAi } from '../lib/pemantauan';
 import { jumlahGangguan } from '../lib/PemantauanLayananController';
 import KantorAgent from '../components/KantorAgent.astro';
+import { ringkasPanggilan } from '../lib/ringkasPanggilan';
 import PanelProviderAi from '../components/PanelProviderAi.astro';
 
 const layanan = pemantauanLayanan(Astro.locals.tokenAkses);
 // Panggilan berjalan hanya untuk tampilan Kantor; bila gagal dibaca, kesehatan komponen tetap tampil.
 // Pengaturan provider AI (REQ-4.5) yang gagal dibaca menjadi null; panel menampilkan pesan gagal dimuat.
-const [pantau, panggilan, providerAi] = await Promise.all([
+const [pantau, daftarPanggilan, providerAi] = await Promise.all([
   layanan.pantauAgent(),
   layanan.panggilanBerjalan().catch(() => null),
   pengaturanProviderAi(Astro.locals.tokenAkses).ambilProviderAi(),
 ]);
 const { komponen, log } = pantau;
+const { panggilan, ringkasan } = ringkasPanggilan(daftarPanggilan);
 // AI Lokal yang belum terpantau (OLLAMA_URL kosong) tidak dihitung gangguan.
 const gangguan = jumlahGangguan(komponen);
 const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString('id-ID')} ms`);
@@ -40,7 +42,7 @@ const fmtMs = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString
     <PanelProviderAi pengaturan={providerAi} aiLokal={komponen.find((k) => k.nama === 'AI Lokal')} />
 
     <div class="isi" data-tampilan="kantor">
-      <KantorAgent agent={pantau} panggilan={panggilan} />
+      <KantorAgent agent={pantau} panggilan={panggilan} ringkasan={ringkasan} />
     </div>
 
     <div class="isi tabel" data-tampilan="tabel" hidden>

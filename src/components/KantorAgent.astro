@@ -8,9 +8,10 @@
 // digambar di kanvas 320×180 tanpa aset luar selain logo; teks (label, gelembung) berupa DOM agar tetap tajam.
 import type { PantauAgent } from '../lib/PemantauanLayananController';
 
-interface Props { agent: PantauAgent; panggilan: unknown[] | null }
-const { agent, panggilan } = Astro.props;
-const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
+import type { RingkasanPanggilan } from '../lib/ringkasPanggilan';
+interface Props { agent: PantauAgent; panggilan: unknown[] | null; ringkasan?: RingkasanPanggilan | null }
+const { agent, panggilan, ringkasan = null } = Astro.props;
+const awal = JSON.stringify({ agent, panggilan, ringkasan }).replace(/</g, '\\u003c');
 ---
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -43,11 +44,14 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
 <script type="application/json" data-kantor-awal set:html={awal}></script>
 
 <script>
+  import { BATAS_RAMAI } from '../lib/ringkasPanggilan';
+
   type Komponen = { nama: string; status: 'Normal' | 'Gangguan' | 'Belum terpantau'; latensiMs: number | null };
   type Log = { id: number; namaTool: string; durasiMs: number; hasil: 'Berhasil' | 'Gagal'; waktu: string };
   type Agent = { komponen: Komponen[]; rataLatensiToolMs: number | null; log: Log[] | null };
   type Panggilan = { id: string; jenis: string; topik: string; tahap: string };
-  type Data = { agent: Agent; panggilan: Panggilan[] | null };
+  // ringkasan: total dan jumlah per tahap semua panggilan; panggilan hanya contoh (src/lib/ringkasPanggilan.ts).
+  type Data = { agent: Agent; panggilan: Panggilan[] | null; ringkasan?: { total: number; perTahap: Record<string, number> } | null };
 
   const akar = document.querySelector<HTMLElement>('[data-kantor]');
   const kanvas = document.querySelector<HTMLCanvasElement>('[data-kanvas]');
@@ -425,6 +429,22 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       return { el, bub };
     }
     const dom = new Map(ST.map((s) => [s.kunci, buatTag(s)]));
+    // Tanda "+N lainnya" untuk penelepon yang tidak muat di antrean 4 sprite.
+    const lebih = document.createElement('a');
+    lebih.className = 'tag tamu lebih';
+    lebih.href = '/panggilan-berjalan';
+    lebih.hidden = true;
+    lebih.style.left = pct(ANTREAN[ANTREAN.length - 1].x + 18, W);
+    lebih.style.top = pct(ANTREAN[ANTREAN.length - 1].y + 14, H);
+    lapis!.append(lebih);
+    // Beban per meja saat ramai: jumlah panggilan di tahap yang dikerjakan meja itu.
+    const beban = new Map(ST.map((s) => {
+      const b = document.createElement('span');
+      b.className = 'tag-beban';
+      dom.get(s.kunci)!.el.append(b);
+      return [s.kunci, b];
+    }));
+    let ramaiSebelumnya = false;
 
     function bicara(s: Stasiun, teks: string, ms = 4200, gagal = false) {
       kembali(s);
@@ -522,6 +542,11 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
         return { id: p.id, x: mulaiDiPintu ? 15 : tujuan.x, y: mulaiDiPintu ? 30 : tujuan.y, tx: tujuan.x, ty: tujuan.y, rupa: RUPA_TAMU[hashed % RUPA_TAMU.length], tahap: p.tahap, jenis: p.jenis };
       });
       lama.forEach((p) => { if (!penelepon.includes(p)) p.tag?.remove(); });
+      // Penelepon di luar 4 sprite antrean diringkas menjadi satu tanda di ujung antrean.
+      const total = d.ringkasan?.total ?? daftar.length;
+      const sisa = total - penelepon.length;
+      lebih.hidden = sisa <= 0;
+      lebih.innerHTML = `<span class="tag-nama"><i class="icon-users"></i>+${sisa.toLocaleString('id-ID')} lainnya</span>`;
       penelepon.forEach((p) => {
         if (!p.tag) { const a = document.createElement('a'); a.href = '/panggilan-berjalan'; a.className = 'tag tamu'; p.tag = a; lapis!.append(a); }
         // Label penelepon dibuat ringkas agar antrean yang berdekatan tidak saling menumpuk; detailnya ada di umpan aktivitas.
@@ -538,13 +563,26 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       if (!suara.gangguan && tahap.has('Mendengar')) bicara(suara, 'Mendengarkan penelepon…', 6000);
       else if (!suara.gangguan && tahap.has('Menjawab')) bicara(suara, 'Membacakan jawaban…', 6000);
       if (!sigi.gangguan && tahap.has('Memproses')) bicara(sigi, 'Menyusun jawaban…', 6000);
-      if (!stasiun('gateway').gangguan && daftar.length && pertama) bicara(stasiun('gateway'), `${daftar.length} panggilan sedang dilayani`, 5000);
+      const n = (k: string) => d.ringkasan?.perTahap[k] ?? daftar.filter((p) => p.tahap === k).length;
+      const jumlah = (x: number) => x.toLocaleString('id-ID');
+      const ramai = total > BATAS_RAMAI;
+      // Angka beban tampil begitu antrean melebihi 4 sprite, agar kepadatan tiap meja tetap terbaca.
+      const bebanMeja: Record<string, string> = sisa > 0 ? {
+        gateway: `${jumlah(total)} panggilan`,
+        suara: [n('Mendengar') && `${jumlah(n('Mendengar'))} mendengar`, n('Menjawab') && `${jumlah(n('Menjawab'))} menjawab`].filter(Boolean).join(' · '),
+        hermes: n('Memproses') ? `${jumlah(n('Memproses'))} memproses` : '',
+      } : {};
+      beban.forEach((b, k) => { const teks = bebanMeja[k] ?? ''; if (b.textContent !== teks) b.textContent = teks; });
+      akar!.classList.toggle('ramai', ramai);
+      if (ramai && (!ramaiSebelumnya || pertama) && !stasiun('gateway').gangguan) bicara(stasiun('gateway'), `Antrean padat: ${jumlah(total)} panggilan, melebihi target ${BATAS_RAMAI}`, 6000, true);
+      else if (!ramai && !stasiun('gateway').gangguan && total && pertama) bicara(stasiun('gateway'), `${jumlah(total)} panggilan sedang dilayani`, 5000);
+      ramaiSebelumnya = ramai;
 
       // Bilah ringkasan dan umpan aktivitas.
       // Komponen yang belum terpantau (AI Lokal tanpa OLLAMA_URL) tidak ikut dibandingkan.
       const terpantau = d.agent.komponen.filter((k) => k.status !== 'Belum terpantau');
       const normal = terpantau.filter((k) => k.status === 'Normal').length;
-      v('panggilan').textContent = String(daftar.length);
+      v('panggilan').textContent = jumlah(total);
       v('normal').textContent = `${normal}/${terpantau.length}`;
       v('meter').style.width = `${(normal / Math.max(1, terpantau.length)) * 100}%`;
       v('meter').classList.toggle('buruk', normal < terpantau.length);
@@ -562,6 +600,7 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
       const peranTool = (n: string) => stasiunTool(n).peran;
       const isiUmpan = [
         ...daftar.map((p) => item('icon-phone-call', 'u-tamu', `Penelepon · ${p.tahap}`, `${p.jenis}${p.topik && p.topik !== '—' ? ` · ${p.topik}` : ''}`, 'kini', '/panggilan-berjalan')),
+        ...(total > daftar.length ? [item('icon-users', 'u-tamu', `dan ${jumlah(total - daftar.length)} panggilan lain`, ['Mendengar', 'Memproses', 'Menjawab'].map((k) => `${k} ${jumlah(n(k))}`).join(' · '), 'kini', '/panggilan-berjalan')] : []),
         ...(d.agent.log === null ? [item('icon-file-x', 'u-gagal', 'Log tool gagal dibaca', 'Muat ulang untuk mencoba lagi.')] : []),
         ...log.map((l) => item(ikonTool(l.namaTool), l.hasil === 'Gagal' ? 'u-gagal' : '', `${peranTool(l.namaTool)} · ${l.hasil}`, `<span class="mono">${l.namaTool}</span> · ${fmtMs(l.durasiMs)}`, l.waktu, hrefTool(l.namaTool))),
       ].join('') || item('icon-coffee', '', 'Kantor sedang tenang', 'Belum ada panggilan atau pemanggilan tool.');
@@ -828,6 +867,11 @@ const awal = JSON.stringify({ agent, panggilan }).replace(/</g, '\\u003c');
   .lapis :global(.tag.gangguan .tag-dot) { background: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, .3); }
   .lapis :global(.tag.gangguan) { outline: 2px solid rgba(239, 68, 68, .7); }
   .lapis :global(.tag.tamu) { padding: 3px 8px 4px; transition: none; }
+  .lapis :global(.tag.lebih .tag-nama i) { color: #ef476f; }
+  .kantor.ramai [data-v="panggilan"] { color: var(--danger); }
+  .lapis :global(.tag-beban) { font-size: 11.5px; font-weight: 700; color: #b42318; }
+  :global(:root[data-theme='dark']) .lapis :global(.tag-beban) { color: #ff8a8a; }
+  .lapis :global(.tag-beban:empty) { display: none; }
   .lapis :global(.tag.tamu .tag-nama) { font-size: 13px; }
   .lapis :global(.tag.tamu .tag-nama i) { color: #16a34a; }
   .lapis :global(.tag.tamu .tag-peran) { font-size: 11px; }
