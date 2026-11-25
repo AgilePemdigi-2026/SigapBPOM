@@ -97,7 +97,8 @@ const KATA_BUKAN_PRODUK = new Set([...KATA_HENTI_NAMA, ...FILLER, 'ini', 'terseb
 const POLA_PRODUK = [
   /\bnama\s+produk(?:nya)?\s*(?:adalah|yaitu|:)?\s+(.+)/isu,
   /\bproduk(?:nya)?\s+(?:yang\s+(?:saya\s+)?(?:adukan|laporkan)\s+)?(?:bernama|adalah|yaitu)\s+(.+)/isu,
-  /\b(?:mengadukan|melaporkan|membeli|beli|mengonsumsi|meminum|memakai|menggunakan)\s+(?:produk\s+)?(.+)/isu,
+  // Termasuk bentuk lisan tanpa imbuhan ("konsumsi", "minum", "pakai") dan ejaan umum "mengkonsumsi".
+  /\b(?:mengadukan|melaporkan|membeli|beli|mengonsumsi|mengkonsumsi|konsumsi|meminum|minum|memakan|makan|memakai|pakai|pake|menggunakan)\s+(?:produk\s+)?(.+)/isu,
 ];
 // Pengantar nama pelapor: "nama saya X", juga bentuk singkat "nama X" / "namanya X" / "nama aku X". "Nama produk",
 // "nama toko", dan sejenisnya bukan nama pelapor.
@@ -122,6 +123,13 @@ function cariNomor(ucapan) {
   return { nomor: null, sisa: ucapan };
 }
 
+// Kata kerja lisan sering dipakai tanpa objek ("setelah minum perut mual"): kata sesudahnya bagian tubuh atau keterangan,
+// bukan nama produk.
+const KATA_AWAL_BUKAN_PRODUK = new Set([
+  ...KATA_BUKAN_PRODUK, 'perut', 'kulit', 'badan', 'kepala', 'mata', 'muka', 'wajah', 'tenggorokan', 'dada', 'lidah', 'bibir', 'tangan', 'kaki',
+  'langsung', 'jadi', 'terus', 'malah', 'rutin', 'sekali', 'beberapa', 'sedikit', 'banyak', 'sampai', 'hingga',
+]);
+
 function cariNamaProduk(teks) {
   for (const pola of POLA_PRODUK) {
     const cocok = teks.match(pola);
@@ -129,6 +137,8 @@ function cariNamaProduk(teks) {
     const awal = cocok[1].split(/[,.;!?]/)[0];
     const [bagian] = awal.split(POLA_BATAS_PRODUK);
     const nama = rapikan(bagian).split(' ').slice(0, KATA_MAKS.namaProduk).join(' ');
+    // Satu kata ber-"-nya" ("minum susunya") merujuk produk yang sudah disebut, bukan nama produk baru.
+    if (KATA_AWAL_BUKAN_PRODUK.has(nama.split(' ')[0].toLowerCase()) || /^\p{L}+nya$/iu.test(nama)) continue;
     if (nama && !adalahFiller(nama) && !KATA_HENTI_NAMA.has(nama.toLowerCase())) return nama.slice(0, PANJANG_MAKS.namaProduk);
   }
   return null;
