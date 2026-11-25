@@ -26,9 +26,19 @@ Feature: Complaint Handling
     Then I should see the message "Tanggapan tersimpan."
     And I should see "Tanggapan Disusun" in the "StatusPengaduan" element
 
+  # ADR 0006: tanggapan dikirim ke pelapor lewat WhatsApp dan pelapor ditandai sudah dihubungi sebelum tiket ditutup.
+  Scenario: Ticket cannot be closed before the reporter is contacted
+    Given I am on the "/pengaduan/detail" page
+    And the complaint status is "Tanggapan Disusun"
+    When I press "Tutup Tiket"
+    Then I should see the message "Tiket tidak dapat ditutup. Hubungi pelapor terlebih dahulu."
+    And I should see "Tanggapan Disusun" in the "StatusPengaduan" element
+
   Scenario: Ticket is closed (Basic Path)
     Given I am on the "/pengaduan/detail" page
     And the complaint status is "Tanggapan Disusun"
+    When I press "Tandai sudah dihubungi"
+    Then I should see "Sudah dihubungi" in the "StatusKontak" element
     When I press "Tutup Tiket"
     Then I should see the message "Tiket ditutup."
     And I should see "Selesai" in the "StatusPengaduan" element

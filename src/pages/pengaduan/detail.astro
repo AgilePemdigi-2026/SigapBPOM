@@ -48,12 +48,13 @@ const warna = d ? chip(d.labelStatus) : null;
 // Kontak pelapor (ADR 0006). Gagal dibaca: panel memakai nomor tersamar tanpa tombol.
 const kontak = d ? await ambilKontakPelapor(penanganan, d.noTiket) : null;
 const jenisKontak = d?.jenis === LABEL_JENIS_TIKET.pengaduan ? 'pengaduan' : 'eskalasi';
-const selesai = d?.status === 'selesai';
+// Setelah tanggapan resmi tersimpan, petugas mengirimkannya lalu menandai sudah dihubungi sebelum menutup tiket (ADR 0006).
+const adaTanggapan = d?.status === 'tanggapan_disusun' || d?.status === 'selesai';
 const petugas = Astro.locals.petugas;
-const tautanWa = d && kontak ? tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: jenisKontak, noTiket: d.noTiket, selesai, tanggapan: tanggapan?.isi, petugas: petugas?.nama })) : null;
+const tautanWa = d && kontak ? tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: jenisKontak, noTiket: d.noTiket, kirimTanggapan: adaTanggapan, tanggapan: tanggapan?.isi, petugas: petugas?.nama })) : null;
 const tautanTel = kontak ? tautanTelepon(kontak.noTelp) : null;
-// Pengaduan ditandai setelah ditutup (tanggapan resmi sudah ada); eskalasi kapan saja karena jawabannya disampaikan saat dihubungi.
-const bolehTandai = Boolean(kontak && !kontak.sudahDihubungi && (jenisKontak === 'eskalasi' || selesai));
+// Pengaduan ditandai setelah tanggapan resmi tersimpan; eskalasi kapan saja karena jawabannya disampaikan saat dihubungi.
+const bolehTandai = Boolean(kontak && !kontak.sudahDihubungi && (jenisKontak === 'eskalasi' || adaTanggapan));
 const waktuDihubungi = kontak?.dihubungiPada
   ? new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(kontak.dihubungiPada))
   : '';
@@ -156,12 +157,12 @@ const waktuDihubungi = kontak?.dihubungiPada
       setTimeout(() => { label.textContent = 'Salin'; }, 2000);
     });
 
-    // Tiket ditutup tanpa memuat ulang halaman: pesan WhatsApp beralih ke tindak lanjut dengan tanggapan resmi dan
-    // tombol tandai muncul (StepperPenanganan mengirim event ini setelah server menerima Tutup Tiket).
-    document.addEventListener('sigap:tiket-ditutup', (e) => {
+    // Tanggapan disimpan tanpa memuat ulang halaman: pesan WhatsApp beralih ke tanggapan resmi dan tombol tandai muncul
+    // (StepperPenanganan mengirim event ini setelah server menyimpan tanggapan).
+    document.addEventListener('sigap:tanggapan-tersimpan', (e) => {
       const tanggapan = (e as CustomEvent<{ tanggapan?: string }>).detail?.tanggapan ?? '';
       const wa = panel.querySelector<HTMLAnchorElement>('[data-name="ChatWhatsApp"]');
-      const tautan = tautanWhatsApp(panel.dataset.no, teksWhatsApp({ jenis: 'pengaduan', noTiket: panel.dataset.tiket || '', selesai: true, tanggapan, petugas: panel.dataset.petugas }));
+      const tautan = tautanWhatsApp(panel.dataset.no, teksWhatsApp({ jenis: 'pengaduan', noTiket: panel.dataset.tiket || '', kirimTanggapan: true, tanggapan, petugas: panel.dataset.petugas }));
       if (wa && tautan) wa.href = tautan;
       if (tandai) tandai.hidden = false;
     });

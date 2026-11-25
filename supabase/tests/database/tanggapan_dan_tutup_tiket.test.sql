@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(21);
 
 -- 1. Hak akses: pengguna anon ditolak
 set local role anon;
@@ -125,7 +125,8 @@ select is(
   'Tabel tanggapan memiliki 1 baris untuk tiket t6'
 );
 
--- Skenario D: Tutup tiket setelah tanggapan (REQ-6.6)
+-- Skenario D: Tutup tiket setelah tanggapan dan pelapor dihubungi (REQ-6.6, ADR 0006)
+select lives_ok($$ select public.tandai_sudah_dihubungi('ADU-20261104-0060') $$, 'Pelapor ditandai sudah dihubungi');
 select is(
   (select public.tutup_tiket('ADU-20261104-0060')),
   'selesai'::public.status_tiket,
@@ -143,13 +144,13 @@ reset role;
 select is(
   (select count(*)::int from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060' and jenis = 'tindak_lanjut'),
   1,
-  'Notifikasi SMS berhasil diantrekan saat tiket ditutup'
+  'Catatan kontak tindak lanjut tercatat satu baris'
 );
 
 select is(
   (select status_kirim from public.notifikasi where tiket_id = '99999999-0000-0000-0000-000000000060' and jenis = 'tindak_lanjut'),
-  'tertunda'::public.status_kirim_notifikasi,
-  'Status kirim notifikasi awal adalah tertunda'
+  'terkirim'::public.status_kirim_notifikasi,
+  'Catatan kontak berstatus sudah dihubungi'
 );
 set local role authenticated;
 set local "request.jwt.claim.sub" to '00000000-0000-0000-0000-000000000099';

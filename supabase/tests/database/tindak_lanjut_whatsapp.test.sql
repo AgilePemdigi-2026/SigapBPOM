@@ -1,7 +1,7 @@
 -- ADR 0006: tindak lanjut lewat WhatsApp manual. Jalur SMS mati, nomor lengkap hanya lewat ambil_kontak_pelapor untuk
 -- petugas, dan tandai_sudah_dihubungi mencatat kontak (ADU setelah ditutup, ESK langsung selesai).
 begin;
-select plan(25);
+select plan(26);
 
 -- 1. Jalur SMS otomatis sudah tidak ada
 select is((select count(*)::int from cron.job where jobname = 'kirim-notifikasi-sms'), 0, 'Jadwal kirim-notifikasi-sms dihapus');
@@ -58,20 +58,21 @@ select is((public.ambil_kontak_pelapor('ADU-20261124-1241') ->> 'sudah_dihubungi
 select throws_ok($$ select public.ambil_kontak_pelapor('ADU-20261124-9999') $$, 'P0002', null, 'Tiket tidak ada ditolak');
 select throws_ok($$ select public.ambil_kontak_pelapor(' ') $$, '22023', null, 'Nomor tiket kosong ditolak');
 
--- 5. Pengaduan: baru bisa ditandai setelah ditutup
-select throws_ok($$ select public.tandai_sudah_dihubungi('ADU-20261124-1242') $$, '55000', null, 'Pengaduan yang belum ditutup tidak bisa ditandai');
-select is(public.tutup_tiket('ADU-20261124-1241'), 'selesai'::public.status_tiket, 'Tiket ditutup');
+-- 5. Pengaduan: dihubungi setelah tanggapan disusun, baru ditutup (migrasi 20261125120000)
+select throws_ok($$ select public.tandai_sudah_dihubungi('ADU-20261124-1242') $$, '55000', null, 'Pengaduan tanpa tanggapan tidak bisa ditandai');
+select throws_ok($$ select public.tutup_tiket('ADU-20261124-1241') $$, 'SGHUB', null, 'Tiket tidak bisa ditutup sebelum pelapor dihubungi');
 select is(
   (select sudah_dihubungi from public.detail_pengaduan_tiket where no_tiket = 'ADU-20261124-1241' limit 1),
   false,
-  'Tiket selesai tampil belum dihubungi'
+  'Tanggapan disusun tampil belum dihubungi'
 );
-select is((public.tandai_sudah_dihubungi('ADU-20261124-1241') ->> 'sudah_dihubungi')::boolean, true, 'Pengaduan selesai ditandai sudah dihubungi');
+select is((public.tandai_sudah_dihubungi('ADU-20261124-1241') ->> 'sudah_dihubungi')::boolean, true, 'Pengaduan bertanggapan ditandai sudah dihubungi');
 select is(
   (select sudah_dihubungi from public.detail_pengaduan_tiket where no_tiket = 'ADU-20261124-1241' limit 1),
   true,
   'Detail pengaduan menampilkan sudah dihubungi'
 );
+select is(public.tutup_tiket('ADU-20261124-1241'), 'selesai'::public.status_tiket, 'Tiket ditutup setelah pelapor dihubungi');
 
 -- Menandai ulang tidak mengubah waktu kontak pertama.
 reset role;

@@ -174,12 +174,15 @@ Then('pesan WhatsApp untuk pelapor memuat nomor tiket {string} dan tanggapan res
   const { penanganan } = uc06(this);
   const kontak = await penanganan.ambilKontakPelapor(noTiket);
   const [tanggapan] = await penanganan.ambilTanggapan(noTiket);
-  const selesai = tiketDi(this, noTiket).status === 'selesai';
-  const tautan = tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: 'pengaduan', noTiket, selesai, tanggapan: tanggapan?.isi }));
+  const kirimTanggapan = ['tanggapan_disusun', 'selesai'].includes(tiketDi(this, noTiket).status);
+  const tautan = tautanWhatsApp(kontak.noTelp, teksWhatsApp({ jenis: 'pengaduan', noTiket, kirimTanggapan, tanggapan: tanggapan?.isi }));
   assert.ok(tautan, 'nomor pelapor tidak sah');
   const teks = decodeURIComponent(new URL(tautan).searchParams.get('text') ?? '');
   assert.ok(teks.includes(`${noTiket} telah selesai ditindaklanjuti`), teks);
   assert.ok(teks.includes(tanggapan.isi), teks);
+});
+Given('pelapor sudah dihubungi', async function () {
+  await uc06(this).penanganan.tandaiSudahDihubungi(uc06(this).noTiket);
 });
 Then('pelapor tiket {string} tercatat sudah dihubungi', async function (noTiket) {
   assert.equal((await uc06(this).penanganan.ambilKontakPelapor(noTiket)).sudahDihubungi, true);

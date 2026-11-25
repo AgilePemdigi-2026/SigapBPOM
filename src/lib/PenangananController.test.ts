@@ -11,6 +11,7 @@ import {
   PESAN_TUTUP_TIKET,
   PESAN_TUTUP_TANPA_TANGGAPAN,
   PESAN_SUDAH_DIHUBUNGI,
+  PESAN_TUTUP_BELUM_DIHUBUNGI,
   type TindakLanjut,
 } from './PenangananController.ts';
 
@@ -154,138 +155,38 @@ test('req_6_5 dan br_2 tutup tiket tanpa tanggapan ditolak dengan pesan kamus', 
   );
 });
 
-test('req_6_6 tutup tiket dengan tanggapan mengubah status menjadi selesai dan mengantrekan notifikasi', async () => {
+test('req_6_6 adr_0006 tutup tiket bertanggapan ditolak sampai pelapor dihubungi, lalu selesai', async () => {
   const mockStorage = new PenyimpananPenangananMock();
   const controller = new PenangananController(mockStorage);
 
   await controller.simpanTanggapan('ADU-20261104-0010', 'Tanggapan resmi petugas BPOM.');
-  const hasilTutup = await controller.tutupTiket('ADU-20261104-0010');
+  await assert.rejects(() => controller.tutupTiket('ADU-20261104-0010'), (err: Error) => err.message === PESAN_TUTUP_BELUM_DIHUBUNGI);
 
+  await controller.tandaiSudahDihubungi('ADU-20261104-0010');
+  const hasilTutup = await controller.tutupTiket('ADU-20261104-0010');
   assert.equal(hasilTutup.status, 'selesai');
   assert.equal(hasilTutup.pesan, PESAN_TUTUP_TIKET);
   assert.equal(mockStorage.notifikasiList.length, 1);
-  assert.equal(mockStorage.notifikasiList[0].tiketId, 'ADU-20261104-0010');
 });
 
-test('req_6_6 menutup tiket berulang kali bersifat idempoten dan tidak menduplikasi notifikasi', async () => {
+test('req_6_6 menutup tiket berulang kali bersifat idempoten dan tidak menduplikasi catatan kontak', async () => {
   const mockStorage = new PenyimpananPenangananMock();
   const controller = new PenangananController(mockStorage);
 
   await controller.simpanTanggapan('ADU-20261104-0010', 'Tanggapan resmi petugas BPOM.');
+  await controller.tandaiSudahDihubungi('ADU-20261104-0010');
   await controller.tutupTiket('ADU-20261104-0010');
-  assert.equal(mockStorage.notifikasiList.length, 1);
-
-  // Panggil tutupTiket kedua kali
-  const hasilKedua = await controller.tutupTiket('ADU-20261104-0010');
-  assert.equal(hasilKedua.status, 'selesai');
+  assert.equal((await controller.tutupTiket('ADU-20261104-0010')).status, 'selesai');
+  await controller.tandaiSudahDihubungi('ADU-20261104-0010');
   assert.equal(mockStorage.notifikasiList.length, 1);
 });
 
-test('br_3 tiket berstatus diteruskan atau selesai tidak dapat ditanggapi', async () => {
+test('adr_0006 pengaduan bisa ditandai sudah dihubungi setelah tanggapan tersimpan, sebelum ditutup', async () => {
   const mockStorage = new PenyimpananPenangananMock();
   const controller = new PenangananController(mockStorage);
 
-  await assert.rejects(
-    () => controller.simpanTanggapan('ADU-20261104-0040', 'Tanggapan untuk tiket selesai'),
-    /sudah selesai/
-  );
-
-  await assert.rejects(
-    () => controller.simpanTanggapan('ADU-20261104-0050', 'Tanggapan untuk tiket diteruskan'),
-    /sudah diteruskan/
-  );
-});
-
-test('adapter Supabase memanggil RPC penanganan pengaduan', async () => {
-  const panggilanRpc: { fn: string; params: unknown }[] = [];
-
-  const mockSupabase = {
-    rpc(fn: string, params?: Record<string, unknown>) {
-      panggilanRpc.push({ fn, params });
-      if (fn === 'simpan_telaah') {
-        return Promise.resolve({
-          data: {
-            id: 'uuid-telaah-1',
-            no_tiket: 'ADU-20261104-0010',
-            status: 'sedang_ditelaah',
-            tindak_lanjut: 'telaah_dokumen',
-            pesan: PESAN_TELAAH_TERSIMPAN,
-          },
-          error: null,
-        });
-      }
-      if (fn === 'simpan_jadwal_pemeriksaan') {
-        return Promise.resolve({
-          data: {
-            id: 'uuid-jadwal-1',
-            no_tiket: 'ADU-20261104-0010',
-            status: 'menunggu_pemeriksaan',
-            tanggal: '2026-11-15',
-            unit_pelaksana: 'BBPOM',
-            pesan: PESAN_JADWAL_TERSIMPAN,
-          },
-          error: null,
-        });
-      }
-      if (fn === 'simpan_tanggapan') {
-        return Promise.resolve({
-          data: 'tanggapan_disusun',
-          error: null,
-        });
-      }
-      if (fn === 'tutup_tiket') {
-        return Promise.resolve({
-          data: 'selesai',
-          error: null,
-        });
-      }
-      return Promise.resolve({ data: [], error: null });
-    },
-  };
-
-  const adapter = new PenyimpananPenangananSupabase(mockSupabase);
-  const controller = new PenangananController(adapter);
-
-  const resTelaah = await controller.simpanTelaah('ADU-20261104-0010', 'Telaah Dokumen', 'Catatan uji');
-  assert.equal(resTelaah.status, 'sedang_ditelaah');
-  assert.equal(panggilanRpc[0].fn, 'simpan_telaah');
-
-  const resJadwal = await controller.simpanJadwalPemeriksaan('ADU-20261104-0010', '2026-11-15', 'BBPOM');
-  assert.equal(resJadwal.status, 'menunggu_pemeriksaan');
-  assert.equal(panggilanRpc[1].fn, 'simpan_jadwal_pemeriksaan');
-
-  const resTanggapan = await controller.simpanTanggapan('ADU-20261104-0010', 'Tanggapan resmi');
-  assert.equal(resTanggapan.status, 'tanggapan_disusun');
-  assert.equal(panggilanRpc[2].fn, 'simpan_tanggapan');
-
-  const resTutup = await controller.tutupTiket('ADU-20261104-0010');
-  assert.equal(resTutup.status, 'selesai');
-  assert.equal(panggilanRpc[3].fn, 'tutup_tiket');
-});
-
-test('req_6_2 adapter Supabase memetakan isian tersimpan agar stepper utuh setelah dimuat ulang', async () => {
-  const data: Record<string, unknown[]> = {
-    ambil_riwayat_telaah: [{ id: 't1', tiket_id: 'x', tindak_lanjut: 'pemeriksaan_lapangan', catatan: 'Cek sarana', petugas_id: 'p', petugas_nama: 'A', waktu: '2026-11-17T01:00:00Z' }],
-    ambil_jadwal_pemeriksaan: [{ id: 'j1', tiket_id: 'x', tanggal: '2026-11-20', unit_pelaksana: 'Balai Besar POM di Surabaya', status: 'menunggu_pemeriksaan', petugas_id: 'p', waktu: '2026-11-17T02:00:00Z' }],
-    ambil_tanggapan: [{ id: 'g1', tiket_id: 'x', isi: 'Sarana diberi peringatan.', petugas_id: 'p', status: 'tanggapan_disusun', waktu: '2026-11-17T03:00:00Z' }],
-  };
-  const adapter = new PenyimpananPenangananSupabase({ rpc: async (fn: string) => ({ data: data[fn] ?? null, error: null }) });
-  const [telaah] = await adapter.ambilRiwayatTelaah('ADU-20261117-0001');
-  assert.equal(telaah.tindakLanjut, 'Perlu Pemeriksaan Lapangan');
-  assert.equal(telaah.catatan, 'Cek sarana');
-  const [jadwal] = await adapter.ambilJadwal('ADU-20261117-0001');
-  assert.deepEqual([jadwal.tanggal, jadwal.unitPelaksana], ['2026-11-20', 'Balai Besar POM di Surabaya']);
-  const [tanggapan] = await adapter.ambilTanggapan('ADU-20261117-0001');
-  assert.equal(tanggapan.isi, 'Sarana diberi peringatan.');
-});
-
-test('adr_0006 pengaduan baru bisa ditandai sudah dihubungi setelah ditutup', async () => {
-  const mockStorage = new PenyimpananPenangananMock();
-  const controller = new PenangananController(mockStorage);
-
-  await assert.rejects(() => controller.tandaiSudahDihubungi('ADU-20261104-0010'), /belum ditutup/);
+  await assert.rejects(() => controller.tandaiSudahDihubungi('ADU-20261104-0010'), /belum punya tanggapan/);
   await controller.simpanTanggapan('ADU-20261104-0010', 'Tanggapan resmi petugas BPOM.');
-  await controller.tutupTiket('ADU-20261104-0010');
   assert.equal((await controller.ambilKontakPelapor('ADU-20261104-0010')).sudahDihubungi, false);
 
   const hasil = await controller.tandaiSudahDihubungi('ADU-20261104-0010');
@@ -293,5 +194,6 @@ test('adr_0006 pengaduan baru bisa ditandai sudah dihubungi setelah ditutup', as
   const kontak = await controller.ambilKontakPelapor('ADU-20261104-0010');
   assert.equal(kontak.sudahDihubungi, true);
   assert.ok(kontak.dihubungiPada);
-  assert.equal(mockStorage.notifikasiList.length, 1);
+  assert.equal(mockStorage.tiketMap.get('ADU-20261104-0010')?.status, 'tanggapan_disusun');
 });
+

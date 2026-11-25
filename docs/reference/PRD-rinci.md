@@ -66,7 +66,7 @@ Prioritas pemenuhan kebutuhan: petugas paling penting karena bertanggung jawab a
 
 **Petugas, pemantauan.** Login, lihat ringkasan statistik dan kasus perlu tindak lanjut, buka panggilan berjalan (live), buka antrean tiket eskalasi, klik "Buka Kasus".
 
-**Petugas, penanganan pengaduan.** Buka daftar pengaduan, klik "Telaah", pilih tindak lanjut (Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM), isi catatan, simpan. Jika perlu pemeriksaan, isi jadwal dan unit pelaksana. Susun tanggapan, simpan, tutup tiket. Hubungi pelapor lewat WhatsApp atau telepon dari panel kontak, lalu tandai sudah dihubungi (ADR 0006).
+**Petugas, penanganan pengaduan.** Buka daftar pengaduan, klik "Telaah", pilih tindak lanjut (Telaah Dokumen, Perlu Pemeriksaan Lapangan, Bukan Kewenangan BPOM), isi catatan, simpan. Jika perlu pemeriksaan, isi jadwal dan unit pelaksana. Susun tanggapan, simpan. Kirim tanggapan ke pelapor lewat WhatsApp atau telepon dari panel kontak, tandai sudah dihubungi, lalu tutup tiket (ADR 0006).
 
 **Petugas, basis pengetahuan dan laporan.** Tambah materi dengan rujukan sumber wajib, nonaktifkan materi usang, telusuri graf pengetahuan. Pilih periode, tampilkan rekap, unduh PDF atau CSV jika punya hak ekspor.
 
@@ -181,7 +181,7 @@ Kebutuhan:
 - REQ-6.3 Jadwal pemeriksaan dengan tanggal dan unit pelaksana tersimpan dengan status "Menunggu Pemeriksaan".
 - REQ-6.4 Tanggapan resmi tersimpan dengan status "Tanggapan Disusun".
 - REQ-6.5 Tiket tanpa tanggapan tersimpan tidak bisa ditutup (BR-2).
-- REQ-6.6 Tutup tiket: status "Selesai", lalu petugas menghubungi pelapor lewat WhatsApp (pesan memuat tanggapan resmi) atau telepon dan menandai "sudah dihubungi" (ADR 0006, diusulkan; sebelumnya SMS).
+- REQ-6.6 Petugas mengirim tanggapan resmi ke pelapor lewat WhatsApp (pesan memuat tanggapan) atau telepon dan menandai "sudah dihubungi"; baru setelah itu tiket bisa ditutup dengan status "Selesai" (ADR 0006, diusulkan; sebelumnya tutup tiket mengirim SMS).
 
 Mesin status pengaduan:
 
@@ -193,7 +193,7 @@ Belum Ditelaah
 Sedang Ditelaah | Menunggu Pemeriksaan
   -> Tanggapan Disusun          (tanggapan tersimpan)
 Tanggapan Disusun
-  -> Selesai                    (Tutup Tiket, lalu petugas menghubungi pelapor)
+  -> Selesai                    (pelapor dihubungi dan ditandai, lalu Tutup Tiket)
 ```
 
 Halaman detail memakai stepper: Telaah, Jadwal Pemeriksaan (opsional), Susun Tanggapan, Tutup Tiket.
@@ -464,6 +464,7 @@ Teks berikut wajib dipakai persis, karena menjadi dasar skenario penerimaan.
 | 06 | Tanggapan tersimpan | Tanggapan tersimpan. |
 | 06 | Tutup tiket | Tiket ditutup. |
 | 06 | Pelapor sudah dihubungi (ADR 0006, usulan) | Pelapor ditandai sudah dihubungi. |
+| 06 | Tutup tiket sebelum pelapor dihubungi (ADR 0006, usulan) | Tiket tidak dapat ditutup. Hubungi pelapor terlebih dahulu. |
 | 06 | Tutup tanpa tanggapan | Tiket tidak dapat ditutup. Susun tanggapan terlebih dahulu. |
 | 07 | Materi tersimpan | Materi siap digunakan sistem. |
 | 07 | Materi dinonaktifkan | Materi ditandai tidak aktif. |

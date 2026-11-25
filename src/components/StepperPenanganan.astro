@@ -178,6 +178,8 @@ const ikonTahap: Record<TahapStepper, string> = {
         >{tanggapan}</textarea>
       </div>
 
+      <p class="tanggapan-catatan">Tanggapan ini dikirim ke pelapor lewat tombol Chat WhatsApp di panel kontak. Tandai pelapor sudah dihubungi, lalu tutup tiket.</p>
+
       <div class="action-row tanggapan-actions">
         <button type="button" class="btn-primary" id="btn-simpan-tanggapan">Simpan Tanggapan</button>
         <button type="button" class="pill btn-tutup" id="btn-tutup-tiket">Tutup Tiket</button>
@@ -410,6 +412,8 @@ const ikonTahap: Record<TahapStepper, string> = {
 
         perbaruiStatusPengaduan(d?.data?.status || 'tanggapan_disusun', d?.data?.labelStatus || 'Tanggapan Disusun');
         tampilkanPesan(d?.message || 'Tanggapan tersimpan.', 'success');
+        // Panel kontak pelapor menyiapkan pesan WhatsApp berisi tanggapan ini (ADR 0006).
+        document.dispatchEvent(new CustomEvent('sigap:tanggapan-tersimpan', { detail: { tanggapan: isi } }));
       } catch {
         selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
@@ -438,8 +442,6 @@ const ikonTahap: Record<TahapStepper, string> = {
         // Status tiket baru berubah menjadi tertutup setelah server merespons sukses!
         perbaruiStatusPengaduan(d?.data?.status || 'selesai', d?.data?.labelStatus || 'Selesai');
         tampilkanPesan(d?.message || 'Tiket ditutup.', 'success');
-        // Panel kontak pelapor menyiapkan pesan WhatsApp tindak lanjut (ADR 0006).
-        document.dispatchEvent(new CustomEvent('sigap:tiket-ditutup', { detail: { tanggapan: textTanggapan.value } }));
       } catch {
         selesai();
         tampilkanPesan('Terjadi kesalahan pada sistem.', 'error');
@@ -454,6 +456,7 @@ const ikonTahap: Record<TahapStepper, string> = {
 </script>
 
 <style>
+  .tanggapan-catatan { margin: 0; font-size: 13px; color: var(--muted); }
   .stepper-penanganan {
     padding: 24px 28px;
     display: flex;

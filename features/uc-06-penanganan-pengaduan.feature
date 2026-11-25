@@ -40,6 +40,7 @@ Fitur: Menangani pengaduan
 
   Skenario: Tiket ditutup (Basic Path)
     Diketahui petugas membuka detail pengaduan "ADU-20261020-0456" berstatus "Tanggapan Disusun"
+    Dan pelapor sudah dihubungi
     Ketika petugas menekan "Tutup Tiket"
     Maka sistem menampilkan pesan "Tiket ditutup."
     Dan StatusPengaduan menampilkan "Selesai"
@@ -68,7 +69,8 @@ Fitur: Menangani pengaduan
     Dan petugas menekan "Simpan Tanggapan"
     Maka sistem menampilkan pesan "Tanggapan tersimpan."
     Dan StatusPengaduan menampilkan "Tanggapan Disusun"
-    Ketika petugas menekan "Tutup Tiket"
+    Ketika petugas menekan "Tandai sudah dihubungi"
+    Dan petugas menekan "Tutup Tiket"
     Maka sistem menampilkan pesan "Tiket ditutup."
     Dan StatusPengaduan menampilkan "Selesai"
 
@@ -83,11 +85,17 @@ Fitur: Menangani pengaduan
     Maka StepperPenanganan menampilkan tahap "Telaah", "Jadwal Pemeriksaan", "Susun Tanggapan", dan "Tutup Tiket"
     Dan tahap "Susun Tanggapan" aktif
 
-  # Basic Path langkah 16 lewat WhatsApp manual (ADR 0006, usulan pengganti SMS T-F7.3-01).
-  Skenario: Petugas menghubungi pelapor lewat WhatsApp setelah tiket ditutup (Basic Path langkah 16)
+  # Basic Path langkah 16 lewat WhatsApp manual (ADR 0006, usulan pengganti SMS T-F7.3-01): tanggapan dikirim ke
+  # pelapor sebelum tiket ditutup, sehingga Selesai berarti pelapor sudah menerima tanggapan.
+  Skenario: Petugas mengirim tanggapan lewat WhatsApp lalu menutup tiket (Basic Path langkah 16)
     Diketahui petugas membuka detail pengaduan "ADU-20261020-0456" berstatus "Tanggapan Disusun"
-    Ketika petugas menekan "Tutup Tiket"
     Maka pesan WhatsApp untuk pelapor memuat nomor tiket "ADU-20261020-0456" dan tanggapan resmi
+    Ketika petugas menekan "Tutup Tiket"
+    Maka sistem menampilkan pesan "Tiket tidak dapat ditutup. Hubungi pelapor terlebih dahulu."
+    Dan StatusPengaduan menampilkan "Tanggapan Disusun"
     Ketika petugas menekan "Tandai sudah dihubungi"
     Maka sistem menampilkan pesan "Pelapor ditandai sudah dihubungi."
     Dan pelapor tiket "ADU-20261020-0456" tercatat sudah dihubungi
+    Ketika petugas menekan "Tutup Tiket"
+    Maka sistem menampilkan pesan "Tiket ditutup."
+    Dan StatusPengaduan menampilkan "Selesai"
