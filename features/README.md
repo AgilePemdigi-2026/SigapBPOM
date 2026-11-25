@@ -12,7 +12,7 @@ Skenario control yang ada: UC-01 (cek registrasi dan tool `cek_registrasi_bpom`)
 
 Skenario `@belum-tersedia` menunggu bagian yang belum dibuat, sehingga tidak ikut `npm run test:bdd`. Daftarnya bisa dilihat dengan `npx cucumber-js --profile belum` (langkahnya berstatus pending). Tag dicabut begitu bagian itu masuk main. Saat ini tidak ada; skenario SMS tindak lanjut UC-06 diganti skenario WhatsApp manual (ADR 0006).
 
-Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), dan UC-07 (Tabel B.8).
+Skenario `@ui` yang ada: UC-01 (Tabel B.2), UC-02 (Tabel B.3), UC-03 (Tabel B.4), UC-04 (Tabel B.5), UC-05 (Tabel B.6), UC-06 (Tabel B.7), UC-07 (Tabel B.8), dan UC-08 (Tabel B.9).
 Skenario Provider AI UC-04 (`features/uc-04-provider-ai.ui.feature`, REQ-4.5) mengatur kondisi perangkat AI lokal di server tiruan port 8091. Pada stack lengkap (langkah di bawah, sama dengan CI) server itu juga menjadi Ollama tiruan: Voice Gateway memeriksa `/api/tags`-nya lewat `OLLAMA_URL` setiap `OLLAMA_PERIKSA_MS`, dan dashboard membaca kesehatan dari gateway lewat `VOICE_GATEWAY_URL=http://127.0.0.1:8090`, jadi feature ini berjalan bersama UC-01 dan UC-02. Langkah kondisi perangkat menunggu sampai `/api/pantau-agent` dashboard melaporkan status AI Lokal yang diminta.
 
 ## Menjalankan skenario `@ui`
