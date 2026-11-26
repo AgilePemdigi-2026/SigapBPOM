@@ -214,6 +214,30 @@ test('req_2_2 data tidak lengkap hanya memicu tanya ulang untuk data yang kurang
   assert.equal(h.jawaban, 'Mohon sebutkan nomor telepon Anda.');
 });
 
+// Masukan uji coba 2026-11-25: nama produk yang didahului kata kerja tidak baku ("konsumsi", "minum", "pakai") tidak
+// tertangkap, jadi agen menanyakan ulang nama produk yang sudah disebut.
+
+test('req_2_2 transkrip uji coba: nama produk setelah kata kerja tidak baku tidak ditanyakan ulang', async () => {
+  const c = new PengaduanController();
+  c.mulai(ID);
+  const h = await c.tangani(ID, 'saya mengalami sesak nafas setelah konsumsi susu uht greenfield');
+  assert.deepEqual(h.kurang, ['namaPelapor', 'nomorTelepon']);
+  assert.equal(h.jawaban, 'Mohon sebutkan nama dan nomor telepon Anda. Boleh disebutkan sekaligus.');
+});
+
+test('req_2_2 nama produk dikenali setelah kata kerja konsumsi tidak baku', () => {
+  for (const [ucapan, produk] of [
+    ['saya mengalami sesak nafas setelah konsumsi susu uht greenfield', 'susu uht greenfield'],
+    ['anak saya muntah setelah mengkonsumsi Biskuit Coklat Ceria', 'Biskuit Coklat Ceria'],
+    ['saya pusing setelah minum Jamu Pegal Linu kemarin', 'Jamu Pegal Linu'],
+    ['kulit saya gatal setelah pakai Krim Wajah Glowing', 'Krim Wajah Glowing'],
+    ['perut saya sakit sehabis makan Mie Instan Pedas', 'Mie Instan Pedas'],
+    ['saya diare setelah memakan Sosis Ayam Enak', 'Sosis Ayam Enak'],
+  ]) {
+    assert.equal(ekstrak(ucapan).namaProduk, produk, ucapan);
+  }
+});
+
 // Masukan uji coba 2026-11-04: nomor ditanya berulang tanpa penjelasan, dan data ditanyakan satu per satu.
 
 test('req_2_2 transkrip uji coba: jawaban pertama tanpa pola tetap diisi, sisanya ditanyakan sekaligus', async () => {
