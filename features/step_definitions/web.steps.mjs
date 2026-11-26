@@ -80,6 +80,10 @@ async function masuk(page, email, password) {
 }
 
 Given('I am on the {string} page', async function (path) {
+  if (path === '/riwayat-percakapan/detail' && this.percakapanAktif) {
+    await this.page.goto(`${URL_DASAR}/riwayat-percakapan/detail?id=${encodeURIComponent(this.percakapanAktif)}`);
+    return;
+  }
   if (path === '/pengaduan/detail' && this.noTiketAktif) {
     await this.page.goto(`${URL_DASAR}/pengaduan/detail?tiket=${encodeURIComponent(this.noTiketAktif)}`);
     return;
@@ -366,4 +370,49 @@ Then('I should be asked {string}', async function (teks) {
     if (Date.now() > batas) throw new Error(`Konfirmasi "${teks}" tidak muncul; yang muncul: ${JSON.stringify(this.dialog ?? [])}`);
     await this.page.waitForTimeout(200);
   }
+});
+
+// UC-05 (Tabel B.6): percakapan selesai dengan transkrip yang menyebut nomor telepon, agar penyamaran view ucapan_petugas
+// (NFR-13) tampil sebagai "0812****7890". Dimulai sekarang, sehingga lebih baru dari percakapan skenario sebelumnya dan
+// "Lihat Transkrip" pertama di Riwayat Percakapan (urut waktu_mulai terbaru) membukanya.
+Given('there is a recorded conversation with a transcript', function () {
+  if (MODE_TIRUAN) return 'skipped';
+  const penelepon = randomUUID();
+  const id = randomUUID();
+  sqlLokal(
+    `insert into public.penelepon (id, no_telp, nama_pelapor) values ('${penelepon}', '081234567890', 'Budi Santoso')`,
+    `insert into public.percakapan (id, penelepon_id, waktu_mulai, waktu_selesai, jenis_interaksi, status_penyelesaian, topik, ringkasan)
+      values ('${id}', '${penelepon}', now(), now() + interval '2 minutes', 'pengaduan', 'selesai_ai',
+      'Kosmetik', 'Penelepon menanyakan krim wajah yang membuat kulit iritasi.')`,
+    `insert into public.ucapan (percakapan_id, urutan, pembicara, teks, detik_ke) values
+      ('${id}', 1, 'penelepon', 'Krim wajah saya bikin iritasi, nomor saya 081234567890.', 4),
+      ('${id}', 2, 'sistem', 'Baik, keluhan Anda sudah kami catat.', 9)`,
+  );
+  this.percakapanAktif = id;
+});
+
+// UC-08 (Tabel B.9): data layanan September 2026 untuk periode "01-09-2026 s.d. 30-09-2026".
+Given('there is service data in September 2026', function () {
+  if (MODE_TIRUAN) return; // PenyimpananLaporanMock sudah berisi data contoh September 2026.
+  sqlLokal(
+    `insert into public.percakapan (id, waktu_mulai, waktu_selesai, jenis_interaksi, status_penyelesaian, topik)
+      select gen_random_uuid(), timestamptz '2026-09-15 03:00+00', timestamptz '2026-09-15 03:05+00', 'informasi_produk', 'selesai_ai', 'Pangan Olahan'
+      where not exists (select 1 from public.percakapan where waktu_mulai >= '2026-09-01' and waktu_mulai < '2026-10-01')`,
+  );
+});
+
+Given('the service recapitulation is displayed', async function () {
+  await isi(this.page, 'Periode', '01-09-2026 s.d. 30-09-2026');
+  await tekan(this.page, 'Tampilkan');
+  await tunggu(elemen(this.page, 'TabelRekapitulasi'), 'elemen TabelRekapitulasi');
+});
+
+// Hak ekspor diperiksa server di setiap permintaan (RPC boleh_ekspor), jadi cukup dicabut dari akun uji yang sudah login.
+Given('I am logged in as an officer without export permission', function () {
+  if (MODE_TIRUAN) return 'skipped';
+  sqlLokal(`update public.petugas set hak_ekspor = false where id = '${ID_AKUN_UJI}'`);
+});
+
+After({ tags: '@uc-08' }, function () {
+  if (!MODE_TIRUAN) sqlLokal(`update public.petugas set hak_ekspor = true where id = '${ID_AKUN_UJI}'`);
 });
